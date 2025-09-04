@@ -38,9 +38,12 @@ const Navbar = () => {
             >
               FAQ
             </Link>
-            <button className="bg-blue-600 hover:cursor-pointer hover:bg-blue-700 text-white px-4 py-2 rounded-full text-sm font-medium transition duration-200" title='Login'>
+            <Link 
+              to="/login"
+              className="bg-blue-600 hover:cursor-pointer hover:bg-blue-700 text-white px-4 py-2 rounded-full text-sm font-medium transition duration-200"
+            >
               Login
-            </button>
+            </Link>
           </div>
         </div>
       </div>

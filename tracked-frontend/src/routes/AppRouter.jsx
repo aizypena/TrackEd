@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Home from '../pages/Home';
+import Login from '../pages/Login';
 import AdminRoutes from './AdminRoutes';
 import StudentRoutes from './StudentRoutes';
 import TrainerRoutes from './TrainerRoutes';
@@ -13,6 +14,7 @@ const AppRouter = () => {
       <Routes>
         {/* Home/Landing Page */}
         <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
         
         {/* Admin Routes */}
         <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
