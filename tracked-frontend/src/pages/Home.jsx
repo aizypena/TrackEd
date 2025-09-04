@@ -1,46 +1,23 @@
 import { Link } from 'react-router-dom';
+import Navbar from '../layouts/applicants/Navbar';
 
 const Home = () => {
   const portals = [
     {
-      title: "Admin Portal",
-      description: "Manage users, courses, and system settings",
-      link: "/admin/dashboard",
-      color: "blue",
-      icon: "👤",
-      features: ["User Management", "Course Setup", "Reports & Analytics"]
-    },
-    {
-      title: "Student Portal",
-      description: "Access courses, track progress, and complete assignments",
-      link: "/students/dashboard",
-      color: "green",
-      icon: "🎓",
-      features: ["Course Access", "Progress Tracking", "Assignments"]
-    },
-    {
-      title: "Trainer Portal",
-      description: "Manage classes, monitor progress, and upload materials",
-      link: "/trainers/dashboard",
-      color: "purple",
-      icon: "👨‍🏫",
-      features: ["Class Management", "Student Monitoring", "Materials Upload"]
-    },
-    {
-      title: "Staff Portal",
-      description: "Handle scheduling, resources, and communication",
-      link: "/staff/dashboard",
-      color: "orange",
-      icon: "👥",
-      features: ["Schedule Management", "Resource Allocation", "Communication"]
-    },
-    {
-      title: "Applicant Portal",
-      description: "Apply for programs and track application status",
+      title: "Apply for Training",
+      description: "Start your journey with SMI's training programs",
       link: "/applicants/dashboard",
       color: "indigo",
       icon: "📝",
-      features: ["Program Applications", "Status Tracking", "Document Upload"]
+      features: ["Browse Programs", "Submit Applications", "Track Status", "Upload Documents"]
+    },
+    {
+      title: "Student Access",
+      description: "Continue your learning journey with SMI",
+      link: "/students/dashboard",
+      color: "green",
+      icon: "🎓",
+      features: ["Access Courses", "Track Progress", "Complete Assignments", "View Certificates"]
     }
   ];
 
@@ -57,50 +34,36 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-center">
-            <img 
-              src="/smi-logo.jpg" 
-              alt="SMI Logo" 
-              className="h-12 w-auto mr-4"
-            />
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">TrackEd</h1>
-              <p className="text-sm text-gray-600">Training Tracking System</p>
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* Navbar */}
+      <Navbar />
 
       {/* Hero Section */}
       <section className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            Welcome to TrackEd
+            Welcome to SMI Training Institute
           </h2>
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            A comprehensive training management system designed to streamline education, 
-            track progress, and enhance learning experiences for all stakeholders.
+            Empowering individuals through comprehensive training programs. 
+            Join SMI to advance your skills, achieve your goals, and transform your career.
           </p>
           
           {/* Features Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <div className="text-3xl mb-3">📊</div>
-              <h3 className="font-semibold text-gray-900 mb-2">Progress Tracking</h3>
-              <p className="text-gray-600 text-sm">Monitor learning progress and performance in real-time</p>
+              <div className="text-3xl mb-3">🏆</div>
+              <h3 className="font-semibold text-gray-900 mb-2">Quality Training</h3>
+              <p className="text-gray-600 text-sm">Industry-leading programs designed by experienced professionals</p>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <div className="text-3xl mb-3">🎯</div>
-              <h3 className="font-semibold text-gray-900 mb-2">Goal Management</h3>
-              <p className="text-gray-600 text-sm">Set and achieve learning objectives efficiently</p>
+              <div className="text-3xl mb-3">📈</div>
+              <h3 className="font-semibold text-gray-900 mb-2">Career Growth</h3>
+              <p className="text-gray-600 text-sm">Accelerate your career with our comprehensive skill development programs</p>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <div className="text-3xl mb-3">🤝</div>
-              <h3 className="font-semibold text-gray-900 mb-2">Collaboration</h3>
-              <p className="text-gray-600 text-sm">Connect trainers, students, and administrators seamlessly</p>
+              <div className="text-3xl mb-3">🎓</div>
+              <h3 className="font-semibold text-gray-900 mb-2">Certification</h3>
+              <p className="text-gray-600 text-sm">Earn recognized certificates to validate your expertise</p>
             </div>
           </div>
         </div>
@@ -110,11 +73,12 @@ const Home = () => {
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Choose Your Portal</h2>
-            <p className="text-lg text-gray-600">Access your dedicated workspace based on your role</p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Get Started Today</h2>
+            <p className="text-lg text-gray-600">Choose how you'd like to begin your journey with SMI</p>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-4xl mx-auto"
+>
             {portals.map((portal, index) => (
               <div key={index} className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
                 <div className="p-6">
@@ -161,10 +125,10 @@ const Home = () => {
                 alt="SMI Logo" 
                 className="h-8 w-auto mr-3 opacity-80"
               />
-              <span className="text-lg font-semibold">TrackEd</span>
+              <span className="text-lg font-semibold">SMI Training Institute</span>
             </div>
             <p className="text-gray-400 text-sm">
-              © 2025 TrackEd Training Management System. All rights reserved.
+              © 2025 SMI Training Institute. All rights reserved.
             </p>
           </div>
         </div>
