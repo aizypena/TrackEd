@@ -100,7 +100,7 @@ const Login = () => {
             <div className="text-center">
               <p className="text-sm text-gray-600">
                 Don't have an account?{' '}
-                <Link to="/applicants/dashboard" className="font-medium text-blue-600 hover:text-blue-500" title='Register'>
+                <Link to="/signup" className="font-medium text-blue-600 hover:text-blue-500" title='Register'>
                   Register here
                 </Link>
               </p>
