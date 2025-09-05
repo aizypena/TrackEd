@@ -22,25 +22,25 @@ const Navbar = () => {
           <div className="flex items-center space-x-8">
             <Link 
               to="/about" 
-              className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium transition duration-200"
+              className="text-gray-700 hover:text-tracked-primary px-3 py-2 text-sm font-medium transition duration-200"
             >
               About
             </Link>
             <Link 
               to="/courses" 
-              className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium transition duration-200"
+              className="text-gray-700 hover:text-tracked-primary px-3 py-2 text-sm font-medium transition duration-200"
             >
               Course Offered
             </Link>
             <Link 
               to="/faq" 
-              className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium transition duration-200"
+              className="text-gray-700 hover:text-tracked-primary px-3 py-2 text-sm font-medium transition duration-200"
             >
               FAQ
             </Link>
             <Link 
               to="/login"
-              className="bg-blue-600 hover:cursor-pointer hover:bg-blue-700 text-white px-4 py-2 rounded-full text-sm font-medium transition duration-200"
+              className="bg-tracked-primary hover:cursor-pointer hover:bg-blue-700 text-white px-4 py-2 rounded-full text-sm font-medium transition duration-200"
             >
               Login
             </Link>
