@@ -4,6 +4,7 @@ import Login from '../pages/Login';
 import Signup from '../pages/Signup';
 import About from '../pages/About';
 import CourseOffered from '../pages/CourseOffered';
+import FAQ from '../pages/FAQ';
 import AdminRoutes from './AdminRoutes';
 import StudentRoutes from './StudentRoutes';
 import TrainerRoutes from './TrainerRoutes';
@@ -21,6 +22,7 @@ const AppRouter = () => {
         <Route path="/signup" element={<Signup />} />
         <Route path="/about" element={<About />} />
         <Route path="/courses" element={<CourseOffered />} />
+        <Route path="/faq" element={<FAQ />} />
 
         {/* Admin Routes */}
         <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
