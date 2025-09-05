@@ -2,6 +2,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Home from '../pages/Home';
 import Login from '../pages/Login';
 import Signup from '../pages/Signup';
+import About from '../pages/About';
+import CourseOffered from '../pages/CourseOffered';
 import AdminRoutes from './AdminRoutes';
 import StudentRoutes from './StudentRoutes';
 import TrainerRoutes from './TrainerRoutes';
@@ -17,7 +19,9 @@ const AppRouter = () => {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-        
+        <Route path="/about" element={<About />} />
+        <Route path="/courses" element={<CourseOffered />} />
+
         {/* Admin Routes */}
         <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="/admin/*" element={<AdminRoutes />} />
