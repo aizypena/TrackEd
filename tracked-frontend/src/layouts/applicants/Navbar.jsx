@@ -6,7 +6,7 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Left side - Logo and company name */}
-          <div className="flex items-center">
+          <Link to="/" className="flex items-center">
             <img 
               src="/smi-logo.jpg" 
               alt="SMI Logo" 
@@ -14,9 +14,8 @@ const Navbar = () => {
             />
             <div>
               <h1 className="text-lg font-bold text-gray-900 leading-tight">SMI INSTITUTE INC.</h1>
-              <p className="text-xs text-gray-600">Excellence in Education</p>
             </div>
-          </div>
+          </Link>
 
           {/* Right side - Navigation items */}
           <div className="flex items-center space-x-8">

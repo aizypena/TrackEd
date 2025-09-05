@@ -157,7 +157,7 @@ const Signup = () => {
             <div className="flex flex-col items-center">
               <div className={`flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all duration-200 ${
                 currentStep >= step.number 
-                  ? 'bg-blue-600 border-blue-600 text-white shadow-md' 
+                  ? 'bg-tracked-secondary border-tracked-secondary text-white shadow-md' 
                   : 'border-gray-300 text-gray-500 bg-white'
               }`}>
                 {currentStep > step.number ? (
@@ -172,7 +172,7 @@ const Signup = () => {
               {/* Step Title */}
               <div className="mt-2 text-center">
                 <p className={`text-sm font-medium transition-colors duration-200 ${
-                  currentStep >= step.number ? 'text-blue-600' : 'text-gray-500'
+                  currentStep >= step.number ? 'text-tracked-secondary' : 'text-gray-500'
                 }`}>
                   {step.title}
                 </p>
@@ -182,7 +182,7 @@ const Signup = () => {
             {/* Connecting Line */}
             {index < steps.length - 1 && (
               <div className={`h-1 w-16 mx-4 rounded-full transition-all duration-300 ${
-                currentStep > step.number ? 'bg-blue-600' : 'bg-gray-300'
+                currentStep > step.number ? 'bg-tracked-secondary' : 'bg-gray-300'
               }`} />
             )}
           </div>
@@ -795,7 +795,7 @@ const Signup = () => {
       <Navbar />
       
       <div className="py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8">
             <img 
               src="/smi-logo.jpg" 
@@ -837,7 +837,7 @@ const Signup = () => {
                     className={`px-6 py-2 rounded-full text-sm font-medium transition duration-200 ${
                       currentStep === 4 && !canProceedToNextStep()
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                        : 'bg-tracked-primary hover:bg-tracked-primary-700 text-white hover:cursor-pointer'
                     }`}
                   >
                     {currentStep === 4 ? 'Submit Application' : 'Next Step'}
