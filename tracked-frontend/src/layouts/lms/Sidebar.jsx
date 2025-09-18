@@ -45,7 +45,7 @@ const Sidebar = ({ user, isOpen, onClose }) => {
     },
     {
       name: 'Attendance',
-      path: '/smi-lms-dashboard/attendance',
+      path: '/smi-lms/attendance',
       icon: <MdFactCheck className="h-5 w-5" />
     },
     {
