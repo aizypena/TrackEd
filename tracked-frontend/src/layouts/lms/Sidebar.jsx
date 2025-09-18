@@ -50,18 +50,18 @@ const Sidebar = ({ user, isOpen, onClose }) => {
     },
     {
       name: 'Assessments',
-      path: '/smi-lms-dashboard/assessments',
+      path: '/smi-lms/assessments',
       icon: <MdQuiz className="h-5 w-5" />,
       badge: 3
     },
     {
       name: 'Assessment Results',
-      path: '/smi-lms-dashboard/results',
+      path: '/smi-lms/assessment-results',
       icon: <MdStars className="h-5 w-5" />
     },
     {
       name: 'Certificates',
-      path: '/smi-lms-dashboard/certificates',
+      path: '/smi-lms/certificates',
       icon: <MdWorkspacePremium className="h-5 w-5" />,
       badge: 2
     }
