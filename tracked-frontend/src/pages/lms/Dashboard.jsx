@@ -35,37 +35,37 @@ const StudentDashboard = () => {
   const recentCourses = [
     {
       id: 1,
-      title: "Web Development Fundamentals",
-      schedule: "Mon, Wed, Fri - 9:00 AM",
-      instructor: "Prof. Maria Santos",
-      materials: 12,
+      title: "Cookery NC II",
+      schedule: "Mon, Wed, Fri - 8:00 AM",
+      instructor: "Chef Maria Santos",
+      materials: 15,
       nextClass: "September 20, 2025",
       attendance: "18/20 sessions"
     },
     {
       id: 2,
-      title: "Digital Marketing Essentials",
-      schedule: "Tue, Thu - 2:00 PM",
+      title: "Food and Beverage Services NC II",
+      schedule: "Tue, Thu - 1:00 PM",
       instructor: "Prof. Juan Cruz",
-      materials: 8,
+      materials: 12,
       nextClass: "September 19, 2025",
       attendance: "15/16 sessions"
     },
     {
       id: 3,
-      title: "Data Analysis with Excel",
-      schedule: "Sat - 10:00 AM",
-      instructor: "Prof. Ana Rodriguez",
-      materials: 6,
+      title: "Bread and Pastry Production NC II",
+      schedule: "Sat - 9:00 AM",
+      instructor: "Chef Ana Rodriguez",
+      materials: 10,
       nextClass: "September 21, 2025",
       attendance: "7/8 sessions"
     },
     {
       id: 4,
-      title: "Project Management Basics",
-      schedule: "Wed - 3:00 PM",
-      instructor: "Prof. Carlos Mendez",
-      materials: 10,
+      title: "Housekeeping NC II",
+      schedule: "Wed, Fri - 2:00 PM",
+      instructor: "Ms. Carlos Mendez",
+      materials: 8,
       nextClass: "September 25, 2025",
       attendance: "12/14 sessions"
     }
@@ -74,29 +74,29 @@ const StudentDashboard = () => {
   const pendingAssessments = [
     {
       id: 1,
-      title: "JavaScript Fundamentals Quiz",
-      course: "Web Development Fundamentals",
-      type: "Online Quiz",
+      title: "Basic Cooking Techniques Assessment",
+      course: "Cookery NC II",
+      type: "Practical Assessment",
       dueDate: "September 22, 2025",
-      duration: "45 minutes",
+      duration: "3 hours",
       status: "pending"
     },
     {
       id: 2,
-      title: "Marketing Strategy Project",
-      course: "Digital Marketing Essentials", 
-      type: "Project Submission",
+      title: "Table Service Standards Evaluation",
+      course: "Food and Beverage Services NC II", 
+      type: "Performance Assessment",
       dueDate: "September 25, 2025",
-      duration: "N/A",
+      duration: "2 hours",
       status: "in-progress"
     },
     {
       id: 3,
-      title: "Excel Data Analysis Case Study",
-      course: "Data Analysis with Excel",
+      title: "Bread Making Competency Test",
+      course: "Bread and Pastry Production NC II",
       type: "Practical Assessment",
       dueDate: "September 28, 2025",
-      duration: "2 hours",
+      duration: "4 hours",
       status: "pending"
     }
   ];
@@ -104,41 +104,41 @@ const StudentDashboard = () => {
   const recentMaterials = [
     {
       id: 1,
-      title: "JavaScript ES6 Features.pdf",
-      course: "Web Development Fundamentals",
+      title: "Basic Knife Skills and Safety.pdf",
+      course: "Cookery NC II",
       type: "PDF",
       uploadDate: "September 15, 2025",
-      size: "2.3 MB"
+      size: "3.2 MB"
     },
     {
       id: 2,
-      title: "Social Media Marketing Trends 2025.pptx",
-      course: "Digital Marketing Essentials",
+      title: "Professional Service Standards.pptx",
+      course: "Food and Beverage Services NC II",
       type: "Presentation",
       uploadDate: "September 14, 2025",
-      size: "5.1 MB"
+      size: "4.8 MB"
     },
     {
       id: 3,
-      title: "Advanced Excel Functions Tutorial.mp4",
-      course: "Data Analysis with Excel",
+      title: "Bread Making Techniques Tutorial.mp4",
+      course: "Bread and Pastry Production NC II",
       type: "Video",
       uploadDate: "September 13, 2025",
-      size: "45.7 MB"
+      size: "52.1 MB"
     }
   ];
 
   const certificates = [
     {
       id: 1,
-      title: "Basic Computer Literacy",
+      title: "Barista NC II Certificate",
       issueDate: "August 15, 2025",
       status: "approved",
       downloadUrl: "#"
     },
     {
       id: 2,
-      title: "Digital Literacy Fundamentals",
+      title: "Food Safety and Sanitation Certificate",
       issueDate: "July 20, 2025",
       status: "approved", 
       downloadUrl: "#"
@@ -148,31 +148,31 @@ const StudentDashboard = () => {
   const upcomingAssignments = [
     {
       id: 1,
-      title: "JavaScript Project",
-      course: "Web Development",
+      title: "Menu Planning Project",
+      course: "Cookery NC II",
       dueDate: "2025-09-20",
       status: "pending"
     },
     {
       id: 2,
-      title: "Marketing Campaign Analysis",
-      course: "Digital Marketing",
+      title: "Service Training Portfolio",
+      course: "Food and Beverage Services NC II",
       dueDate: "2025-09-22",
       status: "draft"
     },
     {
       id: 3,
-      title: "Data Visualization Report",
-      course: "Data Analysis",
+      title: "Pastry Recipe Development",
+      course: "Bread and Pastry Production NC II",
       dueDate: "2025-09-25",
       status: "pending"
     }
   ];
 
   const recentGrades = [
-    { course: "Web Development", assignment: "HTML/CSS Quiz", grade: 92, date: "2025-09-15" },
-    { course: "Digital Marketing", assignment: "SEO Assignment", grade: 88, date: "2025-09-12" },
-    { course: "Data Analysis", assignment: "Excel Functions Test", grade: 95, date: "2025-09-10" }
+    { course: "Cookery NC II", assignment: "Kitchen Safety Quiz", grade: 92, date: "2025-09-15" },
+    { course: "Food and Beverage Services NC II", assignment: "Service Standards Assessment", grade: 88, date: "2025-09-12" },
+    { course: "Bread and Pastry Production NC II", assignment: "Basic Dough Preparation", grade: 95, date: "2025-09-10" }
   ];
 
   return (
