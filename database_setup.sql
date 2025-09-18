@@ -15,7 +15,7 @@ CREATE TABLE users (
     email VARCHAR(255) UNIQUE NOT NULL,
     phone_number VARCHAR(20) NOT NULL,
     password VARCHAR(255) NOT NULL,
-    role ENUM('student', 'trainer', 'staff', 'admin') NOT NULL DEFAULT 'student',
+    role ENUM('applicant', 'student', 'trainer', 'staff', 'admin') NOT NULL DEFAULT 'applicant',
     status ENUM('active', 'inactive', 'suspended') NOT NULL DEFAULT 'active',
     email_verified_at TIMESTAMP NULL,
     profile_picture VARCHAR(255) NULL,
@@ -34,7 +34,7 @@ CREATE TABLE users (
 -- Role permissions table to define what each role can access
 CREATE TABLE role_permissions (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    role ENUM('student', 'trainer', 'staff', 'admin') NOT NULL,
+    role ENUM('applicant', 'student', 'trainer', 'staff', 'admin') NOT NULL,
     module VARCHAR(100) NOT NULL,
     permission VARCHAR(100) NOT NULL,
     description TEXT NULL,
@@ -44,6 +44,11 @@ CREATE TABLE role_permissions (
 
 -- Insert role permissions based on your specifications
 INSERT INTO role_permissions (role, module, permission, description) VALUES
+-- Applicant permissions
+('applicant', 'profile', 'view', 'View and edit personal information'),
+('applicant', 'application', 'submit', 'Submit course applications'),
+('applicant', 'application', 'track', 'Track application status'),
+
 -- Student permissions
 ('student', 'profile', 'view', 'Viewing of personal/academic data'),
 ('student', 'lms', 'access', 'Learning management system access'),
