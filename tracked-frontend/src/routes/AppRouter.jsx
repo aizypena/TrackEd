@@ -17,6 +17,7 @@ import ClassSchedule from '../pages/lms/ClassSchedule';
 import Atttendance from '../pages/lms/Attendance';
 import Assessments from '../pages/lms/Assessments';
 import AssessmentResults from '../pages/lms/AssessmentResults';
+import Certificates from '../pages/lms/Certificates';
 
 const AppRouter = () => {
   return (
@@ -37,6 +38,7 @@ const AppRouter = () => {
         <Route path="/smi-lms/attendance" element={<Atttendance />} />
         <Route path="/smi-lms/assessments" element={<Assessments />} />
         <Route path="/smi-lms/assessment-results" element={<AssessmentResults />} />
+        <Route path="/smi-lms/certificates" element={<Certificates />} />
 
         {/* Admin Routes */}
         <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
