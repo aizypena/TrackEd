@@ -110,10 +110,10 @@ const Sidebar = ({ user, isOpen, onClose }) => {
         fixed inset-y-0 left-0 z-50 flex flex-col transition-all duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         ${isCollapsed ? 'w-16' : 'w-64'}
-        bg-white shadow-lg border-r border-gray-200
+        bg-blue-900 shadow-lg border-r border-blue-800
       `}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+        <div className="flex items-center justify-between p-4 border-b border-blue-800">
           {!isCollapsed && (
             <div className="flex items-center space-x-3">
               <img 
@@ -122,8 +122,8 @@ const Sidebar = ({ user, isOpen, onClose }) => {
                 className="h-8 w-auto"
               />
               <div>
-                <h2 className="text-lg font-bold text-gray-900">SMI LMS</h2>
-                <p className="text-xs text-gray-500">Learning Portal</p>
+                <h2 className="text-lg font-bold text-white">SMI LMS</h2>
+                <p className="text-xs text-blue-200">Learning Portal</p>
               </div>
             </div>
           )}
@@ -131,14 +131,14 @@ const Sidebar = ({ user, isOpen, onClose }) => {
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className="hidden lg:block p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+              className="hidden lg:block p-1.5 rounded-md text-blue-200 hover:text-white hover:bg-blue-800"
             >
               <MdMenu className="h-5 w-5" />
             </button>
             
             <button
               onClick={onClose}
-              className="lg:hidden p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+              className="lg:hidden p-1.5 rounded-md text-blue-200 hover:text-white hover:bg-blue-800"
             >
               <MdClose className="h-5 w-5" />
             </button>
@@ -147,25 +147,25 @@ const Sidebar = ({ user, isOpen, onClose }) => {
 
         {/* User Profile */}
         {!isCollapsed && (
-          <div className="p-4 border-b border-gray-200">
+          <div className="p-4 border-b border-blue-800">
             <div className="flex items-center space-x-3">
-              <div className="h-10 w-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
+              <div className="h-10 w-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
                 {user?.first_name ? user.first_name.charAt(0).toUpperCase() : 'S'}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
+                <p className="text-sm font-medium text-white truncate">
                   {user?.first_name && user?.last_name 
                     ? `${user.first_name} ${user.last_name}` 
                     : 'Student'}
                 </p>
-                <p className="text-xs text-gray-500 truncate">
+                <p className="text-xs text-blue-200 truncate">
                   {user?.email || 'student@smiinstitute.com'}
                 </p>
                 <div className="flex items-center space-x-2 mt-1">
-                  <span className="inline-block px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded">
+                  <span className="inline-block px-2 py-0.5 text-xs font-medium bg-blue-600 text-white rounded">
                     Student Access
                   </span>
-                  <span className="inline-block px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded">
+                  <span className="inline-block px-2 py-0.5 text-xs font-medium bg-blue-700 text-blue-100 rounded">
                     LMS Portal
                   </span>
                 </div>
@@ -184,8 +184,8 @@ const Sidebar = ({ user, isOpen, onClose }) => {
                 className={`
                   flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors
                   ${isActivePath(item.path)
-                    ? 'bg-blue-100 text-blue-700 border-r-2 border-blue-700'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    ? 'bg-blue-700 text-white border-r-2 border-blue-300'
+                    : 'text-blue-100 hover:text-white hover:bg-blue-800'
                   }
                   ${isCollapsed ? 'justify-center' : ''}
                 `}
@@ -211,7 +211,7 @@ const Sidebar = ({ user, isOpen, onClose }) => {
           {/* Quick Actions */}
           {!isCollapsed && (
             <div className="pt-6">
-              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <h3 className="px-3 text-xs font-semibold text-blue-200 uppercase tracking-wider">
                 Quick Actions
               </h3>
               <div className="mt-2 space-y-1">
@@ -219,7 +219,7 @@ const Sidebar = ({ user, isOpen, onClose }) => {
                   <button
                     key={action.name}
                     onClick={action.action}
-                    className="w-full flex items-center px-3 py-2 text-sm font-medium text-gray-600 rounded-md hover:text-gray-900 hover:bg-gray-50 transition-colors"
+                    className="w-full flex items-center px-3 py-2 text-sm font-medium text-blue-100 rounded-md hover:text-white hover:bg-blue-800 transition-colors"
                   >
                     <span className="mr-3">{action.icon}</span>
                     {action.name}
@@ -231,12 +231,12 @@ const Sidebar = ({ user, isOpen, onClose }) => {
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-4 border-t border-blue-800">
           {!isCollapsed && (
             <div className="space-y-2">
               <Link
                 to="/profile"
-                className="flex items-center px-3 py-2 text-sm font-medium text-gray-600 rounded-md hover:text-gray-900 hover:bg-gray-50 transition-colors"
+                className="flex items-center px-3 py-2 text-sm font-medium text-blue-100 rounded-md hover:text-white hover:bg-blue-800 transition-colors"
               >
                 <MdPerson className="mr-3 h-4 w-4" />
                 Profile Settings
@@ -244,7 +244,7 @@ const Sidebar = ({ user, isOpen, onClose }) => {
               
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center px-3 py-2 text-sm font-medium text-red-600 rounded-md hover:text-red-700 hover:bg-red-50 transition-colors"
+                className="w-full flex items-center px-3 py-2 text-sm font-medium text-red-300 rounded-md hover:text-red-100 hover:bg-red-600 transition-colors"
               >
                 <MdLogout className="mr-3 h-4 w-4" />
                 Logout
