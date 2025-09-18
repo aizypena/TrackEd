@@ -162,9 +162,6 @@ const Sidebar = ({ user, isOpen, onClose }) => {
                   {user?.email || 'student@smiinstitute.com'}
                 </p>
                 <div className="flex items-center space-x-2 mt-1">
-                  <span className="inline-block px-2 py-0.5 text-xs font-medium bg-blue-600 text-white rounded">
-                    Student Access
-                  </span>
                   <span className="inline-block px-2 py-0.5 text-xs font-medium bg-blue-700 text-blue-100 rounded">
                     LMS Portal
                   </span>
@@ -184,7 +181,7 @@ const Sidebar = ({ user, isOpen, onClose }) => {
                 className={`
                   flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors relative
                   ${isActivePath(item.path)
-                    ? 'bg-blue-700 text-white shadow-lg border-l-4 border-blue-300'
+                    ? 'bg-yellow-500 text-white shadow-lg border-l-4 border-yellow-300'
                     : 'text-blue-100 hover:text-white hover:bg-blue-800'
                   }
                   ${isCollapsed ? 'justify-center' : ''}
@@ -195,7 +192,7 @@ const Sidebar = ({ user, isOpen, onClose }) => {
                   {item.icon}
                 </span>
                 {isActivePath(item.path) && (
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-300 rounded-r-full"></div>
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-yellow-300 rounded-r-full"></div>
                 )}
                 {!isCollapsed && (
                   <>
@@ -209,7 +206,7 @@ const Sidebar = ({ user, isOpen, onClose }) => {
                     )}
                     {isActivePath(item.path) && (
                       <div className="ml-2">
-                        <div className="w-2 h-2 bg-blue-300 rounded-full"></div>
+                        <div className="w-2 h-2 bg-yellow-300 rounded-full"></div>
                       </div>
                     )}
                   </>
