@@ -33,14 +33,14 @@ const Sidebar = ({ user, isOpen, onClose }) => {
       path: '/smi-lms/my-courses',
       icon: <MdSchool className="h-5 w-5" />
     },
-    {
-      name: 'Course Materials',
-      path: '/smi-lms-dashboard/materials',
-      icon: <MdFolder className="h-5 w-5" />
-    },
+    // {
+    //   name: 'Course Materials',
+    //   path: '/smi-lms-dashboard/materials',
+    //   icon: <MdFolder className="h-5 w-5" />
+    // },
     {
       name: 'Class Schedule',
-      path: '/smi-lms-dashboard/schedule',
+      path: '/smi-lms/schedule',
       icon: <MdSchedule className="h-5 w-5" />
     },
     {
