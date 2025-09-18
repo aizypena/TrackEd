@@ -12,6 +12,7 @@ import TrainerRoutes from './TrainerRoutes';
 import StaffRoutes from './StaffRoutes';
 import ApplicantRoutes from './ApplicantRoutes';
 import NotFound from '../pages/NotFound';
+import MyCourses from '../pages/lms/MyCourses';
 
 const AppRouter = () => {
   return (
@@ -27,6 +28,7 @@ const AppRouter = () => {
 
         {/* SMI LMS Dashboard - Direct Route */}
         <Route path="/smi-lms/dashboard" element={<StudentDashboard />} />
+        <Route path="/smi-lms/my-courses" element={<MyCourses />} />
 
         {/* Admin Routes */}
         <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />

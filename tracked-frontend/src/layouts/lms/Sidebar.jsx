@@ -25,12 +25,12 @@ const Sidebar = ({ user, isOpen, onClose }) => {
   const navigationItems = [
     {
       name: 'Dashboard',
-      path: '/smi-lms-dashboard',
+      path: '/smi-lms/dashboard',
       icon: <MdDashboard className="h-5 w-5" />
     },
     {
       name: 'My Courses',
-      path: '/smi-lms-dashboard/courses',
+      path: '/smi-lms/my-courses',
       icon: <MdSchool className="h-5 w-5" />
     },
     {
@@ -182,9 +182,9 @@ const Sidebar = ({ user, isOpen, onClose }) => {
                 key={item.name}
                 to={item.path}
                 className={`
-                  flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors
+                  flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors relative
                   ${isActivePath(item.path)
-                    ? 'bg-blue-700 text-white border-r-2 border-blue-300'
+                    ? 'bg-blue-700 text-white shadow-lg border-l-4 border-blue-300'
                     : 'text-blue-100 hover:text-white hover:bg-blue-800'
                   }
                   ${isCollapsed ? 'justify-center' : ''}
@@ -194,13 +194,23 @@ const Sidebar = ({ user, isOpen, onClose }) => {
                 <span className={`${isCollapsed ? '' : 'mr-3'}`}>
                   {item.icon}
                 </span>
+                {isActivePath(item.path) && (
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-300 rounded-r-full"></div>
+                )}
                 {!isCollapsed && (
                   <>
-                    <span className="flex-1">{item.name}</span>
+                    <span className={`flex-1 ${isActivePath(item.path) ? 'font-semibold' : ''}`}>
+                      {item.name}
+                    </span>
                     {item.badge && (
                       <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
                         {item.badge}
                       </span>
+                    )}
+                    {isActivePath(item.path) && (
+                      <div className="ml-2">
+                        <div className="w-2 h-2 bg-blue-300 rounded-full"></div>
+                      </div>
                     )}
                   </>
                 )}
