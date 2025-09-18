@@ -5,6 +5,7 @@ import Signup from '../pages/Signup';
 import About from '../pages/About';
 import CourseOffered from '../pages/CourseOffered';
 import FAQ from '../pages/FAQ';
+import StudentDashboard from '../pages/lms/Dashboard';
 import AdminRoutes from './AdminRoutes';
 import StudentRoutes from './StudentRoutes';
 import TrainerRoutes from './TrainerRoutes';
@@ -23,6 +24,9 @@ const AppRouter = () => {
         <Route path="/about" element={<About />} />
         <Route path="/courses" element={<CourseOffered />} />
         <Route path="/faq" element={<FAQ />} />
+
+        {/* SMI LMS Dashboard - Direct Route */}
+        <Route path="/smi-lms/dashboard" element={<StudentDashboard />} />
 
         {/* Admin Routes */}
         <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
