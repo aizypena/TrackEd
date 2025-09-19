@@ -131,7 +131,7 @@ const Sidebar = ({ user, isOpen, onClose }) => {
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className="hidden lg:block p-1.5 rounded-md text-blue-200 hover:text-white hover:bg-blue-800"
+              className="hidden lg:block p-1.5 rounded-md text-blue-200 hover:text-white hover:bg-blue-800 hover:cursor-pointer"
             >
               <MdMenu className="h-5 w-5" />
             </button>
@@ -242,7 +242,7 @@ const Sidebar = ({ user, isOpen, onClose }) => {
           {!isCollapsed && (
             <div className="space-y-2">
               <Link
-                to="/profile"
+                to="/smi-lms/profile"
                 className="flex items-center px-3 py-2 text-sm font-medium text-blue-100 rounded-md hover:text-white hover:bg-blue-800 transition-colors"
               >
                 <MdPerson className="mr-3 h-4 w-4" />
