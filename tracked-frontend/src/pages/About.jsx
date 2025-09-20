@@ -1,4 +1,5 @@
 import Navbar from '../layouts/applicants/Navbar';
+import Footer from '../layouts/applicants/Footer';
 
 const About = () => {
   return (
@@ -155,13 +156,7 @@ const About = () => {
       </div>
 
       {/* Footer */}
-      <div className="bg-gray-900 text-white py-8">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-sm">
-            © Copyright 2025 <span className="font-bold">SMI INSTITUTE INC.</span> | TESDA-Accredited Training Center
-          </p>
-        </div>
-      </div>
+      <Footer />
     </div>
   );
 };
