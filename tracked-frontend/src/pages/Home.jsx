@@ -24,7 +24,7 @@ const Home = () => {
       title: "Apply for Training",
       description: "Start your journey with SMI's TESDA-accredited training programs",
       link: "/applicants/dashboard",
-      color: "indigo",
+      color: "tracked-primary",
       icon: <MdAssignment className="h-8 w-8" />,
       features: ["Browse Programs", "Submit Applications", "Track Status", "Upload Documents"]
     },
@@ -32,7 +32,7 @@ const Home = () => {
       title: "Student Access",
       description: "Continue your learning journey with our comprehensive LMS",
       link: "/students/dashboard",
-      color: "green",
+      color: "tracked-secondary",
       icon: <MdSchool className="h-8 w-8" />,
       features: ["Access Courses", "Track Progress", "Complete Assignments", "View Certificates"]
     }
@@ -44,7 +44,9 @@ const Home = () => {
       green: "bg-green-600 hover:bg-green-700 border-green-200",
       purple: "bg-purple-600 hover:bg-purple-700 border-purple-200",
       orange: "bg-orange-600 hover:bg-orange-700 border-orange-200",
-      indigo: "bg-indigo-600 hover:bg-indigo-700 border-indigo-200"
+      indigo: "bg-indigo-600 hover:bg-indigo-700 border-indigo-200",
+      "tracked-primary": "bg-tracked-primary hover:bg-tracked-primary/90 border-tracked-primary/20",
+      "tracked-secondary": "bg-tracked-secondary hover:bg-tracked-secondary/90 border-tracked-secondary/20"
     };
     return colors[color];
   };
@@ -184,11 +186,11 @@ const Home = () => {
             {portals.map((portal, index) => (
               <div key={index} className="group relative bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2">
                 {/* Gradient overlay */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${portal.color === 'indigo' ? 'from-indigo-500/5 to-indigo-600/10' : 'from-green-500/5 to-green-600/10'} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
+                <div className={`absolute inset-0 bg-gradient-to-br ${portal.color === 'tracked-primary' ? 'from-tracked-primary/5 to-tracked-primary/10' : portal.color === 'tracked-secondary' ? 'from-tracked-secondary/5 to-tracked-secondary/10' : portal.color === 'indigo' ? 'from-indigo-500/5 to-indigo-600/10' : 'from-green-500/5 to-green-600/10'} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
                 
                 <div className="relative p-10">
                   <div className="flex items-start mb-8">
-                    <div className={`p-5 rounded-2xl mr-6 shadow-lg ${portal.color === 'indigo' ? 'bg-gradient-to-br from-indigo-500 to-indigo-600' : 'bg-gradient-to-br from-green-500 to-green-600'} text-white`}>
+                    <div className={`p-5 rounded-2xl mr-6 shadow-lg ${portal.color === 'tracked-primary' ? 'bg-gradient-to-br from-tracked-primary to-tracked-primary/90' : portal.color === 'tracked-secondary' ? 'bg-gradient-to-br from-tracked-secondary to-tracked-secondary/90' : portal.color === 'indigo' ? 'bg-gradient-to-br from-indigo-500 to-indigo-600' : 'bg-gradient-to-br from-green-500 to-green-600'} text-white`}>
                       {portal.icon}
                     </div>
                     <div className="flex-1">
