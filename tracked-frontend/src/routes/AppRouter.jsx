@@ -20,6 +20,10 @@ import AssessmentResults from '../pages/lms/AssessmentResults';
 import Certificates from '../pages/lms/Certificates';
 import ProfileSettings from '../pages/lms/ProfileSettings';
 
+// admin
+import AdminDashboard from '../pages/admin/Dashboard';
+import AdminLogin from '../pages/admin/AdminLogin';
+
 const AppRouter = () => {
   return (
     <Router>
@@ -43,7 +47,9 @@ const AppRouter = () => {
         <Route path="/smi-lms/profile" element={<ProfileSettings />} />
 
         {/* Admin Routes */}
-        <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin/*" element={<AdminRoutes />} />
         
         {/* Student Routes */}

@@ -1,22 +1,38 @@
 import { Link } from 'react-router-dom';
 import Navbar from '../layouts/applicants/Navbar';
+import { 
+  MdSchool,
+  MdTrendingUp,
+  MdVerified,
+  MdAssignment,
+  MdPeople,
+  MdBusiness,
+  MdStar,
+  MdCheckCircle,
+  MdArrowForward,
+  MdEmojiEvents,
+  MdWorkOutline,
+  MdLocationOn,
+  MdPhone,
+  MdEmail
+} from 'react-icons/md';
 
 const Home = () => {
   const portals = [
     {
       title: "Apply for Training",
-      description: "Start your journey with SMI's training programs",
+      description: "Start your journey with SMI's TESDA-accredited training programs",
       link: "/applicants/dashboard",
       color: "indigo",
-      icon: "📝",
+      icon: <MdAssignment className="h-8 w-8" />,
       features: ["Browse Programs", "Submit Applications", "Track Status", "Upload Documents"]
     },
     {
       title: "Student Access",
-      description: "Continue your learning journey with SMI",
+      description: "Continue your learning journey with our comprehensive LMS",
       link: "/students/dashboard",
       color: "green",
-      icon: "🎓",
+      icon: <MdSchool className="h-8 w-8" />,
       features: ["Access Courses", "Track Progress", "Complete Assignments", "View Certificates"]
     }
   ];
@@ -33,69 +49,161 @@ const Home = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+    <div className="min-h-screen bg-gray-50">
       {/* Navbar */}
       <Navbar />
 
       {/* Hero Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            Welcome to SMI Training Institute
-          </h2>
-          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            Empowering individuals through comprehensive training programs. 
-            Join SMI to advance your skills, achieve your goals, and transform your career.
-          </p>
+      <section className="relative py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 text-white overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 bg-black bg-opacity-20"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent transform -skew-y-6"></div>
+        
+        <div className="relative max-w-7xl mx-auto">
+          <div className="text-center mb-20">
+            <div className="inline-flex items-center px-6 py-3 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-full text-sm font-medium mb-8">
+              <MdVerified className="h-4 w-4 mr-2" />
+              TESDA Accredited Training Center • Established 2010
+            </div>
+            <h1 className="text-6xl md:text-7xl font-bold mb-8 leading-tight">
+              SMI Training
+              <span className="block text-yellow-400">Institute</span>
+            </h1>
+            <h2 className="text-2xl md:text-3xl font-light mb-8 max-w-4xl mx-auto opacity-90">
+              Excellence in Tourism, Hospitality & Culinary Education
+            </h2>
+            <p className="text-xl text-blue-100 mb-12 max-w-3xl mx-auto leading-relaxed">
+              Transform your career with industry-leading certification programs designed by experienced professionals. 
+              Join over 1,200 successful graduates who have built thriving careers in the hospitality industry.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-6 justify-center">
+              <Link 
+                to="/applicants/dashboard"
+                className="group inline-flex items-center justify-center bg-yellow-500 hover:bg-yellow-400 text-gray-900 font-bold px-8 py-4 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+              >
+                Start Your Application
+                <MdArrowForward className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
+              </Link>
+              <Link 
+                to="/about"
+                className="group inline-flex items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 text-white font-semibold px-8 py-4 rounded-xl transition-all duration-300"
+              >
+                Learn More About Us
+                <MdSchool className="h-5 w-5 ml-2" />
+              </Link>
+            </div>
+          </div>
           
-          {/* Features Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <div className="text-3xl mb-3">🏆</div>
-              <h3 className="font-semibold text-gray-900 mb-2">Quality Training</h3>
-              <p className="text-gray-600 text-sm">Industry-leading programs designed by experienced professionals</p>
+          {/* Statistics */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
+            <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+              <div className="text-4xl font-bold text-yellow-400 mb-2">1,200+</div>
+              <div className="text-sm text-blue-100 font-medium">Successful Graduates</div>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <div className="text-3xl mb-3">📈</div>
-              <h3 className="font-semibold text-gray-900 mb-2">Career Growth</h3>
-              <p className="text-gray-600 text-sm">Accelerate your career with our comprehensive skill development programs</p>
+            <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+              <div className="text-4xl font-bold text-yellow-400 mb-2">8</div>
+              <div className="text-sm text-blue-100 font-medium">TESDA Programs</div>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <div className="text-3xl mb-3">🎓</div>
-              <h3 className="font-semibold text-gray-900 mb-2">Certification</h3>
-              <p className="text-gray-600 text-sm">Earn recognized certificates to validate your expertise</p>
+            <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+              <div className="text-4xl font-bold text-yellow-400 mb-2">95%</div>
+              <div className="text-sm text-blue-100 font-medium">Employment Rate</div>
+            </div>
+            <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+              <div className="text-4xl font-bold text-yellow-400 mb-2">15+</div>
+              <div className="text-sm text-blue-100 font-medium">Years Excellence</div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Portals Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
+      {/* Why Choose SMI Section */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Get Started Today</h2>
-            <p className="text-lg text-gray-600">Choose how you'd like to begin your journey with SMI</p>
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-6">Why Choose SMI Institute?</h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              We're committed to providing world-class technical education that prepares you for success in the hospitality industry
+            </p>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-4xl mx-auto"
->
+          {/* Features Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+            <div className="group text-center">
+              <div className="relative mb-8">
+                <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl mx-auto flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                  <MdEmojiEvents className="h-10 w-10 text-white" />
+                </div>
+                <div className="absolute -inset-1 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300"></div>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">Industry Excellence</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Our programs are designed in partnership with industry leaders, ensuring you learn the most current practices and standards in hospitality and culinary arts.
+              </p>
+            </div>
+            
+            <div className="group text-center">
+              <div className="relative mb-8">
+                <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl mx-auto flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                  <MdWorkOutline className="h-10 w-10 text-white" />
+                </div>
+                <div className="absolute -inset-1 bg-gradient-to-br from-green-400 to-green-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300"></div>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">Career Support</h3>
+              <p className="text-gray-600 leading-relaxed">
+                From job placement assistance to career counseling, we provide comprehensive support to help you launch and advance your career in the hospitality industry.
+              </p>
+            </div>
+            
+            <div className="group text-center">
+              <div className="relative mb-8">
+                <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl mx-auto flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                  <MdVerified className="h-10 w-10 text-white" />
+                </div>
+                <div className="absolute -inset-1 bg-gradient-to-br from-purple-400 to-purple-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300"></div>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">TESDA Certified</h3>
+              <p className="text-gray-600 leading-relaxed">
+                All our programs are TESDA-accredited, ensuring you receive nationally recognized certifications that are valued by employers across the Philippines.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+      {/* Portals Section */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-gray-50 to-blue-50">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-6">Start Your Journey Today</h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Choose your path to professional development and join thousands of successful graduates who have transformed their careers with SMI Institute
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
             {portals.map((portal, index) => (
-              <div key={index} className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
-                <div className="p-6">
-                  <div className="flex items-center mb-4">
-                    <div className="text-3xl mr-3">{portal.icon}</div>
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-900">{portal.title}</h3>
-                      <p className="text-gray-600 text-sm">{portal.description}</p>
+              <div key={index} className="group relative bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2">
+                {/* Gradient overlay */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${portal.color === 'indigo' ? 'from-indigo-500/5 to-indigo-600/10' : 'from-green-500/5 to-green-600/10'} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
+                
+                <div className="relative p-10">
+                  <div className="flex items-start mb-8">
+                    <div className={`p-5 rounded-2xl mr-6 shadow-lg ${portal.color === 'indigo' ? 'bg-gradient-to-br from-indigo-500 to-indigo-600' : 'bg-gradient-to-br from-green-500 to-green-600'} text-white`}>
+                      {portal.icon}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-3">{portal.title}</h3>
+                      <p className="text-gray-600 text-lg leading-relaxed">{portal.description}</p>
                     </div>
                   </div>
                   
-                  <div className="mb-6">
-                    <h4 className="font-semibold text-gray-900 mb-2">Key Features:</h4>
-                    <ul className="space-y-1">
+                  <div className="mb-10">
+                    <h4 className="font-bold text-gray-900 mb-6 text-lg">What You Can Do:</h4>
+                    <ul className="space-y-4">
                       {portal.features.map((feature, idx) => (
-                        <li key={idx} className="text-sm text-gray-600 flex items-center">
-                          <span className="w-2 h-2 bg-gray-400 rounded-full mr-2"></span>
+                        <li key={idx} className="text-gray-700 flex items-center text-lg">
+                          <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
+                            <MdCheckCircle className="h-4 w-4 text-green-600" />
+                          </div>
                           {feature}
                         </li>
                       ))}
@@ -104,9 +212,13 @@ const Home = () => {
                   
                   <Link 
                     to={portal.link}
-                    className={`block w-full ${getColorClasses(portal.color)} text-white font-medium py-3 px-4 rounded-lg text-center transition duration-200 transform hover:scale-105`}
+                    className={`group/btn relative w-full inline-flex items-center justify-center ${getColorClasses(portal.color)} text-white font-bold py-5 px-8 rounded-2xl text-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl overflow-hidden`}
                   >
-                    Access {portal.title}
+                    <span className="relative z-10 flex items-center">
+                      Get Started Now
+                      <MdArrowForward className="h-6 w-6 ml-3 group-hover/btn:translate-x-1 transition-transform duration-300" />
+                    </span>
+                    <div className="absolute inset-0 bg-white/10 transform scale-x-0 group-hover/btn:scale-x-100 transition-transform duration-300 origin-left"></div>
                   </Link>
                 </div>
               </div>
@@ -116,20 +228,83 @@ const Home = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-800 text-white py-8">
+      <footer className="bg-gray-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <div className="flex items-center justify-center mb-4">
-              <img 
-                src="/smi-logo.jpg" 
-                alt="SMI Logo" 
-                className="h-8 w-auto mr-3 opacity-80"
-              />
-              <span className="text-lg font-semibold">SMI Training Institute</span>
+          {/* Main Footer Content */}
+          <div className="py-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+            {/* Company Info */}
+            <div className="lg:col-span-2">
+              <div className="flex items-center mb-6">
+                <img 
+                  src="/smi-logo.jpg" 
+                  alt="SMI Logo" 
+                  className="h-12 w-auto mr-4 rounded-lg"
+                />
+                <div>
+                  <h3 className="text-2xl font-bold">SMI Training Institute</h3>
+                  <p className="text-blue-400 font-medium">TESDA Accredited Training Center</p>
+                </div>
+              </div>
+              <p className="text-gray-300 text-lg leading-relaxed max-w-lg mb-6">
+                Transforming careers through excellence in hospitality and culinary education. 
+                Join our community of successful professionals making their mark in the industry.
+              </p>
+              <div className="flex items-center space-x-2 text-yellow-400">
+                <MdVerified className="h-5 w-5" />
+                <span className="font-semibold">TESDA Certified • ISO Compliant</span>
+              </div>
             </div>
-            <p className="text-gray-400 text-sm">
-              © 2025 SMI Training Institute. All rights reserved.
-            </p>
+            
+            {/* Training Programs */}
+            <div>
+              <h4 className="text-xl font-bold mb-6 text-yellow-400">Training Programs</h4>
+              <ul className="space-y-3 text-gray-300">
+                <li className="hover:text-white transition-colors cursor-pointer">Cookery NC II</li>
+                <li className="hover:text-white transition-colors cursor-pointer">Bartending</li>
+                <li className="hover:text-white transition-colors cursor-pointer">Barista Training</li>
+                <li className="hover:text-white transition-colors cursor-pointer">Housekeeping NC II</li>
+                <li className="hover:text-white transition-colors cursor-pointer">Food & Beverage</li>
+                <li className="hover:text-white transition-colors cursor-pointer">Events Management</li>
+              </ul>
+            </div>
+            
+            {/* Contact Information */}
+            <div>
+              <h4 className="text-xl font-bold mb-6 text-yellow-400">Get in Touch</h4>
+              <div className="space-y-4 text-gray-300">
+                <div className="flex items-start space-x-3">
+                  <MdLocationOn className="h-5 w-5 text-blue-400 mt-1 flex-shrink-0" />
+                  <div>
+                    <p>123 Training Street</p>
+                    <p>Quezon City, Metro Manila 1100</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <MdPhone className="h-5 w-5 text-blue-400 flex-shrink-0" />
+                  <p>(02) 8123-4567</p>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <MdEmail className="h-5 w-5 text-blue-400 flex-shrink-0" />
+                  <p>admissions@smi.edu.ph</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Bottom Footer */}
+          <div className="border-t border-gray-800 py-8">
+            <div className="flex flex-col lg:flex-row justify-between items-center space-y-4 lg:space-y-0">
+              <div className="text-gray-400 text-center lg:text-left">
+                <p className="text-lg">© 2025 SMI Training Institute. All rights reserved.</p>
+                <p className="text-sm mt-1">Regulated by TESDA • Member of Philippine Hotel & Restaurant Association</p>
+              </div>
+              <div className="flex flex-wrap justify-center lg:justify-end space-x-8 text-sm">
+                <a href="#" className="text-gray-400 hover:text-white transition-colors">Privacy Policy</a>
+                <a href="#" className="text-gray-400 hover:text-white transition-colors">Terms of Service</a>
+                <a href="#" className="text-gray-400 hover:text-white transition-colors">Student Portal</a>
+                <a href="#" className="text-gray-400 hover:text-white transition-colors">Career Services</a>
+              </div>
+            </div>
           </div>
         </div>
       </footer>
