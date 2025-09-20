@@ -84,14 +84,18 @@ const AdminLogin = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Background Pattern */}
-      <div className="absolute inset-0 bg-black bg-opacity-20"></div>
+      <div className="absolute inset-0 bg-blue-900 bg-opacity-20"></div>
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent transform -skew-y-6"></div>
       
       <div className="relative max-w-md w-full space-y-8">
         {/* Header with Logo */}
         <div className="text-center">
-          <div className="mx-auto h-20 w-20 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
-            <MdSecurity className="h-10 w-10 text-white" />
+          <div className="mx-auto h-20 w-20 bg-white backdrop-blur-sm border border-white/20 rounded-2xl flex items-center justify-center mb-6 shadow-lg overflow-hidden">
+            <img 
+              src="/smi-logo.jpg" 
+              alt="SMI Institute Logo" 
+              className="w-16 h-16 object-contain"
+            />
           </div>
           <h2 className="text-3xl font-bold text-white mb-2">TrackEd Administrator Portal</h2>
         </div>
@@ -177,7 +181,7 @@ const AdminLogin = () => {
             </div>
 
             {/* Forgot Password */}
-            <div className="text-right">
+            <div className="text-center">
               <a href="#" className="font-semibold text-blue-600 hover:text-blue-500 transition-colors">
                 Forgot password?
               </a>
@@ -188,7 +192,7 @@ const AdminLogin = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`group relative w-full flex justify-center py-4 px-6 border border-transparent text-lg font-semibold rounded-xl text-white transition-all duration-300 transform ${
+                className={`group relative w-full flex justify-center py-4 px-6 border border-transparent text-lg font-semibold rounded-xl text-white transition-all duration-300 transform hover:cursor-pointer ${
                   isLoading
                     ? 'bg-gray-400 cursor-not-allowed'
                     : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 hover:scale-105 shadow-lg hover:shadow-xl'
@@ -201,7 +205,6 @@ const AdminLogin = () => {
                   </div>
                 ) : (
                   <>
-                    <MdSecurity className="h-6 w-6 mr-3" />
                     Sign In as Administrator
                   </>
                 )}
@@ -213,10 +216,7 @@ const AdminLogin = () => {
         {/* Footer */}
         <div className="text-center">
           <p className="text-xs text-gray-500">
-            © 2024 SMI Institute Inc. All rights reserved.
-          </p>
-          <p className="text-xs text-gray-400 mt-1">
-            TrackEd Training Center Management System
+            © 2025 SMI Institute Inc. All rights reserved.
           </p>
         </div>
       </div>
