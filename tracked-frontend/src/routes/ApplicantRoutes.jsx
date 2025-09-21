@@ -1,5 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
-import Dashboard from '../pages/applicants/Dashboard';
+import Dashboard from '../pages/applicants/ApplicantDashboard';
 import Login from '../pages/Login';
 
 const ApplicantRoutes = () => {

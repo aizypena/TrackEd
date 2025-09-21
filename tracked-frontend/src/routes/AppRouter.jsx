@@ -22,7 +22,7 @@ import Certificates from '../pages/lms/Certificates';
 import ProfileSettings from '../pages/lms/ProfileSettings';
 
 // applicant routes
-import ApplicantDashboard from '../pages/applicants/Dashboard';
+import ApplicantDashboard from '../pages/applicants/ApplicantDashboard';
 
 // admin
 import AdminDashboard from '../pages/admin/Dashboard';
@@ -42,7 +42,7 @@ const AppRouter = () => {
         <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* Applicant Routes */}
-        <Route path="/applicants/dashboard" element={<ApplicantDashboard />} />
+        <Route path="/applicant/dashboard" element={<ApplicantDashboard />} />
 
         {/* SMI LMS Dashboard - Direct Route */}
         <Route path="/smi-lms/dashboard" element={<StudentDashboard />} />
