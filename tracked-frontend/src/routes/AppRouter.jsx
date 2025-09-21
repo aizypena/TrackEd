@@ -20,6 +20,9 @@ import AssessmentResults from '../pages/lms/AssessmentResults';
 import Certificates from '../pages/lms/Certificates';
 import ProfileSettings from '../pages/lms/ProfileSettings';
 
+// applicant routes
+import ApplicantDashboard from '../pages/applicants/Dashboard';
+
 // admin
 import AdminDashboard from '../pages/admin/Dashboard';
 import AdminLogin from '../pages/admin/AdminLogin';
@@ -35,6 +38,9 @@ const AppRouter = () => {
         <Route path="/about" element={<About />} />
         <Route path="/courses" element={<CourseOffered />} />
         <Route path="/faq" element={<FAQ />} />
+
+        {/* Applicant Routes */}
+        <Route path="/applicants/dashboard" element={<ApplicantDashboard />} />
 
         {/* SMI LMS Dashboard - Direct Route */}
         <Route path="/smi-lms/dashboard" element={<StudentDashboard />} />

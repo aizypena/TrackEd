@@ -1,5 +1,6 @@
 import React from 'react'
 import { MdVerified, MdLocationOn, MdPhone, MdEmail } from 'react-icons/md'
+import { Link } from 'react-router-dom'
 
 export default function Footer() {
   return (
@@ -34,12 +35,14 @@ export default function Footer() {
             <div>
               <h4 className="text-xl font-bold mb-6 text-yellow-400">Training Programs</h4>
               <ul className="space-y-3 text-gray-300">
-                <li className="hover:text-white transition-colors cursor-pointer">Cookery NC II</li>
-                <li className="hover:text-white transition-colors cursor-pointer">Bartending</li>
-                <li className="hover:text-white transition-colors cursor-pointer">Barista Training</li>
+                <li className="hover:text-white transition-colors cursor-pointer">Bartending NC II</li>
+                <li className="hover:text-white transition-colors cursor-pointer">Barista Training NC II</li>
                 <li className="hover:text-white transition-colors cursor-pointer">Housekeeping NC II</li>
-                <li className="hover:text-white transition-colors cursor-pointer">Food & Beverage</li>
-                <li className="hover:text-white transition-colors cursor-pointer">Events Management</li>
+                <li className="hover:text-white transition-colors cursor-pointer">Food and Beverage Services NC II</li>
+                <li className="hover:text-white transition-colors cursor-pointer">Bread and Pastry Production NC II</li>
+                <li className="hover:text-white transition-colors cursor-pointer">Events Management NC II</li>
+                <li className="hover:text-white transition-colors cursor-pointer">Chef's Catering Services NC II</li>
+                <li className="hover:text-white transition-colors cursor-pointer">Cookery NC II</li>
               </ul>
             </div>
             
@@ -60,7 +63,7 @@ export default function Footer() {
                 </div>
                 <div className="flex items-center space-x-3">
                   <MdEmail className="h-5 w-5 text-blue-400 flex-shrink-0" />
-                  <p>smiacedmicenter@gmail.com</p>
+                  <a href="mailto:smiacedmicenter@gmail.com" className="hover:text-white transition-colors">smiacedmicenter@gmail.com</a>
                 </div>
               </div>
             </div>
