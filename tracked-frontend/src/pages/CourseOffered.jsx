@@ -270,11 +270,10 @@ function CourseOffered() {
             <div className="bg-white p-6 rounded-lg shadow-sm">
               <h3 className="font-bold text-gray-900 mb-3">Admission Requirements</h3>
               <ul className="space-y-2 text-sm text-gray-700">
-                <li>• High School Diploma or equivalent</li>
-                <li>• Valid Government ID</li>
-                <li>• Birth Certificate</li>
-                <li>• Medical Certificate</li>
-                <li>• 2x2 ID Photos</li>
+                <li>• Valid ID</li>
+                <li>• Transcript of Record</li>
+                <li>• Diploma</li>
+                <li>• Passport Size Photo with White Background</li>
               </ul>
             </div>
             
@@ -291,8 +290,7 @@ function CourseOffered() {
             <div className="bg-white p-6 rounded-lg shadow-sm">
               <h3 className="font-bold text-gray-900 mb-3">Class Schedule Options</h3>
               <ul className="space-y-2 text-sm text-gray-700">
-                <li>• Morning Classes: 8:00 AM - 12:00 PM</li>
-                <li>• Afternoon Classes: 1:00 PM - 5:00 PM</li>
+                <li>• Monday to Friday: 8:00 AM - 5:00 PM</li>
                 <li>• Weekend Classes: Saturdays</li>
                 <li>• Flexible scheduling available</li>
               </ul>
