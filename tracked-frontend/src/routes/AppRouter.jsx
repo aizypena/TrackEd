@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Home from '../pages/Home';
 import Login from '../pages/Login';
 import Signup from '../pages/Signup';
+import ForgotPassword from '../pages/ForgotPassword';
 import About from '../pages/About';
 import CourseOffered from '../pages/CourseOffered';
 import FAQ from '../pages/FAQ';
@@ -38,6 +39,7 @@ const AppRouter = () => {
         <Route path="/about" element={<About />} />
         <Route path="/courses" element={<CourseOffered />} />
         <Route path="/faq" element={<FAQ />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* Applicant Routes */}
         <Route path="/applicants/dashboard" element={<ApplicantDashboard />} />
