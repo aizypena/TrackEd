@@ -40,7 +40,7 @@ export default function Footer() {
                 <li className="hover:text-white transition-colors cursor-pointer">Housekeeping NC II</li>
                 <li className="hover:text-white transition-colors cursor-pointer">Food and Beverage Services NC II</li>
                 <li className="hover:text-white transition-colors cursor-pointer">Bread and Pastry Production NC II</li>
-                <li className="hover:text-white transition-colors cursor-pointer">Events Management NC II</li>
+                <li className="hover:text-white transition-colors cursor-pointer">Events Management NC III</li>
                 <li className="hover:text-white transition-colors cursor-pointer">Chef's Catering Services NC II</li>
                 <li className="hover:text-white transition-colors cursor-pointer">Cookery NC II</li>
               </ul>
