@@ -6,6 +6,10 @@ import ForgotPassword from '../pages/ForgotPassword';
 import About from '../pages/About';
 import CourseOffered from '../pages/CourseOffered';
 import FAQ from '../pages/FAQ';
+import TermsAndCondition from '../pages/TermsAndCondition';
+import PrivacyPolicy from '../pages/PrivacyPolicy';
+
+
 import StudentDashboard from '../pages/lms/Dashboard';
 import AdminRoutes from './AdminRoutes';
 import StudentRoutes from './StudentRoutes';
@@ -40,6 +44,8 @@ const AppRouter = () => {
         <Route path="/courses" element={<CourseOffered />} />
         <Route path="/faq" element={<FAQ />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path='/terms-and-conditions' element={<TermsAndCondition />} />
+        <Route path='/privacy-policy' element={<PrivacyPolicy />} />
 
         {/* Applicant Routes */}
         <Route path="/applicant/dashboard" element={<ApplicantDashboard />} />

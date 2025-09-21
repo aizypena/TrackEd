@@ -319,11 +319,11 @@ const Signup = () => {
                 />
                 <label htmlFor="agreeToTerms" className="ml-2 block text-sm text-gray-700">
                   I agree to the{' '}
-                  <Link to="/terms" className="text-tracked-secondary hover:text-tracked-secondary-700 underline">
+                  <Link to="/terms-and-conditions" className="text-tracked-secondary hover:text-tracked-secondary-700 underline">
                     Terms and Conditions
                   </Link>
                   {' '}and{' '}
-                  <Link to="/privacy" className="text-tracked-secondary hover:text-tracked-secondary-700 underline">
+                  <Link to="/privacy-policy" className="text-tracked-secondary hover:text-tracked-secondary-700 underline">
                     Privacy Policy
                   </Link>
                 </label>
