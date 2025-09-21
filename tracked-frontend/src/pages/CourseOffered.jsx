@@ -291,7 +291,6 @@ function CourseOffered() {
               <h3 className="font-bold text-gray-900 mb-3">Class Schedule Options</h3>
               <ul className="space-y-2 text-sm text-gray-700">
                 <li>• Monday to Friday: 8:00 AM - 5:00 PM</li>
-                <li>• Weekend Classes: Saturdays</li>
                 <li>• Flexible scheduling available</li>
               </ul>
             </div>
