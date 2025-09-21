@@ -114,19 +114,18 @@ const About = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { name: 'Bartending', icon: '🍸', description: 'Professional mixology and beverage service' },
-              { name: 'Barista Training', icon: '☕', description: 'Coffee preparation and café operations' },
-              { name: 'Housekeeping', icon: '🏨', description: 'Hotel and facility maintenance management' },
-              { name: 'Food & Beverage Services', icon: '🍽️', description: 'Restaurant and hospitality service' },
-              { name: 'Bread & Pastry Production', icon: '🥖', description: 'Baking and pastry arts' },
-              { name: 'Events Management', icon: '🎉', description: 'Event planning and coordination' },
-              { name: 'Chef\'s Catering Services', icon: '👨‍🍳', description: 'Professional catering operations' },
-              { name: 'Cookery', icon: '🍳', description: 'Culinary arts and kitchen management' }
+              { name: 'Bartending', description: 'Professional mixology and beverage service' },
+              { name: 'Barista Training', description: 'Coffee preparation and café operations' },
+              { name: 'Housekeeping', description: 'Hotel and facility maintenance management' },
+              { name: 'Food & Beverage Services', description: 'Restaurant and hospitality service' },
+              { name: 'Bread & Pastry Production', description: 'Baking and pastry arts' },
+              { name: 'Events Management', description: 'Event planning and coordination' },
+              { name: 'Chef\'s Catering Services', description: 'Professional catering operations' },
+              { name: 'Cookery', description: 'Culinary arts and kitchen management' }
             ].map((program, index) => (
               <div key={index} className="bg-white border border-gray-200 rounded-lg p-6 text-center hover:shadow-md transition-shadow">
-                <div className="text-3xl mb-3">{program.icon}</div>
-                <h3 className="font-bold text-gray-900 mb-2">{program.name}</h3>
-                <p className="text-sm text-gray-600">{program.description}</p>
+                <h3 className="font-bold text-gray-900 mb-2 text-lg">{program.name}</h3>
+                <p className="text-sm text-gray-600 leading-relaxed">{program.description}</p>
               </div>
             ))}
           </div>
