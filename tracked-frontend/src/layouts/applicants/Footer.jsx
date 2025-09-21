@@ -50,17 +50,17 @@ export default function Footer() {
                 <div className="flex items-start space-x-3">
                   <MdLocationOn className="h-5 w-5 text-blue-400 mt-1 flex-shrink-0" />
                   <div>
-                    <p>123 Training Street</p>
-                    <p>Quezon City, Metro Manila 1100</p>
+                    <p>Wardley Bldg. San Juan St. Cor. Taft Ave. Brgy 36</p>
+                    <p>Pasay City, Metro Manila 1100</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
                   <MdPhone className="h-5 w-5 text-blue-400 flex-shrink-0" />
-                  <p>(02) 8123-4567</p>
+                  <p>09177990724</p>
                 </div>
                 <div className="flex items-center space-x-3">
                   <MdEmail className="h-5 w-5 text-blue-400 flex-shrink-0" />
-                  <p>admissions@smi.edu.ph</p>
+                  <p>smiacedmicenter@gmail.com</p>
                 </div>
               </div>
             </div>
