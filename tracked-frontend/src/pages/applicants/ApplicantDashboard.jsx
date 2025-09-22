@@ -138,7 +138,6 @@ const ApplicantDashboard = () => {
         <div className="container mx-auto px-6">
           <div className="flex items-center justify-center">
             <div className="inline-flex items-center px-6 py-3 rounded-full text-lg font-semibold bg-tracked-primary text-white border-2 border-white/30">
-              <span className="mr-3 text-xl">{statusDisplay.icon}</span>
               <span>Application Status: {statusDisplay.text}</span>
             </div>
           </div>
@@ -206,8 +205,8 @@ const ApplicantDashboard = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300">
+        <div className="grid grid-cols-3 gap-6">
+          <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 flex flex-col">
             <div className="bg-tracked-primary p-6 border-b border-gray-100">
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center">
@@ -219,8 +218,8 @@ const ApplicantDashboard = () => {
                 </div>
               </div>
             </div>
-            <div className="p-6">
-              <p className="text-gray-700 mb-6 leading-relaxed">
+            <div className="p-6 flex-1 flex flex-col">
+              <p className="text-gray-700 mb-6 leading-relaxed flex-1">
                 View detailed information about your application status and track your progress through the admission process.
               </p>
               <button className="w-full bg-tracked-primary hover:bg-tracked-primary/90 text-white px-6 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-sm hover:shadow-md">
@@ -229,7 +228,7 @@ const ApplicantDashboard = () => {
             </div>
           </div>
           
-          <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300">
+          <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 flex flex-col">
             <div className="bg-tracked-primary p-6 border-b border-gray-100">
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center">
@@ -241,8 +240,8 @@ const ApplicantDashboard = () => {
                 </div>
               </div>
             </div>
-            <div className="p-6">
-              <p className="text-gray-700 mb-6 leading-relaxed">
+            <div className="p-6 flex-1 flex flex-col">
+              <p className="text-gray-700 mb-6 leading-relaxed flex-1">
                 Browse our comprehensive catalog of technical and vocational training programs designed for your career growth.
               </p>
               <button className="w-full bg-tracked-primary hover:bg-tracked-primary/90 text-white px-6 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-sm hover:shadow-md">
@@ -251,7 +250,7 @@ const ApplicantDashboard = () => {
             </div>
           </div>
           
-          <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300">
+          <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 flex flex-col">
             <div className="bg-tracked-primary p-6 border-b border-gray-100">
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center">
@@ -263,8 +262,8 @@ const ApplicantDashboard = () => {
                 </div>
               </div>
             </div>
-            <div className="p-6">
-              <p className="text-gray-700 mb-6 leading-relaxed">
+            <div className="p-6 flex-1 flex flex-col">
+              <p className="text-gray-700 mb-6 leading-relaxed flex-1">
                 Upload and manage all required documents for your application and enrollment process securely.
               </p>
               <button className="w-full bg-tracked-primary hover:bg-tracked-primary/90 text-white px-6 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-sm hover:shadow-md">
@@ -289,7 +288,7 @@ const ApplicantDashboard = () => {
               </a>
               <a href="#" className="flex items-center p-3 rounded-lg hover:bg-gray-50 transition-colors group">
                 <FaPhone className="text-lg mr-3 text-tracked-primary" />
-                <span className="text-gray-700 group-hover:text-gray-900">Contact Support</span>
+                <span className="text-gray-700 group-hover:text-gray-900">View Contact Information</span>
               </a>
               <a href="#" className="flex items-center p-3 rounded-lg hover:bg-gray-50 transition-colors group">
                 <FaClipboardList className="text-lg mr-3 text-tracked-primary" />
