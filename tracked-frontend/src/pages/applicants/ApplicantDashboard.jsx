@@ -125,7 +125,7 @@ const ApplicantDashboard = () => {
             <div className="flex items-center space-x-4">
               <button 
                 onClick={handleLogout}
-                className="bg-tracked-primary hover:bg-tracked-primary/90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm"
+                className="bg-tracked-primary hover:cursor-pointer hover:bg-tracked-primary/90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm"
               >
                 Logout
               </button>
