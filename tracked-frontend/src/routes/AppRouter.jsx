@@ -8,6 +8,7 @@ import CourseOffered from '../pages/CourseOffered';
 import FAQ from '../pages/FAQ';
 import TermsAndCondition from '../pages/TermsAndCondition';
 import PrivacyPolicy from '../pages/PrivacyPolicy';
+import Application from '../pages/applicants/Application';
 
 
 import StudentDashboard from '../pages/lms/Dashboard';
@@ -46,6 +47,7 @@ const AppRouter = () => {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path='/terms-and-conditions' element={<TermsAndCondition />} />
         <Route path='/privacy-policy' element={<PrivacyPolicy />} />
+        <Route path='/application' element={<Application />} />
 
         {/* Applicant Routes */}
         <Route path="/applicant/dashboard" element={<ApplicantDashboard />} />

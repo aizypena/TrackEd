@@ -203,8 +203,8 @@ const Login = () => {
             <div className="text-center">
               <p className="text-sm text-gray-600">
                 Haven't applied yet?{' '}
-                <Link to="/signup" className="font-medium text-tracked-secondary hover:text-tracked-secondary-700" title='Apply for Training'>
-                  Apply for Training Programs
+                <Link to="/application" className="font-medium text-tracked-secondary hover:text-tracked-secondary-700" title='Apply for Training'>
+                  Apply here
                 </Link>
               </p>
             </div>

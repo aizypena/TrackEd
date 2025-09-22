@@ -82,4 +82,12 @@ class User extends Authenticatable
     {
         return $this->role === 'applicant';
     }
+    
+    /**
+     * Get the application for this user.
+     */
+    public function application()
+    {
+        return $this->hasOne(Application::class);
+    }
 }
