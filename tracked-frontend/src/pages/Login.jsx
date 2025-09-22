@@ -64,7 +64,8 @@ const Login = () => {
             id: data.user.id,
             email: data.user.email,
             name: data.user.full_name,
-            role: data.user.role
+            role: data.user.role,
+            created_at: data.user.created_at
           };
 
           localStorage.setItem('userToken', data.token);

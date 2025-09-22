@@ -128,6 +128,8 @@ class AuthController extends Controller
                 'phone_number' => $user->phone_number,
                 'role' => $user->role,
                 'status' => $user->status,
+                'created_at' => $user->created_at,
+                'updated_at' => $user->updated_at,
             ],
             'token' => $token
         ], 200);
