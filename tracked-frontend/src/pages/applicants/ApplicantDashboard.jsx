@@ -45,6 +45,9 @@ const ApplicantDashboard = () => {
             setUser(parsedUser);
             setIsAuthenticated(true);
             
+            // Fetch current user data including application status
+            fetchCurrentUserData(token);
+            
             if (parsedUser.application_status) {
               setApplicationStatus(parsedUser.application_status);
             } else if (parsedUser.role === 'student') {
@@ -69,6 +72,46 @@ const ApplicantDashboard = () => {
         sessionStorage.removeItem('userToken');
         sessionStorage.removeItem('userData');
         setIsAuthenticated(false);
+      }
+    };
+
+    const fetchCurrentUserData = async (token) => {
+      try {
+        const response = await fetch('http://192.168.31.61:8000/api/me', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.user) {
+            // Update user data with fresh information from API
+            const updatedUserData = {
+              id: data.user.id,
+              email: data.user.email,
+              name: data.user.full_name,
+              role: data.user.role,
+              created_at: data.user.created_at,
+              application_status: data.user.application_status
+            };
+            
+            // Update localStorage with fresh data
+            localStorage.setItem('userData', JSON.stringify(updatedUserData));
+            setUser(updatedUserData);
+            
+            // Update application status
+            if (data.user.application_status) {
+              setApplicationStatus(data.user.application_status);
+            }
+          }
+        } else {
+          console.error('Failed to fetch user data:', response.status);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
       }
     };
 

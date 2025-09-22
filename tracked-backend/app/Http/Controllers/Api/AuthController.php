@@ -64,6 +64,7 @@ class AuthController extends Controller
                     'phone_number' => $user->phone_number,
                     'role' => $user->role,
                     'status' => $user->status,
+                    'application_status' => $user->application_status,
                     'created_at' => $user->created_at,
                 ]
             ], 201);
@@ -128,6 +129,7 @@ class AuthController extends Controller
                 'phone_number' => $user->phone_number,
                 'role' => $user->role,
                 'status' => $user->status,
+                'application_status' => $user->application_status,
                 'created_at' => $user->created_at,
                 'updated_at' => $user->updated_at,
             ],
@@ -145,6 +147,31 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Logout successful'
+        ], 200);
+    }
+
+    /**
+     * Get current user data
+     */
+    public function me(Request $request)
+    {
+        $user = $request->user();
+
+        return response()->json([
+            'success' => true,
+            'user' => [
+                'id' => $user->id,
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
+                'full_name' => $user->full_name,
+                'email' => $user->email,
+                'phone_number' => $user->phone_number,
+                'role' => $user->role,
+                'status' => $user->status,
+                'application_status' => $user->application_status,
+                'created_at' => $user->created_at,
+                'updated_at' => $user->updated_at,
+            ]
         ], 200);
     }
 }
