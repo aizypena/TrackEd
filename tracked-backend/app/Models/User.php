@@ -33,6 +33,27 @@ class User extends Authenticatable
         'gender',
         'emergency_contact',
         'emergency_phone',
+        // Application fields
+        'nationality',
+        'marital_status',
+        'education_level',
+        'field_of_study',
+        'institution_name',
+        'graduation_year',
+        'gpa',
+        'computer_literacy',
+        'languages',
+        'work_experience',
+        'career_goals',
+        'why_applying',
+        'additional_info',
+        'valid_id_path',
+        'transcript_path',
+        'diploma_path',
+        'passport_photo_path',
+        'application_submitted_at',
+        'application_reviewed_at',
+        'application_notes',
     ];
 
     /**
@@ -56,6 +77,9 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'date_of_birth' => 'date',
             'password' => 'hashed',
+            'languages' => 'array',
+            'application_submitted_at' => 'datetime',
+            'application_reviewed_at' => 'datetime',
         ];
     }
     
@@ -81,13 +105,5 @@ class User extends Authenticatable
     public function isApplicant(): bool
     {
         return $this->role === 'applicant';
-    }
-    
-    /**
-     * Get the application for this user.
-     */
-    public function application()
-    {
-        return $this->hasOne(Application::class);
     }
 }

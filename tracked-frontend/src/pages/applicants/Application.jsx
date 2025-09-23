@@ -256,7 +256,7 @@ const Signup = () => {
       
       console.log('Submitting application...');
       
-      const response = await fetch('http://192.168.31.61:8001/api/applications/submit', {
+      const response = await fetch('http://127.0.0.1:8000/api/applications/submit', {
         method: 'POST',
         body: submitData, // Don't set Content-Type header, let browser set it with boundary
       });

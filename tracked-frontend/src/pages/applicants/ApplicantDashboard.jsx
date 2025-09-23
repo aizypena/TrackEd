@@ -77,7 +77,7 @@ const ApplicantDashboard = () => {
 
     const fetchCurrentUserData = async (token) => {
       try {
-        const response = await fetch('http://192.168.31.61:8000/api/me', {
+        const response = await fetch('http://127.0.0.1:8000/api/me', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
