@@ -254,8 +254,6 @@ const Signup = () => {
         submitData.append('passportPhoto', formData.documents.passportPhoto);
       }
       
-      console.log('Submitting application...');
-      
       const response = await fetch('http://127.0.0.1:8000/api/applications/submit', {
         method: 'POST',
         body: submitData, // Don't set Content-Type header, let browser set it with boundary
@@ -264,15 +262,12 @@ const Signup = () => {
       const data = await response.json();
       
       if (response.ok && data.success) {
-        console.log('Application submitted successfully:', data);
         setShowConfirmModal(false); // Close the modal
         nextStep(); // Go to success page
       } else {
-        console.error('Application submission failed:', data);
         alert(data.message || 'Application submission failed. Please try again.');
       }
     } catch (error) {
-      console.error('Error submitting application:', error);
       alert('An error occurred while submitting your application. Please try again.');
     }
   };
