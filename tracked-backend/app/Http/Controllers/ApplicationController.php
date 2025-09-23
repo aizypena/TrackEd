@@ -20,7 +20,8 @@ class ApplicationController extends Controller
                 'firstName' => 'required|string|max:255',
                 'lastName' => 'required|string|max:255',
                 'middleName' => 'nullable|string|max:255',
-                'email' => 'required|email|max:255',
+                'email' => 'required|email|max:255|unique:users',
+                'password' => 'required|string|min:8',
                 'mobileNumber' => 'required|string|max:20',
                 'birthDate' => 'required|date',
                 'gender' => 'required|in:male,female,other',
@@ -76,7 +77,7 @@ class ApplicationController extends Controller
                 'last_name' => $validated['lastName'],
                 'email' => $validated['email'],
                 'phone_number' => $validated['mobileNumber'],
-                'password' => bcrypt('temporary_password_123'), // You might want to generate a random password
+                'password' => bcrypt($validated['password']),
                 'role' => 'applicant',
                 'status' => 'active',
                 'application_status' => 'pending',

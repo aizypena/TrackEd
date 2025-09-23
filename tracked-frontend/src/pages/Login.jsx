@@ -42,7 +42,7 @@ const Login = () => {
 
     try {
       // API call to backend for authentication
-      console.log('Making API call to backend...');
+      // console.log('Making API call to backend...');
       const response = await fetch('http://localhost:8000/api/login', {
         method: 'POST',
         headers: {

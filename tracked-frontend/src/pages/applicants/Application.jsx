@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { AiOutlineEye, AiOutlineEyeInvisible } from 'react-icons/ai';
 import Navbar from '../../layouts/applicants/Navbar';
 import { nationalities } from '../../utils/nationalities';
 
 const Signup = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
     // Personal Information
     firstName: '',
@@ -16,6 +19,8 @@ const Signup = () => {
     address: '',
     placeOfBirth: '',
     email: '',
+    password: '',
+    confirmPassword: '',
     gender: '',
     mobileNumber: '',
     
@@ -114,6 +119,37 @@ const Signup = () => {
         ...prev,
         [name]: value && value !== 'filipino' 
           ? 'This training program is currently only available for Filipino citizens.' 
+          : ''
+      }));
+    } else if (name === 'password') {
+      // Handle password validation
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+      
+      // Update errors for password
+      setErrors(prev => ({
+        ...prev,
+        [name]: value && value.length < 8 
+          ? 'Password must be at least 8 characters long' 
+          : '',
+        confirmPassword: prev.confirmPassword && formData.confirmPassword !== value
+          ? 'Passwords do not match'
+          : ''
+      }));
+    } else if (name === 'confirmPassword') {
+      // Handle confirm password validation
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+      
+      // Update errors for confirm password
+      setErrors(prev => ({
+        ...prev,
+        [name]: value && value !== formData.password 
+          ? 'Passwords do not match' 
           : ''
       }));
     } else {
@@ -274,8 +310,16 @@ const Signup = () => {
 
   const canProceedToNextStep = () => {
     if (currentStep === 1) {
-      // Check if nationality is Filipino for step 1
-      return formData.nationality === 'filipino';
+      // Check required fields for step 1
+      const requiredFields = ['firstName', 'lastName', 'nationality', 'birthDate', 'address', 'placeOfBirth', 'email', 'password', 'confirmPassword', 'gender', 'mobileNumber'];
+      const hasAllRequired = requiredFields.every(field => formData[field]);
+      
+      // Check if nationality is Filipino and passwords match
+      const isNationalityValid = formData.nationality === 'filipino';
+      const doPasswordsMatch = formData.password === formData.confirmPassword;
+      const isPasswordStrong = formData.password.length >= 8;
+      
+      return hasAllRequired && isNationalityValid && doPasswordsMatch && isPasswordStrong;
     }
     if (currentStep === 4) {
       return formData.documents.validId && formData.documents.transcript && formData.documents.diploma && formData.documents.passportPhoto;
@@ -430,6 +474,8 @@ const Signup = () => {
             placeholder="Enter your email address"
           />
         </div>
+        
+        {/* Gender */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Gender *</label>
           <div className="relative">
@@ -443,13 +489,78 @@ const Signup = () => {
               <option value="">Select gender</option>
               <option value="male">Male</option>
               <option value="female">Female</option>
+              <option value="other">Other</option>
             </select>
-            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+            <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
               <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
               </svg>
             </div>
           </div>
+        </div>
+        
+        {/* Password */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              name="password"
+              required
+              value={formData.password}
+              onChange={handleChange}
+              className={`w-full px-3 py-2 pr-10 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                errors.password ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="Enter your password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center"
+            >
+              {showPassword ? (
+                <AiOutlineEyeInvisible className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+              ) : (
+                <AiOutlineEye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+              )}
+            </button>
+          </div>
+          {errors.password && (
+            <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+          )}
+        </div>
+
+        {/* Confirm Password */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password *</label>
+          <div className="relative">
+            <input
+              type={showConfirmPassword ? "text" : "password"}
+              name="confirmPassword"
+              required
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              className={`w-full px-3 py-2 pr-10 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="Confirm your password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center"
+            >
+              {showConfirmPassword ? (
+                <AiOutlineEyeInvisible className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+              ) : (
+                <AiOutlineEye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+              )}
+            </button>
+          </div>
+          {errors.confirmPassword && (
+            <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number *</label>
