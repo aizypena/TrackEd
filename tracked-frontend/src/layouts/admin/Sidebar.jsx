@@ -287,7 +287,7 @@ function Sidebar({ isOpen, onClose }) {
           {/* Logout Button */}
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors duration-200 border border-red-200"
+            className="w-full flex items-center hover:cursor-pointer justify-center space-x-2 px-4 py-3 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors duration-200 border border-red-200"
           >
             <MdLogout className="h-4 w-4" />
             <span className="text-sm font-medium">Logout</span>
@@ -297,9 +297,6 @@ function Sidebar({ isOpen, onClose }) {
           <div className="mt-4 text-center">
             <p className="text-xs text-gray-500">
               © 2025 SMI Institute Inc.
-            </p>
-            <p className="text-xs text-gray-400">
-              TESDA Accredited Training Center
             </p>
           </div>
         </div>
