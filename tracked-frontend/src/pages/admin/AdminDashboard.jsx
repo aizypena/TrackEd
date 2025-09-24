@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../layouts/admin/Sidebar';
 import { 
-  MdMenu, MdNotifications, MdSearch, MdSupervisorAccount,
+  MdMenu, MdSearch, MdSupervisorAccount,
   MdPeople, MdAssignment, MdCardGiftcard, MdTrendingUp, MdShowChart,
   MdInsights, MdCheckCircle, MdVisibility, MdAnalytics, MdBarChart,
   MdInfo, MdWarning, MdError, MdBusiness
 } from 'react-icons/md';
 
 const AdminDashboard = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  // Get admin user info from localStorage
+  const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+  
   const [dashboardStats, setDashboardStats] = useState({
     totalApplicants: 1247,
     activeApplications: 89,
@@ -133,14 +137,24 @@ const AdminDashboard = () => {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Sidebar Component */}
-      <Sidebar 
-        isOpen={sidebarOpen} 
-        onClose={() => setSidebarOpen(false)}
-      />
+      {/* Sidebar - Desktop: Always visible, Mobile: Toggle */}
+      <div className="hidden lg:block">
+        <Sidebar 
+          isOpen={true} 
+          onClose={() => {}}
+        />
+      </div>
+      
+      {/* Mobile Sidebar */}
+      <div className="lg:hidden">
+        <Sidebar 
+          isOpen={sidebarOpen} 
+          onClose={() => setSidebarOpen(false)}
+        />
+      </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden lg:ml-80">
+      <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4 flex-shrink-0">
           <div className="flex items-center justify-between">
@@ -166,17 +180,13 @@ const AdminDashboard = () => {
                   className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
-              <button className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
-                <MdNotifications className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {recentActivities.filter(a => a.priority === 'high').length}
-                </span>
-              </button>
               <div className="flex items-center space-x-2">
                 <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
                   <MdSupervisorAccount className="h-5 w-5 text-white" />
                 </div>
-                <span className="text-sm font-medium text-gray-700">Admin User</span>
+                <span className="text-sm font-medium text-gray-700">
+                  {adminUser.name || 'Administrator'}
+                </span>
               </div>
             </div>
           </div>

@@ -148,9 +148,10 @@ function Sidebar({ isOpen, onClose }) {
 
       {/* Sidebar */}
       <div className={`
-        fixed top-0 left-0 h-screen w-80 bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out flex flex-col
-        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-        lg:translate-x-0 lg:static lg:shadow-none
+        w-80 h-screen bg-white shadow-lg flex flex-col
+        ${isOpen ? 'fixed top-0 left-0 z-50 transform translate-x-0' : 'fixed top-0 left-0 z-50 transform -translate-x-full'}
+        lg:relative lg:translate-x-0 lg:z-auto
+        transition-transform duration-300 ease-in-out
       `}>
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white">
