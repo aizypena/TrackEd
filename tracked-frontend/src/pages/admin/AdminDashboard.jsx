@@ -1,527 +1,432 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import Sidebar from '../../layouts/admin/Sidebar';
 import { 
-  MdDashboard,
-  MdPeople,
-  MdSchool,
-  MdAssignment,
-  MdInventory,
-  MdTrendingUp,
-  MdSettings,
-  MdReport,
-  MdNotifications,
-  MdSearch,
-  MdFilterList,
-  MdMoreVert,
-  MdAdd,
-  MdEdit,
-  MdVisibility,
-  MdCheckCircle,
-  MdPending,
-  MdWarning,
-  MdCancel,
-  MdGroup,
-  MdBook,
-  MdAttachMoney,
-  MdCalendarToday,
-  MdBusiness,
-  MdVerified,
-  MdLocalLibrary,
-  MdLogout,
-  MdAccountCircle
+  MdMenu, MdNotifications, MdSearch, MdSupervisorAccount,
+  MdPeople, MdAssignment, MdCardGiftcard, MdTrendingUp, MdShowChart,
+  MdInsights, MdCheckCircle, MdVisibility, MdAnalytics, MdBarChart,
+  MdInfo, MdWarning, MdError, MdBusiness
 } from 'react-icons/md';
 
 const AdminDashboard = () => {
-  const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
-
-  // Get admin user info from localStorage
-  const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
-
-  // Logout function
-  const handleLogout = () => {
-    // Clear admin authentication data
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('adminUser');
-    
-    // Redirect to admin login page
-    navigate('/admin/login', { replace: true });
-  };
-
-  // Mock data for dashboard statistics
-  const dashboardStats = {
-    totalStudents: 1247,
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [dashboardStats, setDashboardStats] = useState({
+    totalApplicants: 1247,
     activeApplications: 89,
-    totalCourses: 8,
-    totalRevenue: 2450000,
-    monthlyEnrollments: 156,
-    pendingApplications: 23,
-    eligibleApplicants: 45,
-    waitlistedApplicants: 21,
-    completedAssessments: 234,
-    activeBatches: 12,
-    lowStockItems: 7,
-    upcomingAssessments: 15
-  };
+    approvedApplications: 156,
+    pendingApplications: 43,
+    rejectedApplications: 12,
+    waitlistedApplicants: 23,
+    tesdaVouchers: 125,
+    eligibleApplicants: 89,
+    conversionRate: 74.3,
+    enrollmentGrowth: 18.5,
+    avgProcessingTime: 3.2,
+    activeBatches: 8
+  });
 
-  // Mock data for recent activities
-  const recentActivities = [
+  const [forecastingData, setForecastingData] = useState({
+    nextMonthPrediction: 145,
+    quarterPrediction: 420,
+    yearPrediction: 1680,
+    confidence: 87,
+    accuracy: 94.2,
+    trendDirection: 'upward',
+    seasonality: 'High during Q1-Q2'
+  });
+
+  const [recentActivities, setRecentActivities] = useState([
     {
       id: 1,
       type: 'application',
-      message: 'New application submitted for Cookery NC II',
+      status: 'success',
+      priority: 'high',
+      message: 'New TESDA voucher application submitted for Data Analytics Program',
       user: 'Maria Santos',
-      timestamp: '2 minutes ago',
-      status: 'pending'
+      timestamp: '2 minutes ago'
     },
     {
       id: 2,
-      type: 'enrollment',
-      message: 'Payment confirmed for Barista Training',
-      user: 'John Dela Cruz',
-      timestamp: '5 minutes ago',
-      status: 'completed'
+      type: 'system',
+      status: 'info',
+      priority: 'medium',
+      message: 'ARIMA forecasting model updated with Q4 enrollment data',
+      user: 'System',
+      timestamp: '15 minutes ago'
     },
     {
       id: 3,
-      type: 'assessment',
-      message: 'Assessment results submitted for Housekeeping NC II',
-      user: 'Instructor Lopez',
-      timestamp: '10 minutes ago',
-      status: 'completed'
+      type: 'approval',
+      status: 'success',
+      priority: 'high',
+      message: 'Batch enrollment approved for Cybersecurity Fundamentals',
+      user: 'Admin User',
+      timestamp: '1 hour ago'
     },
     {
       id: 4,
-      type: 'inventory',
-      message: 'Low stock alert: Coffee beans for Barista training',
+      type: 'notification',
+      status: 'warning',
+      priority: 'medium',
+      message: 'TESDA voucher limit approaching for this quarter',
       user: 'System',
-      timestamp: '15 minutes ago',
-      status: 'warning'
+      timestamp: '2 hours ago'
     },
     {
       id: 5,
-      type: 'application',
-      message: 'Applicant marked as eligible for TESDA voucher',
-      user: 'Ana Reyes',
-      timestamp: '20 minutes ago',
-      status: 'approved'
+      type: 'maintenance',
+      status: 'info',
+      priority: 'low',
+      message: 'Scheduled system maintenance completed successfully',
+      user: 'System',
+      timestamp: '4 hours ago'
     }
-  ];
-
-  // SMI Institute course programs
-  const coursePrograms = [
-    { name: 'Cookery NC II', students: 185, batches: 3, status: 'Active' },
-    { name: 'Bartending', students: 142, batches: 2, status: 'Active' },
-    { name: 'Barista Training', students: 167, batches: 3, status: 'Active' },
-    { name: 'Housekeeping NC II', students: 123, batches: 2, status: 'Active' },
-    { name: 'Food & Beverage Services', students: 156, batches: 2, status: 'Active' },
-    { name: 'Bread & Pastry', students: 134, batches: 2, status: 'Active' },
-    { name: 'Events Management', students: 89, batches: 1, status: 'Active' },
-    { name: 'Chef\'s Catering Services', students: 251, batches: 4, status: 'Active' }
-  ];
+  ]);
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'pending':
-        return <MdPending className="h-4 w-4 text-yellow-500" />;
-      case 'completed':
-      case 'approved':
+      case 'success':
         return <MdCheckCircle className="h-4 w-4 text-green-500" />;
       case 'warning':
-        return <MdWarning className="h-4 w-4 text-orange-500" />;
+        return <MdWarning className="h-4 w-4 text-yellow-500" />;
+      case 'error':
+        return <MdError className="h-4 w-4 text-red-500" />;
+      case 'info':
       default:
-        return <MdNotifications className="h-4 w-4 text-blue-500" />;
+        return <MdInfo className="h-4 w-4 text-blue-500" />;
     }
   };
 
   const getActivityColor = (type) => {
     switch (type) {
       case 'application':
-        return 'bg-blue-100 text-blue-800';
-      case 'enrollment':
         return 'bg-green-100 text-green-800';
-      case 'assessment':
+      case 'approval':
+        return 'bg-blue-100 text-blue-800';
+      case 'system':
         return 'bg-purple-100 text-purple-800';
-      case 'inventory':
-        return 'bg-orange-100 text-orange-800';
+      case 'notification':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'maintenance':
+        return 'bg-gray-100 text-gray-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
   };
 
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'high':
+        return 'border-l-red-500 bg-red-50';
+      case 'medium':
+        return 'border-l-yellow-500 bg-yellow-50';
+      case 'low':
+        return 'border-l-green-500 bg-green-50';
+      default:
+        return 'border-l-blue-500 bg-blue-50';
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('adminToken');
+    window.location.href = '/admin/login';
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="px-6 py-4">
+    <div className="flex h-screen bg-gray-50">
+      {/* Sidebar Component */}
+      <Sidebar 
+        isOpen={sidebarOpen} 
+        onClose={() => setSidebarOpen(false)}
+      />
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col overflow-hidden lg:ml-80">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-blue-600 rounded-lg">
-                  <MdDashboard className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-                  <p className="text-sm text-gray-600">TrackEd - SMI Institute Training Center Management</p>
-                </div>
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="lg:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100"
+              >
+                <MdMenu className="h-5 w-5" />
+              </button>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Dashboard Overview</h2>
+                <p className="text-sm text-gray-600">TrackEd Integrated Training Center Management System</p>
               </div>
             </div>
+            
             <div className="flex items-center space-x-4">
               <div className="relative">
-                <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <MdSearch className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Search students, applications..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 w-80 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Search applications..."
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
-              <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg">
-                <MdNotifications className="h-6 w-6" />
+              <button className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+                <MdNotifications className="h-5 w-5" />
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {recentActivities.filter(a => a.priority === 'high').length}
+                </span>
               </button>
-              
-              {/* Admin Profile & Logout */}
-              <div className="flex items-center space-x-3 border-l border-gray-200 pl-4">
-                <div className="flex items-center space-x-2">
-                  <MdAccountCircle className="h-8 w-8 text-gray-600" />
-                  <div className="text-sm">
-                    <p className="font-medium text-gray-900">{adminUser.name || 'Administrator'}</p>
-                    <p className="text-gray-500">{adminUser.email || 'admin@smi.edu.ph'}</p>
-                  </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                  <MdSupervisorAccount className="h-5 w-5 text-white" />
                 </div>
-                <button 
-                  onClick={handleLogout}
-                  className="flex items-center space-x-1 px-3 py-2 text-sm font-medium text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
-                  title="Logout"
-                >
-                  <MdLogout className="h-4 w-4" />
-                  <span>Logout</span>
-                </button>
+                <span className="text-sm font-medium text-gray-700">Admin User</span>
               </div>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Main Content */}
-      <main className="p-6">
-        {/* Key Metrics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {/* Total Students */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Students</p>
-                <p className="text-2xl font-bold text-gray-900">{dashboardStats.totalStudents.toLocaleString()}</p>
-                <p className="text-xs text-green-600 mt-1">+12% from last month</p>
-              </div>
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <MdSchool className="h-6 w-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
-
-          {/* Active Applications */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Active Applications</p>
-                <p className="text-2xl font-bold text-gray-900">{dashboardStats.activeApplications}</p>
-                <p className="text-xs text-blue-600 mt-1">{dashboardStats.pendingApplications} pending review</p>
-              </div>
-              <div className="p-3 bg-green-100 rounded-lg">
-                <MdAssignment className="h-6 w-6 text-green-600" />
-              </div>
-            </div>
-          </div>
-
-          {/* Monthly Revenue */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Monthly Revenue</p>
-                <p className="text-2xl font-bold text-gray-900">₱{(dashboardStats.totalRevenue / 1000).toFixed(0)}K</p>
-                <p className="text-xs text-green-600 mt-1">+8% from last month</p>
-              </div>
-              <div className="p-3 bg-yellow-100 rounded-lg">
-                <MdAttachMoney className="h-6 w-6 text-yellow-600" />
-              </div>
-            </div>
-          </div>
-
-          {/* Active Batches */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Active Batches</p>
-                <p className="text-2xl font-bold text-gray-900">{dashboardStats.activeBatches}</p>
-                <p className="text-xs text-purple-600 mt-1">{dashboardStats.upcomingAssessments} assessments due</p>
-              </div>
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <MdGroup className="h-6 w-6 text-purple-600" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-            <button className="flex flex-col items-center p-4 text-center hover:bg-gray-50 rounded-lg transition-colors">
-              <div className="p-3 bg-blue-100 rounded-lg mb-2">
-                <MdPeople className="h-6 w-6 text-blue-600" />
-              </div>
-              <span className="text-sm font-medium text-gray-700">Manage Applications</span>
-            </button>
-            
-            <button className="flex flex-col items-center p-4 text-center hover:bg-gray-50 rounded-lg transition-colors">
-              <div className="p-3 bg-green-100 rounded-lg mb-2">
-                <MdSchool className="h-6 w-6 text-green-600" />
-              </div>
-              <span className="text-sm font-medium text-gray-700">Enrollment</span>
-            </button>
-            
-            <button className="flex flex-col items-center p-4 text-center hover:bg-gray-50 rounded-lg transition-colors">
-              <div className="p-3 bg-purple-100 rounded-lg mb-2">
-                <MdAssignment className="h-6 w-6 text-purple-600" />
-              </div>
-              <span className="text-sm font-medium text-gray-700">Assessments</span>
-            </button>
-            
-            <button className="flex flex-col items-center p-4 text-center hover:bg-gray-50 rounded-lg transition-colors">
-              <div className="p-3 bg-orange-100 rounded-lg mb-2">
-                <MdInventory className="h-6 w-6 text-orange-600" />
-              </div>
-              <span className="text-sm font-medium text-gray-700">Inventory</span>
-            </button>
-            
-            <button className="flex flex-col items-center p-4 text-center hover:bg-gray-50 rounded-lg transition-colors">
-              <div className="p-3 bg-indigo-100 rounded-lg mb-2">
-                <MdTrendingUp className="h-6 w-6 text-indigo-600" />
-              </div>
-              <span className="text-sm font-medium text-gray-700">Analytics</span>
-            </button>
-            
-            <button className="flex flex-col items-center p-4 text-center hover:bg-gray-50 rounded-lg transition-colors">
-              <div className="p-3 bg-red-100 rounded-lg mb-2">
-                <MdReport className="h-6 w-6 text-red-600" />
-              </div>
-              <span className="text-sm font-medium text-gray-700">Reports</span>
-            </button>
-            
-            <button className="flex flex-col items-center p-4 text-center hover:bg-gray-50 rounded-lg transition-colors">
-              <div className="p-3 bg-gray-100 rounded-lg mb-2">
-                <MdSettings className="h-6 w-6 text-gray-600" />
-              </div>
-              <span className="text-sm font-medium text-gray-700">Settings</span>
-            </button>
-            
-            <button className="flex flex-col items-center p-4 text-center hover:bg-gray-50 rounded-lg transition-colors">
-              <div className="p-3 bg-yellow-100 rounded-lg mb-2">
-                <MdVerified className="h-6 w-6 text-yellow-600" />
-              </div>
-              <span className="text-sm font-medium text-gray-700">User Management</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Application Status Overview */}
-          <div className="lg:col-span-2">
+        {/* Main Content */}
+        <main className="flex-1 p-6 overflow-auto">
+          {/* Key Metrics Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {/* Total Applicants */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold text-gray-900">Application Management</h2>
-                <button className="flex items-center px-3 py-2 text-sm font-medium text-blue-600 bg-blue-100 rounded-lg hover:bg-blue-200 transition-colors">
-                  <MdAdd className="h-4 w-4 mr-2" />
-                  View All
-                </button>
-              </div>
-              
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <p className="text-2xl font-bold text-blue-600">{dashboardStats.eligibleApplicants}</p>
-                  <p className="text-sm text-blue-800">Eligible</p>
-                  <p className="text-xs text-blue-600 mt-1">TESDA Voucher</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total Applicants</p>
+                  <p className="text-2xl font-bold text-gray-900">{dashboardStats.totalApplicants.toLocaleString()}</p>
+                  <p className="text-xs text-green-600 mt-1">+{dashboardStats.enrollmentGrowth}% growth</p>
                 </div>
-                <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                  <p className="text-2xl font-bold text-yellow-600">{dashboardStats.pendingApplications}</p>
-                  <p className="text-sm text-yellow-800">Pending</p>
-                  <p className="text-xs text-yellow-600 mt-1">Under Review</p>
-                </div>
-                <div className="text-center p-4 bg-orange-50 rounded-lg">
-                  <p className="text-2xl font-bold text-orange-600">{dashboardStats.waitlistedApplicants}</p>
-                  <p className="text-sm text-orange-800">Waitlisted</p>
-                  <p className="text-xs text-orange-600 mt-1">Voucher Limit</p>
-                </div>
-                <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <p className="text-2xl font-bold text-green-600">{dashboardStats.monthlyEnrollments}</p>
-                  <p className="text-sm text-green-800">Enrolled</p>
-                  <p className="text-xs text-green-600 mt-1">This Month</p>
-                </div>
-              </div>
-
-              <div className="border-t border-gray-200 pt-4">
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">TESDA Scholarship Criteria</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div className="flex items-center space-x-2">
-                    <MdCheckCircle className="h-4 w-4 text-green-500" />
-                    <span className="text-gray-700">Age: 18-65 years old</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <MdCheckCircle className="h-4 w-4 text-green-500" />
-                    <span className="text-gray-700">Filipino Citizenship</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <MdCheckCircle className="h-4 w-4 text-green-500" />
-                    <span className="text-gray-700">High School Graduate</span>
-                  </div>
+                <div className="p-3 bg-blue-100 rounded-lg">
+                  <MdPeople className="h-6 w-6 text-blue-600" />
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Recent Activities */}
-          <div>
+            {/* Active Applications */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold text-gray-900">Recent Activities</h2>
-                <button className="text-sm text-blue-600 hover:text-blue-800">View All</button>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Active Applications</p>
+                  <p className="text-2xl font-bold text-gray-900">{dashboardStats.activeApplications}</p>
+                  <p className="text-xs text-blue-600 mt-1">{dashboardStats.pendingApplications} pending review</p>
+                </div>
+                <div className="p-3 bg-green-100 rounded-lg">
+                  <MdAssignment className="h-6 w-6 text-green-600" />
+                </div>
               </div>
-              
-              <div className="space-y-4">
-                {recentActivities.map((activity) => (
-                  <div key={activity.id} className="flex items-start space-x-3">
-                    <div className="flex-shrink-0 mt-1">
-                      {getStatusIcon(activity.status)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-900">{activity.message}</p>
-                      <div className="flex items-center space-x-2 mt-1">
-                        <span className="text-xs text-gray-500">{activity.user}</span>
-                        <span className="text-xs text-gray-400">•</span>
-                        <span className="text-xs text-gray-500">{activity.timestamp}</span>
-                      </div>
-                      <div className="mt-2">
-                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getActivityColor(activity.type)}`}>
-                          {activity.type.charAt(0).toUpperCase() + activity.type.slice(1)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+            </div>
+
+            {/* TESDA Vouchers */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">TESDA Vouchers</p>
+                  <p className="text-2xl font-bold text-gray-900">{dashboardStats.tesdaVouchers}</p>
+                  <p className="text-xs text-purple-600 mt-1">{dashboardStats.eligibleApplicants} eligible</p>
+                </div>
+                <div className="p-3 bg-purple-100 rounded-lg">
+                  <MdCardGiftcard className="h-6 w-6 text-purple-600" />
+                </div>
+              </div>
+            </div>
+
+            {/* Conversion Rate */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Conversion Rate</p>
+                  <p className="text-2xl font-bold text-gray-900">{dashboardStats.conversionRate}%</p>
+                  <p className="text-xs text-green-600 mt-1">Application to enrollment</p>
+                </div>
+                <div className="p-3 bg-yellow-100 rounded-lg">
+                  <MdTrendingUp className="h-6 w-6 text-yellow-600" />
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Course Programs Overview */}
-        <div className="mt-8">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          {/* ARIMA Forecasting Section - Core Feature */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">SMI Institute Course Programs</h2>
-                <p className="text-sm text-gray-600">Tourism and Hospitality Training Programs</p>
+                <h2 className="text-lg font-semibold text-gray-900">ARIMA Enrollment Forecasting</h2>
+                <p className="text-sm text-gray-600">Predictive analysis for strategic planning</p>
               </div>
-              <div className="flex space-x-2">
-                <button className="flex items-center px-3 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                  <MdFilterList className="h-4 w-4 mr-2" />
-                  Filter
-                </button>
-                <button className="flex items-center px-3 py-2 text-sm font-medium text-blue-600 bg-blue-100 rounded-lg hover:bg-blue-200 transition-colors">
-                  <MdAdd className="h-4 w-4 mr-2" />
-                  Add Course
-                </button>
+              <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1 text-sm text-green-600">
+                  <MdCheckCircle className="h-4 w-4" />
+                  <span>Model Accuracy: {forecastingData.accuracy}%</span>
+                </div>
               </div>
             </div>
             
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Course Program
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Total Students
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Active Batches
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {coursePrograms.map((course, index) => (
-                    <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="p-2 bg-blue-100 rounded-lg mr-3">
-                            <MdLocalLibrary className="h-5 w-5 text-blue-600" />
-                          </div>
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">{course.name}</div>
-                            <div className="text-sm text-gray-500">TESDA Accredited</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {course.students}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {course.batches}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                          {course.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex items-center space-x-2 justify-end">
-                          <button className="text-blue-600 hover:text-blue-900">
-                            <MdVisibility className="h-4 w-4" />
-                          </button>
-                          <button className="text-gray-600 hover:text-gray-900">
-                            <MdEdit className="h-4 w-4" />
-                          </button>
-                          <button className="text-gray-600 hover:text-gray-900">
-                            <MdMoreVert className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
+                <div className="flex items-center justify-center mb-2">
+                  <MdShowChart className="h-8 w-8 text-blue-600" />
+                </div>
+                <p className="text-2xl font-bold text-blue-600">{forecastingData.nextMonthPrediction}</p>
+                <p className="text-sm text-blue-800 font-medium">Next Month</p>
+                <p className="text-xs text-blue-600 mt-1">Predicted Enrollments</p>
+              </div>
+              
+              <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg">
+                <div className="flex items-center justify-center mb-2">
+                  <MdBarChart className="h-8 w-8 text-purple-600" />
+                </div>
+                <p className="text-2xl font-bold text-purple-600">{forecastingData.quarterPrediction}</p>
+                <p className="text-sm text-purple-800 font-medium">Next Quarter</p>
+                <p className="text-xs text-purple-600 mt-1">Quarterly Forecast</p>
+              </div>
+              
+              <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
+                <div className="flex items-center justify-center mb-2">
+                  <MdAnalytics className="h-8 w-8 text-green-600" />
+                </div>
+                <p className="text-2xl font-bold text-green-600">{forecastingData.yearPrediction}</p>
+                <p className="text-sm text-green-800 font-medium">Annual Forecast</p>
+                <p className="text-xs text-green-600 mt-1">Strategic Planning</p>
+              </div>
+              
+              <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg">
+                <div className="flex items-center justify-center mb-2">
+                  <MdInsights className="h-8 w-8 text-orange-600" />
+                </div>
+                <p className="text-2xl font-bold text-orange-600">{forecastingData.confidence}%</p>
+                <p className="text-sm text-orange-800 font-medium">Confidence Level</p>
+                <p className="text-xs text-orange-600 mt-1">Model Reliability</p>
+              </div>
+            </div>
+            
+            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center space-x-4">
+                  <span className="text-gray-600">Trend Direction:</span>
+                  <span className={`font-medium ${forecastingData.trendDirection === 'upward' ? 'text-green-600' : 'text-red-600'}`}>
+                    {forecastingData.trendDirection.charAt(0).toUpperCase() + forecastingData.trendDirection.slice(1)}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <span className="text-gray-600">Seasonality:</span>
+                  <span className="font-medium text-blue-600">{forecastingData.seasonality}</span>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* System Status Footer */}
-        <div className="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <span className="text-sm text-gray-600">System Status: Operational</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <MdBusiness className="h-4 w-4 text-gray-500" />
-                <span className="text-sm text-gray-600">SMI Institute Inc. - TESDA Accredited</span>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Application Management Overview */}
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-semibold text-gray-900">Application Management</h2>
+                  <button className="flex items-center px-3 py-2 text-sm font-medium text-blue-600 bg-blue-100 rounded-lg hover:bg-blue-200 transition-colors">
+                    <MdVisibility className="h-4 w-4 mr-2" />
+                    View All
+                  </button>
+                </div>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <p className="text-2xl font-bold text-green-600">{dashboardStats.approvedApplications}</p>
+                    <p className="text-sm text-green-800">Approved</p>
+                    <p className="text-xs text-green-600 mt-1">Ready for enrollment</p>
+                  </div>
+                  <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                    <p className="text-2xl font-bold text-yellow-600">{dashboardStats.pendingApplications}</p>
+                    <p className="text-sm text-yellow-800">Pending</p>
+                    <p className="text-xs text-yellow-600 mt-1">Under review</p>
+                  </div>
+                  <div className="text-center p-4 bg-orange-50 rounded-lg">
+                    <p className="text-2xl font-bold text-orange-600">{dashboardStats.waitlistedApplicants}</p>
+                    <p className="text-sm text-orange-800">Waitlisted</p>
+                    <p className="text-xs text-orange-600 mt-1">Voucher limit</p>
+                  </div>
+                  <div className="text-center p-4 bg-red-50 rounded-lg">
+                    <p className="text-2xl font-bold text-red-600">{dashboardStats.rejectedApplications}</p>
+                    <p className="text-sm text-red-800">Rejected</p>
+                    <p className="text-xs text-red-600 mt-1">Ineligible</p>
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-200 pt-4">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">System Performance Metrics</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="text-center p-3 bg-blue-50 rounded-lg">
+                      <p className="text-lg font-bold text-blue-600">{dashboardStats.avgProcessingTime} days</p>
+                      <p className="text-xs text-blue-800">Avg Processing Time</p>
+                    </div>
+                    <div className="text-center p-3 bg-green-50 rounded-lg">
+                      <p className="text-lg font-bold text-green-600">{dashboardStats.conversionRate}%</p>
+                      <p className="text-xs text-green-800">Conversion Rate</p>
+                    </div>
+                    <div className="text-center p-3 bg-purple-50 rounded-lg">
+                      <p className="text-lg font-bold text-purple-600">{dashboardStats.activeBatches}</p>
+                      <p className="text-xs text-purple-800">Active Batches</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="text-sm text-gray-500">
-              Last updated: {new Date().toLocaleString()}
+
+            {/* System Activities */}
+            <div>
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-semibold text-gray-900">System Activities</h2>
+                  <button className="text-sm text-blue-600 hover:text-blue-800">View All</button>
+                </div>
+                
+                <div className="space-y-4">
+                  {recentActivities.map((activity) => (
+                    <div key={activity.id} className={`p-3 rounded-lg border-l-4 ${getPriorityColor(activity.priority)}`}>
+                      <div className="flex items-start space-x-3">
+                        <div className="flex-shrink-0 mt-1">
+                          {getStatusIcon(activity.status)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-gray-900">{activity.message}</p>
+                          <div className="flex items-center space-x-2 mt-1">
+                            <span className="text-xs text-gray-500">{activity.user}</span>
+                            <span className="text-xs text-gray-400">•</span>
+                            <span className="text-xs text-gray-500">{activity.timestamp}</span>
+                          </div>
+                          <div className="mt-2">
+                            <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getActivityColor(activity.type)}`}>
+                              {activity.type.charAt(0).toUpperCase() + activity.type.slice(1)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </main>
+
+          {/* System Status Footer */}
+          <div className="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span className="text-sm text-gray-600">System Status: Operational</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <MdBusiness className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm text-gray-600">SMI Institute Inc. - TESDA Accredited</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <MdAnalytics className="h-4 w-4 text-blue-500" />
+                  <span className="text-sm text-gray-600">ARIMA Model: {forecastingData.accuracy}% Accuracy</span>
+                </div>
+              </div>
+              <div className="text-sm text-gray-500">
+                Last updated: {new Date().toLocaleString()}
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
     </div>
   );
 };

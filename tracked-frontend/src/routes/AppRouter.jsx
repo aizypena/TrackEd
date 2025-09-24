@@ -30,7 +30,7 @@ import ProfileSettings from '../pages/lms/ProfileSettings';
 import ApplicantDashboard from '../pages/applicants/ApplicantDashboard';
 
 // admin
-import AdminDashboard from '../pages/admin/Dashboard';
+import AdminDashboard from '../pages/admin/AdminDashboard';
 import AdminForgotPassword from '../pages/admin/AdminForgotPassword';
 import AdminLogin from '../pages/admin/AdminLogin';
 
