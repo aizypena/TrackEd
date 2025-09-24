@@ -31,7 +31,11 @@ import ApplicantDashboard from '../pages/applicants/ApplicantDashboard';
 
 // admin
 import AdminDashboard from '../pages/admin/Dashboard';
+import AdminForgotPassword from '../pages/admin/AdminForgotPassword';
 import AdminLogin from '../pages/admin/AdminLogin';
+
+// Protected Route Component
+import ProtectedAdminRoute from '../components/ProtectedAdminRoute';
 
 const AppRouter = () => {
   return (
@@ -64,9 +68,15 @@ const AppRouter = () => {
 
         {/* Admin Routes */}
         <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin/*" element={<AdminRoutes />} />
+        <Route path='/admin/forgot-password' element={<AdminForgotPassword />} />
+        <Route 
+          path="/admin/dashboard" 
+          element={
+            <ProtectedAdminRoute>
+              <AdminDashboard />
+            </ProtectedAdminRoute>
+          } 
+        />
         
         {/* Student Routes */}
         <Route path="/students" element={<Navigate to="/students/dashboard" replace />} />

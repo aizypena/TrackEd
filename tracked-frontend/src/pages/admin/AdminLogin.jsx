@@ -1,16 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   MdEmail,
   MdLock,
-  MdVisibility,
-  MdVisibilityOff,
   MdBusiness,
   MdSecurity,
   MdVerified,
   MdWarning,
   MdInfo
 } from 'react-icons/md';
+import { AiOutlineEye, AiOutlineEyeInvisible } from 'react-icons/ai';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -21,6 +20,17 @@ const AdminLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Check if admin is already logged in
+  useEffect(() => {
+    const adminToken = localStorage.getItem('adminToken');
+    const adminUser = localStorage.getItem('adminUser');
+    
+    if (adminToken && adminUser) {
+      // If already logged in, redirect to dashboard
+      navigate('/admin/dashboard', { replace: true });
+    }
+  }, [navigate]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -44,31 +54,38 @@ const AdminLogin = () => {
       return;
     }
 
-    if (!formData.email.includes('@')) {
-      setError('Please enter a valid email address');
+    // Allow both email format and username "admin"
+    if (!formData.email.includes('@') && formData.email !== 'admin') {
+      setError('Please enter a valid email address or username');
       setIsLoading(false);
       return;
     }
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Mock authentication logic
-      if (formData.email === 'admin@smi.edu.ph' && formData.password === 'admin123') {
-        // Store auth data (in real app, this would be handled by auth context/redux)
-        localStorage.setItem('adminToken', 'mock-jwt-token');
-        localStorage.setItem('adminUser', JSON.stringify({
-          id: 1,
+      // Make API call to backend for authentication
+      const response = await fetch('http://localhost:8000/api/admin/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
           email: formData.email,
-          name: 'System Administrator',
-          role: 'admin'
-        }));
+          password: formData.password
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success && response.ok) {
+        // Store auth data from API response
+        localStorage.setItem('adminToken', data.token);
+        localStorage.setItem('adminUser', JSON.stringify(data.admin));
         
         // Navigate to admin dashboard
         navigate('/admin/dashboard');
       } else {
-        setError('Invalid email or password. Please try again.');
+        setError(data.message || 'Invalid credentials. Please try again.');
       }
     } catch (err) {
       setError('An error occurred during login. Please try again.');
@@ -106,6 +123,22 @@ const AdminLogin = () => {
             <h3 className="text-2xl font-bold text-gray-900 mb-2">Welcome Back</h3>
             <p className="text-gray-600">Please sign in to your administrator account</p>
           </div>
+
+          {/* Demo Credentials Info */}
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+            <div className="flex items-start space-x-3">
+              <div className="p-1 bg-blue-100 rounded-lg">
+                <MdInfo className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold text-blue-900 mb-1">Database Authentication</h4>
+                <div className="text-sm text-blue-800 space-y-1">
+                  <p>Login with admin user from database</p>
+                  <p><strong>Username:</strong> admin | <strong>Password:</strong> admin123</p>
+                </div>
+              </div>
+            </div>
+          </div>
           
           <form className="space-y-8" onSubmit={handleSubmit}>
             {/* Error Message */}
@@ -126,7 +159,7 @@ const AdminLogin = () => {
             {/* Email Field */}
             <div>
               <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-3">
-                Administrator Email
+                Administrator Email or Username
               </label>
               <div className="relative">
                 <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
@@ -135,13 +168,13 @@ const AdminLogin = () => {
                 <input
                   id="email"
                   name="email"
-                  type="email"
-                  autoComplete="email"
+                  type="text"
+                  autoComplete="username"
                   required
                   value={formData.email}
                   onChange={handleInputChange}
                   className="pl-12 pr-4 py-4 w-full border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-lg"
-                  placeholder="Enter your administrator email"
+                  placeholder="Enter 'admin' or admin@smi.edu.ph"
                 />
               </div>
             </div>
@@ -169,12 +202,12 @@ const AdminLogin = () => {
                 <button
                   type="button"
                   onClick={togglePasswordVisibility}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none transition-colors"
+                  className="absolute right-4 top-1/2 hover:cursor-pointer transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none transition-colors"
                 >
                   {showPassword ? (
-                    <MdVisibilityOff className="h-5 w-5" />
+                    <AiOutlineEyeInvisible className="h-5 w-5" />
                   ) : (
-                    <MdVisibility className="h-5 w-5" />
+                    <AiOutlineEye className="h-5 w-5" />
                   )}
                 </button>
               </div>
@@ -182,7 +215,7 @@ const AdminLogin = () => {
 
             {/* Forgot Password */}
             <div className="text-center">
-              <a href="#" className="font-semibold text-blue-600 hover:text-blue-500 transition-colors">
+              <a href="#" className="font-semibold hover:underline text-blue-600 hover:text-blue-500 transition-colors">
                 Forgot password?
               </a>
             </div>

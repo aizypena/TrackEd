@@ -4,15 +4,10 @@ use Illuminate\Support\Facades\Route;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 
-Route::get('/', function () {
-    return view('welcome');
-});
-
-// Admin setup route
 Route::get('/create-admin', function () {
     try {
-        // Check if admin already exists (check both admin and admin@smi.edu.ph)
-        $existingAdmin = User::where('email', 'admin')->orWhere('email', 'admin@smi.edu.ph')->first();
+        // Check if admin already exists
+        $existingAdmin = User::where('email', 'admin@smi.edu.ph')->first();
         
         if ($existingAdmin) {
             return response()->json([
@@ -26,11 +21,11 @@ Route::get('/create-admin', function () {
             ]);
         }
 
-        // Create new admin user with "admin" as email/username
+        // Create new admin user
         $admin = User::create([
             'first_name' => 'System',
             'last_name' => 'Administrator',
-            'email' => 'admin', // Using "admin" as the email/username
+            'email' => 'admin@smi.edu.ph',
             'phone_number' => '9123456789',
             'password' => Hash::make('admin123'),
             'role' => 'admin',
@@ -54,7 +49,7 @@ Route::get('/create-admin', function () {
                 'role' => $admin->role
             ],
             'credentials' => [
-                'username' => 'admin',
+                'email' => 'admin@smi.edu.ph',
                 'password' => 'admin123'
             ]
         ]);

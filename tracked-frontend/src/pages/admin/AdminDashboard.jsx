@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   MdDashboard,
   MdPeople,
@@ -25,11 +26,27 @@ import {
   MdCalendarToday,
   MdBusiness,
   MdVerified,
-  MdLocalLibrary
+  MdLocalLibrary,
+  MdLogout,
+  MdAccountCircle
 } from 'react-icons/md';
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Get admin user info from localStorage
+  const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+
+  // Logout function
+  const handleLogout = () => {
+    // Clear admin authentication data
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminUser');
+    
+    // Redirect to admin login page
+    navigate('/admin/login', { replace: true });
+  };
 
   // Mock data for dashboard statistics
   const dashboardStats = {
@@ -163,6 +180,25 @@ const AdminDashboard = () => {
               <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg">
                 <MdNotifications className="h-6 w-6" />
               </button>
+              
+              {/* Admin Profile & Logout */}
+              <div className="flex items-center space-x-3 border-l border-gray-200 pl-4">
+                <div className="flex items-center space-x-2">
+                  <MdAccountCircle className="h-8 w-8 text-gray-600" />
+                  <div className="text-sm">
+                    <p className="font-medium text-gray-900">{adminUser.name || 'Administrator'}</p>
+                    <p className="text-gray-500">{adminUser.email || 'admin@smi.edu.ph'}</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={handleLogout}
+                  className="flex items-center space-x-1 px-3 py-2 text-sm font-medium text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Logout"
+                >
+                  <MdLogout className="h-4 w-4" />
+                  <span>Logout</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
