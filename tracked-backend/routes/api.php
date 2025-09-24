@@ -61,5 +61,14 @@ Route::post('/admin/login', function (Request $request) {
 });
 Route::get('/me', [AuthController::class, 'me'])->middleware('auth:sanctum');
 
+// User management routes (admin only)
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/users', [App\Http\Controllers\Api\UserController::class, 'index']);
+    Route::get('/users/stats', [App\Http\Controllers\Api\UserController::class, 'stats']);
+    Route::get('/users/{user}', [App\Http\Controllers\Api\UserController::class, 'show']);
+    Route::put('/users/{user}', [App\Http\Controllers\Api\UserController::class, 'update']);
+    Route::delete('/users/{user}', [App\Http\Controllers\Api\UserController::class, 'destroy']);
+});
+
 // Application routes
 Route::post('/applications/submit', [ApplicationController::class, 'submit']);
