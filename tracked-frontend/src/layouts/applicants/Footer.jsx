@@ -74,7 +74,7 @@ export default function Footer() {
             <div className="flex flex-col lg:flex-row justify-between items-center space-y-4 lg:space-y-0">
               <div className="text-gray-400 text-center lg:text-left">
                 <p className="text-lg">© 2025 SMI Training Institute. All rights reserved.</p>
-                <p className="text-sm mt-1">Regulated by TESDA • Member of Philippine Hotel & Restaurant Association</p>
+                <p className="text-sm mt-1">Regulated by TESDA</p>
               </div>
               <div className="flex flex-wrap justify-center lg:justify-end space-x-8 text-sm">
                 <a href="#" className="text-gray-400 hover:text-white transition-colors">Privacy Policy</a>
