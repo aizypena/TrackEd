@@ -137,4 +137,22 @@ class ApplicationController extends Controller
             ], 500);
         }
     }
+
+    public function list(Request $request)
+    {
+        // Show all users with role 'applicant' as applications.
+        $applications = User::where('role', 'applicant')->orderByDesc('application_submitted_at')->get();
+        $data = $applications->map(function($user) {
+            return [
+                'id' => $user->id,
+                'applicant_name' => $user->first_name . ' ' . $user->last_name,
+                'program' => $user->course_program ?? 'N/A',
+                'status' => $user->application_status ?? $user->status,
+                'submitted_at' => $user->application_submitted_at,
+                'email' => $user->email,
+            ];
+        });
+        return response()->json(['success' => true, 'data' => $data]);
+    }
+
 }

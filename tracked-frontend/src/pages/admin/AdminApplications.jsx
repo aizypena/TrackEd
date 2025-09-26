@@ -24,7 +24,9 @@ export default function AdminApplications() {
         });
         if (!response.ok) throw new Error('Failed to fetch applications');
         const data = await response.json();
-        setApplications(data.data || []);
+  // Only show applications with role 'applicant'
+  const filtered = (data.data || []).filter(app => app.role === 'applicant');
+  setApplications(filtered);
       } catch (err) {
         setError(err.message);
       } finally {
