@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import Dashboard from '../pages/admin/Dashboard';
+import NotFound from '../pages/NotFound';
 
 const AdminRoutes = () => {
   return (
@@ -9,6 +10,7 @@ const AdminRoutes = () => {
       {/* <Route path="/users" element={<UserManagement />} /> */}
       {/* <Route path="/courses" element={<CourseManagement />} /> */}
       {/* <Route path="/reports" element={<Reports />} /> */}
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 };
