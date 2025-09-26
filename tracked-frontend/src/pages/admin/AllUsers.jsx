@@ -103,6 +103,21 @@ function AllUsers() {
   }, [currentPage, searchTerm, filterRole, filterStatus]);
 
   // Use API pagination - no need for client-side filtering
+
+  // Map course_program code to human-readable label
+  const programLabels = {
+    'bartending-nc-ii': 'Bartending NC II',
+    'barista-training-nc-ii': 'Barista Training NC II',
+    'housekeeping-nc-ii': 'Housekeeping NC II',
+    'food-beverage-services-nc-ii': 'Food and Beverage Services NC II',
+    'bread-pastry-production-nc-ii': 'Bread and Pastry Production NC II',
+    'events-management-nc-iii': 'Events Management NC III',
+    'chefs-catering-services-nc-ii': "Chef's Catering Services NC II",
+    'cookery-nc-ii': 'Cookery NC II',
+  };
+
+  const getProgramLabel = (code) => programLabels[code] || code || 'N/A';
+
   const currentUsers = users;
   const totalPages = pagination.last_page;
 
@@ -465,7 +480,7 @@ function AllUsers() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {user.program}
+                    {getProgramLabel(user.course_program || user.program)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {formatDate(user.joinDate)}

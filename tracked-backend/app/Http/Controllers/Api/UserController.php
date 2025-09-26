@@ -52,7 +52,8 @@ class UserController extends Controller
                 'status' => $user->status,
                 'location' => $user->address ?? 'Philippines', // Default location
                 'joinDate' => $user->created_at->format('Y-m-d'),
-                'program' => $this->getProgramByRole($user->role),
+                'program' => $user->course_program ?? $this->getProgramByRole($user->role),
+                'course_program' => $user->course_program ?? null,
                 'avatar' => null // No avatar system yet
             ];
         });

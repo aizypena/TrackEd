@@ -72,4 +72,3 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
 // Application routes
 Route::post('/applications/submit', [ApplicationController::class, 'submit']);
-Route::middleware(['auth:sanctum'])->get('/applications', [ApplicationController::class, 'list']);

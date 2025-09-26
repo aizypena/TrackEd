@@ -9,25 +9,6 @@ use App\Models\User;
 
 class ApplicationController extends Controller
 {
-    // List all applications for admin portal
-    public function list(Request $request)
-    {
-        // If you have an Application model/table, use that. Otherwise, show applicants from users table.
-        // Here, we show all users with role 'applicant' as applications.
-        $applications = \App\Models\User::where('role', 'applicant')->orderByDesc('application_submitted_at')->get();
-        $data = $applications->map(function($user) {
-            return [
-                'id' => $user->id,
-                'applicant_name' => $user->first_name . ' ' . $user->last_name,
-                'program' => $user->application_program ?? $user->institution_name ?? 'N/A',
-                'status' => $user->application_status ?? $user->status,
-                'submitted_at' => $user->application_submitted_at,
-                'email' => $user->email,
-            ];
-        });
-        return response()->json(['success' => true, 'data' => $data]);
-    }
-
     public function submit(Request $request)
     {
         try {
@@ -106,15 +87,17 @@ class ApplicationController extends Controller
                 'nationality' => $validated['nationality'],
                 'emergency_contact' => $validated['emergencyContact'],
                 'emergency_phone' => $validated['emergencyPhone'],
+                
                 // Education fields
                 'education_level' => $validated['education'],
                 'institution_name' => $validated['school'],
-                'course_program' => $validated['courseProgram'],
+                
                 // Document paths
                 'valid_id_path' => $documentPaths['validId_path'] ?? null,
                 'transcript_path' => $documentPaths['transcript_path'] ?? null,
                 'diploma_path' => $documentPaths['diploma_path'] ?? null,
                 'passport_photo_path' => $documentPaths['passportPhoto_path'] ?? null,
+                
                 // Application metadata
                 'application_submitted_at' => now(),
             ]);
