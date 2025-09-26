@@ -5,14 +5,14 @@ const getAuthToken = () => {
   const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
   const adminToken = localStorage.getItem('adminToken');
   
-  console.log('Admin user from localStorage:', adminUser);
-  console.log('Admin token from localStorage:', adminToken);
+  // console.log('Admin user from localStorage:', adminUser);
+  // console.log('Admin token from localStorage:', adminToken);
   
   // Check if we have a token - either in adminUser.token or as separate adminToken
   const token = adminUser.token || adminToken;
   
   if (!token) {
-    console.warn('No authentication token found. Admin needs to login again.');
+    // console.warn('No authentication token found. Admin needs to login again.');
     return null;
   }
   
