@@ -34,6 +34,7 @@ import AdminDashboard from '../pages/admin/AdminDashboard';
 import AdminForgotPassword from '../pages/admin/AdminForgotPassword';
 import AdminLogin from '../pages/admin/AdminLogin';
 import AllUsers from '../pages/admin/AllUsers';
+import AdminApplications from '../pages/admin/AdminApplications';
 
 // Protected Route Component
 import ProtectedAdminRoute from '../components/ProtectedAdminRoute';
@@ -86,6 +87,15 @@ const AppRouter = () => {
             </ProtectedAdminRoute>
           }
         />
+        <Route
+          path="/admin/applications"
+          element={
+            <ProtectedAdminRoute>
+              <AdminApplications />
+            </ProtectedAdminRoute>
+          }
+        />
+        <Route path="/admin/*" element={<ProtectedAdminRoute><AdminRoutes /></ProtectedAdminRoute>} />
 
         {/* Student Routes */}
         <Route path="/students" element={<Navigate to="/students/dashboard" replace />} />
