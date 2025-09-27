@@ -492,16 +492,16 @@ function AllUsers() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2">
-                      <button className="text-blue-600 hover:text-blue-900" title="View">
+                      <button className="text-blue-600 hover:cursor-pointer hover:text-blue-900" title="View">
                         <MdVisibility className="h-5 w-5" />
                       </button>
-                      <button className="text-green-600 hover:text-green-900" title="Edit">
+                      <button className="text-green-600 hover:cursor-pointer hover:text-green-900" title="Edit">
                         <MdEdit className="h-5 w-5" />
                       </button>
-                      <button className="text-red-600 hover:text-red-900" title="Delete">
+                      <button className="text-red-600 hover:cursor-pointer hover:text-red-900" title="Delete">
                         <MdDelete className="h-5 w-5" />
                       </button>
-                      <button className="text-gray-600 hover:text-gray-900" title="More">
+                      <button className="text-gray-600 hover:cursor-pointer hover:text-gray-900" title="More">
                         <MdMoreVert className="h-5 w-5" />
                       </button>
                     </div>
