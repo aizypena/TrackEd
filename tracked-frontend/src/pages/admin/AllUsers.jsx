@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../layouts/admin/Sidebar';
+import ViewUser from '../../layouts/admin/ViewUser';
 import { userAPI } from '../../services/userAPI';
 import { 
   MdSearch, MdFilterList, MdAdd, MdEdit, MdDelete, MdVisibility,
@@ -17,6 +18,8 @@ function AllUsers() {
   const [currentPage, setCurrentPage] = useState(1);
   const [usersPerPage] = useState(10);
   const [loading, setLoading] = useState(true);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [stats, setStats] = useState({
     total_users: 0,
@@ -117,6 +120,18 @@ function AllUsers() {
   };
 
   const getProgramLabel = (code) => programLabels[code] || code || 'N/A';
+
+  // Handle viewing a user
+  const handleViewUser = (user) => {
+    setSelectedUser(user);
+    setIsViewModalOpen(true);
+  };
+
+  // Handle closing the view modal
+  const handleCloseViewModal = () => {
+    setIsViewModalOpen(false);
+    setSelectedUser(null);
+  };
 
   const currentUsers = users;
   const totalPages = pagination.last_page;
@@ -492,7 +507,10 @@ function AllUsers() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2">
-                      <button className="text-blue-600 hover:cursor-pointer hover:text-blue-900" title="View">
+                      <button 
+                        onClick={() => handleViewUser(user)}
+                        className="text-blue-600 hover:cursor-pointer hover:text-blue-900" 
+                        title="View">
                         <MdVisibility className="h-5 w-5" />
                       </button>
                       <button className="text-green-600 hover:cursor-pointer hover:text-green-900" title="Edit">
@@ -596,6 +614,15 @@ function AllUsers() {
           </div>
         )}
         </main>
+
+        {/* View User Modal */}
+        {isViewModalOpen && selectedUser && (
+          <ViewUser 
+            user={selectedUser} 
+            isOpen={isViewModalOpen} 
+            onClose={handleCloseViewModal} 
+          />
+        )}
       </div>
     </div>
   );
