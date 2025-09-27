@@ -27,6 +27,7 @@ return new class extends Migration
             $table->enum('gender', ['male', 'female', 'other'])->nullable();
             $table->string('emergency_contact')->nullable();
             $table->string('emergency_phone', 20)->nullable();
+            $table->rememberToken();
             $table->timestamps();
             
             $table->index('email');

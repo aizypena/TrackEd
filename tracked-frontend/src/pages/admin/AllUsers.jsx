@@ -260,7 +260,7 @@ function AllUsers() {
                 <MdSupervisorAccount className="h-5 w-5 text-white" />
               </div>
               <span className="text-sm font-medium text-gray-700">
-                {adminUser.name || 'Administrator'}
+                {adminUser ? `${adminUser.first_name} ${adminUser.last_name}` : 'Administrator'}
               </span>
             </div>
           </div>
@@ -296,19 +296,24 @@ function AllUsers() {
             <div className="flex items-center justify-end space-x-3">
             <button
               onClick={handleRefresh}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              title='Refresh'
+              className="inline-flex hover:cursor-pointer items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               <MdRefresh className="h-4 w-4 mr-2" />
               Refresh
             </button>
             <button
               onClick={handleExport}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              title='Export'
+              className="inline-flex hover:cursor-pointer items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               <MdDownload className="h-4 w-4 mr-2" />
               Export
             </button>
-            <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            <button 
+              title='Add User'
+              className="inline-flex hover:cursor-pointer items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
               <MdAdd className="h-4 w-4 mr-2" />
               Add User
             </button>
@@ -442,17 +447,17 @@ function AllUsers() {
                       <div className="flex-shrink-0 h-10 w-10">
                         <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
                           <span className="text-sm font-medium text-gray-700">
-                            {user.name.split(' ').map(n => n[0]).join('')}
+                            {`${user.first_name[0]}${user.last_name[0]}`}
                           </span>
                         </div>
                       </div>
                       <div className="ml-4">
                         <div className="text-sm font-medium text-gray-900">
-                          {user.name}
+                          {`${user.first_name} ${user.last_name}`}
                         </div>
                         <div className="text-sm text-gray-500 flex items-center">
                           <MdLocationOn className="h-3 w-3 mr-1" />
-                          {user.location}
+                          {user.address}
                         </div>
                       </div>
                     </div>
@@ -464,7 +469,7 @@ function AllUsers() {
                     </div>
                     <div className="text-sm text-gray-500 flex items-center">
                       <MdPhone className="h-4 w-4 mr-2 text-gray-400" />
-                      {user.phone}
+                      {user.phone_number}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -483,7 +488,7 @@ function AllUsers() {
                     {getProgramLabel(user.course_program || user.program)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDate(user.joinDate)}
+                    {formatDate(user.created_at)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2">
