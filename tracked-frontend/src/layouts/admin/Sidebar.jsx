@@ -91,8 +91,7 @@ function Sidebar({ isOpen, onClose }) {
         { id: 'arima-forecasting', name: 'ARIMA Forecasting', icon: MdShowChart, path: '/admin/arima-forecasting', badge: 'NEW' },
         { id: 'assessment-reports', name: 'Assessment Results', icon: MdVerified, path: '/admin/assessment-results' },
         { id: 'inventory-reports', name: 'Inventory Usage', icon: MdLocalLibrary, path: '/admin/inventory-usage' },
-        { id: 'student-reports', name: 'Student Lists', icon: MdPeople, path: '/admin/reports/students' },
-        { id: 'export-center', name: 'Export Center', icon: MdFileDownload, path: '/admin/reports/export', badge: 'PDF/CSV' }
+        { id: 'student-reports', name: 'Student List', icon: MdPeople, path: '/admin/student-list' }
       ]
     },
     {

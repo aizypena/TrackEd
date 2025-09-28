@@ -44,6 +44,7 @@ import VoucherManagement from '../pages/admin/VoucherManagement';
 import EnrollmentReports from '../pages/admin/EnrollmentReports';
 import AdminAssessmentResults from '../pages/admin/AdminAssessmentResults';
 import InventoryUsage from '../pages/admin/InventoryUsage';
+import StudentList from '../pages/admin/StudentList';
 
 // Protected Route Component
 import ProtectedAdminRoute from '../components/ProtectedAdminRoute';
@@ -173,6 +174,14 @@ const AppRouter = () => {
           element={
             <ProtectedAdminRoute>
               <InventoryUsage />
+            </ProtectedAdminRoute>
+          }
+        />
+        <Route
+          path="/admin/student-list"
+          element={
+            <ProtectedAdminRoute>
+              <StudentList />
             </ProtectedAdminRoute>
           }
         />
