@@ -37,6 +37,7 @@ import AllUsers from '../pages/admin/AllUsers';
 import AdminApplications from '../pages/admin/AdminApplications';
 import Enrollments from '../pages/admin/Enrollments';
 import EnrollmentTrends from '../pages/admin/EnrollmentTrends';
+import ArimaForecasting from '../pages/admin/ArimaForecasting';
 
 // Protected Route Component
 import ProtectedAdminRoute from '../components/ProtectedAdminRoute';
@@ -110,6 +111,14 @@ const AppRouter = () => {
           element={
             <ProtectedAdminRoute>
               <EnrollmentTrends />
+            </ProtectedAdminRoute>
+          }
+        />
+        <Route
+          path="/admin/arima-forecasting"
+          element={
+            <ProtectedAdminRoute>
+              <ArimaForecasting />
             </ProtectedAdminRoute>
           }
         />
