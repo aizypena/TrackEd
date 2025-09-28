@@ -26,7 +26,8 @@ import {
   MdExpandLess,
   MdLogout,
   MdBusiness,
-  MdAccountCircle
+  MdAccountCircle,
+  MdFileDownload,
 } from 'react-icons/md';
 
 function Sidebar({ isOpen, onClose }) {
@@ -35,7 +36,6 @@ function Sidebar({ isOpen, onClose }) {
   // Initialize all menus as expanded but allow toggling
   const [expandedMenus, setExpandedMenus] = useState({
     'user-management': true,
-    'analytics-forecasting': true,
     'program-management': true,
     'reports': true,
     'system': true
@@ -72,18 +72,6 @@ function Sidebar({ isOpen, onClose }) {
       ]
     },
     {
-      id: 'analytics-forecasting',
-      name: 'Analytics & Forecasting',
-      icon: MdAnalytics,
-      highlight: true, // Highlight this as core feature
-      submenu: [
-        { id: 'enrollment-trends', name: 'Enrollment Trends', icon: MdTrendingUp, path: '/admin/enrollment-trends' },
-        { id: 'arima-forecasting', name: 'ARIMA Forecasting', icon: MdShowChart, path: '/admin/arima-forecasting', badge: 'NEW' },
-        // { id: 'demand-analysis', name: 'Demand Analysis', icon: MdInsights, path: '/admin/analytics/demand' },
-        // { id: 'performance-metrics', name: 'Performance Analytics', icon: MdBarChart, path: '/admin/analytics/performance' }
-      ]
-    },
-    {
       id: 'program-management',
       name: 'Program Management',
       icon: MdBook,
@@ -95,12 +83,16 @@ function Sidebar({ isOpen, onClose }) {
     },
     {
       id: 'reports',
-      name: 'Reports & Analytics',
-      icon: MdReport,
+      name: 'Reports Management',
+      icon: MdAssessment,
       submenu: [
-        { id: 'financial-reports', name: 'Financial Reports', icon: MdAttachMoney, path: '/admin/reports/financial' },
-        { id: 'compliance-reports', name: 'Compliance Reports', icon: MdVerified, path: '/admin/reports/compliance' },
-        { id: 'custom-reports', name: 'Custom Reports', icon: MdAssessment, path: '/admin/reports/custom' }
+        { id: 'enrollment-reports', name: 'Enrollment Reports', icon: MdSchool, path: '/admin/enrollment-reports' },
+        { id: 'enrollment-trends', name: 'Enrollment Trends', icon: MdTrendingUp, path: '/admin/enrollment-trends' },
+        { id: 'arima-forecasting', name: 'ARIMA Forecasting', icon: MdShowChart, path: '/admin/arima-forecasting', badge: 'NEW' },
+        { id: 'assessment-reports', name: 'Assessment Results', icon: MdVerified, path: '/admin/reports/assessment' },
+        { id: 'inventory-reports', name: 'Inventory Usage', icon: MdLocalLibrary, path: '/admin/reports/inventory' },
+        { id: 'student-reports', name: 'Student Lists', icon: MdPeople, path: '/admin/reports/students' },
+        { id: 'export-center', name: 'Export Center', icon: MdFileDownload, path: '/admin/reports/export', badge: 'PDF/CSV' }
       ]
     },
     {
