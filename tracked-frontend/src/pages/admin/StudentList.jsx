@@ -304,22 +304,6 @@ const StudentList = () => {
                   <div className="text-sm text-gray-500">
                     Showing {students.length} students
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => handleExport('csv')}
-                      className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    >
-                      <MdFileDownload className="h-4 w-4 mr-1.5" />
-                      Export List
-                    </button>
-                    <button
-                      onClick={handlePrint}
-                      className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    >
-                      <MdPrint className="h-4 w-4 mr-1.5" />
-                      Print
-                    </button>
-                  </div>
                 </div>
               </div>
             </div>
