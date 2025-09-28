@@ -79,8 +79,8 @@ function Sidebar({ isOpen, onClose }) {
       submenu: [
         { id: 'enrollment-trends', name: 'Enrollment Trends', icon: MdTrendingUp, path: '/admin/enrollment-trends' },
         { id: 'arima-forecasting', name: 'ARIMA Forecasting', icon: MdShowChart, path: '/admin/arima-forecasting', badge: 'NEW' },
-        { id: 'demand-analysis', name: 'Demand Analysis', icon: MdInsights, path: '/admin/analytics/demand' },
-        { id: 'performance-metrics', name: 'Performance Analytics', icon: MdBarChart, path: '/admin/analytics/performance' }
+        // { id: 'demand-analysis', name: 'Demand Analysis', icon: MdInsights, path: '/admin/analytics/demand' },
+        // { id: 'performance-metrics', name: 'Performance Analytics', icon: MdBarChart, path: '/admin/analytics/performance' }
       ]
     },
     {
