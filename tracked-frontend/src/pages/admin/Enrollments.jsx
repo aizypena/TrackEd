@@ -19,7 +19,8 @@ import {
   MdCalendarToday,
   MdPayment,
   MdPeople,
-  MdLocalLibrary
+  MdLocalLibrary,
+  MdVisibility
 } from 'react-icons/md';
 
 const Enrollments = () => {
@@ -335,10 +336,22 @@ const Enrollments = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center justify-end space-x-3">
-                          <button className="text-blue-600 hover:text-blue-900">
+                          <button 
+                            className="text-gray-600 hover:text-gray-900"
+                            title="View Details"
+                          >
+                            <MdVisibility className="h-5 w-5" />
+                          </button>
+                          <button 
+                            className="text-blue-600 hover:text-blue-900"
+                            title="Edit Enrollment"
+                          >
                             <MdEdit className="h-5 w-5" />
                           </button>
-                          <button className="text-red-600 hover:text-red-900">
+                          <button 
+                            className="text-red-600 hover:text-red-900"
+                            title="Delete Enrollment"
+                          >
                             <MdDelete className="h-5 w-5" />
                           </button>
                         </div>
