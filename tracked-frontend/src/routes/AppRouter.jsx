@@ -36,6 +36,7 @@ import AdminLogin from '../pages/admin/AdminLogin';
 import AllUsers from '../pages/admin/AllUsers';
 import AdminApplications from '../pages/admin/AdminApplications';
 import Enrollments from '../pages/admin/Enrollments';
+import EnrollmentTrends from '../pages/admin/EnrollmentTrends';
 
 // Protected Route Component
 import ProtectedAdminRoute from '../components/ProtectedAdminRoute';
@@ -101,6 +102,14 @@ const AppRouter = () => {
           element={
             <ProtectedAdminRoute>
               <Enrollments />
+            </ProtectedAdminRoute>
+          }
+        />
+        <Route
+          path="/admin/enrollment-trends"
+          element={
+            <ProtectedAdminRoute>
+              <EnrollmentTrends />
             </ProtectedAdminRoute>
           }
         />
