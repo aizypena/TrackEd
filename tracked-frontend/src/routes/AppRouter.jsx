@@ -43,6 +43,7 @@ import BatchManagement from '../pages/admin/BatchManagement';
 import VoucherManagement from '../pages/admin/VoucherManagement';
 import EnrollmentReports from '../pages/admin/EnrollmentReports';
 import AdminAssessmentResults from '../pages/admin/AdminAssessmentResults';
+import InventoryUsage from '../pages/admin/InventoryUsage';
 
 // Protected Route Component
 import ProtectedAdminRoute from '../components/ProtectedAdminRoute';
@@ -164,6 +165,14 @@ const AppRouter = () => {
           element={
             <ProtectedAdminRoute>
               <AdminAssessmentResults />
+            </ProtectedAdminRoute>
+          }
+        />
+        <Route
+          path="/admin/inventory-usage"
+          element={
+            <ProtectedAdminRoute>
+              <InventoryUsage />
             </ProtectedAdminRoute>
           }
         />
