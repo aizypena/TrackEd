@@ -89,7 +89,7 @@ function Sidebar({ isOpen, onClose }) {
       icon: MdBook,
       submenu: [
         { id: 'courses', name: 'Course Programs', icon: MdLocalLibrary, path: '/admin/course-programs' },
-        { id: 'batches', name: 'Batch Management', icon: MdGroup, path: '/admin/batches' },
+        { id: 'batches', name: 'Batch Management', icon: MdGroup, path: '/admin/batch-management' },
         { id: 'tesda-vouchers', name: 'TESDA Vouchers', icon: MdCardGiftcard, path: '/admin/tesda' }
       ]
     },
