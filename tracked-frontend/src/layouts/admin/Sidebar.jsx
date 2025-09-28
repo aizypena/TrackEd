@@ -32,9 +32,22 @@ import {
 function Sidebar({ isOpen, onClose }) {
   const navigate = useNavigate();
   const location = useLocation();
+  // Initialize all menus as expanded but allow toggling
   const [expandedMenus, setExpandedMenus] = useState({
-    'analytics-forecasting': true // Keep analytics expanded by default
+    'user-management': true,
+    'analytics-forecasting': true,
+    'program-management': true,
+    'reports': true,
+    'system': true
   });
+
+  // Toggle menu expansion
+  const toggleMenu = (menuId) => {
+    setExpandedMenus(prev => ({
+      ...prev,
+      [menuId]: !prev[menuId]
+    }));
+  };
 
   // Get admin user info from localStorage
   const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
@@ -55,8 +68,7 @@ function Sidebar({ isOpen, onClose }) {
       submenu: [
         { id: 'all-users', name: 'All Users', icon: MdPeople, path: '/admin/all-users' },
         { id: 'applications', name: 'Applications', icon: MdAssignment, path: '/admin/applications', badge: '23' },
-        { id: 'enrollments', name: 'Enrollments', icon: MdSchool, path: '/admin/enrollments' },
-        { id: 'roles', name: 'Role Management', icon: MdSecurity, path: '/admin/roles' }
+        { id: 'enrollments', name: 'Enrollments', icon: MdSchool, path: '/admin/enrollments' }
       ]
     },
     {
@@ -102,14 +114,6 @@ function Sidebar({ isOpen, onClose }) {
       ]
     }
   ];
-
-  // Toggle menu expansion
-  const toggleMenu = (menuId) => {
-    setExpandedMenus(prev => ({
-      ...prev,
-      [menuId]: !prev[menuId]
-    }));
-  };
 
   // Handle navigation
   const handleNavigation = (path) => {
@@ -191,7 +195,8 @@ function Sidebar({ isOpen, onClose }) {
                 {/* Main Menu Item */}
                 <div
                   className={`
-                    flex items-center justify-between px-4 py-3 rounded-lg cursor-pointer transition-all duration-200
+                    flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-200
+                    cursor-pointer
                     ${item.highlight ? 'bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200' : ''}
                     ${isActiveRoute(item.path) || hasActiveSubmenu(item.submenu) 
                       ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-700' 
@@ -201,7 +206,7 @@ function Sidebar({ isOpen, onClose }) {
                   onClick={() => {
                     if (item.submenu) {
                       toggleMenu(item.id);
-                    } else {
+                    } else if (item.path) {
                       handleNavigation(item.path);
                     }
                   }}
