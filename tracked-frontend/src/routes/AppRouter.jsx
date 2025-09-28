@@ -45,6 +45,7 @@ import EnrollmentReports from '../pages/admin/EnrollmentReports';
 import AdminAssessmentResults from '../pages/admin/AdminAssessmentResults';
 import InventoryUsage from '../pages/admin/InventoryUsage';
 import StudentList from '../pages/admin/StudentList';
+import SystemSettings from '../pages/admin/SystemSettings';
 
 // Protected Route Component
 import ProtectedAdminRoute from '../components/ProtectedAdminRoute';
@@ -182,6 +183,14 @@ const AppRouter = () => {
           element={
             <ProtectedAdminRoute>
               <StudentList />
+            </ProtectedAdminRoute>
+          }
+        />
+        <Route
+          path="/admin/system-settings"
+          element={
+            <ProtectedAdminRoute>
+              <SystemSettings />
             </ProtectedAdminRoute>
           }
         />
