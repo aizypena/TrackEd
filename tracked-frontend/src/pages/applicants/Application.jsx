@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { AiOutlineEye, AiOutlineEyeInvisible } from 'react-icons/ai';
 import Navbar from '../../layouts/applicants/Navbar';
 import { nationalities } from '../../utils/nationalities';
+import { applicationAPI } from '../../services/applicationAPI';
 
 const Signup = () => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -290,14 +291,9 @@ const Signup = () => {
         submitData.append('passportPhoto', formData.documents.passportPhoto);
       }
       
-      const response = await fetch('http://127.0.0.1:8000/api/applications/submit', {
-        method: 'POST',
-        body: submitData, // Don't set Content-Type header, let browser set it with boundary
-      });
+      const data = await applicationAPI.submit(submitData);
       
-      const data = await response.json();
-      
-      if (response.ok && data.success) {
+      if (data.success) {
         setShowConfirmModal(false); // Close the modal
         nextStep(); // Go to success page
       } else {
@@ -1229,7 +1225,7 @@ const Signup = () => {
           </Link>
           <button 
             onClick={() => window.location.reload()}
-            className="inline-block bg-gray-600 hover:bg-gray-700 text-white px-8 py-3 rounded-full text-sm font-medium transition duration-200"
+            className="inline-block bg-gray-600 hover:cursor-pointer hover:bg-gray-700 text-white px-8 py-3 rounded-full text-sm font-medium transition duration-200"
           >
             OK
           </button>

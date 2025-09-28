@@ -35,7 +35,7 @@ class ApplicationController extends Controller
                 // Education fields
                 'education' => 'required|string|max:255',
                 'school' => 'required|string|max:255',
-                'courseProgram' => 'nullable|string|max:255',
+                'courseProgram' => 'required|string|max:255',
                 
                 // Additional info
                 'employmentStatus' => 'nullable|string|max:255',
@@ -91,6 +91,7 @@ class ApplicationController extends Controller
                 // Education fields
                 'education_level' => $validated['education'],
                 'institution_name' => $validated['school'],
+                'course_program' => $validated['courseProgram'],
                 
                 // Document paths
                 'valid_id_path' => $documentPaths['validId_path'] ?? null,

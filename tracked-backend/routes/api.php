@@ -13,6 +13,9 @@ Route::get('/test', function () {
     return response()->json(['message' => 'API is working!']);
 });
 
+// Application routes
+Route::post('/application', [ApplicationController::class, 'submit']);
+
 // Authentication routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
