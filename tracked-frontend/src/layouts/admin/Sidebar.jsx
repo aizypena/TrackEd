@@ -100,10 +100,23 @@ function Sidebar({ isOpen, onClose }) {
       icon: MdSettings,
       submenu: [
         { id: 'system-settings', name: 'System Settings', icon: MdSettings, path: '/admin/system-settings' },
-        { id: 'system-logs', name: 'System Logs', icon: MdHistory, path: '/admin/system-logs' },
-        // { id: 'backup-restore', name: 'Backup & Restore', icon: MdBackup, path: '/admin/backup' }
+        { id: 'system-logs', name: 'System Logs', icon: MdHistory, path: '/admin/system-logs' }
       ]
-    }
+    },
+    {
+      id: 'profile-settings',
+      name: 'Profile Settings',
+      icon: MdAccountCircle,
+      path: '/admin/profile-settings',
+      badge: null
+    },
+    // {
+    //   id: 'backup-restore',
+    //   name: 'Backup & Restore',
+    //   icon: MdBackup,
+    //   path: '/admin/backup',
+    //   badge: null
+    // }
   ];
 
   // Handle navigation
