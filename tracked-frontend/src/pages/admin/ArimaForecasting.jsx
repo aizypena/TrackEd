@@ -44,6 +44,14 @@ const ArimaForecasting = () => {
   const [forecastPeriod, setForecastPeriod] = useState('6');
   const [selectedProgram, setSelectedProgram] = useState('all');
   const [loading, setLoading] = useState(false);
+  const [arimaParams, setArimaParams] = useState({
+    p: 1, // AR parameter
+    d: 1, // Difference order
+    q: 1, // MA parameter
+    confidence: 0.95, // Confidence interval
+    seasonality: true // Include seasonality
+  });
+  const [quarterlyView, setQuarterlyView] = useState(true);
 
   // Mock data for forecasting
   const forecastData = {
@@ -168,37 +176,49 @@ const ArimaForecasting = () => {
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              <select
-                value={forecastPeriod}
-                onChange={(e) => setForecastPeriod(e.target.value)}
-                className="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="3">3 Months</option>
-                <option value="6">6 Months</option>
-                <option value="12">12 Months</option>
-              </select>
-              <select
-                value={selectedProgram}
-                onChange={(e) => setSelectedProgram(e.target.value)}
-                className="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                {programs.map(program => (
-                  <option key={program.id} value={program.id}>{program.name}</option>
-                ))}
-              </select>
-              <button
-                onClick={handleRefresh}
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
-                disabled={loading}
-              >
-                <MdRefresh className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
-              </button>
-              <button
-                onClick={handleExport}
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
-              >
-                <MdDownload className="h-5 w-5" />
-              </button>
+              <div className="flex items-center space-x-2">
+                <select
+                  value={forecastPeriod}
+                  onChange={(e) => setForecastPeriod(e.target.value)}
+                  className="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="4">4 Quarters</option>
+                  <option value="8">8 Quarters</option>
+                  <option value="12">12 Quarters</option>
+                </select>
+                <select
+                  value={selectedProgram}
+                  onChange={(e) => setSelectedProgram(e.target.value)}
+                  className="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                >
+                  {programs.map(program => (
+                    <option key={program.id} value={program.id}>{program.name}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => setQuarterlyView(!quarterlyView)}
+                  className={`px-3 py-2 rounded-md text-sm font-medium ${
+                    quarterlyView ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
+                  }`}
+                >
+                  Quarterly View
+                </button>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={handleRefresh}
+                  className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
+                  disabled={loading}
+                >
+                  <MdRefresh className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
+                </button>
+                <button
+                  onClick={handleExport}
+                  className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
+                >
+                  <MdDownload className="h-5 w-5" />
+                </button>
+              </div>
             </div>
           </div>
         </header>
@@ -256,6 +276,72 @@ const ArimaForecasting = () => {
               </div>
             </div>
           </div>
+
+          {/* ARIMA Configuration Panel */}
+          {/* <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">ARIMA Model Configuration</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">AR Parameter (p)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="5"
+                  value={arimaParams.p}
+                  onChange={(e) => setArimaParams({...arimaParams, p: parseInt(e.target.value)})}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Difference Order (d)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="2"
+                  value={arimaParams.d}
+                  onChange={(e) => setArimaParams({...arimaParams, d: parseInt(e.target.value)})}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">MA Parameter (q)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="5"
+                  value={arimaParams.q}
+                  onChange={(e) => setArimaParams({...arimaParams, q: parseInt(e.target.value)})}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Confidence Interval</label>
+                <select
+                  value={arimaParams.confidence}
+                  onChange={(e) => setArimaParams({...arimaParams, confidence: parseFloat(e.target.value)})}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="0.90">90%</option>
+                  <option value="0.95">95%</option>
+                  <option value="0.99">99%</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Seasonality</label>
+                <div className="flex items-center mt-2">
+                  <input
+                    type="checkbox"
+                    checked={arimaParams.seasonality}
+                    onChange={(e) => setArimaParams({...arimaParams, seasonality: e.target.checked})}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label className="ml-2 block text-sm text-gray-900">
+                    Include seasonal components
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div> */}
 
           {/* Main Chart */}
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-6">

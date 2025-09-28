@@ -41,6 +41,8 @@ const EnrollmentTrends = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [timeRange, setTimeRange] = useState('year');
   const [loading, setLoading] = useState(false);
+  const [viewType, setViewType] = useState('quarterly');
+  const [comparisonYear, setComparisonYear] = useState('2024');
 
   // Mock data for popular programs
   const popularPrograms = {
@@ -179,29 +181,51 @@ const EnrollmentTrends = () => {
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              <select
-                value={timeRange}
-                onChange={(e) => setTimeRange(e.target.value)}
-                className="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="month">This Month</option>
-                <option value="quarter">This Quarter</option>
-                <option value="year">This Year</option>
-                <option value="all">All Time</option>
-              </select>
-              <button
-                onClick={handleRefresh}
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
-                disabled={loading}
-              >
-                <MdRefresh className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
-              </button>
-              <button
-                onClick={handleExport}
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
-              >
-                <MdDownload className="h-5 w-5" />
-              </button>
+              <div className="flex items-center space-x-2">
+                <select
+                  value={viewType}
+                  onChange={(e) => setViewType(e.target.value)}
+                  className="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="quarterly">Quarterly View</option>
+                  <option value="yearly">Yearly View</option>
+                  <option value="program">By Program</option>
+                </select>
+                <select
+                  value={comparisonYear}
+                  onChange={(e) => setComparisonYear(e.target.value)}
+                  className="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="2025">2025</option>
+                  <option value="2024">2024</option>
+                  <option value="2023">2023</option>
+                </select>
+                <select
+                  value={timeRange}
+                  onChange={(e) => setTimeRange(e.target.value)}
+                  className="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="3years">Last 3 Years</option>
+                  <option value="5years">Last 5 Years</option>
+                  <option value="all">All Time</option>
+                </select>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={handleRefresh}
+                  className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
+                  disabled={loading}
+                >
+                  <MdRefresh className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
+                </button>
+                <button
+                  onClick={handleExport}
+                  className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
+                  title="Export data as CSV/PDF"
+                >
+                  <MdDownload className="h-5 w-5" />
+                </button>
+              </div>
             </div>
           </div>
         </header>
