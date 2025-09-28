@@ -38,6 +38,7 @@ import AdminApplications from '../pages/admin/AdminApplications';
 import Enrollments from '../pages/admin/Enrollments';
 import EnrollmentTrends from '../pages/admin/EnrollmentTrends';
 import ArimaForecasting from '../pages/admin/ArimaForecasting';
+import CoursePrograms from '../pages/admin/CoursePrograms';
 
 // Protected Route Component
 import ProtectedAdminRoute from '../components/ProtectedAdminRoute';
@@ -119,6 +120,14 @@ const AppRouter = () => {
           element={
             <ProtectedAdminRoute>
               <ArimaForecasting />
+            </ProtectedAdminRoute>
+          }
+        />
+        <Route
+          path="/admin/course-programs"
+          element={
+            <ProtectedAdminRoute>
+              <CoursePrograms />
             </ProtectedAdminRoute>
           }
         />
