@@ -80,7 +80,7 @@ const StudentList = () => {
       phone: '+63 934 567 8901',
       address: 'Pasig City, Metro Manila',
       enrollmentDate: '2025-09-01',
-      status: 'On Leave',
+      status: 'Dropped',
       progress: 60,
       attendance: 85,
     },
@@ -103,8 +103,6 @@ const StudentList = () => {
     switch (status.toLowerCase()) {
       case 'active':
         return 'bg-green-100 text-green-800';
-      case 'on leave':
-        return 'bg-yellow-100 text-yellow-800';
       case 'completed':
         return 'bg-blue-100 text-blue-800';
       case 'dropped':
