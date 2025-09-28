@@ -42,6 +42,7 @@ import CoursePrograms from '../pages/admin/CoursePrograms';
 import BatchManagement from '../pages/admin/BatchManagement';
 import VoucherManagement from '../pages/admin/VoucherManagement';
 import EnrollmentReports from '../pages/admin/EnrollmentReports';
+import AdminAssessmentResults from '../pages/admin/AdminAssessmentResults';
 
 // Protected Route Component
 import ProtectedAdminRoute from '../components/ProtectedAdminRoute';
@@ -155,6 +156,14 @@ const AppRouter = () => {
           element={
             <ProtectedAdminRoute>
               <EnrollmentReports />
+            </ProtectedAdminRoute>
+          }
+        />
+        <Route
+          path="/admin/assessment-results"
+          element={
+            <ProtectedAdminRoute>
+              <AdminAssessmentResults />
             </ProtectedAdminRoute>
           }
         />

@@ -89,7 +89,7 @@ function Sidebar({ isOpen, onClose }) {
         { id: 'enrollment-reports', name: 'Enrollment Reports', icon: MdSchool, path: '/admin/enrollment-reports' },
         { id: 'enrollment-trends', name: 'Enrollment Trends', icon: MdTrendingUp, path: '/admin/enrollment-trends' },
         { id: 'arima-forecasting', name: 'ARIMA Forecasting', icon: MdShowChart, path: '/admin/arima-forecasting', badge: 'NEW' },
-        { id: 'assessment-reports', name: 'Assessment Results', icon: MdVerified, path: '/admin/reports/assessment' },
+        { id: 'assessment-reports', name: 'Assessment Results', icon: MdVerified, path: '/admin/assessment-results' },
         { id: 'inventory-reports', name: 'Inventory Usage', icon: MdLocalLibrary, path: '/admin/reports/inventory' },
         { id: 'student-reports', name: 'Student Lists', icon: MdPeople, path: '/admin/reports/students' },
         { id: 'export-center', name: 'Export Center', icon: MdFileDownload, path: '/admin/reports/export', badge: 'PDF/CSV' }
