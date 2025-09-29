@@ -84,15 +84,6 @@ const SystemSettings = () => {
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Institution Name</label>
-                <input
-                  type="text"
-                  value={settings.general.instituteName}
-                  onChange={(e) => handleInputChange('general', 'instituteName', e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                />
-              </div>
-              <div>
                 <label className="block text-sm font-medium text-gray-700">Address</label>
                 <input
                   type="text"
@@ -116,15 +107,6 @@ const SystemSettings = () => {
                   type="text"
                   value={settings.general.contactPhone}
                   onChange={(e) => handleInputChange('general', 'contactPhone', e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                />
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700">Website URL</label>
-                <input
-                  type="url"
-                  value={settings.general.websiteUrl}
-                  onChange={(e) => handleInputChange('general', 'websiteUrl', e.target.value)}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                 />
               </div>
