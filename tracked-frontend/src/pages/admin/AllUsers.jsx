@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../layouts/admin/Sidebar';
 import ViewUser from '../../layouts/admin/ViewUser';
+import AddUserModal from '../../components/User Management/AddUserModal';
 import { userAPI } from '../../services/userAPI';
 import { 
   MdSearch, MdFilterList, MdAdd, MdEdit, MdDelete, MdVisibility,
@@ -19,6 +20,7 @@ function AllUsers() {
   const [usersPerPage] = useState(10);
   const [loading, setLoading] = useState(true);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [stats, setStats] = useState({
@@ -205,6 +207,23 @@ function AllUsers() {
     console.log('Exporting users data...');
   };
 
+  const handleAddUser = async (userData) => {
+    try {
+      const response = await userAPI.createUser(userData);
+      if (response.success) {
+        // Refresh the users list
+        fetchUsers();
+        fetchStats();
+        return true;
+      } else {
+        throw new Error(response.message || 'Failed to add user');
+      }
+    } catch (error) {
+      console.error('Error adding user:', error);
+      throw error;
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex h-screen bg-gray-50">
@@ -326,6 +345,7 @@ function AllUsers() {
               Export
             </button>
             <button 
+              onClick={() => setIsAddModalOpen(true)}
               title='Add User'
               className="inline-flex hover:cursor-pointer items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
@@ -623,6 +643,13 @@ function AllUsers() {
             onClose={handleCloseViewModal} 
           />
         )}
+
+        {/* Add User Modal */}
+        <AddUserModal
+          isOpen={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+          onAdd={handleAddUser}
+        />
       </div>
     </div>
   );
