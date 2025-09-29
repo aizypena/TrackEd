@@ -162,14 +162,18 @@ function Sidebar({ isOpen, onClose }) {
         transition-transform duration-300 ease-in-out
       `}>
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-4 text-white">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-white/20 rounded-lg">
-              <MdBusiness className="h-6 w-6" />
+            <div className="w-12 h-12 overflow-hidden rounded-lg bg-white p-1">
+              <img 
+                src="/smi-logo.jpg" 
+                alt="SMI Logo" 
+                className="w-full h-full object-contain"
+              />
             </div>
             <div>
+              <div className="text-xs text-white/80 font-medium">SMI Inc.</div>
               <h1 className="text-xl font-bold">TrackEd Admin</h1>
-              <p className="text-blue-100 text-sm">iTCMS Dashboard</p>
             </div>
           </div>
         </div>
