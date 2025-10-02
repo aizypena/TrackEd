@@ -12,32 +12,42 @@ import {
 import { nationalities } from '../../utils/nationalities';
 
 const AddUserModal = ({ isOpen, onClose, onAdd }) => {
+  const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
+    // Basic Information
     first_name: '',
     last_name: '',
     email: '',
     phone_number: '',
     password: '',
-    confirm_password: '',
+    confirm_password: '', // Not in DB but needed for validation
     role: 'student',
     status: 'active',
+    // Personal Information
+    address: '',
     date_of_birth: '',
     place_of_birth: '',
     gender: '',
     nationality: '',
     marital_status: '',
-    address: '',
+    // Educational Background (for students only)
     education_level: '',
     field_of_study: '',
     institution_name: '',
     graduation_year: '',
+    gpa: '',
+    // Employment Information (for students only)
     employment_status: '',
     occupation: '',
     work_experience: '',
+    // Program Information (for students only)
     course_program: '',
+    // Emergency Contact
     emergency_contact: '',
     emergency_phone: '',
-    emergency_relationship: ''
+    emergency_relationship: '',
+    // Profile Picture (will be handled separately)
+    profile_picture: null
   });
 
   const programOptions = [
@@ -51,9 +61,66 @@ const AddUserModal = ({ isOpen, onClose, onAdd }) => {
     { value: 'cookery-nc-ii', label: 'Cookery NC II' }
   ];
 
-  const handleSubmit = (e) => {
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Basic Information Validation
+    if (!formData.first_name) newErrors.first_name = 'First name is required';
+    if (!formData.last_name) newErrors.last_name = 'Last name is required';
+    if (!formData.email) newErrors.email = 'Email is required';
+    if (!formData.phone_number) newErrors.phone_number = 'Phone number is required';
+    if (!formData.phone_number.startsWith('9')) newErrors.phone_number = 'Phone number must start with 9';
+    if (!formData.password) newErrors.password = 'Password is required';
+    if (formData.password !== formData.confirm_password) {
+      newErrors.confirm_password = 'Passwords do not match';
+    }
+
+    // Student-specific validation
+    if (formData.role === 'student' && !formData.course_program) {
+      newErrors.course_program = 'Course program is required for students';
+    }
+    
+    // Additional validation for instructor
+    if (formData.role === 'instructor') {
+      if (!formData.education_level) newErrors.education_level = 'Education level is required for instructors';
+      if (!formData.field_of_study) newErrors.field_of_study = 'Field of study is required for instructors';
+      if (!formData.institution_name) newErrors.institution_name = 'Institution name is required for instructors';
+      if (!formData.employment_status) newErrors.employment_status = 'Employment status is required for instructors';
+    }
+
+    // Phone number validation
+    if (formData.phone_number && !/^9\d{9}$/.test(formData.phone_number)) {
+      newErrors.phone_number = 'Invalid phone number format';
+    }
+    if (formData.emergency_phone && !/^9\d{9}$/.test(formData.emergency_phone)) {
+      newErrors.emergency_phone = 'Invalid emergency phone number format';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onAdd(formData);
+    if (!validateForm()) return;
+
+    // Prepare data for submission (excluding non-database fields)
+    const submitData = { ...formData };
+    delete submitData.confirm_password;
+
+    // Add +63 to phone numbers for database storage
+    if (submitData.phone_number) {
+      submitData.phone_number = `+63${submitData.phone_number}`;
+    }
+    if (submitData.emergency_phone) {
+      submitData.emergency_phone = `+63${submitData.emergency_phone}`;
+    }
+
+    try {
+      onAdd(submitData);
+    } catch (error) {
+      setErrors({ submit: 'Failed to create user. Please try again.' });
+    }
   };
 
   const handleChange = (e) => {
@@ -107,9 +174,14 @@ const AddUserModal = ({ isOpen, onClose, onAdd }) => {
                       name="first_name"
                       value={formData.first_name}
                       onChange={handleChange}
-                      className="block w-full pl-10 pr-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                      className={`block w-full pl-10 pr-3 py-2 text-gray-900 border ${
+                        errors.first_name ? 'border-red-500' : 'border-gray-300'
+                      } outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500`}
                       required
                     />
+                    {errors.first_name && (
+                      <p className="mt-1 text-xs text-red-500">{errors.first_name}</p>
+                    )}
                   </div>
                 </div>
 
@@ -161,16 +233,41 @@ const AddUserModal = ({ isOpen, onClose, onAdd }) => {
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <MdPhone className="h-5 w-5 text-gray-400" />
                     </div>
+                    <div className="absolute inset-y-0 left-8 flex items-center pointer-events-none">
+                      <span className="text-gray-500">+63</span>
+                    </div>
                     <input
                       type="tel"
                       id="phone_number"
                       name="phone_number"
                       value={formData.phone_number}
-                      onChange={handleChange}
-                      className="block w-full pl-10 pr-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                      onChange={(e) => {
+                        let value = e.target.value;
+                        // Remove any non-digit characters
+                        value = value.replace(/\D/g, '');
+                        // Remove leading zeros
+                        value = value.replace(/^0+/, '');
+                        // Ensure the number doesn't include the country code if user types it
+                        value = value.replace(/^63/, '');
+                        // Ensure the first digit is 9
+                        if (value && value[0] !== '9') {
+                          value = '';
+                        }
+                        // Update the form data
+                        handleChange({
+                          target: {
+                            name: 'phone_number',
+                            value: value
+                          }
+                        });
+                      }}
+                      placeholder="9XX XXX XXXX"
+                      className="block w-full pl-20 pr-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                      maxLength="10"
                       required
                     />
                   </div>
+                  <p className="mt-1 text-xs text-gray-500">Format: +63 9XX XXX XXXX</p>
                 </div>
 
                 <div>
@@ -368,128 +465,172 @@ const AddUserModal = ({ isOpen, onClose, onAdd }) => {
               </div>
             </div>
 
-            {/* Educational Background */}
+            {/* Role Selection */}
             <div className="bg-white p-6 rounded-lg border border-gray-300 mt-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Educational Background</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="education_level">
-                    Education Level
-                  </label>
-                  <select
-                    id="education_level"
-                    name="education_level"
-                    value={formData.education_level}
-                    onChange={handleChange}
-                    className="block w-full px-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">Select Level</option>
-                    <option value="high_school">High School</option>
-                    <option value="vocational">Vocational</option>
-                    <option value="college">College</option>
-                    <option value="graduate">Graduate</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="field_of_study">
-                    Field of Study
-                  </label>
-                  <input
-                    type="text"
-                    id="field_of_study"
-                    name="field_of_study"
-                    value={formData.field_of_study}
-                    onChange={handleChange}
-                    className="block w-full px-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="institution_name">
-                    Institution Name
-                  </label>
-                  <input
-                    type="text"
-                    id="institution_name"
-                    name="institution_name"
-                    value={formData.institution_name}
-                    onChange={handleChange}
-                    className="block w-full px-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="graduation_year">
-                    Graduation Year
-                  </label>
-                  <input
-                    type="number"
-                    id="graduation_year"
-                    name="graduation_year"
-                    value={formData.graduation_year}
-                    onChange={handleChange}
-                    min="1950"
-                    max="2025"
-                    className="block w-full px-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="role">
+                  Role *
+                </label>
+                <select
+                  id="role"
+                  name="role"
+                  value={formData.role}
+                  onChange={handleChange}
+                  className="block w-full px-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  required
+                >
+                  <option value="student">Student</option>
+                  <option value="instructor">Instructor</option>
+                  <option value="staff">Staff</option>
+                  <option value="admin">Admin</option>
+                </select>
               </div>
             </div>
 
-            {/* Employment Information */}
-            <div className="bg-white p-6 rounded-lg border border-gray-300 mt-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Employment Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="employment_status">
-                    Employment Status
-                  </label>
-                  <select
-                    id="employment_status"
-                    name="employment_status"
-                    value={formData.employment_status}
-                    onChange={handleChange}
-                    className="block w-full px-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">Select Status</option>
-                    <option value="employed">Employed</option>
-                    <option value="unemployed">Unemployed</option>
-                    <option value="self_employed">Self-employed</option>
-                    <option value="student">Student</option>
-                  </select>
-                </div>
+            {/* Educational Background - Shown for students and instructors */}
+            {(formData.role === 'student' || formData.role === 'instructor') && (
+              <div className="bg-white p-6 rounded-lg border border-gray-300 mt-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Educational Background</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="education_level">
+                      Education Level
+                    </label>
+                    <select
+                      id="education_level"
+                      name="education_level"
+                      value={formData.education_level}
+                      onChange={handleChange}
+                      className="block w-full px-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">Select Level</option>
+                      <option value="high_school">High School</option>
+                      <option value="vocational">Vocational</option>
+                      <option value="college">College</option>
+                      <option value="graduate">Graduate</option>
+                    </select>
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="occupation">
-                    Occupation
-                  </label>
-                  <input
-                    type="text"
-                    id="occupation"
-                    name="occupation"
-                    value={formData.occupation}
-                    onChange={handleChange}
-                    className="block w-full px-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="field_of_study">
+                      Field of Study
+                    </label>
+                    <input
+                      type="text"
+                      id="field_of_study"
+                      name="field_of_study"
+                      value={formData.field_of_study}
+                      onChange={handleChange}
+                      className="block w-full px-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
 
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="work_experience">
-                    Work Experience
-                  </label>
-                  <textarea
-                    id="work_experience"
-                    name="work_experience"
-                    value={formData.work_experience}
-                    onChange={handleChange}
-                    rows="3"
-                    className="block w-full px-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Brief description of work experience..."
-                  ></textarea>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="institution_name">
+                      Institution Name
+                    </label>
+                    <input
+                      type="text"
+                      id="institution_name"
+                      name="institution_name"
+                      value={formData.institution_name}
+                      onChange={handleChange}
+                      className="block w-full px-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="graduation_year">
+                      Graduation Year
+                    </label>
+                    <input
+                      type="number"
+                      id="graduation_year"
+                      name="graduation_year"
+                      value={formData.graduation_year}
+                      onChange={handleChange}
+                      min="1950"
+                      max="2025"
+                      className="block w-full px-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="gpa">
+                      GPA
+                    </label>
+                    <input
+                      type="number"
+                      id="gpa"
+                      name="gpa"
+                      value={formData.gpa}
+                      onChange={handleChange}
+                      step="0.01"
+                      min="0"
+                      max="4"
+                      className="block w-full px-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="e.g., 3.5"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
+
+            {/* Employment Information - Shown only for students */}
+            {formData.role === 'student' && (
+              <div className="bg-white p-6 rounded-lg border border-gray-300 mt-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Employment Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="employment_status">
+                      Employment Status
+                    </label>
+                    <select
+                      id="employment_status"
+                      name="employment_status"
+                      value={formData.employment_status}
+                      onChange={handleChange}
+                      className="block w-full px-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">Select Status</option>
+                      <option value="employed">Employed</option>
+                      <option value="unemployed">Unemployed</option>
+                      <option value="self_employed">Self-employed</option>
+                      <option value="student">Student</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="occupation">
+                      Occupation
+                    </label>
+                    <input
+                      type="text"
+                      id="occupation"
+                      name="occupation"
+                      value={formData.occupation}
+                      onChange={handleChange}
+                      className="block w-full px-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="work_experience">
+                      Work Experience
+                    </label>
+                    <textarea
+                      id="work_experience"
+                      name="work_experience"
+                      value={formData.work_experience}
+                      onChange={handleChange}
+                      rows="3"
+                      className="block w-full px-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Brief description of work experience..."
+                    ></textarea>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Emergency Contact */}
             <div className="bg-white p-6 rounded-lg border border-gray-300 mt-6">
@@ -513,14 +654,44 @@ const AddUserModal = ({ isOpen, onClose, onAdd }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="emergency_phone">
                     Emergency Phone
                   </label>
-                  <input
-                    type="tel"
-                    id="emergency_phone"
-                    name="emergency_phone"
-                    value={formData.emergency_phone}
-                    onChange={handleChange}
-                    className="block w-full px-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                  />
+                  <div className="relative rounded-md">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <MdPhone className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <div className="absolute inset-y-0 left-8 flex items-center pointer-events-none">
+                      <span className="text-gray-500">+63</span>
+                    </div>
+                    <input
+                      type="tel"
+                      id="emergency_phone"
+                      name="emergency_phone"
+                      value={formData.emergency_phone}
+                      onChange={(e) => {
+                        let value = e.target.value;
+                        // Remove any non-digit characters
+                        value = value.replace(/\D/g, '');
+                        // Remove leading zeros
+                        value = value.replace(/^0+/, '');
+                        // Ensure the number doesn't include the country code if user types it
+                        value = value.replace(/^63/, '');
+                        // Ensure the first digit is 9
+                        if (value && value[0] !== '9') {
+                          value = '';
+                        }
+                        // Update the form data
+                        handleChange({
+                          target: {
+                            name: 'emergency_phone',
+                            value: value
+                          }
+                        });
+                      }}
+                      placeholder="9XX XXX XXXX"
+                      className="block w-full pl-20 pr-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                      maxLength="10"
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">Format: +63 9XX XXX XXXX</p>
                 </div>
 
                 <div>
