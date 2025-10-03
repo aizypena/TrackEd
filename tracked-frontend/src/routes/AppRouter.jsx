@@ -230,10 +230,10 @@ const AppRouter = () => {
         <Route path="/students/*" element={<StudentRoutes />} />
         
         {/* Trainer Routes */}
-        <Route path="/trainer-lms/certification-management" element={<CertificationManagement />} />
+        <Route path="/trainer-lms/certification" element={<CertificationManagement />} />
         <Route path="/trainer-lms/course-management" element={<CourseManagement />} />
         <Route path="/trainer-lms/course-materials" element={<CourseMaterials />} />
-        <Route path="/trainer-lms/trainer-assessments" element={<TrainerAssessments />} />
+        <Route path="/trainer-lms/assessments" element={<TrainerAssessments />} />
         <Route path="/trainer-lms/attendance" element={<TrainerAttendance />} />
         <Route path="/trainer-lms/dashboard" element={<TrainerDashboard />} />
         <Route path="/trainer-lms/grades" element={<TrainerGrades />} />
