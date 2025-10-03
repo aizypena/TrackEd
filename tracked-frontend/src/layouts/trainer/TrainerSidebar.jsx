@@ -11,10 +11,7 @@ import {
   MdMenu,
   MdClose,
   MdPerson,
-  MdLogout,
-  MdFactCheck,
-  MdPlayArrow,
-  MdCheckCircle
+  MdLogout
 } from 'react-icons/md';
 
 const TrainerSidebar = ({ user, isOpen, onClose, isCollapsed, setIsCollapsed }) => {
@@ -51,24 +48,6 @@ const TrainerSidebar = ({ user, isOpen, onClose, isCollapsed, setIsCollapsed }) 
       path: '/trainer-lms/certification',
       icon: <MdVerified className="h-5 w-5" />,
       badge: 'New'
-    }
-  ];
-
-  const quickActions = [
-    {
-      name: 'Upload Materials',
-      icon: <MdUpload className="h-4 w-4" />,
-      action: () => console.log('Upload Materials')
-    },
-    {
-      name: 'Record Attendance',
-      icon: <MdFactCheck className="h-4 w-4" />,
-      action: () => console.log('Record Attendance')
-    },
-    {
-      name: 'Submit Grades',
-      icon: <MdCheckCircle className="h-4 w-4" />,
-      action: () => console.log('Submit Grades')
     }
   ];
 
@@ -196,27 +175,6 @@ const TrainerSidebar = ({ user, isOpen, onClose, isCollapsed, setIsCollapsed }) 
               </Link>
             ))}
           </div>
-
-          {/* Quick Actions */}
-          {!isCollapsed && (
-            <div className="pt-6">
-              <h3 className="px-3 text-xs font-semibold text-blue-200 uppercase tracking-wider">
-                Quick Actions
-              </h3>
-              <div className="mt-2 space-y-1">
-                {quickActions.map((action) => (
-                  <button
-                    key={action.name}
-                    onClick={action.action}
-                    className="w-full flex items-center px-3 py-2 text-sm font-medium text-blue-100 rounded-md hover:text-white hover:bg-blue-800 transition-colors"
-                  >
-                    <span className="mr-3">{action.icon}</span>
-                    {action.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </nav>
 
         {/* Footer */}
