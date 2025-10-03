@@ -21,19 +21,18 @@ class AdminSeeder extends Seeder
             'first_name' => 'System',
             'last_name' => 'Administrator',
             'email' => 'admin@smi.edu.ph',
-            'phone_number' => '+63 9XX XXX XXXX',
+            'phone_number' => '9999999999',
             'password' => Hash::make('admin123'),
             'role' => 'admin',
             'status' => 'active',
-            'application_status' => 'pending', // Using a valid enum value
+            'application_status' => 'pending',
+            'address' => 'SMI Institute Inc., Philippines',
             'date_of_birth' => '1990-01-01',
             'gender' => 'other',
             'nationality' => 'filipino',
-            'address' => 'SMI Institute Inc., Philippines',
+            'education_level' => 'college_graduate',
             'emergency_contact' => 'SMI Institute HR Department',
-            'emergency_phone' => '+63 XXX XXX XXXX',
-            'email_verified_at' => now(),
-            'education_level' => 'college_graduate'
+            'emergency_phone' => '9999999999'
         ]);
 
         $this->command->info('Admin user created successfully!');

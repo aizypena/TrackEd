@@ -10,6 +10,10 @@ import {
   MdBusinessCenter,
 } from 'react-icons/md';
 import { nationalities } from '../../utils/nationalities';
+import axios from 'axios';
+
+// Base URL for the API
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
 
 const AddUserModal = ({ isOpen, onClose, onAdd }) => {
   const [errors, setErrors] = useState({});
@@ -47,7 +51,14 @@ const AddUserModal = ({ isOpen, onClose, onAdd }) => {
     emergency_phone: '',
     emergency_relationship: '',
     // Profile Picture (will be handled separately)
-    profile_picture: null
+    profile_picture: null,
+    // Required Documents (for students and applicants)
+    documents: {
+      validId: null,
+      transcript: null,
+      diploma: null,
+      passportPhoto: null
+    }
   });
 
   const programOptions = [
@@ -75,9 +86,9 @@ const AddUserModal = ({ isOpen, onClose, onAdd }) => {
       newErrors.confirm_password = 'Passwords do not match';
     }
 
-    // Student-specific validation
-    if (formData.role === 'student' && !formData.course_program) {
-      newErrors.course_program = 'Course program is required for students';
+    // Student and applicant validation
+    if ((formData.role === 'student' || formData.role === 'applicant') && !formData.course_program) {
+      newErrors.course_program = 'Course program is required for students and applicants';
     }
     
     // Additional validation for instructor
@@ -104,22 +115,72 @@ const AddUserModal = ({ isOpen, onClose, onAdd }) => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    // Prepare data for submission (excluding non-database fields)
-    const submitData = { ...formData };
-    delete submitData.confirm_password;
-
-    // Add +63 to phone numbers for database storage
-    if (submitData.phone_number) {
-      submitData.phone_number = `+63${submitData.phone_number}`;
-    }
-    if (submitData.emergency_phone) {
-      submitData.emergency_phone = `+63${submitData.emergency_phone}`;
-    }
-
     try {
-      onAdd(submitData);
+      // Create FormData object for file uploads
+      const formDataToSubmit = new FormData();
+
+      // Add user data
+      const userData = { ...formData };
+      delete userData.confirm_password;
+      delete userData.documents;
+      delete userData.profile_picture;
+
+      // Format phone numbers - remove +63 prefix
+      if (userData.phone_number) {
+        userData.phone_number = userData.phone_number.replace('+63', '');
+      }
+      if (userData.emergency_phone) {
+        userData.emergency_phone = userData.emergency_phone.replace('+63', '');
+      }
+
+      // Append all user data
+      Object.keys(userData).forEach(key => {
+        if (userData[key] !== null && userData[key] !== '') {
+          formDataToSubmit.append(key, userData[key]);
+        }
+      });
+
+      // Append documents properly
+      if (formData.documents) {
+        Object.keys(formData.documents).forEach(docType => {
+          if (formData.documents[docType]) {
+            formDataToSubmit.append(`documents[${docType}]`, formData.documents[docType], formData.documents[docType].name);
+          }
+        });
+      }
+
+      // Append documents if they exist
+      if (formData.documents) {
+        Object.keys(formData.documents).forEach(docType => {
+          if (formData.documents[docType]) {
+            formDataToSubmit.append(`documents[${docType}]`, formData.documents[docType]);
+          }
+        });
+      }
+
+      // Append profile picture if it exists
+      if (formData.profile_picture) {
+        formDataToSubmit.append('profile_picture', formData.profile_picture);
+      }
+
+      // Make API request
+      const response = await axios.post(`${API_URL}/users`, formDataToSubmit, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (response.data.success) {
+        onAdd(response.data.user);
+        onClose();
+      } else {
+        throw new Error(response.data.message || 'Failed to create user');
+      }
     } catch (error) {
-      setErrors({ submit: 'Failed to create user. Please try again.' });
+      console.error('Error creating user:', error);
+      setErrors({ 
+        submit: error.response?.data?.message || 'Failed to create user. Please try again.' 
+      });
     }
   };
 
@@ -129,6 +190,55 @@ const AddUserModal = ({ isOpen, onClose, onAdd }) => {
       ...prev,
       [name]: value
     }));
+  };
+
+  const handleFileChange = (e, documentType) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFormData(prev => ({
+        ...prev,
+        documents: {
+          ...prev.documents,
+          [documentType]: file
+        }
+      }));
+    }
+  };
+
+  const handleDrop = (e, documentType) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      setFormData(prev => ({
+        ...prev,
+        documents: {
+          ...prev.documents,
+          [documentType]: file
+        }
+      }));
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  const removeFile = (documentType) => {
+    setFormData(prev => ({
+      ...prev,
+      documents: {
+        ...prev.documents,
+        [documentType]: null
+      }
+    }));
+  };
+
+  const formatFileSize = (bytes) => {
+    if (!bytes) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
   };
 
   if (!isOpen) return null;
@@ -327,6 +437,7 @@ const AddUserModal = ({ isOpen, onClose, onAdd }) => {
                       required
                     >
                       <option value="student">Student</option>
+                      <option value="applicant">Applicant</option>
                       <option value="admin">Admin</option>
                       <option value="instructor">Instructor</option>
                       <option value="staff">Staff</option>
@@ -576,8 +687,8 @@ const AddUserModal = ({ isOpen, onClose, onAdd }) => {
               </div>
             )}
 
-            {/* Employment Information - Shown only for students */}
-            {formData.role === 'student' && (
+            {/* Employment Information - Shown for students and applicants */}
+            {(formData.role === 'student' || formData.role === 'applicant') && (
               <div className="bg-white p-6 rounded-lg border border-gray-300 mt-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Employment Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -710,8 +821,8 @@ const AddUserModal = ({ isOpen, onClose, onAdd }) => {
               </div>
             </div>
 
-            {/* Program Information for Students */}
-            {formData.role === 'student' && (
+            {/* Program Information for Students and Applicants */}
+            {(formData.role === 'student' || formData.role === 'applicant') && (
               <div className="bg-white p-6 rounded-lg border border-gray-300 mt-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Program Information</h3>
                 <div className="grid grid-cols-1 gap-6">
@@ -734,6 +845,238 @@ const AddUserModal = ({ isOpen, onClose, onAdd }) => {
                         </option>
                       ))}
                     </select>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Document Upload Section - Only for students and applicants */}
+            {(formData.role === 'student' || formData.role === 'applicant') && (
+              <div className="bg-white p-6 rounded-lg border border-gray-300 mt-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Required Documents</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Valid ID */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Valid ID*
+                    </label>
+                    <div
+                      className={`border-2 border-dashed rounded-lg p-4 ${
+                        formData.documents.validId ? 'border-green-300 bg-green-50' : 'border-gray-300'
+                      }`}
+                      onDrop={(e) => handleDrop(e, 'validId')}
+                      onDragOver={handleDragOver}
+                    >
+                      {formData.documents.validId ? (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <MdVerified className="h-5 w-5 text-green-500 mr-2" />
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">
+                                {formData.documents.validId.name}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {formatFileSize(formData.documents.validId.size)}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeFile('validId')}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <MdClose className="h-5 w-5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="text-center">
+                          <input
+                            type="file"
+                            id="validId"
+                            className="hidden"
+                            onChange={(e) => handleFileChange(e, 'validId')}
+                            accept=".pdf,.jpg,.jpeg,.png"
+                          />
+                          <label
+                            htmlFor="validId"
+                            className="cursor-pointer text-sm text-gray-600"
+                          >
+                            <span className="block mb-1">Drag and drop or click to upload</span>
+                            <span className="text-xs text-gray-500">
+                              Supported formats: PDF, JPG, PNG
+                            </span>
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Transcript */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Transcript of Records*
+                    </label>
+                    <div
+                      className={`border-2 border-dashed rounded-lg p-4 ${
+                        formData.documents.transcript ? 'border-green-300 bg-green-50' : 'border-gray-300'
+                      }`}
+                      onDrop={(e) => handleDrop(e, 'transcript')}
+                      onDragOver={handleDragOver}
+                    >
+                      {formData.documents.transcript ? (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <MdVerified className="h-5 w-5 text-green-500 mr-2" />
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">
+                                {formData.documents.transcript.name}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {formatFileSize(formData.documents.transcript.size)}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeFile('transcript')}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <MdClose className="h-5 w-5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="text-center">
+                          <input
+                            type="file"
+                            id="transcript"
+                            className="hidden"
+                            onChange={(e) => handleFileChange(e, 'transcript')}
+                            accept=".pdf,.jpg,.jpeg,.png"
+                          />
+                          <label
+                            htmlFor="transcript"
+                            className="cursor-pointer text-sm text-gray-600"
+                          >
+                            <span className="block mb-1">Drag and drop or click to upload</span>
+                            <span className="text-xs text-gray-500">
+                              Supported formats: PDF, JPG, PNG
+                            </span>
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Diploma */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Diploma*
+                    </label>
+                    <div
+                      className={`border-2 border-dashed rounded-lg p-4 ${
+                        formData.documents.diploma ? 'border-green-300 bg-green-50' : 'border-gray-300'
+                      }`}
+                      onDrop={(e) => handleDrop(e, 'diploma')}
+                      onDragOver={handleDragOver}
+                    >
+                      {formData.documents.diploma ? (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <MdVerified className="h-5 w-5 text-green-500 mr-2" />
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">
+                                {formData.documents.diploma.name}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {formatFileSize(formData.documents.diploma.size)}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeFile('diploma')}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <MdClose className="h-5 w-5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="text-center">
+                          <input
+                            type="file"
+                            id="diploma"
+                            className="hidden"
+                            onChange={(e) => handleFileChange(e, 'diploma')}
+                            accept=".pdf,.jpg,.jpeg,.png"
+                          />
+                          <label
+                            htmlFor="diploma"
+                            className="cursor-pointer text-sm text-gray-600"
+                          >
+                            <span className="block mb-1">Drag and drop or click to upload</span>
+                            <span className="text-xs text-gray-500">
+                              Supported formats: PDF, JPG, PNG
+                            </span>
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Passport Photo */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Passport Size Photo*
+                    </label>
+                    <div
+                      className={`border-2 border-dashed rounded-lg p-4 ${
+                        formData.documents.passportPhoto ? 'border-green-300 bg-green-50' : 'border-gray-300'
+                      }`}
+                      onDrop={(e) => handleDrop(e, 'passportPhoto')}
+                      onDragOver={handleDragOver}
+                    >
+                      {formData.documents.passportPhoto ? (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <MdVerified className="h-5 w-5 text-green-500 mr-2" />
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">
+                                {formData.documents.passportPhoto.name}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {formatFileSize(formData.documents.passportPhoto.size)}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeFile('passportPhoto')}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <MdClose className="h-5 w-5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="text-center">
+                          <input
+                            type="file"
+                            id="passportPhoto"
+                            className="hidden"
+                            onChange={(e) => handleFileChange(e, 'passportPhoto')}
+                            accept=".jpg,.jpeg,.png"
+                          />
+                          <label
+                            htmlFor="passportPhoto"
+                            className="cursor-pointer text-sm text-gray-600"
+                          >
+                            <span className="block mb-1">Drag and drop or click to upload</span>
+                            <span className="text-xs text-gray-500">
+                              Supported formats: JPG, PNG
+                            </span>
+                          </label>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

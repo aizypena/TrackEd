@@ -13,6 +13,10 @@ class User extends Authenticatable
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, HasApiTokens;
 
+    protected $casts = [
+        'documents' => 'array',
+    ];
+
     /**
      * The attributes that are mass assignable.
      *
@@ -27,26 +31,28 @@ class User extends Authenticatable
         'role',
         'status',
         'application_status',
-        'profile_picture',
-        'course_program',
-        'education_level',
-        'institution_name',
-        'nationality',
+        'address',
+        'date_of_birth',
         'place_of_birth',
-        'emergency_contact',
-        'emergency_relationship',
-        'emergency_phone',
+        'gender',
+        'nationality',
+        'marital_status',
+        'education_level',
+        'field_of_study',
+        'institution_name',
+        'graduation_year',
+        'gpa',
         'employment_status',
         'occupation',
+        'work_experience',
+        'course_program',
         'valid_id_path',
         'transcript_path',
         'diploma_path',
         'passport_photo_path',
-        'address',
-        'date_of_birth',
-        'gender',
         'emergency_contact',
         'emergency_phone',
+        'emergency_relationship',
         // Application fields
         'nationality',
         'marital_status',

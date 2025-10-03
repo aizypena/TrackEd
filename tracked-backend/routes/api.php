@@ -21,6 +21,9 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
 // Admin authentication
+// User management routes
+Route::post('/users', [UserController::class, 'store']);
+
 Route::post('/admin/login', function (Request $request) {
     $request->validate([
         'email' => 'required|string',

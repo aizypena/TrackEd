@@ -1,10 +1,10 @@
 import { Routes, Route } from 'react-router-dom';
-import Dashboard from '../pages/trainers/Dashboard';
+import TrainerDashboard from '../pages/trainers/TrainerDashboard';
 
 const TrainerRoutes = () => {
   return (
     <Routes>
-      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/trainer-dashboard" element={<Dashboard />} />
       {/* Add more trainer routes here as needed */}
       {/* <Route path="/classes" element={<MyClasses />} /> */}
       {/* <Route path="/students" element={<StudentProgress />} /> */}

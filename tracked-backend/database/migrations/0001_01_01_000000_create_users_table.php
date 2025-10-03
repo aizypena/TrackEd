@@ -11,22 +11,52 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Drop the table if it exists
+        Schema::dropIfExists('users');
+        
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('first_name');
             $table->string('last_name');
             $table->string('email')->unique();
-            $table->string('phone_number', 20);
+            $table->string('phone_number', 10);
             $table->string('password');
-            $table->enum('role', ['applicant', 'student', 'trainer', 'staff', 'admin'])->default('applicant');
-            $table->enum('status', ['active', 'inactive', 'suspended'])->default('active');
-            $table->timestamp('email_verified_at')->nullable();
-            $table->string('profile_picture')->nullable();
+            $table->enum('role', ['applicant', 'student', 'instructor', 'staff', 'admin'])->default('applicant');
+            $table->enum('status', ['active', 'inactive'])->default('active');
+            $table->enum('application_status', ['pending', 'approved', 'rejected'])->default('pending');
             $table->text('address')->nullable();
             $table->date('date_of_birth')->nullable();
+            $table->string('place_of_birth')->nullable();
             $table->enum('gender', ['male', 'female', 'other'])->nullable();
+            $table->string('nationality')->nullable();
+            $table->string('marital_status')->nullable();
+            
+            // Educational Background
+            $table->string('education_level')->nullable();
+            $table->string('field_of_study')->nullable();
+            $table->string('institution_name')->nullable();
+            $table->year('graduation_year')->nullable();
+            $table->decimal('gpa', 3, 2)->nullable();
+            
+            // Employment Information
+            $table->string('employment_status')->nullable();
+            $table->string('occupation')->nullable();
+            $table->text('work_experience')->nullable();
+            
+            // Course Information
+            $table->string('course_program')->nullable();
+            
+            // Document Paths
+            $table->string('valid_id_path')->nullable();
+            $table->string('transcript_path')->nullable();
+            $table->string('diploma_path')->nullable();
+            $table->string('passport_photo_path')->nullable();
+            
+            // Emergency Contact
             $table->string('emergency_contact')->nullable();
-            $table->string('emergency_phone', 20)->nullable();
+            $table->string('emergency_phone', 10)->nullable();
+            $table->string('emergency_relationship')->nullable();
+            
             $table->rememberToken();
             $table->timestamps();
             
