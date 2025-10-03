@@ -33,7 +33,7 @@ const TrainerSidebar = ({ user, isOpen, onClose, isCollapsed, setIsCollapsed }) 
     },
     {
       name: 'Attendance',
-      path: '/trainer/attendance',
+      path: '/trainer-lms/attendance',
       icon: <MdPeopleAlt className="h-5 w-5" />
     },
     {
