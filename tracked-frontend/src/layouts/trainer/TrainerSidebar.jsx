@@ -11,7 +11,7 @@ import {
   MdMenu,
   MdClose,
   MdPerson,
-  MdLogout
+  MdLogout,
 } from 'react-icons/md';
 
 const TrainerSidebar = ({ user, isOpen, onClose, isCollapsed, setIsCollapsed }) => {
@@ -182,7 +182,7 @@ const TrainerSidebar = ({ user, isOpen, onClose, isCollapsed, setIsCollapsed }) 
           {!isCollapsed && (
             <div className="space-y-2">
               <Link
-                to="/trainer/profile"
+                to="/trainer-lms/profile"
                 className="flex items-center px-3 py-2 text-sm font-medium text-blue-100 rounded-md hover:text-white hover:bg-blue-800 transition-colors"
               >
                 <MdPerson className="mr-3 h-4 w-4" />
