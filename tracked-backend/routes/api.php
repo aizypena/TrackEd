@@ -30,9 +30,9 @@ Route::post('/admin/login', function (Request $request) {
         'password' => 'required|string',
     ]);
 
-    // Find admin user
+    // Find admin user (accept either 'admin' or 'administrator' role)
     $user = User::where('email', $request->email)
-                ->where('role', 'admin')
+                ->whereIn('role', ['admin', 'administrator'])
                 ->first();
 
     if (!$user || !Hash::check($request->password, $user->password)) {

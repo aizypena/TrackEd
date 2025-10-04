@@ -16,7 +16,7 @@ class AdminSeeder extends Seeder
         User::truncate();
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
-        // Create admin user with minimum required fields
+    // Create admin user with minimum required fields
         User::create([
             'first_name' => 'System',
             'last_name' => 'Administrator',
@@ -35,8 +35,8 @@ class AdminSeeder extends Seeder
             'emergency_phone' => '9999999999'
         ]);
 
-        $this->command->info('Admin user created successfully!');
-        $this->command->info('Email: admin@smi.edu.ph');
-        $this->command->info('Password: admin123');
+    $this->command->info('Admin user created successfully!');
+    $this->command->info('Email: admin@smi.edu.ph');
+    $this->command->info('Password: admin123');
     }
 }
