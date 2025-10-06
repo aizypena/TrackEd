@@ -68,6 +68,7 @@ import StaffApplications from '../pages/staff/StaffApplications';
 import StaffEnrollmentsRecord from '../pages/staff/StaffEnrollmentsRecord';
 import StaffDocumentManagement from '../pages/staff/StaffDocumentManagement';
 import StaffStudentProfile from '../pages/staff/StaffStudentProfile';
+import StaffAcademicRecords from '../pages/staff/StaffAcademicRecords';
 
 const AppRouter = () => {
   return (
@@ -252,6 +253,7 @@ const AppRouter = () => {
         <Route path="/staff/enrollments/records" element={<StaffEnrollmentsRecord />} />
         <Route path="/staff/enrollments/documents" element={<StaffDocumentManagement />} />
         <Route path='/staff/students/profiles' element={<StaffStudentProfile />} />
+        <Route path='/staff/students/academics' element={<StaffAcademicRecords />} />
         
         {/* Applicant Routes */}
         <Route path="/applicants" element={<Navigate to="/applicants/dashboard" replace />} />
