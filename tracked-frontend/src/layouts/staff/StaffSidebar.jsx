@@ -66,13 +66,9 @@ const StaffSidebar = ({ isOpen, onClose, isCollapsed, setIsCollapsed }) => {
       ]
     },
     {
-      name: 'Analytics',
-      path: '/staff/analytics',
-      icon: <MdAnalytics className="h-5 w-5" />,
-      subItems: [
-        { name: 'Enrollment Trends', path: '/staff/analytics/enrollment' },
-        { name: 'Program Statistics', path: '/staff/analytics/programs' }
-      ]
+      name: 'Entrollment Trends',
+      path: '/staff/analytics/enrollment',
+      icon: <MdAnalytics className="h-5 w-5" />
     },
     {
       name: 'Reports',
