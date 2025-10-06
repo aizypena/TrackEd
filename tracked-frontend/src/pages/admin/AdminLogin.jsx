@@ -99,7 +99,7 @@ const AdminLogin = () => {
           <div className="rounded-md shadow-sm -space-y-px">
             <div className="relative">
               <label htmlFor="email" className="sr-only">Email address</label>
-              <MdEmail className="absolute left-3 top-3 text-gray-400" />
+              <MdEmail className="absolute left-3 top-3 text-gray-400 z-10 pointer-events-none" />
               <input
                 id="email"
                 name="email"
@@ -107,13 +107,13 @@ const AdminLogin = () => {
                 required
                 value={formData.email}
                 onChange={handleInputChange}
-                className="appearance-none rounded-none relative block w-full px-10 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                className="appearance-none rounded-none relative block w-full px-10 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 placeholder="Admin email"
               />
             </div>
             <div className="relative">
               <label htmlFor="password" className="sr-only">Password</label>
-              <MdLock className="absolute left-3 top-3 text-gray-400" />
+              <MdLock className="absolute left-3 top-3 text-gray-400 z-10 pointer-events-none" />
               <input
                 id="password"
                 name="password"
@@ -121,13 +121,13 @@ const AdminLogin = () => {
                 required
                 value={formData.password}
                 onChange={handleInputChange}
-                className="appearance-none rounded-none relative block w-full px-10 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                className="appearance-none rounded-none relative block w-full px-10 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 placeholder="Password"
               />
               <button
                 type="button"
                 onClick={togglePasswordVisibility}
-                className="absolute right-3 top-2 text-gray-400 hover:text-gray-500 hover:cursor-pointer"
+                className="absolute right-3 top-2 text-gray-400 hover:text-gray-500 hover:cursor-pointer z-10"
               >
                 {showPassword ? <AiOutlineEyeInvisible size={20} /> : <AiOutlineEye size={20} />}
               </button>
