@@ -11,11 +11,14 @@ import {
   MdPerson,
   MdMenu,
   MdClose,
-  MdLogout
+  MdLogout,
+  MdExpandMore,
+  MdChevronRight
 } from 'react-icons/md';
 
 const StaffSidebar = ({ isOpen, onClose, isCollapsed, setIsCollapsed }) => {
   const location = useLocation();
+  const [expandedSections, setExpandedSections] = useState({});
 
   const navigationItems = [
     {
@@ -89,6 +92,13 @@ const StaffSidebar = ({ isOpen, onClose, isCollapsed, setIsCollapsed }) => {
     return location.pathname === path || location.pathname.startsWith(path + '/');
   };
 
+  const toggleSection = (sectionName) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [sectionName]: !prev[sectionName]
+    }));
+  };
+
   return (
     <>
       {/* Mobile overlay */}
@@ -110,11 +120,13 @@ const StaffSidebar = ({ isOpen, onClose, isCollapsed, setIsCollapsed }) => {
         <div className="flex items-center justify-between p-4">
           {!isCollapsed && (
             <div className="flex items-center space-x-3">
-              <img 
-                src="/smi-logo.jpg" 
-                alt="SMI Logo" 
-                className="h-8 w-auto"
-              />
+              <div className="bg-white p-2 rounded-lg">
+                <img 
+                  src="/smi-logo.jpg" 
+                  alt="SMI Logo" 
+                  className="h-8 w-8 object-cover rounded"
+                />
+              </div>
               <div>
                 <h2 className="text-lg font-bold text-white">SMI TrackEd</h2>
                 <p className="text-xs text-blue-200">Staff Portal</p>
@@ -134,38 +146,66 @@ const StaffSidebar = ({ isOpen, onClose, isCollapsed, setIsCollapsed }) => {
         <nav className="flex-1 overflow-y-auto px-3 py-4">
           {navigationItems.map((item) => (
             <div key={item.name} className="mb-2">
-              <Link
-                to={item.path}
-                className={`
-                  flex items-center px-3 py-2 rounded-md transition-colors
-                  ${isActivePath(item.path) 
-                    ? 'bg-tracked-secondary text-white' 
-                    : 'text-blue-100 hover:bg-tracked-secondary hover:bg-opacity-90 hover:text-white'}
-                `}
-              >
-                {item.icon}
-                {!isCollapsed && (
-                  <span className="ml-3">{item.name}</span>
-                )}
-              </Link>
-              
-              {!isCollapsed && item.subItems && (
-                <div className="ml-6 mt-1 space-y-1">
-                  {item.subItems.map((subItem) => (
-                    <Link
-                      key={subItem.path}
-                      to={subItem.path}
-                      className={`
-                        block px-3 py-1.5 text-sm rounded-md transition-colors
-                        ${isActivePath(subItem.path)
-                          ? 'bg-tracked-secondary bg-opacity-90 text-white'
-                          : 'text-blue-200 hover:bg-tracked-secondary hover:bg-opacity-75 hover:text-white'}
-                      `}
-                    >
-                      {subItem.name}
-                    </Link>
-                  ))}
-                </div>
+              {item.subItems ? (
+                // Collapsible section
+                <>
+                  <button
+                    onClick={() => toggleSection(item.name)}
+                    className={`
+                      w-full flex items-center justify-between px-3 py-2 rounded-md transition-colors text-left hover:cursor-pointer
+                      ${isActivePath(item.path) 
+                        ? 'bg-tracked-secondary text-white' 
+                        : 'text-blue-100 hover:bg-tracked-secondary hover:bg-opacity-90 hover:text-white'}
+                    `}
+                  >
+                    <div className="flex items-center">
+                      {item.icon}
+                      {!isCollapsed && (
+                        <span className="ml-3">{item.name}</span>
+                      )}
+                    </div>
+                    {!isCollapsed && (
+                      expandedSections[item.name] 
+                        ? <MdExpandMore className="h-5 w-5" />
+                        : <MdChevronRight className="h-5 w-5" />
+                    )}
+                  </button>
+                  
+                  {!isCollapsed && expandedSections[item.name] && (
+                    <div className="ml-6 mt-1 space-y-1">
+                      {item.subItems.map((subItem) => (
+                        <Link
+                          key={subItem.path}
+                          to={subItem.path}
+                          className={`
+                            block px-3 py-1.5 text-sm rounded-md transition-colors hover:cursor-pointer
+                            ${isActivePath(subItem.path)
+                              ? 'bg-tracked-secondary bg-opacity-90 text-white'
+                              : 'text-blue-200 hover:bg-tracked-secondary hover:bg-opacity-75 hover:text-white'}
+                          `}
+                        >
+                          {subItem.name}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                // Regular link (Dashboard)
+                <Link
+                  to={item.path}
+                  className={`
+                    flex items-center px-3 py-2 rounded-md transition-colors hover:cursor-pointer
+                    ${isActivePath(item.path) 
+                      ? 'bg-tracked-secondary text-white' 
+                      : 'text-blue-100 hover:bg-tracked-secondary hover:bg-opacity-90 hover:text-white'}
+                  `}
+                >
+                  {item.icon}
+                  {!isCollapsed && (
+                    <span className="ml-3">{item.name}</span>
+                  )}
+                </Link>
               )}
             </div>
           ))}
@@ -175,7 +215,7 @@ const StaffSidebar = ({ isOpen, onClose, isCollapsed, setIsCollapsed }) => {
         <div className="p-4 border-t border-tracked-primary-dark">
           <Link
             to="/staff/profile"
-            className="flex items-center px-3 py-2 text-blue-100 rounded-md hover:bg-tracked-secondary hover:bg-opacity-90 hover:text-white"
+            className="flex items-center px-3 py-2 text-blue-100 rounded-md hover:bg-tracked-secondary hover:bg-opacity-90 hover:text-white hover:cursor-pointer"
           >
             <MdPerson className="h-5 w-5" />
             {!isCollapsed && <span className="ml-3">Profile Settings</span>}
