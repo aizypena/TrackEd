@@ -73,6 +73,7 @@ import StaffPaymentRecords from '../pages/staff/StaffPaymentRecords';
 import StaffTrainingSched from '../pages/staff/StaffTrainingSched';
 import StaffBatchManagement from '../pages/staff/StaffBatchManagement';
 import StaffAssessmentResults from '../pages/staff/StaffAssessmentResults';
+import StaffEquipment from '../pages/staff/StaffEquipment';
 
 const AppRouter = () => {
   return (
@@ -262,6 +263,7 @@ const AppRouter = () => {
         <Route path='/staff/training/schedule' element={<StaffTrainingSched />} />
         <Route path='/staff/training/batches' element={<StaffBatchManagement />} />
         <Route path='/staff/training/assessments' element={<StaffAssessmentResults />} />
+        <Route path='/staff/inventory/equipment' element={<StaffEquipment />} />
         
         {/* Applicant Routes */}
         <Route path="/applicants" element={<Navigate to="/applicants/dashboard" replace />} />
