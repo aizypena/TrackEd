@@ -62,7 +62,6 @@ const StaffSidebar = ({ isOpen, onClose, isCollapsed, setIsCollapsed }) => {
       icon: <MdInventory className="h-5 w-5" />,
       subItems: [
         { name: 'Equipment', path: '/staff/inventory/equipment' },
-        { name: 'Supplies', path: '/staff/inventory/supplies' },
         { name: 'Stock Transactions', path: '/staff/inventory/transactions' }
       ]
     },
