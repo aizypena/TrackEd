@@ -62,6 +62,10 @@ import TrainerProfile from '../pages/trainers/TrainerProfile';
 // Protected Route Component
 import ProtectedAdminRoute from '../components/ProtectedAdminRoute';
 
+// Staff Routes
+import StaffDashboard from '../pages/staff/StaffDashboard';
+import StaffApplications from '../pages/staff/StaffApplications';
+
 const AppRouter = () => {
   return (
     <Router>
@@ -240,8 +244,8 @@ const AppRouter = () => {
         <Route path="/trainer-lms/profile" element={<TrainerProfile />} />
 
         {/* Staff Routes */}
-        <Route path="/staff" element={<Navigate to="/staff/dashboard" replace />} />
-        <Route path="/staff/*" element={<StaffRoutes />} />
+        <Route path="staff/dashboard" element={<StaffDashboard />} />
+        <Route path="/staff/enrollments/applications" element={<StaffApplications />} />
         
         {/* Applicant Routes */}
         <Route path="/applicants" element={<Navigate to="/applicants/dashboard" replace />} />

@@ -1,5 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
-import Dashboard from '../pages/staff/Dashboard';
+import StaffDashboard from '../pages/staff/StaffDashboard';
 
 const StaffRoutes = () => {
   return (
