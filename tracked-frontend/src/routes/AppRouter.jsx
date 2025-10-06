@@ -65,6 +65,7 @@ import ProtectedAdminRoute from '../components/ProtectedAdminRoute';
 // Staff Routes
 import StaffDashboard from '../pages/staff/StaffDashboard';
 import StaffApplications from '../pages/staff/StaffApplications';
+import StaffEnrollmentsRecord from '../pages/staff/StaffEnrollmentsRecord';
 
 const AppRouter = () => {
   return (
@@ -246,6 +247,7 @@ const AppRouter = () => {
         {/* Staff Routes */}
         <Route path="staff/dashboard" element={<StaffDashboard />} />
         <Route path="/staff/enrollments/applications" element={<StaffApplications />} />
+        <Route path="/staff/enrollments/records" element={<StaffEnrollmentsRecord />} />
         
         {/* Applicant Routes */}
         <Route path="/applicants" element={<Navigate to="/applicants/dashboard" replace />} />
