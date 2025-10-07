@@ -270,14 +270,14 @@ const Signup = () => {
       // Create FormData for file upload
       const submitData = new FormData();
       
-      // Add all form fields
+      // Add all form fields (exclude documents and confirmPassword)
       Object.keys(formData).forEach(key => {
-        if (key !== 'documents' && formData[key] !== '') {
+        if (key !== 'documents' && key !== 'confirmPassword' && formData[key] !== '') {
           submitData.append(key, formData[key]);
         }
       });
       
-      // Add document files
+      // Add document files with individual field names
       if (formData.documents.validId) {
         submitData.append('validId', formData.documents.validId);
       }
@@ -298,9 +298,12 @@ const Signup = () => {
         nextStep(); // Go to success page
       } else {
         alert(data.message || 'Application submission failed. Please try again.');
+        setShowConfirmModal(false);
       }
     } catch (error) {
-      alert('An error occurred while submitting your application. Please try again.');
+      console.error('Application submission error:', error);
+      alert(error.message || 'An error occurred while submitting your application. Please try again.');
+      setShowConfirmModal(false);
     }
   };
 

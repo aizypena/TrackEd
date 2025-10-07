@@ -268,6 +268,8 @@ const AppRouter = () => {
         <Route path='/staff/inventory/equipment' element={<StaffEquipment />} />
         <Route path='/staff/inventory/transactions' element={<StaffStockTransactions />} />
         <Route path='/staff/analytics/enrollment' element={<StaffEnrollmentTrends />} />
+
+        {/* Student LMS */}
         
         {/* Applicant Routes */}
         <Route path="/applicants" element={<Navigate to="/applicants/dashboard" replace />} />
