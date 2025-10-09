@@ -298,14 +298,14 @@ const CoursePrograms = () => {
                     <div className="mt-6 flex justify-end space-x-3">
                       <button
                         onClick={() => handleEditProgram(program)}
-                        className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                        className="inline-flex items-center hover:cursor-pointer px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
                       >
                         <MdEdit className="h-4 w-4 mr-1" />
                         Edit
                       </button>
                       <button
                         onClick={() => handleDeleteProgram(program.id)}
-                        className="inline-flex items-center px-3 py-1.5 border border-red-300 rounded-md text-sm font-medium text-red-700 hover:bg-red-50"
+                        className="inline-flex hover:cursor-pointer items-center px-3 py-1.5 border border-red-300 rounded-md text-sm font-medium text-red-700 hover:bg-red-50"
                       >
                         <MdDelete className="h-4 w-4 mr-1" />
                         Delete

@@ -13,27 +13,30 @@ const ProgramModal = ({ isOpen, onClose, program, onSave }) => {
 
   // Update form data when program prop changes (for edit mode)
   useEffect(() => {
-    if (program) {
-      setFormData({
-        title: program.title || '',
-        description: program.description || '',
-        duration: program.duration || '',
-        availability: program.availability || 'available',
-        career_opportunities: program.career_opportunities || [''],
-        core_competencies: program.core_competencies || ['']
-      });
-    } else {
-      // Reset form for new program
-      setFormData({
-        title: '',
-        description: '',
-        duration: '',
-        availability: 'available',
-        career_opportunities: [''],
-        core_competencies: ['']
-      });
+    if (isOpen) {
+      if (program) {
+        // Edit mode - populate form with program data
+        setFormData({
+          title: program.title || '',
+          description: program.description || '',
+          duration: program.duration || '',
+          availability: program.availability || 'available',
+          career_opportunities: program.career_opportunities || [''],
+          core_competencies: program.core_competencies || ['']
+        });
+      } else {
+        // Add mode - reset form to empty
+        setFormData({
+          title: '',
+          description: '',
+          duration: '',
+          availability: 'available',
+          career_opportunities: [''],
+          core_competencies: ['']
+        });
+      }
     }
-  }, [program]);
+  }, [program, isOpen]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -199,7 +202,7 @@ const ProgramModal = ({ isOpen, onClose, program, onSave }) => {
               <button
                 type="button"
                 onClick={() => addArrayItem('career_opportunities')}
-                className="text-sm text-blue-600 hover:text-blue-700 flex items-center"
+                className="text-sm text-blue-600 hover:cursor-pointer hover:text-blue-700 flex items-center"
               >
                 <MdAdd className="h-4 w-4 mr-1" />
                 Add Opportunity
@@ -235,7 +238,7 @@ const ProgramModal = ({ isOpen, onClose, program, onSave }) => {
               <button
                 type="button"
                 onClick={() => addArrayItem('core_competencies')}
-                className="text-sm text-blue-600 hover:text-blue-700 flex items-center"
+                className="text-sm text-blue-600 hover:cursor-pointer hover:text-blue-700 flex items-center"
               >
                 <MdAdd className="h-4 w-4 mr-1" />
                 Add Competency
@@ -247,13 +250,13 @@ const ProgramModal = ({ isOpen, onClose, program, onSave }) => {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="px-4 py-2 border hover:cursor-pointer border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="px-4 py-2 hover:cursor-pointer border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               {program ? 'Update Program' : 'Add Program'}
             </button>
