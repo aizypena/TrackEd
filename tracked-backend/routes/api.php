@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\ProgramController;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 
@@ -61,6 +62,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     
     // Admin Routes
     Route::get('/applications', [ApplicationController::class, 'list']);
+    
+    // Program Routes
+    Route::apiResource('programs', ProgramController::class);
     
     // User Routes
     Route::get('/users', [UserController::class, 'index']);
