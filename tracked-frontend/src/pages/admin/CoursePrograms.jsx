@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../../layouts/admin/Sidebar';
+import ProgramModal from '../../components/admin/ProgramModal';
+import Toast from '../../components/Toast';
+import { programAPI } from '../../services/programAPI';
 import {
   MdMenu,
   MdAdd,
@@ -23,47 +26,38 @@ const CoursePrograms = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [loading, setLoading] = useState(false);
+  const [programs, setPrograms] = useState([]);
+  const [error, setError] = useState(null);
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
-  // Mock data for programs
-  const programs = [
-    {
-      id: 1,
-      name: 'Bartending NC II',
-      code: 'BART-NC2',
-      description: 'Learn professional bartending skills and beverage service',
-      duration: '3 months',
-      qualification: 'NC II',
-      status: 'active',
-      enrolledStudents: 45,
-      maxStudents: 50,
-      schedule: 'MWF 9:00 AM - 3:00 PM',
-      instructor: 'John Smith',
-      requirements: [
-        'Must be at least 18 years old',
-        'High School Graduate',
-        'Physically fit'
-      ]
-    },
-    {
-      id: 2,
-      name: 'Barista Training NC II',
-      code: 'BAR-NC2',
-      description: 'Master the art of coffee preparation and service',
-      duration: '2 months',
-      qualification: 'NC II',
-      status: 'active',
-      enrolledStudents: 30,
-      maxStudents: 40,
-      schedule: 'TTH 8:00 AM - 2:00 PM',
-      instructor: 'Maria Garcia',
-      requirements: [
-        'Must be at least 18 years old',
-        'High School Graduate',
-        'Food handling certificate'
-      ]
-    },
-    // Add more programs as needed
-  ];
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+  };
+
+  const hideToast = () => {
+    setToast({ ...toast, show: false });
+  };
+
+  // Fetch programs on component mount
+  useEffect(() => {
+    fetchPrograms();
+  }, []);
+
+  const fetchPrograms = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await programAPI.getAll();
+      if (response.success) {
+        setPrograms(response.data);
+      }
+    } catch (err) {
+      setError(err.message);
+      console.error('Error fetching programs:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAddProgram = () => {
     setShowAddModal(true);
@@ -75,131 +69,52 @@ const CoursePrograms = () => {
     setShowAddModal(true);
   };
 
-  const handleDeleteProgram = (programId) => {
-    // Implement delete logic
-    console.log('Deleting program:', programId);
+  const handleDeleteProgram = async (programId) => {
+    if (!window.confirm('Are you sure you want to delete this program?')) {
+      return;
+    }
+    
+    try {
+      const response = await programAPI.delete(programId);
+      if (response.success) {
+        // Refresh programs list
+        fetchPrograms();
+        showToast('Program deleted successfully!', 'success');
+      }
+    } catch (err) {
+      showToast('Error deleting program: ' + err.message, 'error');
+      console.error('Error deleting program:', err);
+    }
   };
 
-  const handleStatusChange = (programId, newStatus) => {
-    // Implement status change logic
-    console.log('Changing status:', programId, newStatus);
+  const handleSaveProgram = async (programData) => {
+    try {
+      let response;
+      if (editingProgram) {
+        response = await programAPI.update(editingProgram.id, programData);
+      } else {
+        response = await programAPI.create(programData);
+      }
+
+      if (response.success) {
+        setShowAddModal(false);
+        setEditingProgram(null);
+        fetchPrograms();
+        showToast(response.message, 'success');
+      }
+    } catch (err) {
+      showToast('Error saving program: ' + err.message, 'error');
+      console.error('Error saving program:', err);
+    }
   };
 
-  const ProgramModal = ({ isOpen, onClose, program }) => {
-    if (!isOpen) return null;
-
-    return (
-      <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div className="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-semibold text-gray-900">
-              {program ? 'Edit Program' : 'Add New Program'}
-            </h3>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-500"
-            >
-              <MdClose className="h-6 w-6" />
-            </button>
-          </div>
-          <form className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Program Name</label>
-                <input
-                  type="text"
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                  defaultValue={program?.name}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Program Code</label>
-                <input
-                  type="text"
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                  defaultValue={program?.code}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Qualification Level</label>
-                <select
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                  defaultValue={program?.qualification}
-                >
-                  <option value="NC II">NC II</option>
-                  <option value="NC III">NC III</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Duration</label>
-                <input
-                  type="text"
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                  defaultValue={program?.duration}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Maximum Students</label>
-                <input
-                  type="number"
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                  defaultValue={program?.maxStudents}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Instructor</label>
-                <input
-                  type="text"
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                  defaultValue={program?.instructor}
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Description</label>
-              <textarea
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                rows="3"
-                defaultValue={program?.description}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Schedule</label>
-              <input
-                type="text"
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                defaultValue={program?.schedule}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Requirements</label>
-              <textarea
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                rows="3"
-                defaultValue={program?.requirements?.join('\n')}
-                placeholder="Enter each requirement on a new line"
-              />
-            </div>
-            <div className="flex justify-end space-x-3 pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                {program ? 'Update Program' : 'Add Program'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
-  };
+  // Filter programs based on search and availability
+  const filteredPrograms = programs.filter((program) => {
+    const matchesSearch = program.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          program.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFilter = filterStatus === 'all' || program.availability === filterStatus;
+    return matchesSearch && matchesFilter;
+  });
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -261,11 +176,11 @@ const CoursePrograms = () => {
                   className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="all">All Status</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
+                  <option value="available">Available</option>
+                  <option value="unavailable">Unavailable</option>
                 </select>
                 <button
-                  onClick={() => setLoading(true)}
+                  onClick={fetchPrograms}
                   className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
                 >
                   <MdRefresh className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
@@ -274,77 +189,133 @@ const CoursePrograms = () => {
             </div>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+              {error}
+            </div>
+          )}
+
+          {/* Loading State */}
+          {loading && (
+            <div className="text-center py-12">
+              <MdRefresh className="h-12 w-12 animate-spin mx-auto text-blue-600" />
+              <p className="mt-2 text-gray-600">Loading programs...</p>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!loading && filteredPrograms.length === 0 && (
+            <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+              <MdSchool className="h-12 w-12 mx-auto text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No programs found</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                {searchQuery || filterStatus !== 'all'
+                  ? 'Try adjusting your search or filters'
+                  : 'Get started by creating a new program'}
+              </p>
+              {!searchQuery && filterStatus === 'all' && (
+                <button
+                  onClick={handleAddProgram}
+                  className="mt-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+                >
+                  <MdAdd className="h-5 w-5 mr-2" />
+                  Add Program
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Programs Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {programs.map((program) => (
-              <div
-                key={program.id}
-                className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
-              >
-                <div className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">{program.name}</h3>
-                      <p className="text-sm text-gray-500">{program.code}</p>
-                    </div>
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        program.status === 'active'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {program.status === 'active' ? (
-                        <MdCheck className="h-4 w-4 mr-1" />
-                      ) : (
-                        <MdClose className="h-4 w-4 mr-1" />
-                      )}
-                      {program.status}
-                    </span>
-                  </div>
-                  <div className="mt-4 space-y-4">
-                    <p className="text-sm text-gray-600">{program.description}</p>
-                    <div className="grid grid-cols-2 gap-4">
+          {!loading && filteredPrograms.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredPrograms.map((program) => (
+                <div
+                  key={program.id}
+                  className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
+                >
+                  <div className="p-6">
+                    <div className="flex items-start justify-between">
                       <div>
-                        <p className="text-xs text-gray-500">Qualification</p>
-                        <p className="text-sm font-medium text-gray-900">{program.qualification}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Duration</p>
-                        <p className="text-sm font-medium text-gray-900">{program.duration}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Enrolled</p>
-                        <p className="text-sm font-medium text-gray-900">
-                          {program.enrolledStudents}/{program.maxStudents}
+                        <h3 className="text-lg font-semibold text-gray-900">{program.title}</h3>
+                        <p className="text-sm text-gray-500 flex items-center mt-1">
+                          <MdAccessTime className="h-4 w-4 mr-1" />
+                          {program.duration} hours
                         </p>
                       </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Schedule</p>
-                        <p className="text-sm font-medium text-gray-900">{program.schedule}</p>
-                      </div>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          program.availability === 'available'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {program.availability === 'available' ? (
+                          <MdCheck className="h-4 w-4 mr-1" />
+                        ) : (
+                          <MdClose className="h-4 w-4 mr-1" />
+                        )}
+                        {program.availability}
+                      </span>
+                    </div>
+                    <div className="mt-4 space-y-4">
+                      <p className="text-sm text-gray-600 line-clamp-3">{program.description}</p>
+                      
+                      {program.career_opportunities && program.career_opportunities.length > 0 && (
+                        <div>
+                          <p className="text-xs font-medium text-gray-700 mb-1">Career Opportunities:</p>
+                          <ul className="text-xs text-gray-600 space-y-1">
+                            {program.career_opportunities.slice(0, 3).map((opp, idx) => (
+                              <li key={idx} className="flex items-start">
+                                <span className="mr-1">•</span>
+                                <span className="line-clamp-1">{opp}</span>
+                              </li>
+                            ))}
+                            {program.career_opportunities.length > 3 && (
+                              <li className="text-blue-600">+{program.career_opportunities.length - 3} more</li>
+                            )}
+                          </ul>
+                        </div>
+                      )}
+
+                      {program.core_competencies && program.core_competencies.length > 0 && (
+                        <div>
+                          <p className="text-xs font-medium text-gray-700 mb-1">Core Competencies:</p>
+                          <ul className="text-xs text-gray-600 space-y-1">
+                            {program.core_competencies.slice(0, 3).map((comp, idx) => (
+                              <li key={idx} className="flex items-start">
+                                <span className="mr-1">•</span>
+                                <span className="line-clamp-1">{comp}</span>
+                              </li>
+                            ))}
+                            {program.core_competencies.length > 3 && (
+                              <li className="text-blue-600">+{program.core_competencies.length - 3} more</li>
+                            )}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-6 flex justify-end space-x-3">
+                      <button
+                        onClick={() => handleEditProgram(program)}
+                        className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                      >
+                        <MdEdit className="h-4 w-4 mr-1" />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteProgram(program.id)}
+                        className="inline-flex items-center px-3 py-1.5 border border-red-300 rounded-md text-sm font-medium text-red-700 hover:bg-red-50"
+                      >
+                        <MdDelete className="h-4 w-4 mr-1" />
+                        Delete
+                      </button>
                     </div>
                   </div>
-                  <div className="mt-6 flex justify-end space-x-3">
-                    <button
-                      onClick={() => handleEditProgram(program)}
-                      className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-                    >
-                      <MdEdit className="h-4 w-4 mr-1" />
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteProgram(program.id)}
-                      className="inline-flex items-center px-3 py-1.5 border border-red-300 rounded-md text-sm font-medium text-red-700 hover:bg-red-50"
-                    >
-                      <MdDelete className="h-4 w-4 mr-1" />
-                      Delete
-                    </button>
-                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </main>
       </div>
 
@@ -356,6 +327,15 @@ const CoursePrograms = () => {
           setEditingProgram(null);
         }}
         program={editingProgram}
+        onSave={handleSaveProgram}
+      />
+
+      {/* Toast Notification */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.show}
+        onClose={hideToast}
       />
     </div>
   );
