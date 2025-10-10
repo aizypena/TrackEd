@@ -1,15 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { AiOutlineEye, AiOutlineEyeInvisible } from 'react-icons/ai';
 import Navbar from '../../layouts/applicants/Navbar';
 import { nationalities } from '../../utils/nationalities';
 import { applicationAPI } from '../../services/applicationAPI';
+import { programAPI } from '../../services/programAPI';
 
 const Signup = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [availablePrograms, setAvailablePrograms] = useState([]);
+  const [loadingPrograms, setLoadingPrograms] = useState(true);
   const [formData, setFormData] = useState({
     // Personal Information
     firstName: '',
@@ -47,6 +50,26 @@ const Signup = () => {
   });
 
   const [errors, setErrors] = useState({});
+
+  // Fetch available programs on component mount
+  useEffect(() => {
+    const fetchAvailablePrograms = async () => {
+      try {
+        setLoadingPrograms(true);
+        const response = await programAPI.getAll({ availability: 'available' });
+        if (response.success) {
+          setAvailablePrograms(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching programs:', error);
+        setAvailablePrograms([]);
+      } finally {
+        setLoadingPrograms(false);
+      }
+    };
+
+    fetchAvailablePrograms();
+  }, []);
 
   const validatePhilippineMobileNumber = (number) => {
     // Philippine mobile number must be exactly 10 digits starting with 9
@@ -620,7 +643,6 @@ const Signup = () => {
           >
             <option value="">Select education level</option>
             <option value="high-school">High School</option>
-            <option value="college-undergraduate">College Undergraduate</option>
             <option value="college-graduate">College Graduate</option>
             <option value="masters">Master's Degree</option>
             <option value="doctorate">Doctorate</option>
@@ -652,24 +674,40 @@ const Signup = () => {
             required
             value={formData.courseProgram}
             onChange={handleChange}
-            className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
+            disabled={loadingPrograms}
+            className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
           >
-            <option value="">Select a training program</option>
-            <option value="bartending-nc-ii">Bartending NC II</option>
-            <option value="barista-training-nc-ii">Barista Training NC II</option>
-            <option value="housekeeping-nc-ii">Housekeeping NC II</option>
-            <option value="food-beverage-services-nc-ii">Food and Beverage Services NC II</option>
-            <option value="bread-pastry-production-nc-ii">Bread and Pastry Production NC II</option>
-            <option value="events-management-nc-iii">Events Management NC III</option>
-            <option value="chefs-catering-services-nc-ii">Chef's Catering Services NC II</option>
-            <option value="cookery-nc-ii">Cookery NC II</option>
+            <option value="">
+              {loadingPrograms ? 'Loading programs...' : 'Select a training program'}
+            </option>
+            {availablePrograms.length > 0 ? (
+              availablePrograms.map((program) => (
+                <option key={program.id} value={program.id}>
+                  {program.title}
+                </option>
+              ))
+            ) : (
+              !loadingPrograms && <option value="" disabled>No programs available</option>
+            )}
           </select>
           <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
-            </svg>
+            {loadingPrograms ? (
+              <svg className="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            ) : (
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            )}
           </div>
         </div>
+        {!loadingPrograms && availablePrograms.length === 0 && (
+          <p className="mt-1 text-sm text-amber-600">
+            No training programs are currently available. Please check back later.
+          </p>
+        )}
       </div>
     </div>
   );
