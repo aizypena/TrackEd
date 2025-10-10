@@ -84,30 +84,30 @@ const SystemSettings = () => {
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Address</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
                 <input
                   type="text"
                   value={settings.general.address}
                   onChange={(e) => handleInputChange('general', 'address', e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Contact Email</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Contact Email</label>
                 <input
                   type="email"
                   value={settings.general.contactEmail}
                   onChange={(e) => handleInputChange('general', 'contactEmail', e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Contact Phone</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Contact Phone</label>
                 <input
                   type="text"
                   value={settings.general.contactPhone}
                   onChange={(e) => handleInputChange('general', 'contactPhone', e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base"
                 />
               </div>
             </div>
@@ -119,62 +119,62 @@ const SystemSettings = () => {
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Maximum Students per Batch</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Maximum Students per Batch</label>
                 <input
                   type="number"
                   value={settings.academic.maxStudentsPerBatch}
                   onChange={(e) => handleInputChange('academic', 'maxStudentsPerBatch', parseInt(e.target.value))}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Default Program Duration</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Default Program Duration</label>
                 <input
                   type="text"
                   value={settings.academic.defaultProgramDuration}
                   onChange={(e) => handleInputChange('academic', 'defaultProgramDuration', e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Assessment Passing Rate (%)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Assessment Passing Rate (%)</label>
                 <input
                   type="number"
                   value={settings.academic.assessmentPassingRate}
                   onChange={(e) => handleInputChange('academic', 'assessmentPassingRate', parseInt(e.target.value))}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Required Attendance (%)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Required Attendance (%)</label>
                 <input
                   type="number"
                   value={settings.academic.attendanceRequired}
                   onChange={(e) => handleInputChange('academic', 'attendanceRequired', parseInt(e.target.value))}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Allow Late Enrollment</label>
-                <div className="mt-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Allow Late Enrollment</label>
+                <div className="mt-3">
                   <label className="inline-flex items-center">
                     <input
                       type="checkbox"
                       checked={settings.academic.allowLateEnrollment}
                       onChange={(e) => handleInputChange('academic', 'allowLateEnrollment', e.target.checked)}
-                      className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                      className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 w-5 h-5"
                     />
-                    <span className="ml-2">Enable late enrollment</span>
+                    <span className="ml-3 text-base">Enable late enrollment</span>
                   </label>
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Late Enrollment Days</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Late Enrollment Days</label>
                 <input
                   type="number"
                   value={settings.academic.lateEnrollmentDays}
                   onChange={(e) => handleInputChange('academic', 'lateEnrollmentDays', parseInt(e.target.value))}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base"
                 />
               </div>
             </div>
@@ -188,30 +188,30 @@ const SystemSettings = () => {
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Password Expiry (Days)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Password Expiry (Days)</label>
                 <input
                   type="number"
                   value={settings.security.passwordExpiryDays}
                   onChange={(e) => handleInputChange('security', 'passwordExpiryDays', parseInt(e.target.value))}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Maximum Login Attempts</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Maximum Login Attempts</label>
                 <input
                   type="number"
                   value={settings.security.maxLoginAttempts}
                   onChange={(e) => handleInputChange('security', 'maxLoginAttempts', parseInt(e.target.value))}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Session Timeout (Minutes)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Session Timeout (Minutes)</label>
                 <input
                   type="number"
                   value={settings.security.sessionTimeoutMinutes}
                   onChange={(e) => handleInputChange('security', 'sessionTimeoutMinutes', parseInt(e.target.value))}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base"
                 />
               </div>
               <div className="space-y-4">
@@ -220,18 +220,18 @@ const SystemSettings = () => {
                     type="checkbox"
                     checked={settings.security.requireTwoFactor}
                     onChange={(e) => handleInputChange('security', 'requireTwoFactor', e.target.checked)}
-                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 w-5 h-5"
                   />
-                  <span className="ml-2">Require Two-Factor Authentication</span>
+                  <span className="ml-3 text-base">Require Two-Factor Authentication</span>
                 </label>
                 <label className="flex items-center">
                   <input
                     type="checkbox"
                     checked={settings.security.allowMultipleSessions}
                     onChange={(e) => handleInputChange('security', 'allowMultipleSessions', e.target.checked)}
-                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 w-5 h-5"
                   />
-                  <span className="ml-2">Allow Multiple Sessions</span>
+                  <span className="ml-3 text-base">Allow Multiple Sessions</span>
                 </label>
               </div>
             </div>
@@ -248,17 +248,17 @@ const SystemSettings = () => {
                     type="checkbox"
                     checked={settings.backup.autoBackupEnabled}
                     onChange={(e) => handleInputChange('backup', 'autoBackupEnabled', e.target.checked)}
-                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 w-5 h-5"
                   />
-                  <span className="ml-2">Enable Automatic Backup</span>
+                  <span className="ml-3 text-base">Enable Automatic Backup</span>
                 </label>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Backup Frequency</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Backup Frequency</label>
                 <select
                   value={settings.backup.backupFrequency}
                   onChange={(e) => handleInputChange('backup', 'backupFrequency', e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base"
                 >
                   <option value="hourly">Hourly</option>
                   <option value="daily">Daily</option>
@@ -267,21 +267,21 @@ const SystemSettings = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Backup Time</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Backup Time</label>
                 <input
                   type="time"
                   value={settings.backup.backupTime}
                   onChange={(e) => handleInputChange('backup', 'backupTime', e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Retention Period (Days)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Retention Period (Days)</label>
                 <input
                   type="number"
                   value={settings.backup.backupRetentionDays}
                   onChange={(e) => handleInputChange('backup', 'backupRetentionDays', parseInt(e.target.value))}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base"
                 />
               </div>
               <div className="space-y-4">
@@ -290,18 +290,18 @@ const SystemSettings = () => {
                     type="checkbox"
                     checked={settings.backup.includeStudentData}
                     onChange={(e) => handleInputChange('backup', 'includeStudentData', e.target.checked)}
-                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 w-5 h-5"
                   />
-                  <span className="ml-2">Include Student Data</span>
+                  <span className="ml-3 text-base">Include Student Data</span>
                 </label>
                 <label className="flex items-center">
                   <input
                     type="checkbox"
                     checked={settings.backup.includeAssessments}
                     onChange={(e) => handleInputChange('backup', 'includeAssessments', e.target.checked)}
-                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 w-5 h-5"
                   />
-                  <span className="ml-2">Include Assessments</span>
+                  <span className="ml-3 text-base">Include Assessments</span>
                 </label>
               </div>
             </div>
