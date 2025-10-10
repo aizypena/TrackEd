@@ -3,6 +3,7 @@ import Sidebar from '../../layouts/admin/Sidebar';
 import ViewUser from '../../layouts/admin/ViewUser';
 import AddUserModal from '../../components/User Management/AddUserModal';
 import { userAPI } from '../../services/userAPI';
+import { programAPI } from '../../services/programAPI';
 import { 
   MdSearch, MdFilterList, MdAdd, MdEdit, MdDelete, MdVisibility,
   MdPeople, MdEmail, MdPhone, MdLocationOn, MdDateRange,
@@ -23,6 +24,8 @@ function AllUsers() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [programs, setPrograms] = useState([]);
+  const [programMap, setProgramMap] = useState({});
   const [stats, setStats] = useState({
     total_users: 0,
     active_users: 0,
@@ -86,6 +89,25 @@ function AllUsers() {
     }
   };
 
+  // Fetch programs
+  const fetchPrograms = async () => {
+    try {
+      const response = await programAPI.getAll();
+      if (response.success) {
+        setPrograms(response.data);
+        // Create a map of program ID to program title
+        const map = {};
+        response.data.forEach(program => {
+          map[program.id] = program.title;
+        });
+        setProgramMap(map);
+        console.log('Program Map created:', map);
+      }
+    } catch (error) {
+      console.error('Error fetching programs:', error);
+    }
+  };
+
   // Debounce search input
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -105,23 +127,36 @@ function AllUsers() {
   useEffect(() => {
     fetchUsers();
     fetchStats();
+    fetchPrograms();
   }, [currentPage, searchTerm, filterRole, filterStatus]);
 
   // Use API pagination - no need for client-side filtering
 
-  // Map course_program code to human-readable label
-  const programLabels = {
-    'bartending-nc-ii': 'Bartending NC II',
-    'barista-training-nc-ii': 'Barista Training NC II',
-    'housekeeping-nc-ii': 'Housekeeping NC II',
-    'food-beverage-services-nc-ii': 'Food and Beverage Services NC II',
-    'bread-pastry-production-nc-ii': 'Bread and Pastry Production NC II',
-    'events-management-nc-iii': 'Events Management NC III',
-    'chefs-catering-services-nc-ii': "Chef's Catering Services NC II",
-    'cookery-nc-ii': 'Cookery NC II',
+  // Get program title by ID
+  const getProgramLabel = (programId) => {
+    console.log('Getting program label for:', programId, 'Type:', typeof programId);
+    console.log('Program Map:', programMap);
+    
+    if (!programId) return 'N/A';
+    
+    // Convert to number if it's a string number
+    const id = typeof programId === 'string' ? parseInt(programId) : programId;
+    
+    // If it's a valid number, look it up in programMap
+    if (!isNaN(id) && programMap[id]) {
+      console.log('Found in map:', programMap[id]);
+      return programMap[id];
+    }
+    
+    // If it's already a string (program title), return it
+    if (typeof programId === 'string' && isNaN(programId)) {
+      return programId;
+    }
+    
+    // Fallback
+    console.log('Returning N/A for:', programId);
+    return 'N/A';
   };
-
-  const getProgramLabel = (code) => programLabels[code] || code || 'N/A';
 
   // Handle viewing a user
   const handleViewUser = (user) => {
