@@ -264,14 +264,14 @@ const ManageDocuments = () => {
             <div className="flex items-center space-x-4">
               <button 
                 onClick={() => navigate('/applicant/dashboard')}
-                className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center"
+                className="bg-gray-200 hover:cursor-pointer hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center"
               >
                 <FaArrowLeft className="mr-2" />
                 Back to Dashboard
               </button>
               <button 
                 onClick={handleLogout}
-                className="bg-tracked-primary hover:bg-tracked-primary/90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm"
+                className="bg-tracked-primary hover:cursor-pointer hover:bg-tracked-primary/90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm"
               >
                 Logout
               </button>
@@ -364,7 +364,7 @@ const ManageDocuments = () => {
                       <div className="flex items-center space-x-2 ml-4">
                         <button
                           onClick={() => handleViewDocument(uploadedDoc)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="p-2 hover:cursor-pointer text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title="View"
                         >
                           <FaEye />
@@ -398,26 +398,6 @@ const ManageDocuments = () => {
             );
           })}
         </div>
-
-        {/* Submit Button */}
-        {documents.length > 0 && (
-          <div className="mt-8 bg-white rounded-lg shadow-md border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-gray-900 mb-1">Ready to Submit?</h3>
-                <p className="text-sm text-gray-600">
-                  {documents.length} of {requiredDocuments.filter(d => d.required).length} required documents uploaded
-                </p>
-              </div>
-              <button
-                disabled={documents.length < requiredDocuments.filter(d => d.required).length}
-                className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-8 py-3 rounded-lg font-semibold transition-colors shadow-md"
-              >
-                Submit Documents
-              </button>
-            </div>
-          </div>
-        )}
           </>
         )}
       </div>
