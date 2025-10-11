@@ -316,30 +316,7 @@ const ApplicantDashboard = () => {
           </div>
         </div>
 
-        <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-              <span className="w-8 h-8 bg-tracked-primary text-white rounded-lg flex items-center justify-center mr-3">
-                <FaLightbulb />
-              </span>
-              Quick Actions
-            </h3>
-            <div className="space-y-3">
-              <a href="#" className="flex items-center p-3 rounded-lg hover:bg-gray-50 transition-colors group">
-                <FaEdit className="text-lg mr-3 text-tracked-primary" />
-                <span className="text-gray-700 group-hover:text-gray-900">Update Profile Information</span>
-              </a>
-              <a href="#" className="flex items-center p-3 rounded-lg hover:bg-gray-50 transition-colors group">
-                <FaPhone className="text-lg mr-3 text-tracked-primary" />
-                <span className="text-gray-700 group-hover:text-gray-900">View Contact Information</span>
-              </a>
-              <a href="#" className="flex items-center p-3 rounded-lg hover:bg-gray-50 transition-colors group">
-                <FaClipboardList className="text-lg mr-3 text-tracked-primary" />
-                <span className="text-gray-700 group-hover:text-gray-900">View Requirements</span>
-              </a>
-            </div>
-          </div>
-          
+        <div className="mt-8">
           <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
               <span className="w-8 h-8 bg-tracked-primary text-white rounded-lg flex items-center justify-center mr-3">
