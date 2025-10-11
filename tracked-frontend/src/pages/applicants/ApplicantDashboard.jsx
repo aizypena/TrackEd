@@ -287,7 +287,10 @@ const ApplicantDashboard = () => {
               <p className="text-gray-700 mb-6 leading-relaxed flex-1">
                 Browse our comprehensive catalog of technical and vocational training programs designed for your career growth.
               </p>
-              <button className="w-full bg-tracked-primary hover:bg-tracked-primary/90 text-white px-6 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-sm hover:shadow-md">
+              <button 
+                onClick={() => navigate('/applicants/training-programs')}
+                className="w-full bg-tracked-primary hover:cursor-pointer hover:bg-tracked-primary/90 text-white px-6 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-sm hover:shadow-md"
+              >
                 Browse Programs
               </button>
             </div>
