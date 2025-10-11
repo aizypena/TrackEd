@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProgramController;
+use App\Http\Controllers\DocumentController;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 
@@ -69,4 +70,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // User Routes
     Route::get('/users', [UserController::class, 'index']);
     Route::get('/users/stats', [UserController::class, 'getStats']);
+    
+    // Document Routes
+    Route::get('/documents', [DocumentController::class, 'index']);
+    Route::post('/documents/upload', [DocumentController::class, 'upload']);
+    Route::delete('/documents/{type}', [DocumentController::class, 'delete']);
+    Route::get('/documents/{type}/view', [DocumentController::class, 'view']);
 });

@@ -1,5 +1,6 @@
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import documentAPI from '../../services/documentAPI';
 import { 
   FaArrowLeft,
   FaUpload,
@@ -19,6 +20,11 @@ const ManageDocuments = () => {
   const [user, setUser] = useState(null);
   const [documents, setDocuments] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const [viewingDocument, setViewingDocument] = useState(null);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [loadingDocumentView, setLoadingDocumentView] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem('userToken');
@@ -59,6 +65,56 @@ const ManageDocuments = () => {
     checkAuth();
   }, []);
 
+  // Fetch documents from backend
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      if (isAuthenticated) {
+        try {
+          setLoading(true);
+          const response = await documentAPI.getDocuments();
+          
+          if (response.success) {
+            // Transform backend response to match our document structure
+            const transformedDocs = response.documents
+              .filter(doc => doc.uploaded) // Only include uploaded documents
+              .map(doc => ({
+                id: doc.type,
+                name: doc.path ? doc.path.split('/').pop() : '',
+                type: doc.type,
+                size: 'N/A', // Will be set on upload
+                uploadDate: 'Previously uploaded',
+                status: 'pending',
+                fileUrl: null, // Will be fetched when viewing
+                fileType: doc.path ? getFileTypeFromPath(doc.path) : ''
+              }));
+            
+            setDocuments(transformedDocs);
+          }
+        } catch (error) {
+          console.error('Error fetching documents:', error);
+          setError('Failed to load documents');
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchDocuments();
+  }, [isAuthenticated]);
+
+  const getFileTypeFromPath = (path) => {
+    const ext = path.split('.').pop().toLowerCase();
+    const typeMap = {
+      'pdf': 'application/pdf',
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'doc': 'application/msword',
+      'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    };
+    return typeMap[ext] || 'application/octet-stream';
+  };
+
   if (isAuthenticated === null) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -76,30 +132,54 @@ const ManageDocuments = () => {
 
   // Required documents list
   const requiredDocuments = [
-    { id: 1, name: 'Birth Certificate', type: 'birth_certificate', required: true },
-    { id: 2, name: 'Valid ID', type: 'valid_id', required: true },
-    { id: 3, name: 'Transcript of Records', type: 'transcript', required: true },
-    { id: 4, name: 'Medical Certificate', type: 'medical_cert', required: false },
-    { id: 5, name: '2x2 Photo', type: 'photo', required: true },
+    { id: 1, name: 'Valid ID', type: 'valid_id', required: true },
+    { id: 2, name: 'Transcript of Records', type: 'transcript', required: true },
+    { id: 3, name: 'Diploma', type: 'diploma', required: true },
+    { id: 4, name: 'Passport Photo', type: 'photo', required: true },
   ];
 
-  const handleFileUpload = (event, docType) => {
+  const handleFileUpload = async (event, docType) => {
     const file = event.target.files[0];
     if (file) {
+      // Validate file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('File size must be less than 5MB');
+        return;
+      }
+
       setUploading(true);
-      // Simulate upload delay
-      setTimeout(() => {
-        const newDoc = {
-          id: Date.now(),
-          name: file.name,
-          type: docType,
-          size: (file.size / 1024).toFixed(2) + ' KB',
-          uploadDate: new Date().toLocaleDateString(),
-          status: 'pending'
-        };
-        setDocuments([...documents, newDoc]);
+      setError(null);
+      
+      try {
+        const response = await documentAPI.uploadDocument(file, docType);
+        
+        if (response.success) {
+          // Update documents list
+          const newDoc = {
+            id: docType,
+            name: response.document.name,
+            type: docType,
+            size: response.document.size,
+            uploadDate: response.document.uploadDate,
+            status: 'pending',
+            fileUrl: null, // Will be fetched when viewing
+            fileType: file.type
+          };
+          
+          // Remove old document of same type if exists
+          setDocuments(prevDocs => [
+            ...prevDocs.filter(doc => doc.type !== docType),
+            newDoc
+          ]);
+          
+          alert('Document uploaded successfully!');
+        }
+      } catch (error) {
+        console.error('Upload error:', error);
+        alert('Failed to upload document: ' + error.message);
+      } finally {
         setUploading(false);
-      }, 1500);
+      }
     }
   };
 
@@ -111,14 +191,58 @@ const ManageDocuments = () => {
     return <FaFile className="text-gray-500" />;
   };
 
-  const handleDelete = (docId) => {
+  const handleDelete = async (docId) => {
     if (window.confirm('Are you sure you want to delete this document?')) {
-      setDocuments(documents.filter(doc => doc.id !== docId));
+      try {
+        // docId is actually the document type
+        const response = await documentAPI.deleteDocument(docId);
+        
+        if (response.success) {
+          setDocuments(documents.filter(doc => doc.id !== docId));
+          alert('Document deleted successfully!');
+        }
+      } catch (error) {
+        console.error('Delete error:', error);
+        alert('Failed to delete document: ' + error.message);
+      }
     }
   };
 
   const getUploadedDoc = (docType) => {
     return documents.find(doc => doc.type === docType);
+  };
+
+  const handleViewDocument = async (doc) => {
+    setLoadingDocumentView(true);
+    setShowViewModal(true);
+    
+    try {
+      // Fetch the document URL with authentication
+      const fileUrl = await documentAPI.getDocumentViewUrl(doc.type);
+      
+      // Update the document with the fetched URL
+      const docWithUrl = {
+        ...doc,
+        fileUrl: fileUrl
+      };
+      
+      setViewingDocument(docWithUrl);
+    } catch (error) {
+      console.error('Error fetching document:', error);
+      alert('Failed to load document: ' + error.message);
+      setShowViewModal(false);
+    } finally {
+      setLoadingDocumentView(false);
+    }
+  };
+
+  const handleCloseViewModal = () => {
+    // Revoke the blob URL to free up memory
+    if (viewingDocument?.fileUrl) {
+      URL.revokeObjectURL(viewingDocument.fileUrl);
+    }
+    setShowViewModal(false);
+    setViewingDocument(null);
   };
 
   return (
@@ -158,6 +282,23 @@ const ManageDocuments = () => {
       </nav>
 
       <div className="container mx-auto px-6 py-8">
+        {/* Loading State */}
+        {loading && (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-tracked-primary mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading documents...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-50 border-l-4 border-red-600 p-6 rounded-r-lg mb-8">
+            <p className="text-red-800 font-semibold">{error}</p>
+          </div>
+        )}
+
+        {!loading && !error && (
+          <>
         {/* Header Section */}
         <div className="bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden mb-8">
           <div className="bg-gradient-to-r from-tracked-primary to-indigo-900 p-8">
@@ -223,6 +364,7 @@ const ManageDocuments = () => {
                       </div>
                       <div className="flex items-center space-x-2 ml-4">
                         <button
+                          onClick={() => handleViewDocument(uploadedDoc)}
                           className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title="View"
                         >
@@ -284,7 +426,113 @@ const ManageDocuments = () => {
             </div>
           </div>
         )}
+          </>
+        )}
       </div>
+
+      {/* View Document Modal */}
+      {showViewModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col animate-slideUp">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-tracked-primary to-indigo-900 px-6 py-5 rounded-t-xl flex items-start justify-between">
+              <div className="flex-1 pr-4">
+                <h3 className="text-2xl font-bold text-white mb-2 leading-tight">
+                  {viewingDocument ? viewingDocument.name : 'Loading...'}
+                </h3>
+                {viewingDocument && (
+                  <div className="text-white/90 text-sm">
+                    <span className="font-medium">Size: {viewingDocument.size}</span>
+                    <span className="mx-2">•</span>
+                    <span className="font-medium">Uploaded: {viewingDocument.uploadDate}</span>
+                    <span className="mx-2">•</span>
+                    <span className="font-medium capitalize">{viewingDocument.status}</span>
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={handleCloseViewModal}
+                className="text-white hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center transition-colors flex-shrink-0"
+              >
+                <span className="text-2xl leading-none">×</span>
+              </button>
+            </div>
+
+            {/* Modal Content - Document Preview */}
+            <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+              <div className="bg-white rounded-lg shadow-inner p-4 min-h-[500px] flex items-center justify-center">
+                {loadingDocumentView ? (
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-tracked-primary mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading document...</p>
+                  </div>
+                ) : viewingDocument?.fileType?.startsWith('image/') ? (
+                  <img
+                    src={viewingDocument.fileUrl}
+                    alt={viewingDocument.name}
+                    className="max-w-full max-h-[600px] object-contain rounded-lg shadow-lg"
+                  />
+                ) : viewingDocument?.fileType === 'application/pdf' ? (
+                  <iframe
+                    src={viewingDocument.fileUrl}
+                    className="w-full h-[600px] rounded-lg border-2 border-gray-200"
+                    title={viewingDocument.name}
+                  />
+                ) : viewingDocument ? (
+                  <div className="text-center">
+                    <div className="text-6xl mb-4 text-gray-400">
+                      {getFileIcon(viewingDocument.name)}
+                    </div>
+                    <h4 className="text-xl font-bold text-gray-900 mb-2">
+                      {viewingDocument.name}
+                    </h4>
+                    <p className="text-gray-600 mb-4">
+                      Preview not available for this file type
+                    </p>
+                    <a
+                      href={viewingDocument.fileUrl}
+                      download={viewingDocument.name}
+                      className="inline-flex items-center px-6 py-3 bg-tracked-primary hover:bg-indigo-900 text-white rounded-lg font-medium transition-colors"
+                    >
+                      Download File
+                    </a>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            {viewingDocument && (
+              <div className="border-t border-gray-200 px-6 py-4 bg-gray-50 rounded-b-xl">
+                <div className="flex justify-between items-center">
+                  <div className="text-sm text-gray-600">
+                    Document Type: <span className="font-medium text-gray-900 capitalize">
+                      {viewingDocument.type.replace(/_/g, ' ')}
+                    </span>
+                  </div>
+                  <div className="flex space-x-3">
+                    {viewingDocument.fileUrl && (
+                      <a
+                        href={viewingDocument.fileUrl}
+                        download={viewingDocument.name}
+                        className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                      >
+                        Download
+                      </a>
+                    )}
+                    <button
+                      onClick={handleCloseViewModal}
+                      className="px-6 py-2.5 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

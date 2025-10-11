@@ -50,6 +50,8 @@ class User extends Authenticatable
         'transcript_path',
         'diploma_path',
         'passport_photo_path',
+        'birth_certificate_path',
+        'medical_cert_path',
         'emergency_contact',
         'emergency_phone',
         'emergency_relationship',
