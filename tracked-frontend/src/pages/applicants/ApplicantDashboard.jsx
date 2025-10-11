@@ -149,6 +149,15 @@ const ApplicantDashboard = () => {
 
   const statusDisplay = getStatusDisplay(applicationStatus);
 
+  // Function to properly capitalize name
+  const formatName = (name) => {
+    if (!name) return '';
+    return name
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-tracked-primary/5">
       <nav className="bg-white shadow-lg border-b border-gray-200">
@@ -158,7 +167,7 @@ const ApplicantDashboard = () => {
               <img src="/smi-logo.jpg" alt="SMI Logo" className="h-10 w-auto" />
               <div>
                 <h1 className="text-xl font-bold text-gray-900">
-                  Welcome, {user?.name || user?.email || 'Applicant'} 
+                  Welcome, {formatName(user?.name) || user?.email || 'Applicant'} 
                 </h1>
                 <p className="text-sm text-gray-600">
                   {user?.role === 'student' ? 'Student Portal' : 'Applicant Portal'}
