@@ -27,7 +27,7 @@ const TrainerLogin = () => {
     const trainerUser = localStorage.getItem('trainerUser');
     
     if (trainerToken && trainerUser) {
-      navigate('/trainer/dashboard', { replace: true });
+      navigate('/trainer-lms/dashboard', { replace: true });
     }
   }, [navigate]);
 
@@ -101,8 +101,8 @@ const TrainerLogin = () => {
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm space-y-4">
-            <div className="relative">
+          <div className="space-y-4">
+            <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                 Email Address
               </label>
@@ -121,7 +121,7 @@ const TrainerLogin = () => {
               </div>
             </div>
 
-            <div className="relative">
+            <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                 Password
               </label>
@@ -159,21 +159,9 @@ const TrainerLogin = () => {
             </div>
           )}
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <input
-                id="remember-me"
-                name="remember-me"
-                type="checkbox"
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
-                Remember me
-              </label>
-            </div>
-
+          <div className="flex items-center justify-center">
             <div className="text-sm">
-              <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
+              <a href="#" className="font-medium hover:underline text-blue-600 hover:text-blue-500">
                 Forgot password?
               </a>
             </div>
