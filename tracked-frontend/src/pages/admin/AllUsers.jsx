@@ -102,7 +102,6 @@ function AllUsers() {
           map[program.id] = program.title;
         });
         setProgramMap(map);
-        console.log('Program Map created:', map);
       }
     } catch (error) {
       console.error('Error fetching programs:', error);
@@ -135,9 +134,6 @@ function AllUsers() {
 
   // Get program title by ID
   const getProgramLabel = (programId) => {
-    console.log('Getting program label for:', programId, 'Type:', typeof programId);
-    console.log('Program Map:', programMap);
-    
     if (!programId) return 'N/A';
     
     // Convert to number if it's a string number
@@ -145,7 +141,6 @@ function AllUsers() {
     
     // If it's a valid number, look it up in programMap
     if (!isNaN(id) && programMap[id]) {
-      console.log('Found in map:', programMap[id]);
       return programMap[id];
     }
     
@@ -155,7 +150,6 @@ function AllUsers() {
     }
     
     // Fallback
-    console.log('Returning N/A for:', programId);
     return 'N/A';
   };
 
@@ -240,7 +234,7 @@ function AllUsers() {
 
   const handleExport = () => {
     // Simulate export functionality
-    console.log('Exporting users data...');
+    toast.info('Export functionality coming soon!');
   };
 
   const handleAddUser = async (userData) => {
