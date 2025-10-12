@@ -191,7 +191,7 @@ const TrainerSidebar = ({ user, isOpen, onClose, isCollapsed, setIsCollapsed }) 
               
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center px-3 py-2 text-sm font-medium text-red-300 rounded-md hover:text-red-100 hover:bg-red-600 transition-colors"
+                className="w-full flex items-center hover:cursor-pointer px-3 py-2 text-sm font-medium text-red-300 rounded-md hover:text-red-100 hover:bg-red-600 transition-colors"
               >
                 <MdLogout className="mr-3 h-4 w-4" />
                 Logout

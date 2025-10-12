@@ -236,7 +236,7 @@ const AppRouter = () => {
         <Route path="/students/*" element={<StudentRoutes />} />
         
         {/* Trainer Routes */}
-        <Route path="/trainer/login" element={<TrainerLogin />} />
+        <Route path="/trainer-lms/login" element={<TrainerLogin />} />
         <Route path="/trainer-lms" element={<Navigate to="/trainer-lms/dashboard" replace />} />
         <Route path="/trainer-lms/*" element={<TrainerRoutes />} />
 
