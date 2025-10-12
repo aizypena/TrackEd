@@ -4,6 +4,7 @@ import ViewUser from '../../layouts/admin/ViewUser';
 import AddUserModal from '../../components/User Management/AddUserModal';
 import { userAPI } from '../../services/userAPI';
 import { programAPI } from '../../services/programAPI';
+import toast from 'react-hot-toast';
 import { 
   MdSearch, MdFilterList, MdAdd, MdEdit, MdDelete, MdVisibility,
   MdPeople, MdEmail, MdPhone, MdLocationOn, MdDateRange,
@@ -177,7 +178,7 @@ function AllUsers() {
     switch (role) {
       case 'admin':
         return <MdSupervisorAccount className="h-4 w-4 text-purple-600" />;
-      case 'instructor':
+      case 'trainer':
         return <MdSchool className="h-4 w-4 text-blue-600" />;
       case 'student':
         return <MdPerson className="h-4 w-4 text-green-600" />;
@@ -190,7 +191,7 @@ function AllUsers() {
     switch (role) {
       case 'admin':
         return 'bg-purple-100 text-purple-800';
-      case 'instructor':
+      case 'trainer':
         return 'bg-blue-100 text-blue-800';
       case 'student':
         return 'bg-green-100 text-green-800';
@@ -249,13 +250,16 @@ function AllUsers() {
         // Refresh the users list
         fetchUsers();
         fetchStats();
+        toast.success('User added successfully!');
         return true;
       } else {
-        throw new Error(response.message || 'Failed to add user');
+        toast.error(response.message || 'Failed to add user');
+        return false;
       }
     } catch (error) {
       console.error('Error adding user:', error);
-      throw error;
+      toast.error(error.message || 'Failed to add user');
+      return false;
     }
   };
 

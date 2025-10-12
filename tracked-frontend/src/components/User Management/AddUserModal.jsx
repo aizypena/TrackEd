@@ -10,10 +10,8 @@ import {
   MdBusinessCenter,
 } from 'react-icons/md';
 import { nationalities } from '../../utils/nationalities';
-import axios from 'axios';
-
-// Base URL for the API
-const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+import { userAPI } from '../../services/userAPI';
+import toast from 'react-hot-toast';
 
 const AddUserModal = ({ isOpen, onClose, onAdd }) => {
   const [errors, setErrors] = useState({});
@@ -75,13 +73,24 @@ const AddUserModal = ({ isOpen, onClose, onAdd }) => {
   const validateForm = () => {
     const newErrors = {};
 
+    console.log('Validating form data:', formData);
+
     // Basic Information Validation
     if (!formData.first_name) newErrors.first_name = 'First name is required';
     if (!formData.last_name) newErrors.last_name = 'Last name is required';
     if (!formData.email) newErrors.email = 'Email is required';
-    if (!formData.phone_number) newErrors.phone_number = 'Phone number is required';
-    if (!formData.phone_number.startsWith('9')) newErrors.phone_number = 'Phone number must start with 9';
-    if (!formData.password) newErrors.password = 'Password is required';
+    if (!formData.phone_number) {
+      newErrors.phone_number = 'Phone number is required';
+    } else if (!/^9\d{9}$/.test(formData.phone_number)) {
+      newErrors.phone_number = 'Phone number must be 10 digits starting with 9';
+    }
+    
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+    }
+    
     if (formData.password !== formData.confirm_password) {
       newErrors.confirm_password = 'Passwords do not match';
     }
@@ -91,29 +100,33 @@ const AddUserModal = ({ isOpen, onClose, onAdd }) => {
       newErrors.course_program = 'Course program is required for students and applicants';
     }
     
-    // Additional validation for instructor
-    if (formData.role === 'instructor') {
-      if (!formData.education_level) newErrors.education_level = 'Education level is required for instructors';
-      if (!formData.field_of_study) newErrors.field_of_study = 'Field of study is required for instructors';
-      if (!formData.institution_name) newErrors.institution_name = 'Institution name is required for instructors';
-      if (!formData.employment_status) newErrors.employment_status = 'Employment status is required for instructors';
+    // Additional validation for trainer - removed employment_status requirement
+    if (formData.role === 'trainer') {
+      if (!formData.education_level) newErrors.education_level = 'Education level is required for trainers';
+      if (!formData.field_of_study) newErrors.field_of_study = 'Field of study is required for trainers';
+      if (!formData.institution_name) newErrors.institution_name = 'Institution name is required for trainers';
     }
 
-    // Phone number validation
-    if (formData.phone_number && !/^9\d{9}$/.test(formData.phone_number)) {
-      newErrors.phone_number = 'Invalid phone number format';
-    }
+    // Emergency phone validation (only if provided)
     if (formData.emergency_phone && !/^9\d{9}$/.test(formData.emergency_phone)) {
-      newErrors.emergency_phone = 'Invalid emergency phone number format';
+      newErrors.emergency_phone = 'Emergency phone must be 10 digits starting with 9';
     }
 
+    console.log('Validation errors:', newErrors);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    
+    // Clear previous errors
+    setErrors({});
+    
+    if (!validateForm()) {
+      toast.error('Please fix the form errors before submitting');
+      return;
+    }
 
     try {
       // Create FormData object for file uploads
@@ -149,37 +162,74 @@ const AddUserModal = ({ isOpen, onClose, onAdd }) => {
         });
       }
 
-      // Append documents if they exist
-      if (formData.documents) {
-        Object.keys(formData.documents).forEach(docType => {
-          if (formData.documents[docType]) {
-            formDataToSubmit.append(`documents[${docType}]`, formData.documents[docType]);
-          }
-        });
-      }
-
       // Append profile picture if it exists
       if (formData.profile_picture) {
         formDataToSubmit.append('profile_picture', formData.profile_picture);
       }
 
-      // Make API request
-      const response = await axios.post(`${API_URL}/users`, formDataToSubmit, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      console.log('Submitting user data...');
+      
+      // Call parent handler which will make the API request
+      const success = await onAdd(formDataToSubmit);
 
-      if (response.data.success) {
-        onAdd(response.data.user);
+      if (success) {
         onClose();
-      } else {
-        throw new Error(response.data.message || 'Failed to create user');
+        // Reset form
+        setFormData({
+          first_name: '',
+          last_name: '',
+          email: '',
+          phone_number: '',
+          password: '',
+          confirm_password: '',
+          role: 'student',
+          status: 'active',
+          address: '',
+          date_of_birth: '',
+          place_of_birth: '',
+          gender: '',
+          nationality: '',
+          marital_status: '',
+          education_level: '',
+          field_of_study: '',
+          institution_name: '',
+          graduation_year: '',
+          gpa: '',
+          employment_status: '',
+          occupation: '',
+          work_experience: '',
+          course_program: '',
+          emergency_contact: '',
+          emergency_phone: '',
+          emergency_relationship: '',
+          profile_picture: null,
+          documents: {
+            validId: null,
+            transcript: null,
+            diploma: null,
+            passportPhoto: null
+          }
+        });
       }
     } catch (error) {
       console.error('Error creating user:', error);
+      
+      // Display detailed error message
+      let errorMessage = 'Failed to create user. ';
+      
+      if (error.response) {
+        // Server responded with error
+        errorMessage += error.response.data?.message || error.message;
+        console.error('Server error:', error.response.data);
+      } else if (error.message) {
+        errorMessage += error.message;
+      } else {
+        errorMessage += 'Please try again.';
+      }
+      
+      toast.error(errorMessage);
       setErrors({ 
-        submit: error.response?.data?.message || 'Failed to create user. Please try again.' 
+        submit: errorMessage
       });
     }
   };
@@ -309,9 +359,14 @@ const AddUserModal = ({ isOpen, onClose, onAdd }) => {
                       name="last_name"
                       value={formData.last_name}
                       onChange={handleChange}
-                      className="block w-full pl-10 pr-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                      className={`block w-full pl-10 pr-3 py-2 text-gray-900 border ${
+                        errors.last_name ? 'border-red-500' : 'border-gray-300'
+                      } outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500`}
                       required
                     />
+                    {errors.last_name && (
+                      <p className="mt-1 text-xs text-red-500">{errors.last_name}</p>
+                    )}
                   </div>
                 </div>
 
@@ -329,9 +384,14 @@ const AddUserModal = ({ isOpen, onClose, onAdd }) => {
                       name="email"
                       value={formData.email}
                       onChange={handleChange}
-                      className="block w-full pl-10 pr-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                      className={`block w-full pl-10 pr-3 py-2 text-gray-900 border ${
+                        errors.email ? 'border-red-500' : 'border-gray-300'
+                      } outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500`}
                       required
                     />
+                    {errors.email && (
+                      <p className="mt-1 text-xs text-red-500">{errors.email}</p>
+                    )}
                   </div>
                 </div>
 
@@ -372,12 +432,19 @@ const AddUserModal = ({ isOpen, onClose, onAdd }) => {
                         });
                       }}
                       placeholder="9XX XXX XXXX"
-                      className="block w-full pl-20 pr-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                      className={`block w-full pl-20 pr-3 py-2 text-gray-900 border ${
+                        errors.phone_number ? 'border-red-500' : 'border-gray-300'
+                      } outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500`}
                       maxLength="10"
                       required
                     />
                   </div>
-                  <p className="mt-1 text-xs text-gray-500">Format: +63 9XX XXX XXXX</p>
+                  {errors.phone_number && (
+                    <p className="mt-1 text-xs text-red-500">{errors.phone_number}</p>
+                  )}
+                  {!errors.phone_number && (
+                    <p className="mt-1 text-xs text-gray-500">Format: +63 9XX XXX XXXX</p>
+                  )}
                 </div>
 
                 <div>
@@ -394,10 +461,15 @@ const AddUserModal = ({ isOpen, onClose, onAdd }) => {
                       name="password"
                       value={formData.password}
                       onChange={handleChange}
-                      className="block w-full pl-10 pr-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                      className={`block w-full pl-10 pr-3 py-2 text-gray-900 border ${
+                        errors.password ? 'border-red-500' : 'border-gray-300'
+                      } outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500`}
                       required
                     />
                   </div>
+                  {errors.password && (
+                    <p className="mt-1 text-xs text-red-500">{errors.password}</p>
+                  )}
                 </div>
 
                 <div>
@@ -414,10 +486,15 @@ const AddUserModal = ({ isOpen, onClose, onAdd }) => {
                       name="confirm_password"
                       value={formData.confirm_password}
                       onChange={handleChange}
-                      className="block w-full pl-10 pr-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                      className={`block w-full pl-10 pr-3 py-2 text-gray-900 border ${
+                        errors.confirm_password ? 'border-red-500' : 'border-gray-300'
+                      } outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500`}
                       required
                     />
                   </div>
+                  {errors.confirm_password && (
+                    <p className="mt-1 text-xs text-red-500">{errors.confirm_password}</p>
+                  )}
                 </div>
 
                 <div>
@@ -439,7 +516,7 @@ const AddUserModal = ({ isOpen, onClose, onAdd }) => {
                       <option value="student">Student</option>
                       <option value="applicant">Applicant</option>
                       <option value="admin">Admin</option>
-                      <option value="instructor">Instructor</option>
+                      <option value="trainer">Trainer</option>
                       <option value="staff">Staff</option>
                     </select>
                   </div>
@@ -576,30 +653,8 @@ const AddUserModal = ({ isOpen, onClose, onAdd }) => {
               </div>
             </div>
 
-            {/* Role Selection */}
-            <div className="bg-white p-6 rounded-lg border border-gray-300 mt-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="role">
-                  Role *
-                </label>
-                <select
-                  id="role"
-                  name="role"
-                  value={formData.role}
-                  onChange={handleChange}
-                  className="block w-full px-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                  required
-                >
-                  <option value="student">Student</option>
-                  <option value="instructor">Instructor</option>
-                  <option value="staff">Staff</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Educational Background - Shown for students and instructors */}
-            {(formData.role === 'student' || formData.role === 'instructor') && (
+            {/* Educational Background - Shown for students and trainers */}
+            {(formData.role === 'student' || formData.role === 'trainer') && (
               <div className="bg-white p-6 rounded-lg border border-gray-300 mt-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Educational Background</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

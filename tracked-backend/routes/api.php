@@ -3,8 +3,8 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\ApplicationController;
-use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\BatchController;
@@ -22,10 +22,6 @@ Route::post('/application', [ApplicationController::class, 'submit']);
 // Authentication routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
-
-// Admin authentication
-// User management routes
-Route::post('/users', [UserController::class, 'store']);
 
 Route::post('/admin/login', function (Request $request) {
     $request->validate([
@@ -74,7 +70,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     
     // User Routes
     Route::get('/users', [UserController::class, 'index']);
-    Route::get('/users/stats', [UserController::class, 'getStats']);
+    Route::get('/users/stats', [UserController::class, 'stats']);
+    Route::post('/users', [UserController::class, 'store']);
+    Route::get('/users/{user}', [UserController::class, 'show']);
+    Route::put('/users/{user}', [UserController::class, 'update']);
+    Route::delete('/users/{user}', [UserController::class, 'destroy']);
     
     // Document Routes
     Route::get('/documents', [DocumentController::class, 'index']);

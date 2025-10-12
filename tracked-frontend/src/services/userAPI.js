@@ -58,18 +58,36 @@ const apiClient = {
 
   post: async (endpoint, data = {}) => {
     const token = getAuthToken();
+    
+    // Check if data is FormData for file uploads
+    const isFormData = data instanceof FormData;
+    
+    const headers = {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/json',
+    };
+    
+    // Don't set Content-Type for FormData - browser will set it with boundary
+    if (!isFormData) {
+      headers['Content-Type'] = 'application/json';
+    }
+    
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify(data),
+      headers: headers,
+      body: isFormData ? data : JSON.stringify(data),
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      
+      // Handle validation errors (422)
+      if (response.status === 422 && errorData.errors) {
+        const errorMessages = Object.values(errorData.errors).flat();
+        throw new Error(errorMessages.join(', ') || errorData.message || 'Validation failed');
+      }
+      
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
 
     return response.json();
@@ -128,6 +146,11 @@ export const userAPI = {
   // Get specific user
   getUser: async (userId) => {
     return apiClient.get(`/users/${userId}`);
+  },
+
+  // Create new user
+  createUser: async (data) => {
+    return apiClient.post('/users', data);
   },
 
   // Update user

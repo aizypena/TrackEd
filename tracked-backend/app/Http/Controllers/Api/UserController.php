@@ -45,13 +45,18 @@ class UserController extends Controller
         $transformedUsers = $users->getCollection()->map(function ($user) {
             return [
                 'id' => $user->id,
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
                 'name' => $user->first_name . ' ' . $user->last_name,
                 'email' => $user->email,
+                'phone_number' => $user->phone_number ?? 'N/A',
                 'phone' => $user->phone_number ?? 'N/A',
                 'role' => $user->role,
                 'status' => $user->status,
+                'address' => $user->address ?? 'Philippines',
                 'location' => $user->address ?? 'Philippines', // Default location
                 'joinDate' => $user->created_at->format('Y-m-d'),
+                'created_at' => $user->created_at->format('Y-m-d'),
                 'program' => $user->course_program ?? $this->getProgramByRole($user->role),
                 'course_program' => $user->course_program ?? null,
                 'avatar' => null // No avatar system yet
@@ -120,6 +125,63 @@ class UserController extends Controller
                 'program' => $this->getProgramByRole($user->role)
             ]
         ]);
+    }
+
+    /**
+     * Store a new user
+     */
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'phone_number' => 'required|string|max:20',
+            'password' => 'required|string|min:6',
+            'role' => 'required|in:applicant,student,trainer,staff,admin',
+            'status' => 'required|in:active,inactive,suspended,pending',
+            'address' => 'nullable|string',
+            'date_of_birth' => 'nullable|date',
+            'place_of_birth' => 'nullable|string|max:255',
+            'gender' => 'nullable|in:male,female,other',
+            'nationality' => 'nullable|string|max:255',
+            'marital_status' => 'nullable|in:single,married,divorced,widowed',
+            'education_level' => 'nullable|string|max:255',
+            'field_of_study' => 'nullable|string|max:255',
+            'institution_name' => 'nullable|string|max:255',
+            'graduation_year' => 'nullable|integer|min:1950|max:2030',
+            'gpa' => 'nullable|numeric|min:0|max:4',
+            'employment_status' => 'nullable|in:employed,unemployed,self_employed,student',
+            'occupation' => 'nullable|string|max:255',
+            'work_experience' => 'nullable|string',
+            'course_program' => 'nullable|string|max:255',
+            'emergency_contact' => 'nullable|string|max:255',
+            'emergency_phone' => 'nullable|string|max:20',
+            'emergency_relationship' => 'nullable|string|max:255',
+        ]);
+
+        // Hash the password
+        $validated['password'] = bcrypt($validated['password']);
+
+        // Create the user
+        $user = User::create($validated);
+
+        // Handle file uploads if present
+        if ($request->hasFile('profile_picture')) {
+            $path = $request->file('profile_picture')->store('profile_pictures', 'public');
+            $user->profile_picture = $path;
+            $user->save();
+        }
+
+        // Handle documents if present
+        // You can add document handling logic here if needed
+
+        return response()->json([
+            'success' => true,
+            'message' => 'User created successfully',
+            'user' => $user,
+            'data' => $user
+        ], 201);
     }
 
     /**
