@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { MdClose } from 'react-icons/md';
 import { batchAPI } from '../../services/batchAPI';
+import { userAPI } from '../../services/userAPI';
 import toast from 'react-hot-toast';
 
 const AddBatch = ({ isOpen, onClose, batch, programs, onSuccess }) => {
   const [formData, setFormData] = useState({
     program_id: '',
+    trainer_id: '',
     schedule_days: [],
     schedule_time_start: '',
     schedule_time_end: '',
@@ -15,24 +17,61 @@ const AddBatch = ({ isOpen, onClose, batch, programs, onSuccess }) => {
     max_students: 30
   });
   const [submitting, setSubmitting] = useState(false);
+  const [trainers, setTrainers] = useState([]);
 
   const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
+  // Fetch trainers when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchTrainers();
+    }
+  }, [isOpen]);
+
+  const fetchTrainers = async () => {
+    try {
+      const response = await userAPI.getUsers({ role: 'trainer', status: 'active' });
+      if (response.success) {
+        // console.log('Trainers data:', response.data);
+        setTrainers(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching trainers:', error);
+      toast.error('Failed to load trainers');
+    }
+  };
+
   useEffect(() => {
     if (batch) {
+      // Format dates properly for the date input
+      const formatDate = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toISOString().split('T')[0];
+      };
+
+      // Format time to HH:mm (remove seconds if present)
+      const formatTime = (timeString) => {
+        if (!timeString) return '';
+        // If time has seconds (HH:mm:ss), remove them
+        return timeString.substring(0, 5);
+      };
+
       setFormData({
         program_id: batch.program_id || '',
+        trainer_id: batch.trainer_id || '',
         schedule_days: batch.schedule_days || [],
-        schedule_time_start: batch.schedule_time_start || '',
-        schedule_time_end: batch.schedule_time_end || '',
+        schedule_time_start: formatTime(batch.schedule_time_start),
+        schedule_time_end: formatTime(batch.schedule_time_end),
         status: batch.status || 'not started',
-        start_date: batch.start_date || '',
-        end_date: batch.end_date || '',
+        start_date: formatDate(batch.start_date),
+        end_date: formatDate(batch.end_date),
         max_students: batch.max_students || 30
       });
     } else {
       setFormData({
         program_id: '',
+        trainer_id: '',
         schedule_days: [],
         schedule_time_start: '',
         schedule_time_end: '',
@@ -73,12 +112,13 @@ const AddBatch = ({ isOpen, onClose, batch, programs, onSuccess }) => {
       // Prepare data - convert empty strings to null for optional date fields
       const submitData = {
         ...formData,
+        trainer_id: formData.trainer_id || null,
         start_date: formData.start_date || null,
         end_date: formData.end_date || null
       };
       
       // Log the data being sent
-      console.log('Submitting batch data:', submitData);
+      // console.log('Submitting batch data:', submitData);
       
       if (batch) {
         response = await batchAPI.update(batch.id, submitData);
@@ -86,7 +126,7 @@ const AddBatch = ({ isOpen, onClose, batch, programs, onSuccess }) => {
         response = await batchAPI.create(submitData);
       }
 
-      console.log('API Response:', response);
+      // console.log('API Response:', response);
 
       if (response.success) {
         toast.success(batch ? 'Batch updated successfully!' : 'Batch created successfully!');
@@ -163,6 +203,26 @@ const AddBatch = ({ isOpen, onClose, batch, programs, onSuccess }) => {
                 <option key={program.id} value={program.id}>{program.title}</option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Assigned Trainer</label>
+            <select
+              name="trainer_id"
+              value={formData.trainer_id}
+              onChange={handleInputChange}
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 capitalize"
+            >
+              <option value="">No trainer assigned</option>
+              {trainers.map(trainer => (
+                <option key={trainer.id} value={trainer.id} className="capitalize">
+                  {trainer.first_name && trainer.last_name 
+                    ? `${trainer.first_name} ${trainer.last_name}` 
+                    : trainer.name || trainer.email}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-gray-500">Optional: Assign a trainer to this batch</p>
           </div>
 
           <div>

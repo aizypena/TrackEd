@@ -264,6 +264,9 @@ const BatchManagement = () => {
                       Program
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Trainer
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Schedule
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -280,13 +283,13 @@ const BatchManagement = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {loading ? (
                     <tr>
-                      <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
+                      <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
                         Loading batches...
                       </td>
                     </tr>
                   ) : batches.length === 0 ? (
                     <tr>
-                      <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
+                      <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
                         No batches found.
                       </td>
                     </tr>
@@ -305,6 +308,18 @@ const BatchManagement = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">{batch.program?.title || 'N/A'}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {batch.trainer ? (
+                            <div className="text-sm">
+                              <div className="font-medium text-gray-900">
+                                {batch.trainer.first_name} {batch.trainer.last_name}
+                              </div>
+                              <div className="text-gray-500 text-xs">{batch.trainer.email}</div>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-gray-400 italic">No trainer assigned</span>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">

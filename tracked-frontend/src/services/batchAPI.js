@@ -107,7 +107,11 @@ export const batchAPI = {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to update batch');
+        console.error('Batch update error response:', data);
+        console.error('Validation errors:', JSON.stringify(data.errors, null, 2));
+        const error = new Error(data.message || 'Failed to update batch');
+        error.errors = data.errors;
+        throw error;
       }
 
       return data;

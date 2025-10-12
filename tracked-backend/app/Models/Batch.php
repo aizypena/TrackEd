@@ -14,6 +14,7 @@ class Batch extends Model
     protected $fillable = [
         'batch_id',
         'program_id',
+        'trainer_id',
         'schedule_days',
         'schedule_time_start',
         'schedule_time_end',
@@ -40,6 +41,14 @@ class Batch extends Model
     public function program()
     {
         return $this->belongsTo(Program::class);
+    }
+
+    /**
+     * Get the trainer assigned to the batch.
+     */
+    public function trainer()
+    {
+        return $this->belongsTo(User::class, 'trainer_id');
     }
 
     /**

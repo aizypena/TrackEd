@@ -15,7 +15,7 @@ class BatchController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Batch::with(['program', 'students']);
+        $query = Batch::with(['program', 'trainer', 'students']);
 
         // Filter by program
         if ($request->has('program_id') && $request->program_id !== 'all') {
@@ -57,6 +57,7 @@ class BatchController extends Controller
 
         $validator = Validator::make($request->all(), [
             'program_id' => 'required|exists:programs,id',
+            'trainer_id' => 'nullable|exists:users,id',
             'schedule_days' => 'required|array|min:1',
             'schedule_days.*' => 'required|in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
             'schedule_time_start' => 'required|date_format:H:i',
@@ -96,6 +97,7 @@ class BatchController extends Controller
             $batch = new Batch();
             $batch->batch_id = Batch::generateBatchId();
             $batch->program_id = $request->program_id;
+            $batch->trainer_id = $request->trainer_id;
             $batch->schedule_days = $request->schedule_days;
             $batch->schedule_time_start = $request->schedule_time_start;
             $batch->schedule_time_end = $request->schedule_time_end;
@@ -106,7 +108,7 @@ class BatchController extends Controller
             $batch->save();
 
             // Load relationships
-            $batch->load(['program', 'students']);
+            $batch->load(['program', 'trainer', 'students']);
             $batch->enrolled_students_count = $batch->students()->count();
 
             return response()->json([
@@ -128,7 +130,7 @@ class BatchController extends Controller
      */
     public function show($id)
     {
-        $batch = Batch::with(['program', 'students'])->find($id);
+        $batch = Batch::with(['program', 'trainer', 'students'])->find($id);
 
         if (!$batch) {
             return response()->json([
@@ -161,6 +163,7 @@ class BatchController extends Controller
 
         $validator = Validator::make($request->all(), [
             'program_id' => 'sometimes|required|exists:programs,id',
+            'trainer_id' => 'nullable|exists:users,id',
             'schedule_days' => 'sometimes|required|array|min:1',
             'schedule_days.*' => 'sometimes|required|in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
             'schedule_time_start' => 'sometimes|required|date_format:H:i',
@@ -192,7 +195,7 @@ class BatchController extends Controller
 
         try {
             $batch->update($request->all());
-            $batch->load(['program', 'students']);
+            $batch->load(['program', 'trainer', 'students']);
             $batch->enrolled_students_count = $batch->students()->count();
 
             return response()->json([
