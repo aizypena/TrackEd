@@ -49,14 +49,7 @@ import SystemLogs from '../pages/admin/SystemLogs';
 import AdminProfileSettings from '../pages/admin/AdminProfileSettings';
 
 //trainer
-import CertificationManagement from '../pages/trainers/CertificationManagement';
-import CourseManagement from '../pages/trainers/CourseManagement';
-import CourseMaterials from '../pages/trainers/CourseMaterials';
-import TrainerAssessments from '../pages/trainers/TrainerAssessments';
-import TrainerAttendance from '../pages/trainers/TrainerAttendance';
-import TrainerDashboard from '../pages/trainers/TrainerDashboard';
-import TrainerGrades from '../pages/trainers/TrainerGrades';
-import TrainerProfile from '../pages/trainers/TrainerProfile';
+import TrainerLogin from '../pages/trainers/TrainerLogin';
 
 // Protected Route Component
 import ProtectedAdminRoute from '../components/ProtectedAdminRoute';
@@ -243,14 +236,9 @@ const AppRouter = () => {
         <Route path="/students/*" element={<StudentRoutes />} />
         
         {/* Trainer Routes */}
-        <Route path="/trainer-lms/certification" element={<CertificationManagement />} />
-        <Route path="/trainer-lms/course-management" element={<CourseManagement />} />
-        <Route path="/trainer-lms/course-materials" element={<CourseMaterials />} />
-        <Route path="/trainer-lms/assessments" element={<TrainerAssessments />} />
-        <Route path="/trainer-lms/attendance" element={<TrainerAttendance />} />
-        <Route path="/trainer-lms/dashboard" element={<TrainerDashboard />} />
-        <Route path="/trainer-lms/grades" element={<TrainerGrades />} />
-        <Route path="/trainer-lms/profile" element={<TrainerProfile />} />
+        <Route path="/trainer/login" element={<TrainerLogin />} />
+        <Route path="/trainer-lms" element={<Navigate to="/trainer-lms/dashboard" replace />} />
+        <Route path="/trainer-lms/*" element={<TrainerRoutes />} />
 
         {/* Staff Routes */}
         <Route path="staff/dashboard" element={<StaffDashboard />} />
