@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../../layouts/admin/Sidebar';
+import IssueVoucher from '../../components/admin/IssueVoucher';
+import { voucherAPI } from '../../services/voucherAPI';
+import toast from 'react-hot-toast';
 import {
   MdMenu,
   MdAdd,
@@ -31,6 +34,27 @@ const VoucherManagement = () => {
   const [filterProgram, setFilterProgram] = useState('all');
   const [loading, setLoading] = useState(false);
   const [selectedVouchers, setSelectedVouchers] = useState([]);
+  const [vouchers, setVouchers] = useState([]);
+
+  // Fetch vouchers on component mount
+  useEffect(() => {
+    fetchVouchers();
+  }, []);
+
+  const fetchVouchers = async () => {
+    try {
+      setLoading(true);
+      const response = await voucherAPI.getAll();
+      if (response.success) {
+        setVouchers(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching vouchers:', error);
+      toast.error('Failed to load vouchers');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Mock data for programs
   const programs = [
@@ -44,39 +68,6 @@ const VoucherManagement = () => {
     { id: 'cookery-nc-ii', name: 'Cookery NC II', cost: 14000 }
   ];
 
-  // Mock data for vouchers
-  const vouchers = [
-    {
-      id: 'V-2025-001',
-      program: 'Bartending NC II',
-      studentName: 'Juan Dela Cruz',
-      email: 'juan.delacruz@email.com',
-      status: 'issued',
-      issueDate: '2025-09-28',
-      expiryDate: '2025-12-28',
-      amount: 15000,
-      batchId: 'B2025-01',
-      issuedBy: 'Admin User',
-      usageDate: null,
-      notes: 'Regular enrollment voucher'
-    },
-    {
-      id: 'V-2025-002',
-      program: 'Barista Training NC II',
-      studentName: 'Maria Santos',
-      email: 'maria.santos@email.com',
-      status: 'pending',
-      issueDate: '2025-09-28',
-      expiryDate: '2025-12-28',
-      amount: 12000,
-      batchId: null,
-      issuedBy: 'Admin User',
-      usageDate: null,
-      notes: 'Scholarship program voucher'
-    },
-    // Add more vouchers as needed
-  ];
-
   const handleAddVoucher = () => {
     setShowAddModal(true);
     setEditingVoucher(null);
@@ -87,9 +78,21 @@ const VoucherManagement = () => {
     setShowAddModal(true);
   };
 
-  const handleDeleteVoucher = (voucherId) => {
-    // Implement delete logic
-    console.log('Deleting voucher:', voucherId);
+  const handleDeleteVoucher = async (voucherId) => {
+    if (!window.confirm('Are you sure you want to delete this voucher?')) {
+      return;
+    }
+    
+    try {
+      const response = await voucherAPI.delete(voucherId);
+      if (response.success) {
+        toast.success('Voucher deleted successfully');
+        fetchVouchers();
+      }
+    } catch (error) {
+      console.error('Error deleting voucher:', error);
+      toast.error('Failed to delete voucher');
+    }
   };
 
   const handleBulkAction = (action) => {
@@ -131,126 +134,6 @@ const VoucherManagement = () => {
     }
   };
 
-  const VoucherModal = ({ isOpen, onClose, voucher }) => {
-    if (!isOpen) return null;
-
-    return (
-      <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div className="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-semibold text-gray-900">
-              {voucher ? 'Edit Voucher' : 'Issue New Voucher'}
-            </h3>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-500"
-            >
-              <MdClose className="h-6 w-6" />
-            </button>
-          </div>
-          <form className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Program</label>
-                <select
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                  defaultValue={voucher?.program}
-                >
-                  {programs.map(program => (
-                    <option key={program.id} value={program.name}>{program.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Student Name</label>
-                <input
-                  type="text"
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                  defaultValue={voucher?.studentName}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Email</label>
-                <input
-                  type="email"
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                  defaultValue={voucher?.email}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Amount</label>
-                <input
-                  type="number"
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                  defaultValue={voucher?.amount}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Issue Date</label>
-                <input
-                  type="date"
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                  defaultValue={voucher?.issueDate}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Expiry Date</label>
-                <input
-                  type="date"
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                  defaultValue={voucher?.expiryDate}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Status</label>
-                <select
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                  defaultValue={voucher?.status}
-                >
-                  <option value="pending">Pending</option>
-                  <option value="issued">Issued</option>
-                  <option value="used">Used</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Batch ID</label>
-                <input
-                  type="text"
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                  defaultValue={voucher?.batchId}
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Notes</label>
-              <textarea
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                rows="3"
-                defaultValue={voucher?.notes}
-              ></textarea>
-            </div>
-            <div className="flex justify-end space-x-3 pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                {voucher ? 'Update Voucher' : 'Issue Voucher'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
@@ -276,7 +159,7 @@ const VoucherManagement = () => {
             <div className="flex items-center space-x-3">
               <button
                 onClick={() => handleBulkAction('print')}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                className="inline-flex items-center hover:cursor-pointer px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                 disabled={selectedVouchers.length === 0}
               >
                 <MdPrint className="h-5 w-5 mr-2" />
@@ -284,14 +167,14 @@ const VoucherManagement = () => {
               </button>
               <button
                 onClick={() => handleBulkAction('export')}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                className="inline-flex hover:cursor-pointer items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
               >
                 <MdFileDownload className="h-5 w-5 mr-2" />
                 Export
               </button>
               <button
                 onClick={handleAddVoucher}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="inline-flex items-center hover:cursor-pointer px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 <MdAdd className="h-5 w-5 mr-2" />
                 Issue Voucher
@@ -385,10 +268,10 @@ const VoucherManagement = () => {
                   <p className="text-2xl font-semibold text-gray-900">45</p>
                 </div>
                 <div className="p-3 bg-yellow-100 rounded-full">
-                  <MdAttachMoney className="h-6 w-6 text-yellow-600" />
+                  <MdCheckCircle className="h-6 w-6 text-yellow-600" />
                 </div>
               </div>
-              <p className="text-xs text-gray-500 mt-2">Total value: ₱675,000</p>
+              <p className="text-xs text-gray-500 mt-2">Out of 180 total</p>
             </div>
             <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
               <div className="flex items-center justify-between">
@@ -430,13 +313,10 @@ const VoucherManagement = () => {
                       Program
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Student
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Amount
+                      Quantity
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
@@ -462,22 +342,14 @@ const VoucherManagement = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
-                          <div className="text-sm font-medium text-gray-900">{voucher.id}</div>
+                          <div className="text-sm font-medium text-gray-900">{voucher.voucher_id}</div>
                           <div className="text-sm text-gray-500">
-                            Issued: {new Date(voucher.issueDate).toLocaleDateString()}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            Expires: {new Date(voucher.expiryDate).toLocaleDateString()}
+                            Issued: {new Date(voucher.issue_date).toLocaleDateString()}
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{voucher.program}</div>
-                        <div className="text-xs text-gray-500">{voucher.batchId || 'No batch assigned'}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{voucher.studentName}</div>
-                        <div className="text-xs text-gray-500">{voucher.email}</div>
+                        <div className="text-sm text-gray-900">Batch {voucher.batch_id}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(voucher.status)}`}>
@@ -486,8 +358,12 @@ const VoucherManagement = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          ₱{voucher.amount.toLocaleString()}
+                        <div className="text-sm text-gray-900">
+                          <span className="font-medium">{voucher.used_count}</span>
+                          <span className="text-gray-500"> / {voucher.quantity}</span>
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {voucher.quantity - voucher.used_count} remaining
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -516,13 +392,17 @@ const VoucherManagement = () => {
       </div>
 
       {/* Add/Edit Voucher Modal */}
-      <VoucherModal
+      <IssueVoucher
         isOpen={showAddModal}
         onClose={() => {
           setShowAddModal(false);
           setEditingVoucher(null);
         }}
         voucher={editingVoucher}
+        programs={programs}
+        onSuccess={() => {
+          fetchVouchers();
+        }}
       />
     </div>
   );

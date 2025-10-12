@@ -8,6 +8,7 @@ use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\BatchController;
+use App\Http\Controllers\VoucherController;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 
@@ -108,6 +109,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Batch Routes
     Route::apiResource('batches', BatchController::class);
     Route::get('/batches/{id}/students', [BatchController::class, 'getEnrolledStudents']);
+    
+    // Voucher Routes
+    Route::apiResource('vouchers', VoucherController::class);
     
     // User Routes
     Route::get('/users', [UserController::class, 'index']);
