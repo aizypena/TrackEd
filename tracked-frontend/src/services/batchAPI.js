@@ -63,6 +63,8 @@ export const batchAPI = {
   // Create new batch
   create: async (batchData) => {
     try {
+      console.log('Creating batch with data:', batchData);
+      
       const response = await fetch(`${API_BASE_URL}/batches`, {
         method: 'POST',
         headers: {
@@ -74,9 +76,12 @@ export const batchAPI = {
       });
 
       const data = await response.json();
+      console.log('API Response:', response.status, data);
 
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to create batch');
+        const error = new Error(data.message || 'Failed to create batch');
+        error.errors = data.errors;
+        throw error;
       }
 
       return data;

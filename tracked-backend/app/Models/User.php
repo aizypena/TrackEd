@@ -31,6 +31,7 @@ class User extends Authenticatable
         'role',
         'status',
         'application_status',
+        'batch_id',
         'address',
         'date_of_birth',
         'place_of_birth',
@@ -127,5 +128,13 @@ class User extends Authenticatable
     public function isApplicant(): bool
     {
         return $this->role === 'applicant';
+    }
+    
+    /**
+     * Get the batch that the user belongs to.
+     */
+    public function batch()
+    {
+        return $this->belongsTo(Batch::class);
     }
 }

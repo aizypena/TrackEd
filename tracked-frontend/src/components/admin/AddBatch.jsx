@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MdClose } from 'react-icons/md';
 import { batchAPI } from '../../services/batchAPI';
+import toast from 'react-hot-toast';
 
 const AddBatch = ({ isOpen, onClose, batch, programs, onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -61,7 +62,7 @@ const AddBatch = ({ isOpen, onClose, batch, programs, onSuccess }) => {
     e.preventDefault();
     
     if (formData.schedule_days.length === 0) {
-      alert('Please select at least one day for the schedule');
+      toast.error('Please select at least one day for the schedule');
       return;
     }
 
@@ -69,20 +70,50 @@ const AddBatch = ({ isOpen, onClose, batch, programs, onSuccess }) => {
       setSubmitting(true);
       let response;
       
+      // Prepare data - convert empty strings to null for optional date fields
+      const submitData = {
+        ...formData,
+        start_date: formData.start_date || null,
+        end_date: formData.end_date || null
+      };
+      
+      // Log the data being sent
+      console.log('Submitting batch data:', submitData);
+      
       if (batch) {
-        response = await batchAPI.update(batch.id, formData);
+        response = await batchAPI.update(batch.id, submitData);
       } else {
-        response = await batchAPI.create(formData);
+        response = await batchAPI.create(submitData);
       }
 
+      console.log('API Response:', response);
+
       if (response.success) {
-        alert(batch ? 'Batch updated successfully' : 'Batch created successfully');
+        toast.success(batch ? 'Batch updated successfully!' : 'Batch created successfully!');
         onClose();
         if (onSuccess) onSuccess();
+      } else {
+        // Handle case where response comes back but success is false
+        const errorMsg = response.message || 'Failed to save batch';
+        if (response.errors) {
+          Object.keys(response.errors).forEach(key => {
+            toast.error(`${key}: ${response.errors[key].join(', ')}`);
+          });
+        } else {
+          toast.error(errorMsg);
+        }
       }
     } catch (error) {
       console.error('Error saving batch:', error);
-      alert('Failed to save batch: ' + error.message);
+      
+      // If the error has additional details, show them
+      if (error.errors) {
+        Object.keys(error.errors).forEach(key => {
+          toast.error(`${key}: ${error.errors[key].join(', ')}`);
+        });
+      } else {
+        toast.error(error.message || 'Failed to save batch');
+      }
     } finally {
       setSubmitting(false);
     }

@@ -6,6 +6,7 @@ use App\Models\Batch;
 use App\Models\Program;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 class BatchController extends Controller
 {
@@ -51,6 +52,9 @@ class BatchController extends Controller
      */
     public function store(Request $request)
     {
+        // Log incoming request data
+        Log::info('Batch creation request:', $request->all());
+
         $validator = Validator::make($request->all(), [
             'program_id' => 'required|exists:programs,id',
             'schedule_days' => 'required|array|min:1',
@@ -64,6 +68,7 @@ class BatchController extends Controller
         ]);
 
         if ($validator->fails()) {
+            Log::error('Batch validation failed:', $validator->errors()->toArray());
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
@@ -73,6 +78,13 @@ class BatchController extends Controller
 
         // Check if program is available
         $program = Program::find($request->program_id);
+        if (!$program) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Program not found'
+            ], 404);
+        }
+        
         if ($program->availability !== 'available') {
             return response()->json([
                 'success' => false,

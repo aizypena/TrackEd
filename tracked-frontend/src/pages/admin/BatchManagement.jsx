@@ -241,8 +241,9 @@ const BatchManagement = () => {
                   <option value="finished">Finished</option>
                 </select>
                 <button
-                  onClick={() => setLoading(true)}
+                  onClick={fetchBatches}
                   className="p-2 text-gray-600 hover:cursor-pointer hover:text-gray-900 hover:bg-gray-100 rounded-lg"
+                  disabled={loading}
                 >
                   <MdRefresh className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
                 </button>
