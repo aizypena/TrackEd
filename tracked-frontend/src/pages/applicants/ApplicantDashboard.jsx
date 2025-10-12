@@ -275,7 +275,7 @@ const ApplicantDashboard = () => {
                 Browse our comprehensive catalog of technical and vocational training programs designed for your career growth.
               </p>
               <button 
-                onClick={() => navigate('/applicants/training-programs')}
+                onClick={() => navigate('/applicant/training-programs')}
                 className="w-full bg-tracked-primary hover:cursor-pointer hover:bg-tracked-primary/90 text-white px-6 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-sm hover:shadow-md"
               >
                 Browse Programs
@@ -300,7 +300,7 @@ const ApplicantDashboard = () => {
                 Upload and manage all required documents for your application and enrollment process securely.
               </p>
               <button 
-                onClick={() => navigate('/applicants/manage-documents')}
+                onClick={() => navigate('/applicant/manage-documents')}
                 className="w-full bg-tracked-primary hover:cursor-pointer hover:bg-tracked-primary/90 text-white px-6 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-sm hover:shadow-md"
               >
                 Manage Documents

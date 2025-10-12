@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { IoEye, IoEyeOff } from 'react-icons/io5';
 import Navbar from '../layouts/applicants/Navbar';
@@ -12,6 +12,29 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+    // Check if user is already logged in
+  useEffect(() => {
+    const checkExistingAuth = () => {
+      try {
+        const token = localStorage.getItem('userToken') || sessionStorage.getItem('userToken');
+        const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
+        
+        if (token && userData) {
+          const parsedUser = JSON.parse(userData);
+          
+          // If user is applicant, redirect to dashboard
+          if (parsedUser.role === 'applicant') {
+            navigate('/applicant/dashboard', { replace: true });
+          }
+        }
+      } catch (error) {
+        console.error('Error checking authentication:', error);
+      }
+    };
+
+    checkExistingAuth();
+  }, [navigate]);
 
   const handleChange = (e) => {
     setFormData({
@@ -73,7 +96,7 @@ const Login = () => {
           localStorage.setItem('userData', JSON.stringify(userData));
           
           // Navigate to applicant dashboard
-          navigate('/applicants/dashboard');
+          navigate('/applicant/dashboard');
         } else {
           setError('Access denied. Only applicants and students can access this portal.');
         }

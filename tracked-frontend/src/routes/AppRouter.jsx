@@ -1,7 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Home from '../pages/Home';
 import Login from '../pages/Login';
-import Signup from '../pages/Signup';
 import ForgotPassword from '../pages/ForgotPassword';
 import About from '../pages/About';
 import CourseOffered from '../pages/CourseOffered';
@@ -84,7 +83,6 @@ const AppRouter = () => {
         {/* Home/Landing Page */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
         <Route path="/about" element={<About />} />
         <Route path="/courses" element={<CourseOffered />} />
         <Route path="/faq" element={<FAQ />} />
@@ -272,8 +270,8 @@ const AppRouter = () => {
         {/* Student LMS */}
         
         {/* Applicant Routes */}
-        <Route path="/applicants" element={<Navigate to="/applicants/dashboard" replace />} />
-        <Route path="/applicants/*" element={<ApplicantRoutes />} />
+        <Route path="/applicant" element={<Navigate to="/applicant/dashboard" replace />} />
+        <Route path="/applicant/*" element={<ApplicantRoutes />} />
         
         {/* 404 Page */}
         <Route path="*" element={<NotFound />} />

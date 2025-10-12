@@ -1,7 +1,34 @@
+import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import Navbar from '../layouts/applicants/Navbar';
 import Footer from '../layouts/applicants/Footer';
 
 const About = () => {
+  const navigate = useNavigate();
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkExistingAuth = () => {
+      try {
+        const token = localStorage.getItem('userToken') || sessionStorage.getItem('userToken');
+        const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
+        
+        if (token && userData) {
+          const parsedUser = JSON.parse(userData);
+          
+          // If user is applicant, redirect to dashboard
+          if (parsedUser.role === 'applicant') {
+            navigate('/applicant/dashboard', { replace: true });
+          }
+        }
+      } catch (error) {
+        console.error('Error checking authentication:', error);
+      }
+    };
+
+    checkExistingAuth();
+  }, [navigate]);
+
   return (
     <div className="min-h-screen bg-white">
       <Navbar />

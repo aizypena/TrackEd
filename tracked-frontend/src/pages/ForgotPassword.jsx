@@ -1,13 +1,37 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { MdEmail, MdArrowBack, MdCheckCircle } from 'react-icons/md';
 import Navbar from '../layouts/applicants/Navbar';
 
 const ForgotPassword = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState('');
+
+    // Check if user is already logged in
+  useEffect(() => {
+    const checkExistingAuth = () => {
+      try {
+        const token = localStorage.getItem('userToken') || sessionStorage.getItem('userToken');
+        const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
+        
+        if (token && userData) {
+          const parsedUser = JSON.parse(userData);
+          
+          // If user is applicant, redirect to dashboard
+          if (parsedUser.role === 'applicant') {
+            navigate('/applicant/dashboard', { replace: true });
+          }
+        }
+      } catch (error) {
+        console.error('Error checking authentication:', error);
+      }
+    };
+
+    checkExistingAuth();
+  }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

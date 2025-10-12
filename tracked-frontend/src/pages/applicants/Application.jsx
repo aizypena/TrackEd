@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { AiOutlineEye, AiOutlineEyeInvisible } from 'react-icons/ai';
 import Navbar from '../../layouts/applicants/Navbar';
 import { nationalities } from '../../utils/nationalities';
@@ -7,12 +7,37 @@ import { applicationAPI } from '../../services/applicationAPI';
 import { programAPI } from '../../services/programAPI';
 
 const Signup = () => {
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [availablePrograms, setAvailablePrograms] = useState([]);
   const [loadingPrograms, setLoadingPrograms] = useState(true);
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkExistingAuth = () => {
+      try {
+        const token = localStorage.getItem('userToken') || sessionStorage.getItem('userToken');
+        const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
+        
+        if (token && userData) {
+          const parsedUser = JSON.parse(userData);
+          
+          // If user is applicant, redirect to dashboard
+          if (parsedUser.role === 'applicant') {
+            navigate('/applicant/dashboard', { replace: true });
+          }
+        }
+      } catch (error) {
+        console.error('Error checking existing auth:', error);
+      }
+    };
+
+    checkExistingAuth();
+  }, [navigate]);
+
   const [formData, setFormData] = useState({
     // Personal Information
     firstName: '',

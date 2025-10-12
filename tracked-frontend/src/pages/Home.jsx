@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import Navbar from '../layouts/applicants/Navbar';
 import Footer from '../layouts/applicants/Footer';
 import { 
@@ -19,11 +20,35 @@ import {
 } from 'react-icons/md';
 
 const Home = () => {
+  const navigate = useNavigate();
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkExistingAuth = () => {
+      try {
+        const token = localStorage.getItem('userToken') || sessionStorage.getItem('userToken');
+        const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
+        
+        if (token && userData) {
+          const parsedUser = JSON.parse(userData);
+          
+          // If user is applicant, redirect to dashboard
+          if (parsedUser.role === 'applicant') {
+            navigate('/applicant/dashboard', { replace: true });
+          }
+        }
+      } catch (error) {
+        console.error('Error checking authentication:', error);
+      }
+    };
+
+    checkExistingAuth();
+  }, [navigate]);
   const portals = [
     {
       title: "Apply for Training",
       description: "Start your journey with SMI's TESDA-accredited training programs",
-      link: "/applicants/dashboard",
+      link: "/applicant/dashboard",
       color: "tracked-primary",
       icon: <MdAssignment className="h-8 w-8" />,
       features: ["Browse Programs", "Submit Applications", "Track Status", "Upload Documents"]
@@ -81,7 +106,7 @@ const Home = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-6 justify-center">
               <Link 
-                to="/applicants/dashboard"
+                to="/applicant/dashboard"
                 className="group inline-flex items-center justify-center bg-yellow-500 hover:bg-yellow-400 text-gray-900 font-bold px-8 py-4 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
               >
                 Start Your Application
