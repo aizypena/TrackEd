@@ -7,6 +7,7 @@ use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\BatchController;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 
@@ -66,6 +67,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     
     // Program Routes
     Route::apiResource('programs', ProgramController::class);
+    
+    // Batch Routes
+    Route::apiResource('batches', BatchController::class);
+    Route::get('/batches/{id}/students', [BatchController::class, 'getEnrolledStudents']);
     
     // User Routes
     Route::get('/users', [UserController::class, 'index']);

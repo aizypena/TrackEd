@@ -1,5 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../../layouts/admin/Sidebar';
+import AddBatch from '../../components/admin/AddBatch';
+import ViewBatchStudents from '../../components/admin/ViewBatchStudents';
+import { batchAPI } from '../../services/batchAPI';
+import { programAPI } from '../../services/programAPI';
 import {
   MdMenu,
   MdAdd,
@@ -18,63 +22,68 @@ import {
   MdPlayCircleOutline,
   MdPauseCircleOutline,
   MdCheckCircle,
+  MdVisibility,
 } from 'react-icons/md';
 
 const BatchManagement = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showStudentsModal, setShowStudentsModal] = useState(false);
   const [editingBatch, setEditingBatch] = useState(null);
+  const [selectedBatch, setSelectedBatch] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterProgram, setFilterProgram] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [loading, setLoading] = useState(false);
+  const [batches, setBatches] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [enrolledStudents, setEnrolledStudents] = useState([]);
 
-  // Mock data for programs
-  const programs = [
-    { id: 'bartending-nc-ii', name: 'Bartending NC II' },
-    { id: 'barista-training-nc-ii', name: 'Barista Training NC II' },
-    { id: 'housekeeping-nc-ii', name: 'Housekeeping NC II' },
-    { id: 'food-beverage-nc-ii', name: 'Food and Beverage Services NC II' },
-    { id: 'bread-pastry-nc-ii', name: 'Bread and Pastry Production NC II' },
-    { id: 'events-management-nc-iii', name: 'Events Management NC III' },
-    { id: 'chefs-catering-nc-ii', name: "Chef's Catering Services NC II" },
-    { id: 'cookery-nc-ii', name: 'Cookery NC II' }
-  ];
+  // Fetch batches and programs on mount
+  useEffect(() => {
+    fetchBatches();
+    fetchPrograms();
+  }, []);
 
-  // Mock data for batches
-  const batches = [
-    {
-      id: 1,
-      name: 'Batch 2025-B1',
-      program: 'Bartending NC II',
-      startDate: '2025-10-01',
-      endDate: '2025-12-31',
-      schedule: 'MWF 9:00 AM - 3:00 PM',
-      instructor: 'John Smith',
-      status: 'ongoing',
-      enrolledStudents: 25,
-      maxStudents: 30,
-      completion: 45,
-      classroom: 'Room 101',
-      shifts: ['Morning']
-    },
-    {
-      id: 2,
-      name: 'Batch 2025-B2',
-      program: 'Barista Training NC II',
-      startDate: '2025-10-15',
-      endDate: '2025-12-15',
-      schedule: 'TTH 8:00 AM - 2:00 PM',
-      instructor: 'Maria Garcia',
-      status: 'scheduled',
-      enrolledStudents: 15,
-      maxStudents: 25,
-      completion: 0,
-      classroom: 'Room 102',
-      shifts: ['Afternoon']
-    },
-    // Add more batches as needed
-  ];
+  const fetchBatches = async () => {
+    try {
+      setLoading(true);
+      const response = await batchAPI.getAll({
+        program_id: filterProgram,
+        status: filterStatus,
+        search: searchQuery
+      });
+      if (response.success) {
+        setBatches(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching batches:', error);
+      alert('Failed to fetch batches: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchPrograms = async () => {
+    try {
+      const response = await programAPI.getAll({ availability: 'available' });
+      if (response.success) {
+        setPrograms(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching programs:', error);
+    }
+  };
+
+  // Refresh batches when filters change
+  useEffect(() => {
+    fetchBatches();
+  }, [filterProgram, filterStatus, searchQuery]);
+
+  // Refresh batches when filters change
+  useEffect(() => {
+    fetchBatches();
+  }, [filterProgram, filterStatus, searchQuery]);
 
   const handleAddBatch = () => {
     setShowAddModal(true);
@@ -86,21 +95,45 @@ const BatchManagement = () => {
     setShowAddModal(true);
   };
 
-  const handleDeleteBatch = (batchId) => {
-    // Implement delete logic
-    console.log('Deleting batch:', batchId);
+  const handleDeleteBatch = async (batchId) => {
+    if (!window.confirm('Are you sure you want to delete this batch?')) {
+      return;
+    }
+
+    try {
+      const response = await batchAPI.delete(batchId);
+      if (response.success) {
+        alert('Batch deleted successfully');
+        fetchBatches();
+      }
+    } catch (error) {
+      console.error('Error deleting batch:', error);
+      alert('Failed to delete batch: ' + error.message);
+    }
+  };
+
+  const handleViewStudents = async (batch) => {
+    try {
+      setSelectedBatch(batch);
+      const response = await batchAPI.getEnrolledStudents(batch.id);
+      if (response.success) {
+        setEnrolledStudents(response.data.students);
+        setShowStudentsModal(true);
+      }
+    } catch (error) {
+      console.error('Error fetching enrolled students:', error);
+      alert('Failed to fetch enrolled students: ' + error.message);
+    }
   };
 
   const getStatusColor = (status) => {
     switch (status) {
       case 'ongoing':
         return 'bg-green-100 text-green-800';
-      case 'scheduled':
+      case 'not started':
         return 'bg-blue-100 text-blue-800';
-      case 'completed':
+      case 'finished':
         return 'bg-gray-100 text-gray-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -110,137 +143,27 @@ const BatchManagement = () => {
     switch (status) {
       case 'ongoing':
         return <MdPlayCircleOutline className="h-4 w-4 mr-1" />;
-      case 'scheduled':
+      case 'not started':
         return <MdCalendarToday className="h-4 w-4 mr-1" />;
-      case 'completed':
+      case 'finished':
         return <MdCheckCircle className="h-4 w-4 mr-1" />;
-      case 'cancelled':
-        return <MdClose className="h-4 w-4 mr-1" />;
       default:
         return <MdAccessTime className="h-4 w-4 mr-1" />;
     }
   };
 
-  const BatchModal = ({ isOpen, onClose, batch }) => {
-    if (!isOpen) return null;
-
-    return (
-      <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div className="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-semibold text-gray-900">
-              {batch ? 'Edit Batch' : 'Create New Batch'}
-            </h3>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-500"
-            >
-              <MdClose className="h-6 w-6" />
-            </button>
-          </div>
-          <form className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Batch Name</label>
-                <input
-                  type="text"
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                  defaultValue={batch?.name}
-                  placeholder="e.g., Batch 2025-B1"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Program</label>
-                <select
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                  defaultValue={batch?.program}
-                >
-                  {programs.map(program => (
-                    <option key={program.id} value={program.name}>{program.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Start Date</label>
-                <input
-                  type="date"
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                  defaultValue={batch?.startDate}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">End Date</label>
-                <input
-                  type="date"
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                  defaultValue={batch?.endDate}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Maximum Students</label>
-                <input
-                  type="number"
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                  defaultValue={batch?.maxStudents}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Instructor</label>
-                <input
-                  type="text"
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                  defaultValue={batch?.instructor}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Classroom</label>
-                <input
-                  type="text"
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                  defaultValue={batch?.classroom}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Status</label>
-                <select
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                  defaultValue={batch?.status}
-                >
-                  <option value="scheduled">Scheduled</option>
-                  <option value="ongoing">Ongoing</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Schedule</label>
-              <input
-                type="text"
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                defaultValue={batch?.schedule}
-                placeholder="e.g., MWF 9:00 AM - 3:00 PM"
-              />
-            </div>
-            <div className="flex justify-end space-x-3 pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                {batch ? 'Update Batch' : 'Create Batch'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
+  const formatSchedule = (days, timeStart, timeEnd) => {
+    const dayAbbr = {
+      'Monday': 'M',
+      'Tuesday': 'T',
+      'Wednesday': 'W',
+      'Thursday': 'Th',
+      'Friday': 'F',
+      'Saturday': 'S',
+      'Sunday': 'Su'
+    };
+    const daysStr = days.map(d => dayAbbr[d] || d).join('');
+    return `${daysStr} ${timeStart} - ${timeEnd}`;
   };
 
   return (
@@ -268,7 +191,7 @@ const BatchManagement = () => {
             <div>
               <button
                 onClick={handleAddBatch}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="inline-flex items-center hover:cursor-pointer px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 <MdAdd className="h-5 w-5 mr-2" />
                 Create Batch
@@ -304,7 +227,7 @@ const BatchManagement = () => {
                 >
                   <option value="all">All Programs</option>
                   {programs.map(program => (
-                    <option key={program.id} value={program.id}>{program.name}</option>
+                    <option key={program.id} value={program.id}>{program.title}</option>
                   ))}
                 </select>
                 <select
@@ -313,14 +236,13 @@ const BatchManagement = () => {
                   className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="all">All Status</option>
-                  <option value="scheduled">Scheduled</option>
+                  <option value="not started">Not Started</option>
                   <option value="ongoing">Ongoing</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
+                  <option value="finished">Finished</option>
                 </select>
                 <button
                   onClick={() => setLoading(true)}
-                  className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
+                  className="p-2 text-gray-600 hover:cursor-pointer hover:text-gray-900 hover:bg-gray-100 rounded-lg"
                 >
                   <MdRefresh className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
                 </button>
@@ -335,7 +257,7 @@ const BatchManagement = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Batch Details
+                      Batch ID
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Program
@@ -355,78 +277,84 @@ const BatchManagement = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {batches.map((batch) => (
-                    <tr key={batch.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">
-                              {batch.name}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {batch.instructor}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {batch.classroom}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{batch.program}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{batch.schedule}</div>
-                        <div className="text-xs text-gray-500">
-                          {new Date(batch.startDate).toLocaleDateString()} - {new Date(batch.endDate).toLocaleDateString()}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {batch.enrolledStudents}/{batch.maxStudents}
-                        </div>
-                        <div className="w-24 bg-gray-200 rounded-full h-2.5 mt-1">
-                          <div
-                            className="bg-blue-600 h-2.5 rounded-full"
-                            style={{ width: `${(batch.enrolledStudents / batch.maxStudents) * 100}%` }}
-                          ></div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(batch.status)}`}>
-                          {getStatusIcon(batch.status)}
-                          {batch.status}
-                        </span>
-                        {batch.completion > 0 && (
-                          <div className="mt-1">
-                            <div className="text-xs text-gray-500">Completion</div>
-                            <div className="w-24 bg-gray-200 rounded-full h-2.5 mt-1">
-                              <div
-                                className="bg-green-600 h-2.5 rounded-full"
-                                style={{ width: `${batch.completion}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex items-center justify-end space-x-3">
-                          <button
-                            onClick={() => handleEditBatch(batch)}
-                            className="text-blue-600 hover:text-blue-900"
-                          >
-                            <MdEdit className="h-5 w-5" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteBatch(batch.id)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            <MdDelete className="h-5 w-5" />
-                          </button>
-                        </div>
+                  {loading ? (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
+                        Loading batches...
                       </td>
                     </tr>
-                  ))}
+                  ) : batches.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
+                        No batches found.
+                      </td>
+                    </tr>
+                  ) : (
+                    batches.map((batch) => (
+                      <tr key={batch.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {batch.batch_id}
+                          </div>
+                          {batch.start_date && batch.end_date && (
+                            <div className="text-xs text-gray-500">
+                              {new Date(batch.start_date).toLocaleDateString()} - {new Date(batch.end_date).toLocaleDateString()}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{batch.program?.title || 'N/A'}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {formatSchedule(batch.schedule_days, batch.schedule_time_start, batch.schedule_time_end)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {batch.enrolled_students_count || 0}/{batch.max_students}
+                          </div>
+                          <div className="w-24 bg-gray-200 rounded-full h-2.5 mt-1">
+                            <div
+                              className="bg-blue-600 h-2.5 rounded-full"
+                              style={{ width: `${((batch.enrolled_students_count || 0) / batch.max_students) * 100}%` }}
+                            ></div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(batch.status)}`}>
+                            {getStatusIcon(batch.status)}
+                            {batch.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex items-center justify-end space-x-3">
+                            <button
+                              onClick={() => handleViewStudents(batch)}
+                              className="text-green-600 hover:text-green-900"
+                              title="View Students"
+                            >
+                              <MdVisibility className="h-5 w-5" />
+                            </button>
+                            <button
+                              onClick={() => handleEditBatch(batch)}
+                              className="text-blue-600 hover:text-blue-900"
+                              title="Edit Batch"
+                            >
+                              <MdEdit className="h-5 w-5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteBatch(batch.id)}
+                              className="text-red-600 hover:text-red-900"
+                              title="Delete Batch"
+                            >
+                              <MdDelete className="h-5 w-5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -435,13 +363,27 @@ const BatchManagement = () => {
       </div>
 
       {/* Add/Edit Batch Modal */}
-      <BatchModal
+      <AddBatch
         isOpen={showAddModal}
         onClose={() => {
           setShowAddModal(false);
           setEditingBatch(null);
         }}
         batch={editingBatch}
+        programs={programs}
+        onSuccess={fetchBatches}
+      />
+
+      {/* View Students Modal */}
+      <ViewBatchStudents
+        isOpen={showStudentsModal}
+        onClose={() => {
+          setShowStudentsModal(false);
+          setSelectedBatch(null);
+          setEnrolledStudents([]);
+        }}
+        batch={selectedBatch}
+        students={enrolledStudents}
       />
     </div>
   );
