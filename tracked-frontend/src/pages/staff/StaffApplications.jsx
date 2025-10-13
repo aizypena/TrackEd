@@ -269,12 +269,12 @@ const StaffApplications = () => {
             <div className="flex gap-2 mt-4">
               <button 
                 onClick={fetchApplications}
-                className="flex items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors"
+                className="flex items-center hover:cursor-pointer gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors"
               >
                 <MdRefresh className="h-5 w-5" />
                 Refresh
               </button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
+              <button className="flex hover:cursor-pointer items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
                 <MdDownload className="h-5 w-5" />
                 Export to Excel
               </button>
