@@ -67,7 +67,7 @@ const StaffSidebar = ({ isOpen, onClose, isCollapsed, setIsCollapsed }) => {
       ]
     },
     {
-      name: 'Entrollment Trends',
+      name: 'Enrollment Trends',
       path: '/staff/analytics/enrollment',
       icon: <MdAnalytics className="h-5 w-5" />
     },
