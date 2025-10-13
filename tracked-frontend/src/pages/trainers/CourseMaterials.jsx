@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TrainerSidebar from '../../layouts/trainer/TrainerSidebar';
+import { getTrainerToken } from '../../utils/trainerAuth';
 import { 
   MdUpload, 
   MdDelete, 
@@ -24,6 +25,49 @@ const CourseMaterials = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState('all');
   const [expandedPrograms, setExpandedPrograms] = useState({});
+  const [assignedPrograms, setAssignedPrograms] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch assigned programs on mount
+  useEffect(() => {
+    const fetchAssignedPrograms = async () => {
+      try {
+        const token = getTrainerToken();
+        const response = await fetch('http://localhost:8000/api/trainer/assigned-programs', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setAssignedPrograms(data.programs);
+        } else {
+          console.error('Failed to fetch assigned programs');
+        }
+      } catch (error) {
+        console.error('Error fetching assigned programs:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAssignedPrograms();
+  }, []);
+
+  // Map program codes to match material program values
+  const programCodeMap = {
+    'BART-NC2': 'bartending-nc-ii',
+    'BARI-NC2': 'barista-training-nc-ii',
+    'HOUSE-NC2': 'housekeeping-nc-ii',
+    'FBS-NC2': 'food-beverage-services-nc-ii',
+    'BPP-NC2': 'bread-pastry-production-nc-ii',
+    'EM-NC3': 'events-management-nc-iii',
+    'CCS-NC2': 'chefs-catering-services-nc-ii',
+    'COOK-NC2': 'cookery-nc-ii',
+  };
 
   const programs = [
     { value: 'bartending-nc-ii', label: 'Bartending NC II', color: 'blue' },
@@ -35,6 +79,19 @@ const CourseMaterials = () => {
     { value: 'chefs-catering-services-nc-ii', label: "Chef's Catering Services NC II", color: 'orange' },
     { value: 'cookery-nc-ii', label: 'Cookery NC II', color: 'red' },
   ];
+
+  // Filter programs to only show assigned ones
+  const filteredPrograms = programs.filter(program => {
+    // If still loading or no assigned programs, show all (or show none)
+    if (loading) return false;
+    if (assignedPrograms.length === 0) return false;
+    
+    // Check if this program is assigned to the trainer
+    return assignedPrograms.some(assigned => {
+      const mappedCode = programCodeMap[assigned.code];
+      return mappedCode === program.value;
+    });
+  });
 
   const materialTypes = [
     { value: 'all', label: 'All Types' },
@@ -294,7 +351,19 @@ const CourseMaterials = () => {
 
         {/* Content - Program-based layout */}
         <div className="p-6 space-y-6">
-          {programs.map((program) => {
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              <p className="mt-4 text-gray-600">Loading assigned programs...</p>
+            </div>
+          ) : filteredPrograms.length === 0 ? (
+            <div className="bg-white rounded-lg shadow-md p-12 text-center">
+              <MdFolder className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+              <h3 className="text-xl font-semibold text-gray-700 mb-2">No Programs Assigned</h3>
+              <p className="text-gray-500">You don't have any programs assigned yet. Please contact the administrator.</p>
+            </div>
+          ) : (
+            filteredPrograms.map((program) => {
             const programMaterials = getProgramMaterials(program.value);
             const isExpanded = expandedPrograms[program.value];
             
@@ -415,7 +484,8 @@ const CourseMaterials = () => {
                 )}
               </div>
             );
-          })}
+          })
+          )}
         </div>
       </div>
     </div>

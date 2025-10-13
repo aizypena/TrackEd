@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\ApplicationController;
@@ -202,6 +203,23 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
     
     Route::get('/applications', [ApplicationController::class, 'list']);
+    
+    // Trainer Routes
+    Route::get('/trainer/assigned-programs', function (Request $request) {
+        $user = $request->user();
+        
+        // Get distinct programs assigned to this trainer through batches
+        $programs = DB::table('batches')
+            ->join('programs', 'batches.program_id', '=', 'programs.id')
+            ->where('batches.trainer_id', $user->id)
+            ->select('programs.id', 'programs.name', 'programs.code')
+            ->distinct()
+            ->get();
+        
+        return response()->json([
+            'programs' => $programs
+        ]);
+    });
     
     // Program Routes
     Route::apiResource('programs', ProgramController::class);

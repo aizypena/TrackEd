@@ -71,10 +71,10 @@ const TrainerSidebar = ({ user, isOpen, onClose, isCollapsed, setIsCollapsed }) 
         fixed inset-y-0 left-0 z-50 flex flex-col transition-all duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         ${isCollapsed ? 'w-16' : 'w-64'}
-        bg-blue-900 shadow-lg border-r border-blue-800
+        bg-tracked-primary shadow-lg border-r border-tracked-primary-dark
       `}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-blue-800">
+        <div className="flex items-center justify-between p-4 border-b border-tracked-primary-dark">
           {!isCollapsed && (
             <div className="flex items-center space-x-3">
               <div className="w-12 h-12 overflow-hidden rounded-lg bg-white p-1">
@@ -94,14 +94,14 @@ const TrainerSidebar = ({ user, isOpen, onClose, isCollapsed, setIsCollapsed }) 
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className="hidden lg:block p-1.5 rounded-md text-blue-200 hover:text-white hover:bg-blue-800 hover:cursor-pointer"
+              className="hidden lg:block p-1.5 rounded-md text-blue-200 hover:text-white hover:bg-tracked-primary-dark hover:cursor-pointer"
             >
               <MdMenu className="h-5 w-5" />
             </button>
             
             <button
               onClick={onClose}
-              className="lg:hidden p-1.5 rounded-md text-blue-200 hover:text-white hover:bg-blue-800"
+              className="lg:hidden p-1.5 rounded-md text-blue-200 hover:text-white hover:bg-tracked-primary-dark"
             >
               <MdClose className="h-5 w-5" />
             </button>
@@ -110,9 +110,9 @@ const TrainerSidebar = ({ user, isOpen, onClose, isCollapsed, setIsCollapsed }) 
 
         {/* User Profile */}
         {!isCollapsed && (
-          <div className="p-4 border-b border-blue-800">
+          <div className="p-4 border-b border-tracked-primary-dark">
             <div className="flex items-center space-x-3">
-              <div className="h-10 w-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
+              <div className="h-10 w-10 bg-tracked-secondary rounded-full flex items-center justify-center text-white font-semibold">
                 {user?.first_name ? user.first_name.charAt(0).toUpperCase() : 'T'}
               </div>
               <div className="flex-1 min-w-0">
@@ -125,7 +125,7 @@ const TrainerSidebar = ({ user, isOpen, onClose, isCollapsed, setIsCollapsed }) 
                   {user?.email || 'trainer@smiinstitute.com'}
                 </p>
                 <div className="flex items-center space-x-2 mt-1">
-                  <span className="inline-block px-2 py-0.5 text-xs font-medium bg-blue-700 text-blue-100 rounded">
+                  <span className="inline-block px-2 py-0.5 text-xs font-medium bg-tracked-secondary text-white rounded">
                     Trainer
                   </span>
                 </div>
@@ -144,8 +144,8 @@ const TrainerSidebar = ({ user, isOpen, onClose, isCollapsed, setIsCollapsed }) 
                 className={`
                   flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors relative
                   ${isActivePath(item.path)
-                    ? 'bg-yellow-500 text-white shadow-lg border-l-4 border-yellow-300'
-                    : 'text-blue-100 hover:text-white hover:bg-blue-800'
+                    ? 'bg-tracked-secondary text-white shadow-lg border-l-4 border-tracked-secondary-light'
+                    : 'text-blue-100 hover:text-white hover:bg-tracked-primary-dark'
                   }
                   ${isCollapsed ? 'justify-center' : ''}
                 `}
@@ -155,7 +155,7 @@ const TrainerSidebar = ({ user, isOpen, onClose, isCollapsed, setIsCollapsed }) 
                   {item.icon}
                 </span>
                 {isActivePath(item.path) && (
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-yellow-300 rounded-r-full"></div>
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-tracked-secondary-light rounded-r-full"></div>
                 )}
                 {!isCollapsed && (
                   <>
@@ -175,12 +175,12 @@ const TrainerSidebar = ({ user, isOpen, onClose, isCollapsed, setIsCollapsed }) 
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-blue-800">
+        <div className="p-4 border-t border-tracked-primary-dark">
           {!isCollapsed && (
             <div className="space-y-2">
               <Link
                 to="/trainer-lms/profile"
-                className="flex items-center px-3 py-2 text-sm font-medium text-blue-100 rounded-md hover:text-white hover:bg-blue-800 transition-colors"
+                className="flex items-center px-3 py-2 text-sm font-medium text-blue-100 rounded-md hover:text-white hover:bg-tracked-primary-dark transition-colors"
               >
                 <MdPerson className="mr-3 h-4 w-4" />
                 Profile Settings

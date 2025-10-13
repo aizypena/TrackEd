@@ -162,7 +162,7 @@ function Sidebar({ isOpen, onClose }) {
         transition-transform duration-300 ease-in-out
       `}>
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-4 text-white">
+        <div className="bg-tracked-primary p-4 text-white">
           <div className="flex items-center space-x-3">
             <div className="w-12 h-12 overflow-hidden rounded-lg bg-white p-1">
               <img 
@@ -181,8 +181,8 @@ function Sidebar({ isOpen, onClose }) {
         {/* Admin Profile Section */}
         <div className="p-4 border-b border-gray-200 bg-gray-50">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-blue-100 rounded-full">
-              <MdAccountCircle className="h-8 w-8 text-blue-600" />
+            <div className="p-2 bg-tracked-primary/10 rounded-full">
+              <MdAccountCircle className="h-8 w-8 text-tracked-primary" />
             </div>
             <div className="flex-1">
               <p className="font-semibold text-gray-900 text-sm">
@@ -207,7 +207,7 @@ function Sidebar({ isOpen, onClose }) {
                     cursor-pointer
                     ${item.highlight ? 'bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200' : ''}
                     ${isActiveRoute(item.path) || hasActiveSubmenu(item.submenu) 
-                      ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-700' 
+                      ? 'bg-tracked-primary/10 text-tracked-primary border-l-4 border-tracked-primary' 
                       : 'text-gray-700 hover:bg-gray-50'
                     }
                   `}
@@ -222,7 +222,7 @@ function Sidebar({ isOpen, onClose }) {
                   <div className="flex items-center space-x-3">
                     <item.icon className={`h-5 w-5 ${
                       item.highlight ? 'text-purple-600' : 
-                      (isActiveRoute(item.path) || hasActiveSubmenu(item.submenu)) ? 'text-blue-600' : 'text-gray-500'
+                      (isActiveRoute(item.path) || hasActiveSubmenu(item.submenu)) ? 'text-tracked-primary' : 'text-gray-500'
                     }`} />
                     <span className={`font-medium text-sm ${
                       item.highlight ? 'text-purple-800' : ''
@@ -255,7 +255,7 @@ function Sidebar({ isOpen, onClose }) {
                         className={`
                           flex items-center justify-between px-4 py-2 rounded-lg cursor-pointer transition-colors duration-200
                           ${isActiveRoute(subItem.path) 
-                            ? 'bg-blue-100 text-blue-800 border-l-2 border-blue-600' 
+                            ? 'bg-tracked-primary/10 text-tracked-primary border-l-2 border-tracked-primary' 
                             : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                           }
                         `}
@@ -263,7 +263,7 @@ function Sidebar({ isOpen, onClose }) {
                       >
                         <div className="flex items-center space-x-3">
                           <subItem.icon className={`h-4 w-4 ${
-                            isActiveRoute(subItem.path) ? 'text-blue-600' : 'text-gray-400'
+                            isActiveRoute(subItem.path) ? 'text-tracked-primary' : 'text-gray-400'
                           }`} />
                           <span className="text-sm">{subItem.name}</span>
                         </div>
