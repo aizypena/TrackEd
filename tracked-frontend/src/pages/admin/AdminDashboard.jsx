@@ -12,14 +12,15 @@ const AdminDashboard = () => {
   
   // Get admin user info from localStorage
   const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+  const adminToken = localStorage.getItem('adminToken');
   
   const [dashboardStats, setDashboardStats] = useState({
-    totalApplicants: 1247,
-    activeApplications: 89,
-    approvedApplications: 156,
-    pendingApplications: 43,
-    rejectedApplications: 12,
-    waitlistedApplicants: 23,
+    totalApplicants: 0,
+    activeApplications: 0,
+    approvedApplications: 0,
+    pendingApplications: 0,
+    rejectedApplications: 0,
+    waitlistedApplicants: 0,
     tesdaVouchers: 125,
     eligibleApplicants: 89,
     conversionRate: 74.3,
@@ -85,6 +86,50 @@ const AdminDashboard = () => {
       timestamp: '4 hours ago'
     }
   ]);
+
+  // Fetch dashboard statistics from API
+  useEffect(() => {
+    const fetchDashboardStats = async () => {
+      try {
+        console.log('Fetching dashboard stats with token:', adminToken ? 'Token exists' : 'No token');
+        
+        const response = await fetch('http://localhost:8000/api/admin/dashboard-stats', {
+          headers: {
+            'Authorization': `Bearer ${adminToken}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        });
+
+        console.log('Response status:', response.status);
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Dashboard stats received:', data);
+          
+          setDashboardStats(prev => ({
+            ...prev,
+            totalApplicants: data.totalApplicants,
+            activeApplications: data.activeApplications,
+            approvedApplications: data.approvedApplications,
+            pendingApplications: data.pendingApplications,
+            rejectedApplications: data.rejectedApplications,
+            waitlistedApplicants: data.waitlistedApplicants
+          }));
+        } else {
+          console.error('Failed to fetch dashboard stats:', response.status, response.statusText);
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+      }
+    };
+
+    if (adminToken) {
+      fetchDashboardStats();
+    } else {
+      console.log('No admin token found');
+    }
+  }, [adminToken]);
 
   const getStatusIcon = (status) => {
     switch (status) {

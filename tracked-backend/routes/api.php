@@ -183,6 +183,24 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     
     // Admin Routes
+    Route::get('/admin/dashboard-stats', function (Request $request) {
+        // Query users with role 'applicant'
+        $totalApplicants = \App\Models\User::where('role', 'applicant')->count();
+        $activeApplications = \App\Models\User::where('role', 'applicant')->where('status', 'active')->count();
+        $approvedApplications = \App\Models\User::where('role', 'applicant')->where('application_status', 'approved')->count();
+        $pendingApplications = \App\Models\User::where('role', 'applicant')->where('application_status', 'pending')->count();
+        $rejectedApplications = \App\Models\User::where('role', 'applicant')->where('application_status', 'rejected')->count();
+        
+        return response()->json([
+            'totalApplicants' => $totalApplicants,
+            'activeApplications' => $activeApplications,
+            'approvedApplications' => $approvedApplications,
+            'pendingApplications' => $pendingApplications,
+            'rejectedApplications' => $rejectedApplications,
+            'waitlistedApplicants' => 0, // Add logic if you have waitlisted status
+        ]);
+    });
+    
     Route::get('/applications', [ApplicationController::class, 'list']);
     
     // Program Routes
