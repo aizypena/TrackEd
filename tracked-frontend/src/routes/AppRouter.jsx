@@ -51,23 +51,11 @@ import AdminProfileSettings from '../pages/admin/AdminProfileSettings';
 //trainer
 import TrainerLogin from '../pages/trainers/TrainerLogin';
 
+//staff
+import StaffLogin from '../pages/staff/StaffLogin';
+
 // Protected Route Component
 import ProtectedAdminRoute from '../components/ProtectedAdminRoute';
-
-// Staff Routes
-import StaffDashboard from '../pages/staff/StaffDashboard';
-import StaffApplications from '../pages/staff/StaffApplications';
-import StaffEnrollmentsRecord from '../pages/staff/StaffEnrollmentsRecord';
-import StaffDocumentManagement from '../pages/staff/StaffDocumentManagement';
-import StaffStudentProfile from '../pages/staff/StaffStudentProfile';
-import StaffAcademicRecords from '../pages/staff/StaffAcademicRecords';
-import StaffPaymentRecords from '../pages/staff/StaffPaymentRecords';
-import StaffTrainingSched from '../pages/staff/StaffTrainingSched';
-import StaffBatchManagement from '../pages/staff/StaffBatchManagement';
-import StaffAssessmentResults from '../pages/staff/StaffAssessmentResults';
-import StaffEquipment from '../pages/staff/StaffEquipment';
-import StaffStockTransactions from '../pages/staff/StaffStockTransactions';
-import StaffEnrollmentTrends from '../pages/staff/StaffEnrollmentTrends';
 
 const AppRouter = () => {
   return (
@@ -98,6 +86,9 @@ const AppRouter = () => {
         <Route path="/smi-lms/profile" element={<ProfileSettings />} />
 
         {/* SMI LMS TRAINER */}
+
+        {/* Staff Routes */}
+        <Route path="/staff/login" element={<StaffLogin />} />
 
         {/* Admin Routes */}
         <Route path="/admin/login" element={<AdminLogin />} />
@@ -241,22 +232,10 @@ const AppRouter = () => {
         <Route path="/trainer-lms/*" element={<TrainerRoutes />} />
 
         {/* Staff Routes */}
-        <Route path="staff/dashboard" element={<StaffDashboard />} />
-        <Route path="/staff/enrollments/applications" element={<StaffApplications />} />
-        <Route path="/staff/enrollments/records" element={<StaffEnrollmentsRecord />} />
-        <Route path="/staff/enrollments/documents" element={<StaffDocumentManagement />} />
-        <Route path='/staff/students/profiles' element={<StaffStudentProfile />} />
-        <Route path='/staff/students/academics' element={<StaffAcademicRecords />} />
-        <Route path='/staff/students/payments' element={<StaffPaymentRecords />} />
-        <Route path='/staff/training/schedule' element={<StaffTrainingSched />} />
-        <Route path='/staff/training/batches' element={<StaffBatchManagement />} />
-        <Route path='/staff/training/assessments' element={<StaffAssessmentResults />} />
-        <Route path='/staff/inventory/equipment' element={<StaffEquipment />} />
-        <Route path='/staff/inventory/transactions' element={<StaffStockTransactions />} />
-        <Route path='/staff/analytics/enrollment' element={<StaffEnrollmentTrends />} />
+        <Route path="/staff/login" element={<StaffLogin />} />
+        <Route path="/staff" element={<Navigate to="/staff/dashboard" replace />} />
+        <Route path="/staff/*" element={<StaffRoutes />} />
 
-        {/* Student LMS */}
-        
         {/* Applicant Routes */}
         <Route path="/applicant" element={<Navigate to="/applicant/dashboard" replace />} />
         <Route path="/applicant/*" element={<ApplicantRoutes />} />

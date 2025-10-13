@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { staffLogout } from '../../utils/staffAuth';
 import {
   MdDashboard,
   MdPeople,
@@ -217,7 +218,7 @@ const StaffSidebar = ({ isOpen, onClose, isCollapsed, setIsCollapsed }) => {
           </Link>
           <button
             className="w-full mt-2 flex items-center hover:cursor-pointer px-3 py-2 text-red-300 rounded-md hover:bg-tracked-secondary hover:bg-opacity-90 hover:text-white"
-            onClick={() => {/* Add logout handler */}}
+            onClick={staffLogout}
           >
             <MdLogout className="h-5 w-5" />
             {!isCollapsed && <span className="ml-3">Logout</span>}

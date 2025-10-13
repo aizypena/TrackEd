@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
         // Run the Admin Seeder first
         $this->call([
             AdminSeeder::class,
+            StaffTrainerSeeder::class,
             TestUsersSeeder::class,
         ]);
 

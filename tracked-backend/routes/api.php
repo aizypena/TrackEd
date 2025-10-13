@@ -92,6 +92,47 @@ Route::post('/trainer/login', function (Request $request) {
     ]);
 });
 
+Route::post('/staff/login', function (Request $request) {
+    $request->validate([
+        'email' => 'required|string|email',
+        'password' => 'required|string',
+    ]);
+
+    // Find staff or trainer user
+    $user = User::where('email', $request->email)
+                ->whereIn('role', ['staff', 'trainer'])
+                ->first();
+
+    if (!$user || !Hash::check($request->password, $user->password)) {
+        return response()->json([
+            'message' => 'Invalid credentials. Please check your email and password.'
+        ], 401);
+    }
+
+    // Check if user account is active
+    if ($user->status !== 'active') {
+        return response()->json([
+            'message' => 'Your account is not active. Please contact the administrator.'
+        ], 403);
+    }
+
+    // Delete existing tokens and create new one
+    $user->tokens()->delete();
+    $token = $user->createToken('staff-token')->plainTextToken;
+
+    return response()->json([
+        'token' => $token,
+        'user' => [
+            'id' => $user->id,
+            'first_name' => $user->first_name,
+            'last_name' => $user->last_name,
+            'email' => $user->email,
+            'role' => $user->role,
+            'status' => $user->status,
+        ]
+    ]);
+});
+
 // Protected Routes
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/user', function (Request $request) {
