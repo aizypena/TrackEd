@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { setTrainerAuth, isTrainerAuthenticated } from '../../utils/trainerAuth';
 import { 
   MdEmail,
   MdLock,
@@ -23,10 +24,7 @@ const TrainerLogin = () => {
 
   // Check if trainer is already logged in
   useEffect(() => {
-    const trainerToken = localStorage.getItem('trainerToken');
-    const trainerUser = localStorage.getItem('trainerUser');
-    
-    if (trainerToken && trainerUser) {
+    if (isTrainerAuthenticated()) {
       navigate('/trainer-lms/dashboard', { replace: true });
     }
   }, [navigate]);
@@ -64,10 +62,9 @@ const TrainerLogin = () => {
       const data = await response.json();
       
       if (response.ok && data.token) {
-        // Store auth data
-        localStorage.setItem('trainerToken', data.token);
-        localStorage.setItem('trainerUser', JSON.stringify(data.user));
-        navigate('/trainer/dashboard');
+        // Store auth data using utility function
+        setTrainerAuth(data.token, data.user);
+        navigate('/trainer-lms/dashboard');
       } else {
         setError(data.message || 'Invalid credentials. Please try again.');
       }

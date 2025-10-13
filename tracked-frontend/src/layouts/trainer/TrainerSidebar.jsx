@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { trainerLogout } from '../../utils/trainerAuth';
 import { 
   MdDashboard, 
   MdSchool, 
@@ -53,12 +54,6 @@ const TrainerSidebar = ({ user, isOpen, onClose, isCollapsed, setIsCollapsed }) 
 
   const isActivePath = (path) => {
     return location.pathname === path || location.pathname.startsWith(path + '/');
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    window.location.href = '/login';
   };
 
   return (
@@ -190,7 +185,7 @@ const TrainerSidebar = ({ user, isOpen, onClose, isCollapsed, setIsCollapsed }) 
               </Link>
               
               <button
-                onClick={handleLogout}
+                onClick={trainerLogout}
                 className="w-full flex items-center hover:cursor-pointer px-3 py-2 text-sm font-medium text-red-300 rounded-md hover:text-red-100 hover:bg-red-600 transition-colors"
               >
                 <MdLogout className="mr-3 h-4 w-4" />
@@ -202,7 +197,7 @@ const TrainerSidebar = ({ user, isOpen, onClose, isCollapsed, setIsCollapsed }) 
           {isCollapsed && (
             <div className="space-y-2">
               <button
-                onClick={handleLogout}
+                onClick={trainerLogout}
                 className="w-full flex justify-center p-2 text-red-600 rounded-md hover:text-red-700 hover:bg-red-50 transition-colors"
                 title="Logout"
               >
