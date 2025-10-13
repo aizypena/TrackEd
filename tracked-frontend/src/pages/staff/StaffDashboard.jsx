@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import StaffSidebar from '../../layouts/staff/StaffSidebar';
+import { getStaffToken } from '../../utils/staffAuth';
 import { 
   MdMenu, 
   MdPeople, 
@@ -21,18 +22,14 @@ const StaffDashboard = () => {
 
   // Mock data - replace with actual API calls
   const [stats, setStats] = useState({
-    pendingApplications: 24,
+    pendingApplications: 0,
     activeStudents: 156,
     upcomingAssessments: 8,
     lowStockItems: 5
   });
 
-  const [recentApplications, setRecentApplications] = useState([
-    { id: 1, name: 'Juan Dela Cruz', program: 'Welding NCII', date: '2025-10-06', status: 'pending' },
-    { id: 2, name: 'Maria Santos', program: 'Automotive Servicing', date: '2025-10-05', status: 'pending' },
-    { id: 3, name: 'Pedro Reyes', program: 'Electronics', date: '2025-10-05', status: 'under_review' },
-    { id: 4, name: 'Ana Garcia', program: 'Food Processing', date: '2025-10-04', status: 'pending' }
-  ]);
+  const [recentApplications, setRecentApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [upcomingEvents, setUpcomingEvents] = useState([
     { id: 1, title: 'Welding NCII Assessment', date: '2025-10-10', time: '09:00 AM', type: 'assessment' },
@@ -46,6 +43,64 @@ const StaffDashboard = () => {
     { id: 3, action: 'Assessment completed', user: 'Welding Batch 03', time: '1 day ago' },
     { id: 4, action: 'Equipment request approved', user: 'Workshop A', time: '2 days ago' }
   ]);
+
+  // Fetch recent applications on component mount
+  useEffect(() => {
+    const fetchRecentApplications = async () => {
+      try {
+        const token = getStaffToken();
+        const response = await fetch('http://localhost:8000/api/staff/recent-applications', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setRecentApplications(data.applications);
+          
+          // Update pending applications count
+          const pendingCount = data.applications.filter(
+            app => app.application_status === 'pending'
+          ).length;
+          setStats(prev => ({
+            ...prev,
+            pendingApplications: pendingCount
+          }));
+        } else {
+          console.error('Failed to fetch applications');
+        }
+      } catch (error) {
+        console.error('Error fetching applications:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRecentApplications();
+  }, []);
+
+  // Format date helper
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit' 
+    });
+  };
+
+  // Get status display
+  const getStatusDisplay = (status) => {
+    const statusMap = {
+      'pending': { label: 'Pending', class: 'bg-orange-100 text-orange-800' },
+      'approved': { label: 'Approved', class: 'bg-green-100 text-green-800' },
+      'rejected': { label: 'Rejected', class: 'bg-red-100 text-red-800' }
+    };
+    return statusMap[status] || { label: 'Unknown', class: 'bg-gray-100 text-gray-800' };
+  };
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -171,42 +226,57 @@ const StaffDashboard = () => {
                   View All
                 </Link>
               </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full">
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Applicant</th>
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Program</th>
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Date</th>
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Status</th>
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentApplications.map((app) => (
-                      <tr key={app.id} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="py-3 px-4 text-sm text-gray-800">{app.name}</td>
-                        <td className="py-3 px-4 text-sm text-gray-600">{app.program}</td>
-                        <td className="py-3 px-4 text-sm text-gray-600">{app.date}</td>
-                        <td className="py-3 px-4">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            app.status === 'pending' 
-                              ? 'bg-orange-100 text-orange-800' 
-                              : 'bg-blue-100 text-blue-800'
-                          }`}>
-                            {app.status === 'pending' ? 'Pending' : 'Under Review'}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <button className="text-tracked-secondary hover:text-tracked-primary text-sm font-medium">
-                            Review
-                          </button>
-                        </td>
+              {loading ? (
+                <div className="flex justify-center items-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-tracked-primary"></div>
+                </div>
+              ) : recentApplications.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No recent applications found</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Applicant</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Program</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Date</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Status</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Action</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {recentApplications.slice(0, 5).map((app) => {
+                        const statusInfo = getStatusDisplay(app.application_status);
+                        return (
+                          <tr key={app.id} className="border-b border-gray-100 hover:bg-gray-50">
+                            <td className="py-3 px-4 text-sm text-gray-800">
+                              {app.first_name} {app.last_name}
+                            </td>
+                            <td className="py-3 px-4 text-sm text-gray-600">
+                              {app.course_program_formatted || 'Not specified'}
+                            </td>
+                            <td className="py-3 px-4 text-sm text-gray-600">
+                              {formatDate(app.created_at)}
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusInfo.class}`}>
+                                {statusInfo.label}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <button className="text-tracked-secondary hover:text-tracked-primary text-sm font-medium">
+                                Review
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
 
             {/* Upcoming Events */}

@@ -221,6 +221,46 @@ Route::middleware(['auth:sanctum'])->group(function () {
         ]);
     });
     
+    // Staff Routes
+    Route::get('/staff/recent-applications', function (Request $request) {
+        // Get recent applicants (users with role 'applicant')
+        $applications = \App\Models\User::where('role', 'applicant')
+            ->orderBy('created_at', 'desc')
+            ->take(10)
+            ->select('id', 'first_name', 'last_name', 'email', 'course_program', 'application_status', 'status', 'created_at')
+            ->get();
+        
+        // Format program names
+        $applications = $applications->map(function($app) {
+            if ($app->course_program) {
+                // Check if course_program is a numeric ID
+                if (is_numeric($app->course_program)) {
+                    // Fetch the program title from the programs table
+                    $program = \App\Models\Program::find($app->course_program);
+                    $app->course_program_formatted = $program ? $program->title : 'Not specified';
+                } else {
+                    // Convert slug to readable name
+                    $formatted = str_replace('-', ' ', $app->course_program);
+                    // Apply title case
+                    $formatted = ucwords($formatted);
+                    // Fix NC levels - handle all variations
+                    $formatted = preg_replace('/\bNc\b/', 'NC', $formatted);
+                    $formatted = preg_replace('/\bIi\b/', 'II', $formatted);
+                    $formatted = preg_replace('/\bIii\b/', 'III', $formatted);
+                    $formatted = preg_replace('/\bIv\b/', 'IV', $formatted);
+                    $app->course_program_formatted = $formatted;
+                }
+            } else {
+                $app->course_program_formatted = 'Not specified';
+            }
+            return $app;
+        });
+        
+        return response()->json([
+            'applications' => $applications
+        ]);
+    });
+    
     // Program Routes
     Route::apiResource('programs', ProgramController::class);
     
