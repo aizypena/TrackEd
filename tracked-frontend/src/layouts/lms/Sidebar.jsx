@@ -12,11 +12,9 @@ import {
   MdMenu,
   MdClose,
   MdPerson,
-  MdLogout,
-  MdDownload,
-  MdPlayArrow,
-  MdCheckCircle
+  MdLogout
 } from 'react-icons/md';
+import { studentLogout } from '../../utils/studentAuth';
 
 const Sidebar = ({ user, isOpen, onClose }) => {
   const location = useLocation();
@@ -67,32 +65,12 @@ const Sidebar = ({ user, isOpen, onClose }) => {
     }
   ];
 
-  const quickActions = [
-    {
-      name: 'View Course Materials',
-      icon: <MdDownload className="h-4 w-4" />,
-      action: () => console.log('View Course Materials')
-    },
-    {
-      name: 'Take Assessment',
-      icon: <MdQuiz className="h-4 w-4" />,
-      action: () => console.log('Take Assessment')
-    },
-    {
-      name: 'Check Attendance',
-      icon: <MdCheckCircle className="h-4 w-4" />,
-      action: () => console.log('Check Attendance')
-    }
-  ];
-
   const isActivePath = (path) => {
     return location.pathname === path || location.pathname.startsWith(path + '/');
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    window.location.href = '/login';
+    studentLogout();
   };
 
   return (
@@ -214,27 +192,6 @@ const Sidebar = ({ user, isOpen, onClose }) => {
               </Link>
             ))}
           </div>
-
-          {/* Quick Actions */}
-          {!isCollapsed && (
-            <div className="pt-6">
-              <h3 className="px-3 text-xs font-semibold text-blue-200 uppercase tracking-wider">
-                Quick Actions
-              </h3>
-              <div className="mt-2 space-y-1">
-                {quickActions.map((action) => (
-                  <button
-                    key={action.name}
-                    onClick={action.action}
-                    className="w-full flex items-center px-3 py-2 text-sm font-medium text-blue-100 rounded-md hover:text-white hover:bg-blue-800 transition-colors"
-                  >
-                    <span className="mr-3">{action.icon}</span>
-                    {action.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </nav>
 
         {/* Footer */}
@@ -251,7 +208,7 @@ const Sidebar = ({ user, isOpen, onClose }) => {
               
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center px-3 py-2 text-sm font-medium text-red-300 rounded-md hover:text-red-100 hover:bg-red-600 transition-colors"
+                className="w-full flex hover:cursor-pointer items-center px-3 py-2 text-sm font-medium text-red-300 rounded-md hover:text-red-100 hover:bg-red-600 transition-colors"
               >
                 <MdLogout className="mr-3 h-4 w-4" />
                 Logout
