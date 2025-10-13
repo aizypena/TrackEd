@@ -43,6 +43,21 @@ class StaffTrainerSeeder extends Seeder
             $this->command->info('Trainer user created: trainer@smi.edu.ph / trainer123');
         }
 
-        $this->command->info('Staff and Trainer test users created successfully!');
+        // Create a test student user with known credentials
+        if (!User::where('email', 'student@smi.edu.ph')->exists()) {
+            User::create([
+                'first_name' => 'Test',
+                'last_name' => 'Student',
+                'email' => 'student@smi.edu.ph',
+                'phone_number' => '0912345680',
+                'password' => Hash::make('student123'),
+                'role' => 'student',
+                'status' => 'active',
+                'application_status' => 'approved',
+            ]);
+            $this->command->info('Student user created: student@smi.edu.ph / student123');
+        }
+
+        $this->command->info('Staff, Trainer, and Student test users created successfully!');
     }
 }

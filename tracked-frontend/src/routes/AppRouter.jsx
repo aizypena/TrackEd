@@ -9,21 +9,12 @@ import TermsAndCondition from '../pages/TermsAndCondition';
 import PrivacyPolicy from '../pages/PrivacyPolicy';
 import Application from '../pages/applicants/Application';
 
-
-import StudentDashboard from '../pages/lms/Dashboard';
 import AdminRoutes from './AdminRoutes';
 import StudentRoutes from './StudentRoutes';
 import TrainerRoutes from './TrainerRoutes';
 import StaffRoutes from './StaffRoutes';
 import ApplicantRoutes from './ApplicantRoutes';
 import NotFound from '../pages/NotFound';
-import MyCourses from '../pages/lms/MyCourses';
-import ClassSchedule from '../pages/lms/ClassSchedule';
-import Atttendance from '../pages/lms/Attendance';
-import Assessments from '../pages/lms/Assessments';
-import AssessmentResults from '../pages/lms/AssessmentResults';
-import Certificates from '../pages/lms/Certificates';
-import ProfileSettings from '../pages/lms/ProfileSettings';
 
 // applicant routes
 import ApplicantDashboard from '../pages/applicants/ApplicantDashboard';
@@ -54,6 +45,9 @@ import TrainerLogin from '../pages/trainers/TrainerLogin';
 //staff
 import StaffLogin from '../pages/staff/StaffLogin';
 
+//student
+import StudentLogin from '../pages/lms/StudentLogin';
+
 // Protected Route Component
 import ProtectedAdminRoute from '../components/ProtectedAdminRoute';
 
@@ -74,18 +68,6 @@ const AppRouter = () => {
 
         {/* Applicant Routes */}
         <Route path="/applicant/dashboard" element={<ApplicantDashboard />} />
-
-        {/* SMI LMS Dashboard - Direct Route (student) */}
-        <Route path="/smi-lms/dashboard" element={<StudentDashboard />} />
-        <Route path="/smi-lms/my-courses" element={<MyCourses />} />
-        <Route path="/smi-lms/schedule" element={<ClassSchedule />} />
-        <Route path="/smi-lms/attendance" element={<Atttendance />} />
-        <Route path="/smi-lms/assessments" element={<Assessments />} />
-        <Route path="/smi-lms/assessment-results" element={<AssessmentResults />} />
-        <Route path="/smi-lms/certificates" element={<Certificates />} />
-        <Route path="/smi-lms/profile" element={<ProfileSettings />} />
-
-        {/* SMI LMS TRAINER */}
 
         {/* Staff Routes */}
         <Route path="/staff/login" element={<StaffLogin />} />
@@ -223,6 +205,8 @@ const AppRouter = () => {
         />
 
         {/* Student Routes */}
+        <Route path="/smi-lms/login" element={<StudentLogin />} />
+        <Route path="/smi-lms/*" element={<StudentRoutes />} />
         <Route path="/students" element={<Navigate to="/students/dashboard" replace />} />
         <Route path="/students/*" element={<StudentRoutes />} />
         
