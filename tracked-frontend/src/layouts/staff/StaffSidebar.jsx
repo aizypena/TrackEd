@@ -116,11 +116,11 @@ const StaffSidebar = ({ isOpen, onClose, isCollapsed, setIsCollapsed }) => {
         <div className="flex items-center justify-between p-4">
           {!isCollapsed && (
             <div className="flex items-center space-x-3">
-              <div className="bg-white p-2 rounded-lg">
+              <div className="w-12 h-12 overflow-hidden rounded-lg bg-white p-1">
                 <img 
                   src="/smi-logo.jpg" 
                   alt="SMI Logo" 
-                  className="h-8 w-8 object-cover rounded"
+                  className="w-full h-full object-contain"
                 />
               </div>
               <div>

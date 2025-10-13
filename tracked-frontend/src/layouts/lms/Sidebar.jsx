@@ -94,11 +94,13 @@ const Sidebar = ({ user, isOpen, onClose }) => {
         <div className="flex items-center justify-between p-4 border-b border-blue-800">
           {!isCollapsed && (
             <div className="flex items-center space-x-3">
-              <img 
-                src="/smi-logo.jpg" 
-                alt="SMI Logo" 
-                className="h-8 w-auto"
-              />
+              <div className="w-12 h-12 overflow-hidden rounded-lg bg-white p-1">
+                <img 
+                  src="/smi-logo.jpg" 
+                  alt="SMI Logo" 
+                  className="w-full h-full object-contain"
+                />
+              </div>
               <div>
                 <h2 className="text-lg font-bold text-white">SMI LMS</h2>
                 <p className="text-xs text-blue-200">Learning Portal</p>

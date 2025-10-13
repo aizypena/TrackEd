@@ -77,11 +77,13 @@ const TrainerSidebar = ({ user, isOpen, onClose, isCollapsed, setIsCollapsed }) 
         <div className="flex items-center justify-between p-4 border-b border-blue-800">
           {!isCollapsed && (
             <div className="flex items-center space-x-3">
-              <img 
-                src="/smi-logo.jpg" 
-                alt="SMI Logo" 
-                className="h-8 w-auto"
-              />
+              <div className="w-12 h-12 overflow-hidden rounded-lg bg-white p-1">
+                <img 
+                  src="/smi-logo.jpg" 
+                  alt="SMI Logo" 
+                  className="w-full h-full object-contain"
+                />
+              </div>
               <div>
                 <h2 className="text-lg font-bold text-white">SMI TrackEd</h2>
                 <p className="text-xs text-blue-200">Trainer Portal</p>
