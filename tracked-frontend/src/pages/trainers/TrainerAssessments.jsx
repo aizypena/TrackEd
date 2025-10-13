@@ -11,7 +11,8 @@ import {
   MdPendingActions,
   MdCalendarToday,
   MdDescription,
-  MdBarChart
+  MdBarChart,
+  MdCancel
 } from 'react-icons/md';
 
 const TrainerAssessments = () => {
@@ -38,10 +39,10 @@ const TrainerAssessments = () => {
   ];
 
   const assessments = [
-    { value: 'midterm', label: 'Midterm Assessment' },
-    { value: 'practical-1', label: 'Practical Assessment 1' },
-    { value: 'practical-2', label: 'Practical Assessment 2' },
-    { value: 'final', label: 'Final Assessment' },
+    { value: 'written-test', label: 'Written Test' },
+    { value: 'oral-questioning', label: 'Oral Questioning' },
+    { value: 'demonstration', label: 'Demonstration' },
+    { value: 'observation', label: 'Observation' },
   ];
 
   const students = [
@@ -52,33 +53,29 @@ const TrainerAssessments = () => {
       program: 'bartending-nc-ii',
       section: 'morning-a',
       assessments: {
-        'midterm': {
-          status: 'completed',
+        'written-test': {
           score: 92,
           totalItems: 100,
           submittedAt: '2025-09-15T10:30:00',
           feedback: 'Excellent understanding of core concepts.'
         },
-        'practical-1': {
-          status: 'completed',
+        'oral-questioning': {
           score: 88,
           totalItems: 100,
           submittedAt: '2025-09-20T14:15:00',
-          feedback: 'Good practical skills, needs minor improvement in timing.'
+          feedback: 'Good responses to questions.'
         },
-        'practical-2': {
-          status: 'ongoing',
-          score: null,
+        'demonstration': {
+          score: 90,
           totalItems: 100,
-          submittedAt: null,
-          feedback: null
+          submittedAt: '2025-09-22T14:15:00',
+          feedback: 'Excellent practical demonstration skills.'
         },
-        'final': {
-          status: 'pending',
-          score: null,
+        'observation': {
+          score: 85,
           totalItems: 100,
-          submittedAt: null,
-          feedback: null
+          submittedAt: '2025-09-25T14:15:00',
+          feedback: 'Good work habits and professionalism.'
         }
       }
     },
@@ -89,33 +86,29 @@ const TrainerAssessments = () => {
       program: 'barista-training-nc-ii',
       section: 'morning-b',
       assessments: {
-        'midterm': {
-          status: 'completed',
+        'written-test': {
           score: 95,
           totalItems: 100,
           submittedAt: '2025-09-15T09:45:00',
-          feedback: 'Outstanding performance across all areas.'
+          feedback: 'Outstanding performance.'
         },
-        'practical-1': {
-          status: 'completed',
+        'oral-questioning': {
           score: 90,
           totalItems: 100,
           submittedAt: '2025-09-20T13:30:00',
-          feedback: 'Excellent practical skills and technique.'
+          feedback: 'Excellent knowledge demonstration.'
         },
-        'practical-2': {
-          status: 'ongoing',
-          score: null,
+        'demonstration': {
+          score: 93,
           totalItems: 100,
-          submittedAt: null,
-          feedback: null
+          submittedAt: '2025-09-22T13:30:00',
+          feedback: 'Outstanding practical skills.'
         },
-        'final': {
-          status: 'pending',
-          score: null,
+        'observation': {
+          score: 88,
           totalItems: 100,
-          submittedAt: null,
-          feedback: null
+          submittedAt: '2025-09-25T13:30:00',
+          feedback: 'Professional work behavior.'
         }
       }
     },
@@ -126,33 +119,29 @@ const TrainerAssessments = () => {
       program: 'housekeeping-nc-ii',
       section: 'afternoon-a',
       assessments: {
-        'midterm': {
-          status: 'completed',
-          score: 85,
+        'written-test': {
+          score: 78,
           totalItems: 100,
           submittedAt: '2025-09-15T11:00:00',
-          feedback: 'Good performance, room for improvement in theory.'
+          feedback: 'Needs improvement in theoretical knowledge.'
         },
-        'practical-1': {
-          status: 'completed',
-          score: 87,
+        'oral-questioning': {
+          score: 82,
           totalItems: 100,
           submittedAt: '2025-09-20T15:00:00',
-          feedback: 'Solid practical skills demonstrated.'
+          feedback: 'Fair responses, room for improvement.'
         },
-        'practical-2': {
-          status: 'ongoing',
-          score: null,
+        'demonstration': {
+          score: 80,
           totalItems: 100,
-          submittedAt: null,
-          feedback: null
+          submittedAt: '2025-09-22T15:00:00',
+          feedback: 'Basic skills demonstrated.'
         },
-        'final': {
-          status: 'pending',
-          score: null,
+        'observation': {
+          score: 83,
           totalItems: 100,
-          submittedAt: null,
-          feedback: null
+          submittedAt: '2025-09-25T15:00:00',
+          feedback: 'Adequate work habits.'
         }
       }
     }
@@ -166,29 +155,30 @@ const TrainerAssessments = () => {
     return matchesProgram && matchesSection && matchesSearch;
   });
 
+  const getCompetencyStatus = (score) => {
+    if (score === null || score === undefined) return null;
+    return score >= 85 ? 'competent' : 'not-competent';
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
-      case 'completed':
-        return 'text-green-600 bg-green-50';
-      case 'ongoing':
-        return 'text-blue-600 bg-blue-50';
-      case 'pending':
-        return 'text-yellow-600 bg-yellow-50';
+      case 'competent':
+        return 'bg-green-100 text-green-800';
+      case 'not-competent':
+        return 'bg-red-100 text-red-800';
       default:
-        return 'text-gray-600 bg-gray-50';
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'completed':
-        return <MdCheckCircle className="h-5 w-5" />;
-      case 'ongoing':
-        return <MdAccessTime className="h-5 w-5" />;
-      case 'pending':
-        return <MdPendingActions className="h-5 w-5" />;
+      case 'competent':
+        return <MdCheckCircle className="w-4 h-4" />;
+      case 'not-competent':
+        return <MdCancel className="w-4 h-4" />;
       default:
-        return null;
+        return <MdPending className="w-4 h-4" />;
     }
   };
 
@@ -345,6 +335,7 @@ const TrainerAssessments = () => {
                       if (selectedAssessment !== 'all' && selectedAssessment !== assessment.value) {
                         return null;
                       }
+                      const competencyStatus = getCompetencyStatus(assessmentData.score);
                       return (
                         <tr key={`${student.id}-${assessment.value}`}>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -361,14 +352,21 @@ const TrainerAssessments = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(assessmentData.status)}`}>
-                                {getStatusIcon(assessmentData.status)}
-                                <span className="ml-1 capitalize">{assessmentData.status}</span>
-                              </span>
+                              {competencyStatus ? (
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(competencyStatus)}`}>
+                                  {getStatusIcon(competencyStatus)}
+                                  <span className="ml-1 capitalize">{competencyStatus === 'not-competent' ? 'Not Competent' : 'Competent'}</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                  {getStatusIcon(null)}
+                                  <span className="ml-1">Not Assessed</span>
+                                </span>
+                              )}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            {assessmentData.score ? (
+                            {assessmentData.score !== null && assessmentData.score !== undefined ? (
                               <span className={`text-sm font-medium ${getScoreColor(assessmentData.score)}`}>
                                 {assessmentData.score}/{assessmentData.totalItems}
                               </span>
