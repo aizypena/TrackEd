@@ -37,9 +37,10 @@ const TrainerGrades = () => {
   ];
 
   const gradeCategories = [
-    { id: 'written', label: 'Written Works', weight: 0.3 },
-    { id: 'performance', label: 'Performance Tasks', weight: 0.5 },
-    { id: 'exam', label: 'Final Exam', weight: 0.2 },
+    { id: 'written', label: 'Written Test', weight: 0.2 },
+    { id: 'oral', label: 'Oral Questioning', weight: 0.2 },
+    { id: 'demonstration', label: 'Demonstration', weight: 0.4 },
+    { id: 'observation', label: 'Observation', weight: 0.2 },
   ];
 
   const students = [
@@ -51,8 +52,9 @@ const TrainerGrades = () => {
       section: 'morning-a',
       grades: {
         written: 88,
-        performance: 92,
-        exam: 90
+        oral: 90,
+        demonstration: 92,
+        observation: 85
       }
     },
     {
@@ -63,8 +65,9 @@ const TrainerGrades = () => {
       section: 'morning-b',
       grades: {
         written: 95,
-        performance: 89,
-        exam: 93
+        oral: 92,
+        demonstration: 89,
+        observation: 93
       }
     },
     {
@@ -75,8 +78,9 @@ const TrainerGrades = () => {
       section: 'afternoon-a',
       grades: {
         written: 82,
-        performance: 88,
-        exam: 85
+        oral: 85,
+        demonstration: 88,
+        observation: 86
       }
     },
   ];
