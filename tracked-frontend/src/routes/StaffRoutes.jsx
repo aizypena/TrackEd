@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import ProtectedStaffRoute from '../components/ProtectedStaffRoute';
 import StaffDashboard from '../pages/staff/StaffDashboard';
 import StaffApplications from '../pages/staff/StaffApplications';
+import StaffApplicantView from '../pages/staff/StaffApplicantView';
 import StaffEnrollmentsRecord from '../pages/staff/StaffEnrollmentsRecord';
 import StaffDocumentManagement from '../pages/staff/StaffDocumentManagement';
 import StaffStudentProfile from '../pages/staff/StaffStudentProfile';
@@ -22,6 +23,7 @@ const StaffRoutes = () => {
       
       {/* Enrollment Management */}
       <Route path="/enrollments/applications" element={<ProtectedStaffRoute><StaffApplications /></ProtectedStaffRoute>} />
+      <Route path="/enrollments/applications/:id" element={<ProtectedStaffRoute><StaffApplicantView /></ProtectedStaffRoute>} />
       <Route path="/enrollments/records" element={<ProtectedStaffRoute><StaffEnrollmentsRecord /></ProtectedStaffRoute>} />
       <Route path="/enrollments/documents" element={<ProtectedStaffRoute><StaffDocumentManagement /></ProtectedStaffRoute>} />
       

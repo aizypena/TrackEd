@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import StaffSidebar from '../../layouts/staff/StaffSidebar';
+import { getStaffToken } from '../../utils/staffAuth';
 import { 
   MdMenu,
   MdSearch,
@@ -21,85 +22,64 @@ const StaffApplications = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [programFilter, setProgramFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
+  const [loading, setLoading] = useState(true);
 
-  // Mock data - replace with actual API calls
-  const [applications, setApplications] = useState([
-    {
-      id: 1,
-      applicationNumber: 'APP-2025-001',
-      applicantName: 'Juan Dela Cruz',
-      email: 'juan.delacruz@email.com',
-      phone: '09171234567',
-      program: 'Welding NCII',
-      dateApplied: '2025-10-06',
-      status: 'pending',
-      documents: ['Birth Certificate', 'ID', 'Photo']
-    },
-    {
-      id: 2,
-      applicationNumber: 'APP-2025-002',
-      applicantName: 'Maria Santos',
-      email: 'maria.santos@email.com',
-      phone: '09181234567',
-      program: 'Automotive Servicing NCII',
-      dateApplied: '2025-10-05',
-      status: 'under_review',
-      documents: ['Birth Certificate', 'ID', 'Photo', 'Diploma']
-    },
-    {
-      id: 3,
-      applicationNumber: 'APP-2025-003',
-      applicantName: 'Pedro Reyes',
-      email: 'pedro.reyes@email.com',
-      phone: '09191234567',
-      program: 'Electronics NCII',
-      dateApplied: '2025-10-05',
-      status: 'approved',
-      documents: ['Birth Certificate', 'ID', 'Photo']
-    },
-    {
-      id: 4,
-      applicationNumber: 'APP-2025-004',
-      applicantName: 'Ana Garcia',
-      email: 'ana.garcia@email.com',
-      phone: '09201234567',
-      program: 'Food Processing NCII',
-      dateApplied: '2025-10-04',
-      status: 'pending',
-      documents: ['Birth Certificate', 'ID']
-    },
-    {
-      id: 5,
-      applicationNumber: 'APP-2025-005',
-      applicantName: 'Roberto Cruz',
-      email: 'roberto.cruz@email.com',
-      phone: '09211234567',
-      program: 'Welding NCII',
-      dateApplied: '2025-10-04',
-      status: 'rejected',
-      documents: ['Birth Certificate', 'ID', 'Photo']
-    },
-    {
-      id: 6,
-      applicationNumber: 'APP-2025-006',
-      applicantName: 'Carmen Lopez',
-      email: 'carmen.lopez@email.com',
-      phone: '09221234567',
-      program: 'Automotive Servicing NCII',
-      dateApplied: '2025-10-03',
-      status: 'under_review',
-      documents: ['Birth Certificate', 'ID', 'Photo', 'Medical Certificate']
+  const [applications, setApplications] = useState([]);
+  const [allPrograms, setAllPrograms] = useState([]);
+
+  // Fetch applications on component mount
+  useEffect(() => {
+    fetchApplications();
+  }, []);
+
+  const fetchApplications = async () => {
+    try {
+      setLoading(true);
+      const token = getStaffToken();
+      const response = await fetch('http://localhost:8000/api/staff/applications', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setApplications(data.applications);
+        
+        // Extract unique programs for filter
+        const uniquePrograms = [...new Set(data.applications.map(app => app.course_program_formatted).filter(Boolean))];
+        setAllPrograms(uniquePrograms);
+      } else {
+        console.error('Failed to fetch applications');
+      }
+    } catch (error) {
+      console.error('Error fetching applications:', error);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
-  const programs = [
-    'Welding NCII',
-    'Automotive Servicing NCII',
-    'Electronics NCII',
-    'Food Processing NCII',
-    'Plumbing NCII',
-    'Carpentry NCII'
-  ];
+  // Format date helper
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit' 
+    });
+  };
+
+  // Capitalize name helper
+  const capitalizeName = (name) => {
+    if (!name) return '';
+    return name.split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
+  const programs = allPrograms;
 
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -137,30 +117,33 @@ const StaffApplications = () => {
 
   const filteredApplications = applications
     .filter(app => {
-      const matchesSearch = app.applicantName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           app.applicationNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           app.email.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
-      const matchesProgram = programFilter === 'all' || app.program === programFilter;
+      const fullName = `${app.first_name} ${app.last_name}`.toLowerCase();
+      const matchesSearch = fullName.includes(searchTerm.toLowerCase()) ||
+                           app.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (app.id && app.id.toString().includes(searchTerm));
+      const matchesStatus = statusFilter === 'all' || app.application_status === statusFilter;
+      const matchesProgram = programFilter === 'all' || app.course_program_formatted === programFilter;
       return matchesSearch && matchesStatus && matchesProgram;
     })
     .sort((a, b) => {
       if (sortBy === 'newest') {
-        return new Date(b.dateApplied) - new Date(a.dateApplied);
+        return new Date(b.created_at) - new Date(a.created_at);
       } else if (sortBy === 'oldest') {
-        return new Date(a.dateApplied) - new Date(b.dateApplied);
+        return new Date(a.created_at) - new Date(b.created_at);
       } else if (sortBy === 'name') {
-        return a.applicantName.localeCompare(b.applicantName);
+        const nameA = `${a.first_name} ${a.last_name}`;
+        const nameB = `${b.first_name} ${b.last_name}`;
+        return nameA.localeCompare(nameB);
       }
       return 0;
     });
 
   const stats = {
     total: applications.length,
-    pending: applications.filter(app => app.status === 'pending').length,
-    underReview: applications.filter(app => app.status === 'under_review').length,
-    approved: applications.filter(app => app.status === 'approved').length,
-    rejected: applications.filter(app => app.status === 'rejected').length
+    pending: applications.filter(app => app.application_status === 'pending').length,
+    underReview: applications.filter(app => app.application_status === 'under_review').length,
+    approved: applications.filter(app => app.application_status === 'approved').length,
+    rejected: applications.filter(app => app.application_status === 'rejected').length
   };
 
   return (
@@ -284,7 +267,10 @@ const StaffApplications = () => {
 
             {/* Action Buttons */}
             <div className="flex gap-2 mt-4">
-              <button className="flex items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors">
+              <button 
+                onClick={fetchApplications}
+                className="flex items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors"
+              >
                 <MdRefresh className="h-5 w-5" />
                 Refresh
               </button>
@@ -297,13 +283,15 @@ const StaffApplications = () => {
 
           {/* Applications Table */}
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            <div className="overflow-x-auto">
+            {loading ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-tracked-primary"></div>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Application ID
-                    </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Applicant Name
                     </th>
@@ -332,60 +320,46 @@ const StaffApplications = () => {
                     filteredApplications.map((app) => (
                       <tr key={app.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-tracked-primary">{app.applicationNumber}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{app.applicantName}</div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {capitalizeName(app.first_name)} {capitalizeName(app.last_name)}
+                          </div>
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-sm text-gray-900">{app.email}</div>
-                          <div className="text-sm text-gray-500">{app.phone}</div>
+                          <div className="text-sm text-gray-500">{app.phone_number || 'N/A'}</div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900">{app.program}</div>
+                          <div className="text-sm text-gray-900">{app.course_program_formatted}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{app.dateApplied}</div>
+                          <div className="text-sm text-gray-900">{formatDate(app.created_at)}</div>
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-sm text-gray-900">
-                            {app.documents.length} document{app.documents.length !== 1 ? 's' : ''}
+                            {[app.valid_id_path, app.transcript_path, app.diploma_path, app.passport_photo_path].filter(Boolean).length} document(s)
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {getStatusBadge(app.status)}
+                          {getStatusBadge(app.application_status)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex gap-2">
-                            <button
+                            <Link
+                              to={`/staff/enrollments/applications/${app.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className="text-tracked-primary hover:text-tracked-secondary"
                               title="View Details"
                             >
                               <MdVisibility className="h-5 w-5" />
-                            </button>
-                            {app.status === 'pending' && (
-                              <>
-                                <button
-                                  className="text-green-600 hover:text-green-700"
-                                  title="Approve"
-                                >
-                                  <MdCheckCircle className="h-5 w-5" />
-                                </button>
-                                <button
-                                  className="text-red-600 hover:text-red-700"
-                                  title="Reject"
-                                >
-                                  <MdCancel className="h-5 w-5" />
-                                </button>
-                              </>
-                            )}
+                            </Link>
                           </div>
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
+                      <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
                         No applications found matching your filters.
                       </td>
                     </tr>
@@ -393,9 +367,10 @@ const StaffApplications = () => {
                 </tbody>
               </table>
             </div>
+            )}
 
             {/* Pagination */}
-            {filteredApplications.length > 0 && (
+            {!loading && filteredApplications.length > 0 && (
               <div className="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200">
                 <div className="text-sm text-gray-700">
                   Showing <span className="font-medium">{filteredApplications.length}</span> of{' '}

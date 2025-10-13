@@ -260,6 +260,101 @@ Route::middleware(['auth:sanctum'])->group(function () {
             'applications' => $applications
         ]);
     });
+
+    // Get all applications (for applications page)
+    Route::get('/staff/applications', function (Request $request) {
+        // Get all applicants (users with role 'applicant')
+        $applications = \App\Models\User::where('role', 'applicant')
+            ->orderBy('created_at', 'desc')
+            ->select('id', 'first_name', 'last_name', 'email', 'phone_number', 'course_program', 'application_status', 'status', 'created_at', 'valid_id_path', 'transcript_path', 'diploma_path', 'passport_photo_path')
+            ->get();
+        
+        // Format program names
+        $applications = $applications->map(function($app) {
+            if ($app->course_program) {
+                // Check if course_program is a numeric ID
+                if (is_numeric($app->course_program)) {
+                    // Fetch the program title from the programs table
+                    $program = \App\Models\Program::find($app->course_program);
+                    $app->course_program_formatted = $program ? $program->title : 'Not specified';
+                } else {
+                    // Convert slug to readable name
+                    $formatted = str_replace('-', ' ', $app->course_program);
+                    // Apply title case
+                    $formatted = ucwords($formatted);
+                    // Fix NC levels - handle all variations
+                    $formatted = preg_replace('/\bNc\b/', 'NC', $formatted);
+                    $formatted = preg_replace('/\bIi\b/', 'II', $formatted);
+                    $formatted = preg_replace('/\bIii\b/', 'III', $formatted);
+                    $formatted = preg_replace('/\bIv\b/', 'IV', $formatted);
+                    $app->course_program_formatted = $formatted;
+                }
+            } else {
+                $app->course_program_formatted = 'Not specified';
+            }
+            return $app;
+        });
+        
+        return response()->json([
+            'applications' => $applications
+        ]);
+    });
+
+    // Get single applicant details
+    Route::get('/staff/applicants/{id}', function (Request $request, $id) {
+        $applicant = \App\Models\User::where('role', 'applicant')
+            ->where('id', $id)
+            ->first();
+        
+        if (!$applicant) {
+            return response()->json(['error' => 'Applicant not found'], 404);
+        }
+        
+        // Format program name
+        if ($applicant->course_program) {
+            if (is_numeric($applicant->course_program)) {
+                $program = \App\Models\Program::find($applicant->course_program);
+                $applicant->course_program_formatted = $program ? $program->title : 'Not specified';
+            } else {
+                $formatted = str_replace('-', ' ', $applicant->course_program);
+                $formatted = ucwords($formatted);
+                $formatted = preg_replace('/\bNc\b/', 'NC', $formatted);
+                $formatted = preg_replace('/\bIi\b/', 'II', $formatted);
+                $formatted = preg_replace('/\bIii\b/', 'III', $formatted);
+                $formatted = preg_replace('/\bIv\b/', 'IV', $formatted);
+                $applicant->course_program_formatted = $formatted;
+            }
+        } else {
+            $applicant->course_program_formatted = 'Not specified';
+        }
+        
+        return response()->json([
+            'applicant' => $applicant
+        ]);
+    });
+
+    // Update applicant status
+    Route::put('/staff/applicants/{id}/status', function (Request $request, $id) {
+        $request->validate([
+            'application_status' => 'required|in:pending,under_review,approved,rejected'
+        ]);
+
+        $applicant = \App\Models\User::where('role', 'applicant')
+            ->where('id', $id)
+            ->first();
+        
+        if (!$applicant) {
+            return response()->json(['error' => 'Applicant not found'], 404);
+        }
+        
+        $applicant->application_status = $request->application_status;
+        $applicant->save();
+        
+        return response()->json([
+            'message' => 'Application status updated successfully',
+            'applicant' => $applicant
+        ]);
+    });
     
     // Program Routes
     Route::apiResource('programs', ProgramController::class);
