@@ -220,7 +220,7 @@ function CourseOffered() {
                       {/* Enrollment Button */}
                       <div className="mt-6 lg:mt-0 lg:ml-8 flex-shrink-0">
                         <a 
-                          href="/signup" 
+                          href="/application" 
                           className="inline-block bg-tracked-primary hover:bg-blue-700 text-white px-6 py-3 rounded-lg text-sm font-bold transition duration-200 w-full lg:w-auto text-center"
                         >
                           Enroll Now
