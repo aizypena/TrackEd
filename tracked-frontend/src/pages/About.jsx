@@ -166,7 +166,7 @@ const About = () => {
           </p>
           <div className="space-x-4">
             <a 
-              href="/signup" 
+              href="/application" 
               className="inline-block bg-white text-tracked-primary hover:bg-gray-100 px-8 py-3 rounded-full text-sm font-bold transition duration-200"
             >
               Apply for Admission
