@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\ApplicationController;
@@ -199,6 +200,165 @@ Route::middleware(['auth:sanctum'])->group(function () {
             'pendingApplications' => $pendingApplications,
             'rejectedApplications' => $rejectedApplications,
             'waitlistedApplicants' => 0, // Add logic if you have waitlisted status
+        ]);
+    });
+
+    // Admin Applications Routes
+    Route::get('/admin/applications', function (Request $request) {
+        // Get all applicants (users with role 'applicant')
+        $applications = \App\Models\User::where('role', 'applicant')
+            ->orderBy('created_at', 'desc')
+            ->select('id', 'first_name', 'last_name', 'email', 'phone_number', 'course_program', 'application_status', 'status', 'created_at', 'valid_id_path', 'transcript_path', 'diploma_path', 'passport_photo_path')
+            ->get();
+        
+        // Format program names
+        $applications = $applications->map(function($app) {
+            if ($app->course_program) {
+                // Check if course_program is a numeric ID
+                if (is_numeric($app->course_program)) {
+                    // Fetch the program title from the programs table
+                    $program = \App\Models\Program::find($app->course_program);
+                    $app->course_program_formatted = $program ? $program->title : 'Not specified';
+                } else {
+                    // Convert slug to readable name
+                    $formatted = str_replace('-', ' ', $app->course_program);
+                    $formatted = ucwords($formatted);
+                    $formatted = preg_replace('/\bNc\b/', 'NC', $formatted);
+                    $formatted = preg_replace('/\bIi\b/', 'II', $formatted);
+                    $formatted = preg_replace('/\bIii\b/', 'III', $formatted);
+                    $formatted = preg_replace('/\bIv\b/', 'IV', $formatted);
+                    $app->course_program_formatted = $formatted;
+                }
+            } else {
+                $app->course_program_formatted = 'Not specified';
+            }
+            $app->course_program = $app->course_program_formatted;
+            $app->phone = $app->phone_number;
+            return $app;
+        });
+        
+        return response()->json([
+            'applications' => $applications
+        ]);
+    });
+
+    // Admin Get Single Applicant Details
+    Route::get('/admin/applicants/{id}', function (Request $request, $id) {
+        $applicant = \App\Models\User::where('role', 'applicant')
+            ->where('id', $id)
+            ->first();
+        
+        if (!$applicant) {
+            return response()->json(['message' => 'Applicant not found'], 404);
+        }
+
+        // Format program name
+        if ($applicant->course_program) {
+            if (is_numeric($applicant->course_program)) {
+                $program = \App\Models\Program::find($applicant->course_program);
+                $applicant->course_program_formatted = $program ? $program->title : 'Not specified';
+            } else {
+                $formatted = str_replace('-', ' ', $applicant->course_program);
+                $formatted = ucwords($formatted);
+                $formatted = preg_replace('/\bNc\b/', 'NC', $formatted);
+                $formatted = preg_replace('/\bIi\b/', 'II', $formatted);
+                $formatted = preg_replace('/\bIii\b/', 'III', $formatted);
+                $formatted = preg_replace('/\bIv\b/', 'IV', $formatted);
+                $applicant->course_program_formatted = $formatted;
+            }
+        } else {
+            $applicant->course_program_formatted = 'Not specified';
+        }
+
+        return response()->json([
+            'applicant' => [
+                'id' => $applicant->id,
+                'first_name' => $applicant->first_name,
+                'last_name' => $applicant->last_name,
+                'email' => $applicant->email,
+                'phone' => $applicant->phone_number,
+                'course_program' => $applicant->course_program_formatted,
+                'application_status' => $applicant->application_status,
+                'status' => $applicant->status,
+                'created_at' => $applicant->created_at,
+                'valid_id' => $applicant->valid_id_path,
+                'transcript' => $applicant->transcript_path,
+                'diploma' => $applicant->diploma_path,
+                'passport_photo' => $applicant->passport_photo_path
+            ]
+        ]);
+    });
+
+    // Admin Update Applicant
+    Route::put('/admin/applicants/{id}', function (Request $request, $id) {
+        $applicant = \App\Models\User::where('role', 'applicant')
+            ->where('id', $id)
+            ->first();
+        
+        if (!$applicant) {
+            return response()->json(['message' => 'Applicant not found'], 404);
+        }
+
+        $request->validate([
+            'first_name' => 'sometimes|string|max:255',
+            'last_name' => 'sometimes|string|max:255',
+            'email' => 'sometimes|email|max:255|unique:users,email,' . $id,
+            'phone' => 'sometimes|nullable|string|max:20',
+            'application_status' => 'sometimes|in:pending,under_review,approved,rejected'
+        ]);
+
+        if ($request->has('first_name')) {
+            $applicant->first_name = $request->first_name;
+        }
+        if ($request->has('last_name')) {
+            $applicant->last_name = $request->last_name;
+        }
+        if ($request->has('email')) {
+            $applicant->email = $request->email;
+        }
+        if ($request->has('phone')) {
+            $applicant->phone_number = $request->phone;
+        }
+        if ($request->has('application_status')) {
+            $applicant->application_status = $request->application_status;
+        }
+
+        $applicant->save();
+
+        return response()->json([
+            'message' => 'Applicant updated successfully',
+            'applicant' => $applicant
+        ]);
+    });
+
+    // Admin Delete Applicant
+    Route::delete('/admin/applicants/{id}', function (Request $request, $id) {
+        $applicant = \App\Models\User::where('role', 'applicant')
+            ->where('id', $id)
+            ->first();
+        
+        if (!$applicant) {
+            return response()->json(['message' => 'Applicant not found'], 404);
+        }
+
+        // Delete associated files if they exist
+        $files = [
+            $applicant->valid_id_path,
+            $applicant->transcript_path,
+            $applicant->diploma_path,
+            $applicant->passport_photo_path
+        ];
+
+        foreach ($files as $file) {
+            if ($file && Storage::exists('public/' . $file)) {
+                Storage::delete('public/' . $file);
+            }
+        }
+
+        $applicant->delete();
+
+        return response()->json([
+            'message' => 'Applicant deleted successfully'
         ]);
     });
     
