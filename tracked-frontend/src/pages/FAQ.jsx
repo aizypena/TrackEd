@@ -296,7 +296,7 @@ function FAQ() {
           
           <div className="space-x-4">
             <a 
-              href="/signup" 
+              href="/application" 
               className="inline-block bg-tracked-primary hover:bg-blue-700 text-white px-8 py-3 rounded-full font-bold transition duration-200"
             >
               Apply Now
