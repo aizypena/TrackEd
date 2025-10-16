@@ -67,7 +67,7 @@ function Sidebar({ isOpen, onClose }) {
       icon: MdPeople,
       submenu: [
         { id: 'all-users', name: 'All Users', icon: MdPeople, path: '/admin/all-users' },
-        { id: 'applications', name: 'Applications', icon: MdAssignment, path: '/admin/applications', badge: '23' },
+        { id: 'applications', name: 'Applications', icon: MdAssignment, path: '/admin/applications' },
         { id: 'enrollments', name: 'Enrollments', icon: MdSchool, path: '/admin/enrollments' }
       ]
     },
