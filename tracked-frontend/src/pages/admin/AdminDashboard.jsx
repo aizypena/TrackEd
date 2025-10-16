@@ -240,7 +240,7 @@ const AdminDashboard = () => {
         {/* Main Content */}
         <main className="flex-1 p-6 overflow-auto">
           {/* Key Metrics Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {/* Total Applicants */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between">
@@ -279,20 +279,6 @@ const AdminDashboard = () => {
                 </div>
                 <div className="p-3 bg-purple-100 rounded-lg">
                   <MdCardGiftcard className="h-6 w-6 text-purple-600" />
-                </div>
-              </div>
-            </div>
-
-            {/* Conversion Rate */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Conversion Rate</p>
-                  <p className="text-2xl font-bold text-gray-900">{dashboardStats.conversionRate}%</p>
-                  <p className="text-xs text-green-600 mt-1">Application to enrollment</p>
-                </div>
-                <div className="p-3 bg-yellow-100 rounded-lg">
-                  <MdTrendingUp className="h-6 w-6 text-yellow-600" />
                 </div>
               </div>
             </div>
