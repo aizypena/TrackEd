@@ -23,6 +23,8 @@ import {
   MdPauseCircleOutline,
   MdCheckCircle,
   MdVisibility,
+  MdCheckCircleOutline,
+  MdError,
 } from 'react-icons/md';
 
 const BatchManagement = () => {
@@ -38,6 +40,11 @@ const BatchManagement = () => {
   const [batches, setBatches] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [enrolledStudents, setEnrolledStudents] = useState([]);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [batchToDelete, setBatchToDelete] = useState(null);
+  const [modalError, setModalError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   // Fetch batches and programs on mount
   useEffect(() => {
@@ -58,7 +65,6 @@ const BatchManagement = () => {
       }
     } catch (error) {
       console.error('Error fetching batches:', error);
-      alert('Failed to fetch batches: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -80,6 +86,16 @@ const BatchManagement = () => {
     fetchBatches();
   }, [filterProgram, filterStatus, searchQuery]);
 
+  // Auto-hide success message after 3 seconds
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => {
+        setSuccessMessage('');
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
+
   // Refresh batches when filters change
   useEffect(() => {
     fetchBatches();
@@ -96,20 +112,59 @@ const BatchManagement = () => {
   };
 
   const handleDeleteBatch = async (batchId) => {
-    if (!window.confirm('Are you sure you want to delete this batch?')) {
+    setBatchToDelete(batchId);
+    setShowPasswordModal(true);
+  };
+
+  const verifyPasswordAndDelete = async () => {
+    if (!passwordInput) {
+      setModalError('Please enter your password');
       return;
     }
 
+    setModalError(''); // Clear previous errors
+
     try {
-      const response = await batchAPI.delete(batchId);
+      // Verify password first
+      const token = localStorage.getItem('adminToken');
+      const verifyResponse = await fetch('http://localhost:8000/api/admin/verify-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ password: passwordInput }),
+      });
+
+      const verifyData = await verifyResponse.json();
+
+      if (!verifyData.success) {
+        setModalError('Incorrect password. Please try again.');
+        setPasswordInput('');
+        return;
+      }
+
+      // Password verified, proceed with deletion
+      const response = await batchAPI.delete(batchToDelete);
       if (response.success) {
-        alert('Batch deleted successfully');
+        setSuccessMessage('Batch deleted successfully');
         fetchBatches();
+        setShowPasswordModal(false);
+        setPasswordInput('');
+        setBatchToDelete(null);
+        setModalError('');
       }
     } catch (error) {
       console.error('Error deleting batch:', error);
-      alert('Failed to delete batch: ' + error.message);
+      setModalError('Failed to delete batch. Please try again.');
     }
+  };
+
+  const cancelDelete = () => {
+    setShowPasswordModal(false);
+    setPasswordInput('');
+    setBatchToDelete(null);
+    setModalError('');
   };
 
   const handleViewStudents = async (batch) => {
@@ -122,7 +177,6 @@ const BatchManagement = () => {
       }
     } catch (error) {
       console.error('Error fetching enrolled students:', error);
-      alert('Failed to fetch enrolled students: ' + error.message);
     }
   };
 
@@ -401,6 +455,86 @@ const BatchManagement = () => {
         batch={selectedBatch}
         students={enrolledStudents}
       />
+
+      {/* Password Verification Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+          <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Confirm Deletion</h3>
+              <button
+                onClick={cancelDelete}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                <MdClose className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-sm text-gray-600 mb-4">
+                To delete this batch, please enter your admin password to confirm.
+              </p>
+
+              {/* Error Message */}
+              {modalError && (
+                <div className="mb-4 flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-md">
+                  <MdError className="h-5 w-5 text-red-600 flex-shrink-0" />
+                  <p className="text-sm text-red-800">{modalError}</p>
+                </div>
+              )}
+
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Password
+              </label>
+              <input
+                type="password"
+                value={passwordInput}
+                onChange={(e) => {
+                  setPasswordInput(e.target.value);
+                  setModalError(''); // Clear error when typing
+                }}
+                onKeyPress={(e) => e.key === 'Enter' && verifyPasswordAndDelete()}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter your password"
+                autoFocus
+              />
+            </div>
+
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={cancelDelete}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={verifyPasswordAndDelete}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors"
+              >
+                Delete Batch
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Toast Notification */}
+      {successMessage && (
+        <div className="fixed top-4 right-4 z-50 animate-fade-in-down">
+          <div className="flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg bg-green-50 border border-green-200">
+            <MdCheckCircleOutline className="h-5 w-5 text-green-600 flex-shrink-0" />
+            <p className="text-sm font-medium text-green-800">
+              {successMessage}
+            </p>
+            <button
+              onClick={() => setSuccessMessage('')}
+              className="ml-2 text-green-600 hover:text-green-800"
+            >
+              <MdClose className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

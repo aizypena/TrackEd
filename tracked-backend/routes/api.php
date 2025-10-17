@@ -53,6 +53,36 @@ Route::post('/admin/login', function (Request $request) {
     ]);
 });
 
+// Admin password verification endpoint
+Route::post('/admin/verify-password', function (Request $request) {
+    $request->validate([
+        'password' => 'required|string',
+    ]);
+
+    // Get authenticated admin user
+    $user = $request->user();
+
+    if (!$user || !in_array($user->role, ['admin', 'administrator'])) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Unauthorized'
+        ], 401);
+    }
+
+    // Check password
+    if (!Hash::check($request->password, $user->password)) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Incorrect password'
+        ], 401);
+    }
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Password verified'
+    ]);
+})->middleware('auth:sanctum');
+
 Route::post('/trainer/login', function (Request $request) {
     $request->validate([
         'email' => 'required|string|email',

@@ -59,12 +59,27 @@ html {
   }
 }
 
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .animate-fadeIn {
   animation: fadeIn 0.2s ease-out;
 }
 
 .animate-slideUp {
   animation: slideUp 0.3s ease-out;
+}
+
+.animate-fade-in-down {
+  animation: fadeInDown 0.3s ease-out;
 }
 
 .tracked-primary {

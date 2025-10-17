@@ -206,7 +206,7 @@ const StaffBatchManagement = () => {
             </div>
             <button 
               onClick={handleAddBatch}
-              className="flex items-center gap-2 px-4 py-2 bg-tracked-secondary hover:bg-opacity-90 rounded-md transition-colors"
+              className="flex items-center hover:cursor-pointer gap-2 px-4 py-2 bg-tracked-secondary hover:bg-opacity-90 rounded-md transition-colors"
             >
               <MdAdd className="h-5 w-5" />
               <span className="hidden sm:inline">Create Batch</span>
@@ -318,7 +318,7 @@ const StaffBatchManagement = () => {
               <button 
                 onClick={fetchBatches}
                 disabled={loading}
-                className="flex items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors"
+                className="flex items-center hover:cursor-pointer gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors"
               >
                 <MdRefresh className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
                 Refresh
