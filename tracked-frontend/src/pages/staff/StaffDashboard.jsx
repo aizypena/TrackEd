@@ -102,6 +102,12 @@ const StaffDashboard = () => {
     return statusMap[status] || { label: 'Unknown', class: 'bg-gray-100 text-gray-800' };
   };
 
+  // Capitalize first letter of name
+  const capitalizeName = (name) => {
+    if (!name) return '';
+    return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
       <StaffSidebar 
@@ -252,7 +258,7 @@ const StaffDashboard = () => {
                         return (
                           <tr key={app.id} className="border-b border-gray-100 hover:bg-gray-50">
                             <td className="py-3 px-4 text-sm text-gray-800">
-                              {app.first_name} {app.last_name}
+                              {capitalizeName(app.first_name)} {capitalizeName(app.last_name)}
                             </td>
                             <td className="py-3 px-4 text-sm text-gray-600">
                               {app.course_program_formatted || 'Not specified'}
