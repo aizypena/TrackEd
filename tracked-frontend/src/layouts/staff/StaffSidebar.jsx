@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { staffLogout } from '../../utils/staffAuth';
 import {
@@ -94,6 +94,20 @@ const StaffSidebar = ({ isOpen, onClose, isCollapsed, setIsCollapsed }) => {
       [sectionName]: !prev[sectionName]
     }));
   };
+
+  // Auto-expand sections when their sub-items are active
+  useEffect(() => {
+    const newExpandedSections = {};
+    navigationItems.forEach((item) => {
+      if (item.subItems) {
+        const hasActiveSubItem = item.subItems.some(subItem => isActivePath(subItem.path));
+        if (hasActiveSubItem) {
+          newExpandedSections[item.name] = true;
+        }
+      }
+    });
+    setExpandedSections(prev => ({ ...prev, ...newExpandedSections }));
+  }, [location.pathname]);
 
   return (
     <>
