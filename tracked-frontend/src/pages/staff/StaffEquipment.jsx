@@ -2,7 +2,10 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import StaffSidebar from '../../layouts/staff/StaffSidebar';
 import AddEditEquipmentModal from '../../components/staff/AddEditEquipmentModal';
+import ViewEquipmentModal from '../../components/staff/ViewEquipmentModal';
+import DeleteConfirmationModal from '../../components/staff/DeleteConfirmationModal';
 import { equipmentAPI } from '../../services/equipmentAPI';
+import axios from 'axios';
 import { 
   MdMenu,
   MdSearch,
@@ -42,6 +45,7 @@ const StaffEquipment = () => {
   const [selectedEquipment, setSelectedEquipment] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState(null);
+  const [deletingEquipment, setDeletingEquipment] = useState(null);
   const [loading, setLoading] = useState(false);
   const [equipment, setEquipment] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -152,23 +156,65 @@ const StaffEquipment = () => {
     setShowAddModal(true);
   };
 
-  const handleDeleteEquipment = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this equipment?')) {
-      return;
-    }
+  const handleDeleteEquipment = (item) => {
+    // Open the delete confirmation modal
+    setDeletingEquipment(item);
+  };
+
+  const handleConfirmDelete = async (password) => {
+    if (!deletingEquipment) return;
 
     try {
-      const response = await equipmentAPI.delete(id);
+      // Get the logged-in user's email from localStorage
+      // Check for staff user first, then admin user
+      const staffUserStr = localStorage.getItem('staffUser');
+      const adminUserStr = localStorage.getItem('adminUser');
+      
+      let user = null;
+      if (staffUserStr) {
+        user = JSON.parse(staffUserStr);
+      } else if (adminUserStr) {
+        user = JSON.parse(adminUserStr);
+      }
+
+      if (!user) {
+        throw new Error('User session not found. Please log in again.');
+      }
+      
+      const email = user.email;
+
+      if (!email) {
+        throw new Error('User email not found. Please log in again.');
+      }
+
+      // Verify the user's password
+      const API_URL = 'http://localhost:8000/api';
+      const loginResponse = await axios.post(`${API_URL}/login`, {
+        email,
+        password
+      });
+
+      if (!loginResponse.data.success) {
+        throw new Error('Invalid password');
+      }
+
+      // If password is valid, proceed with deletion
+      const response = await equipmentAPI.delete(deletingEquipment.id);
       if (response.success) {
         setSuccessMessage('Equipment deleted successfully');
+        setDeletingEquipment(null);
         fetchEquipment();
+      } else {
+        throw new Error(response.message || 'Failed to delete equipment');
       }
     } catch (error) {
       console.error('Error deleting equipment:', error);
-      setErrorMessage('Failed to delete equipment: ' + error.message);
+      // Re-throw the error so the modal can display it
+      throw new Error(error.response?.data?.message || error.message || 'Failed to authenticate or delete equipment');
     }
   };
 
+  // Helper function for status badges (used in grid/list views)
   const getStatusBadge = (status) => {
     const statusConfig = {
       available: {
@@ -208,6 +254,7 @@ const StaffEquipment = () => {
     );
   };
 
+  // Helper function for condition badges (used in grid/list views)
   const getConditionBadge = (condition) => {
     const conditionConfig = {
       excellent: { className: 'bg-green-100 text-green-800', label: 'Excellent' },
@@ -225,6 +272,7 @@ const StaffEquipment = () => {
     );
   };
 
+  // Helper function for currency formatting (used in grid/list views)
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-PH', {
       style: 'currency',
@@ -518,20 +566,20 @@ const StaffEquipment = () => {
                       <div className="flex gap-2 mt-4">
                         <button
                           onClick={() => setSelectedEquipment(item)}
-                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors text-sm"
+                          className="flex-1 hover:cursor-pointer flex items-center justify-center gap-2 px-3 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors text-sm"
                         >
                           <MdVisibility className="h-4 w-4" />
                           View
                         </button>
                         <button 
                           onClick={() => handleEditEquipment(item)}
-                          className="flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm"
+                          className="flex hover:cursor-pointer items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm"
                         >
                           <MdEdit className="h-4 w-4" />
                         </button>
                         <button 
-                          onClick={() => handleDeleteEquipment(item.id)}
-                          className="flex items-center justify-center gap-2 px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm"
+                          onClick={() => handleDeleteEquipment(item)}
+                          className="flex hover:cursor-pointer items-center justify-center gap-2 px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm"
                         >
                           <MdDelete className="h-4 w-4" />
                         </button>
@@ -635,7 +683,7 @@ const StaffEquipment = () => {
                                 <MdEdit className="h-5 w-5" />
                               </button>
                               <button
-                                onClick={() => handleDeleteEquipment(item.id)}
+                                onClick={() => handleDeleteEquipment(item)}
                                 className="text-red-600 hover:text-red-700"
                                 title="Delete Equipment"
                               >
@@ -660,179 +708,13 @@ const StaffEquipment = () => {
         </div>
       </div>
 
-      {/* Equipment Detail Modal */}
-      {selectedEquipment && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
-            <div className="bg-tracked-primary p-6 text-white sticky top-0">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h2 className="text-2xl font-bold mb-2">{selectedEquipment.name}</h2>
-                  <p className="text-blue-100">{selectedEquipment.equipment_code}</p>
-                  <p className="text-blue-100 mt-1">{selectedEquipment.brand} - {selectedEquipment.model}</p>
-                  <div className="flex gap-2 mt-3">
-                    {getStatusBadge(selectedEquipment.status)}
-                    {getConditionBadge(selectedEquipment.condition)}
-                  </div>
-                </div>
-                <button
-                  onClick={() => setSelectedEquipment(null)}
-                  className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2"
-                >
-                  <MdClose className="h-6 w-6" />
-                </button>
-              </div>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-6">
-              {/* Equipment Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">Category</p>
-                  <p className="text-lg font-bold text-gray-800">{selectedEquipment.category}</p>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">Location</p>
-                  <p className="text-lg font-bold text-gray-800">{selectedEquipment.location}</p>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">Serial Number</p>
-                  <p className="text-lg font-bold text-gray-800">{selectedEquipment.serial_number}</p>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">Unit Value</p>
-                  <p className="text-lg font-bold text-tracked-primary">{formatCurrency(selectedEquipment.value)}</p>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">Purchase Date</p>
-                  <p className="text-lg font-bold text-gray-800">{selectedEquipment.purchase_date}</p>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">Total Value</p>
-                  <p className="text-lg font-bold text-tracked-primary">
-                    {formatCurrency(selectedEquipment.value * selectedEquipment.quantity)}
-                  </p>
-                </div>
-              </div>
-
-              {/* Description */}
-              <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                <h3 className="text-sm font-medium text-gray-600 mb-2">Description</h3>
-                <p className="text-gray-800">{selectedEquipment.description}</p>
-              </div>
-
-              {/* Availability Status */}
-              <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                  <MdInventory className="h-5 w-5 text-tracked-primary" />
-                  Availability Status
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-blue-600">{selectedEquipment.quantity}</p>
-                    <p className="text-xs text-gray-600 mt-1">Total Quantity</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-green-600">{selectedEquipment.available}</p>
-                    <p className="text-xs text-gray-600 mt-1">Available</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-purple-600">{selectedEquipment.inUse}</p>
-                    <p className="text-xs text-gray-600 mt-1">In Use</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-yellow-600">{selectedEquipment.maintenance}</p>
-                    <p className="text-xs text-gray-600 mt-1">Maintenance</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-red-600">{selectedEquipment.damaged}</p>
-                    <p className="text-xs text-gray-600 mt-1">Damaged</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Maintenance Information */}
-              <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                  <MdBuild className="h-5 w-5 text-tracked-primary" />
-                  Maintenance Schedule
-                </h3>
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <p className="text-sm text-gray-600">Last Maintenance</p>
-                    <p className="text-lg font-bold text-gray-800">{selectedEquipment.last_maintenance || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Next Maintenance</p>
-                    <p className="text-lg font-bold text-gray-800">{selectedEquipment.next_maintenance || 'N/A'}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Maintenance History */}
-              {selectedEquipment.maintenance_history && selectedEquipment.maintenance_history.length > 0 && (
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <MdHistory className="h-5 w-5 text-tracked-primary" />
-                    Maintenance History
-                  </h3>
-                  <div className="space-y-3">
-                    {selectedEquipment.maintenance_history.map((record, index) => (
-                      <div key={index} className="bg-white p-4 rounded-lg border border-gray-200">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <MdCalendarToday className="h-4 w-4 text-gray-400" />
-                              <span className="text-sm font-medium text-gray-900">{record.date}</span>
-                              <span className={`text-xs px-2 py-1 rounded-full ${
-                                record.type === 'Routine' ? 'bg-blue-100 text-blue-800' :
-                                record.type === 'Repair' ? 'bg-yellow-100 text-yellow-800' :
-                                record.type === 'Safety Inspection' ? 'bg-green-100 text-green-800' :
-                                'bg-red-100 text-red-800'
-                              }`}>
-                                {record.type}
-                              </span>
-                            </div>
-                            <p className="text-sm text-gray-600">{record.notes}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex gap-2 mt-6 pt-6 border-t border-gray-200">
-                <button className="flex items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors">
-                  <MdEdit className="h-5 w-5" />
-                  Edit Equipment
-                </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
-                  <MdQrCode className="h-5 w-5" />
-                  Generate QR
-                </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-                  <MdBuild className="h-5 w-5" />
-                  Schedule Maintenance
-                </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors">
-                  <MdPrint className="h-5 w-5" />
-                  Print Label
-                </button>
-                <button 
-                  onClick={() => setSelectedEquipment(null)}
-                  className="ml-auto px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* View Equipment Detail Modal */}
+      <ViewEquipmentModal
+        isOpen={!!selectedEquipment}
+        onClose={() => setSelectedEquipment(null)}
+        equipment={selectedEquipment}
+        onEdit={handleEditEquipment}
+      />
 
       {/* Add/Edit Equipment Modal */}
       {showAddModal && (
@@ -854,6 +736,14 @@ const StaffEquipment = () => {
           onError={(message) => setErrorMessage(message)}
         />
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={!!deletingEquipment}
+        onClose={() => setDeletingEquipment(null)}
+        onConfirm={handleConfirmDelete}
+        equipmentName={deletingEquipment?.name}
+      />
 
       {/* Success Toast */}
       {successMessage && (

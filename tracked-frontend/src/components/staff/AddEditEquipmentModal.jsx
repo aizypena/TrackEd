@@ -105,7 +105,7 @@ const AddEditEquipmentModal = ({ isOpen, onClose, equipment, categories, locatio
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
+    <div className="fixed inset-0 bg-black/20 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
       <div className="bg-white rounded-lg max-w-4xl w-full my-8 animate-slideUp shadow-2xl">
         {/* Modal Header */}
         <div className="bg-tracked-primary p-6 text-white rounded-t-lg">
