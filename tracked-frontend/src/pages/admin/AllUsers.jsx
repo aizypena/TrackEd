@@ -415,10 +415,10 @@ function AllUsers() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
           <div className="flex items-center">
             <div className="p-2 bg-yellow-100 rounded-lg">
-              <MdDateRange className="h-6 w-6 text-yellow-600" />
+              <MdPerson className="h-6 w-6 text-yellow-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Pending</p>
+              <p className="text-sm font-medium text-gray-600">Applicants</p>
               <p className="text-2xl font-bold text-gray-900">{stats.pending_users}</p>
             </div>
           </div>

@@ -84,16 +84,16 @@ class UserController extends Controller
     {
         $totalUsers = User::count();
         $activeUsers = User::where('status', 'active')->count();
-        $pendingUsers = User::where('status', 'inactive')->count(); // Treating inactive as pending
-        $students = User::where('role', 'applicant')->count(); // Treating applicants as students
+        $applicants = User::where('role', 'applicant')->count();
+        $students = User::where('role', 'student')->count();
 
         return response()->json([
             'success' => true,
             'stats' => [
                 'total_users' => $totalUsers,
                 'active_users' => $activeUsers,
-                'pending_users' => $pendingUsers,
-                'students' => $students
+                'pending_users' => $applicants, // Applicants count
+                'students' => $students // Actual students count
             ]
         ]);
     }
