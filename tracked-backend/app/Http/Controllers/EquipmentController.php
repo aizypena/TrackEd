@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Equipment;
 use App\Models\EquipmentMaintenanceHistory;
+use App\Models\EquipmentAssignment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -248,4 +249,156 @@ class EquipmentController extends Controller
             'data' => $locations
         ]);
     }
+
+    // Assign equipment to a user (checkout)
+    public function assignEquipment(Request $request, $id)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'quantity' => 'required|integer|min:1',
+            'purpose' => 'nullable|string',
+            'due_date' => 'nullable|date',
+            'notes' => 'nullable|string'
+        ]);
+
+        $equipment = Equipment::findOrFail($id);
+
+        // Check if enough equipment is available
+        if ($equipment->available < $request->quantity) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Not enough equipment available. Only ' . $equipment->available . ' available.'
+            ], 400);
+        }
+
+        DB::beginTransaction();
+        try {
+            // Create assignment record
+            $assignment = EquipmentAssignment::create([
+                'equipment_id' => $id,
+                'user_id' => $request->user_id,
+                'quantity' => $request->quantity,
+                'assigned_at' => now(),
+                'due_date' => $request->due_date,
+                'status' => 'active',
+                'purpose' => $request->purpose,
+                'notes' => $request->notes,
+                'assigned_by' => $request->user()->id
+            ]);
+
+            // Update equipment counts with safeguards
+            $equipment->available = max(0, $equipment->available - $request->quantity);
+            $equipment->in_use = min($equipment->quantity, $equipment->in_use + $request->quantity);
+            
+            // Update status if all equipment is now in use
+            if ($equipment->available == 0) {
+                $equipment->status = 'inUse';
+            }
+            
+            $equipment->save();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Equipment assigned successfully',
+                'data' => $assignment->load(['user', 'equipment', 'assignedBy'])
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to assign equipment: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // Return equipment (checkin)
+    public function returnEquipment(Request $request, $assignmentId)
+    {
+        $request->validate([
+            'return_notes' => 'nullable|string',
+            'condition' => 'nullable|in:excellent,good,fair,poor'
+        ]);
+
+        $assignment = EquipmentAssignment::with('equipment')->findOrFail($assignmentId);
+
+        if ($assignment->status !== 'active') {
+            return response()->json([
+                'success' => false,
+                'message' => 'This assignment is not active'
+            ], 400);
+        }
+
+        DB::beginTransaction();
+        try {
+            // Update assignment
+            $assignment->returned_at = now();
+            $assignment->status = 'returned';
+            $assignment->return_notes = $request->return_notes;
+            $assignment->returned_to = $request->user()->id;
+            $assignment->save();
+
+            // Update equipment counts
+            $equipment = $assignment->equipment;
+            $equipment->in_use = max(0, $equipment->in_use - $assignment->quantity);
+            $equipment->available = min($equipment->quantity, $equipment->available + $assignment->quantity);
+            
+            // Update condition if provided
+            if ($request->has('condition')) {
+                $equipment->condition = $request->condition;
+            }
+            
+            // Update status back to available if items are now available
+            if ($equipment->available > 0 && $equipment->status === 'inUse') {
+                $equipment->status = 'available';
+            }
+            
+            $equipment->save();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Equipment returned successfully',
+                'data' => $assignment->load(['user', 'equipment', 'returnedTo'])
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to return equipment: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // Get all assignments for an equipment
+    public function getAssignments($id)
+    {
+        $assignments = EquipmentAssignment::with(['user', 'assignedBy', 'returnedTo'])
+            ->where('equipment_id', $id)
+            ->orderBy('assigned_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $assignments
+        ]);
+    }
+
+    // Get active assignments for an equipment
+    public function getActiveAssignments($id)
+    {
+        $assignments = EquipmentAssignment::with(['user', 'assignedBy'])
+            ->where('equipment_id', $id)
+            ->where('status', 'active')
+            ->orderBy('assigned_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $assignments
+        ]);
+    }
 }
+

@@ -4,6 +4,8 @@ import StaffSidebar from '../../layouts/staff/StaffSidebar';
 import AddEditEquipmentModal from '../../components/staff/AddEditEquipmentModal';
 import ViewEquipmentModal from '../../components/staff/ViewEquipmentModal';
 import DeleteConfirmationModal from '../../components/staff/DeleteConfirmationModal';
+import AssignEquipmentModal from '../../components/staff/AssignEquipmentModal';
+import ManageAssignmentsModal from '../../components/staff/ManageAssignmentsModal';
 import { equipmentAPI } from '../../services/equipmentAPI';
 import axios from 'axios';
 import { 
@@ -15,22 +17,14 @@ import {
   MdVisibility,
   MdDownload,
   MdRefresh,
-  MdPrint,
   MdCheckCircle,
   MdWarning,
   MdError,
   MdClose,
   MdBuild,
-  MdSettings,
   MdInventory,
-  MdCalendarToday,
   MdLocationOn,
-  MdAssignment,
-  MdHistory,
-  MdQrCode,
-  MdFilterList,
-  MdViewModule,
-  MdViewList
+  MdAssignment
 } from 'react-icons/md';
 
 const StaffEquipment = () => {
@@ -41,11 +35,12 @@ const StaffEquipment = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [locationFilter, setLocationFilter] = useState('all');
   const [sortBy, setSortBy] = useState('name');
-  const [viewMode, setViewMode] = useState('grid'); // grid or list
   const [selectedEquipment, setSelectedEquipment] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState(null);
   const [deletingEquipment, setDeletingEquipment] = useState(null);
+  const [assigningEquipment, setAssigningEquipment] = useState(null);
+  const [managingEquipment, setManagingEquipment] = useState(null);
   const [loading, setLoading] = useState(false);
   const [equipment, setEquipment] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -159,6 +154,18 @@ const StaffEquipment = () => {
   const handleDeleteEquipment = (item) => {
     // Open the delete confirmation modal
     setDeletingEquipment(item);
+  };
+
+  const handleAssignEquipment = (item) => {
+    // Open the assign equipment modal
+    setSelectedEquipment(null); // Close view modal if open
+    setAssigningEquipment(item);
+  };
+
+  const handleManageAssignments = (item) => {
+    // Open the manage assignments modal
+    setSelectedEquipment(null); // Close view modal if open
+    setManagingEquipment(item);
   };
 
   const handleConfirmDelete = async (password) => {
@@ -466,140 +473,12 @@ const StaffEquipment = () => {
                   Export
                 </button>
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded-md transition-colors ${
-                    viewMode === 'grid' ? 'bg-tracked-primary text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                  }`}
-                  title="Grid View"
-                >
-                  <MdViewModule className="h-5 w-5" />
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-2 rounded-md transition-colors ${
-                    viewMode === 'list' ? 'bg-tracked-primary text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                  }`}
-                  title="List View"
-                >
-                  <MdViewList className="h-5 w-5" />
-                </button>
-              </div>
             </div>
           </div>
 
-          {/* Grid View */}
-          {viewMode === 'grid' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredEquipment.length > 0 ? (
-                filteredEquipment.map((item) => (
-                  <div key={item.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                    {/* Card Header */}
-                    <div className="bg-tracked-primary p-4 text-white">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-bold mb-1 line-clamp-2">{item.name}</h3>
-                          <p className="text-sm text-blue-100">{item.equipment_code}</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-2 mt-2">
-                        {getStatusBadge(item.status)}
-                      </div>
-                    </div>
-
-                    {/* Card Body */}
-                    <div className="p-4">
-                      {/* Brand & Model */}
-                      <div className="mb-3">
-                        <p className="text-sm text-gray-600">{item.brand}</p>
-                        <p className="text-xs text-gray-500">{item.model}</p>
-                      </div>
-
-                      {/* Category & Location */}
-                      <div className="bg-gray-50 rounded-lg p-3 mb-3 space-y-2">
-                        <div className="flex items-center gap-2 text-sm">
-                          <MdSettings className="h-4 w-4 text-gray-400" />
-                          <span className="text-gray-700">{item.category}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <MdLocationOn className="h-4 w-4 text-gray-400" />
-                          <span className="text-gray-700">{item.location}</span>
-                        </div>
-                      </div>
-
-                      {/* Quantity Status */}
-                      <div className="mb-3">
-                        <div className="flex justify-between text-sm mb-2">
-                          <span className="text-gray-600">Availability</span>
-                          <span className="font-semibold text-gray-800">{item.available}/{item.quantity}</span>
-                        </div>
-                        <div className="grid grid-cols-3 gap-2 text-xs">
-                          <div className="text-center">
-                            <p className="font-bold text-green-600">{item.available}</p>
-                            <p className="text-gray-500">Available</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="font-bold text-blue-600">{item.inUse}</p>
-                            <p className="text-gray-500">In Use</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="font-bold text-red-600">{item.maintenance + item.damaged}</p>
-                            <p className="text-gray-500">Issues</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Condition */}
-                      <div className="mb-3">
-                        <p className="text-xs text-gray-600 mb-1">Condition</p>
-                        {getConditionBadge(item.condition)}
-                      </div>
-
-                      {/* Value */}
-                      <div className="pt-3 border-t border-gray-200">
-                        <p className="text-xs text-gray-600">Unit Value</p>
-                        <p className="text-lg font-bold text-tracked-primary">{formatCurrency(item.value)}</p>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex gap-2 mt-4">
-                        <button
-                          onClick={() => setSelectedEquipment(item)}
-                          className="flex-1 hover:cursor-pointer flex items-center justify-center gap-2 px-3 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors text-sm"
-                        >
-                          <MdVisibility className="h-4 w-4" />
-                          View
-                        </button>
-                        <button 
-                          onClick={() => handleEditEquipment(item)}
-                          className="flex hover:cursor-pointer items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm"
-                        >
-                          <MdEdit className="h-4 w-4" />
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteEquipment(item)}
-                          className="flex hover:cursor-pointer items-center justify-center gap-2 px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm"
-                        >
-                          <MdDelete className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="col-span-full text-center py-12 text-gray-500">
-                  <MdInventory className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-                  <p className="text-lg">No equipment found matching your filters.</p>
-                </div>
-              )}
-            </div>
-          )}
-
           {/* List View */}
-          {viewMode === 'list' && (
-            <div className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div className="overflow-x-auto">
+          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
@@ -648,8 +527,7 @@ const StaffEquipment = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-semibold text-gray-900">{item.available}/{item.quantity}</div>
-                            <div className="flex gap-2 mt-1 text-xs">
+                            <div className="flex gap-2 text-xs">
                               <span className="text-green-600">✓ {item.available}</span>
                               <span className="text-blue-600">● {item.in_use}</span>
                               {(item.maintenance + item.damaged) > 0 && (
@@ -704,7 +582,6 @@ const StaffEquipment = () => {
                 </table>
               </div>
             </div>
-          )}
         </div>
       </div>
 
@@ -714,6 +591,8 @@ const StaffEquipment = () => {
         onClose={() => setSelectedEquipment(null)}
         equipment={selectedEquipment}
         onEdit={handleEditEquipment}
+        onAssign={handleAssignEquipment}
+        onManageAssignments={handleManageAssignments}
       />
 
       {/* Add/Edit Equipment Modal */}
@@ -743,6 +622,32 @@ const StaffEquipment = () => {
         onClose={() => setDeletingEquipment(null)}
         onConfirm={handleConfirmDelete}
         equipmentName={deletingEquipment?.name}
+      />
+
+      {/* Assign Equipment Modal */}
+      <AssignEquipmentModal
+        isOpen={!!assigningEquipment}
+        onClose={() => setAssigningEquipment(null)}
+        equipment={assigningEquipment}
+        onSuccess={() => {
+          setSuccessMessage('Equipment assigned successfully');
+          setAssigningEquipment(null);
+          fetchEquipment();
+        }}
+        onError={(message) => setErrorMessage(message)}
+      />
+
+      {/* Manage Assignments Modal */}
+      <ManageAssignmentsModal
+        isOpen={!!managingEquipment}
+        onClose={() => setManagingEquipment(null)}
+        equipment={managingEquipment}
+        onSuccess={() => {
+          setSuccessMessage('Equipment returned successfully');
+          setManagingEquipment(null);
+          fetchEquipment();
+        }}
+        onError={(message) => setErrorMessage(message)}
       />
 
       {/* Success Toast */}

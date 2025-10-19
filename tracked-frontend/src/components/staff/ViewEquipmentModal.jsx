@@ -7,12 +7,12 @@ import {
   MdInventory,
   MdCalendarToday,
   MdEdit,
-  MdQrCode,
   MdPrint,
-  MdLocationOn
+  MdLocationOn,
+  MdAssignment
 } from 'react-icons/md';
 
-const ViewEquipmentModal = ({ isOpen, onClose, equipment, onEdit }) => {
+const ViewEquipmentModal = ({ isOpen, onClose, equipment, onEdit, onAssign, onManageAssignments }) => {
   if (!isOpen || !equipment) return null;
 
   const getStatusBadge = (status) => {
@@ -78,6 +78,16 @@ const ViewEquipmentModal = ({ isOpen, onClose, equipment, onEdit }) => {
     }).format(amount);
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-PH', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }).format(date);
+  };
+
   return (
     <div className="fixed inset-0 bg-black/20 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fadeIn">
       <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto animate-slideUp shadow-2xl">
@@ -124,7 +134,7 @@ const ViewEquipmentModal = ({ isOpen, onClose, equipment, onEdit }) => {
             </div>
             <div className="bg-gray-50 rounded-lg p-4">
               <p className="text-sm text-gray-600 mb-1">Purchase Date</p>
-              <p className="text-lg font-bold text-gray-800">{equipment.purchase_date}</p>
+              <p className="text-lg font-bold text-gray-800">{formatDate(equipment.purchase_date)}</p>
             </div>
             <div className="bg-gray-50 rounded-lg p-4">
               <p className="text-sm text-gray-600 mb-1">Total Value</p>
@@ -181,11 +191,11 @@ const ViewEquipmentModal = ({ isOpen, onClose, equipment, onEdit }) => {
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
                 <p className="text-sm text-gray-600">Last Maintenance</p>
-                <p className="text-lg font-bold text-gray-800">{equipment.last_maintenance || 'N/A'}</p>
+                <p className="text-lg font-bold text-gray-800">{formatDate(equipment.last_maintenance)}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Next Maintenance</p>
-                <p className="text-lg font-bold text-gray-800">{equipment.next_maintenance || 'N/A'}</p>
+                <p className="text-lg font-bold text-gray-800">{formatDate(equipment.next_maintenance)}</p>
               </div>
             </div>
           </div>
@@ -224,25 +234,28 @@ const ViewEquipmentModal = ({ isOpen, onClose, equipment, onEdit }) => {
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-2 pt-6 border-t border-gray-200">
-            <button 
-              onClick={() => onEdit(equipment)}
-              className="flex hover:cursor-pointer items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-all duration-200 hover:scale-105 active:scale-95"
-            >
-              <MdEdit className="h-5 w-5" />
-              Edit Equipment
-            </button>
-            <button className="flex hover:cursor-pointer items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-all duration-200 hover:scale-105 active:scale-95">
-              <MdQrCode className="h-5 w-5" />
-              Generate QR
-            </button>
-            <button className="flex hover:cursor-pointer items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-all duration-200 hover:scale-105 active:scale-95">
+          <div className="flex flex-wrap gap-2 pt-6 border-t border-gray-200">
+            {equipment.available > 0 && (
+              <button 
+                onClick={() => onAssign(equipment)}
+                className="flex hover:cursor-pointer items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-all duration-200 hover:scale-105 active:scale-95"
+              >
+                <MdAssignment className="h-5 w-5" />
+                Assign to User
+              </button>
+            )}
+            {equipment.in_use > 0 && (
+              <button 
+                onClick={() => onManageAssignments(equipment)}
+                className="flex hover:cursor-pointer items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-all duration-200 hover:scale-105 active:scale-95"
+              >
+                <MdCheckCircle className="h-5 w-5" />
+                Manage Checkouts ({equipment.in_use})
+              </button>
+            )}
+            <button className="flex hover:cursor-pointer items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-all duration-200 hover:scale-105 active:scale-95">
               <MdBuild className="h-5 w-5" />
-              Schedule Maintenance
-            </button>
-            <button className="flex hover:cursor-pointer items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-all duration-200 hover:scale-105 active:scale-95">
-              <MdPrint className="h-5 w-5" />
-              Print Label
+              Maintenance
             </button>
             <button 
               onClick={onClose}

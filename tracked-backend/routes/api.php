@@ -581,4 +581,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::put('/equipment/{id}', [EquipmentController::class, 'update']);
     Route::delete('/equipment/{id}', [EquipmentController::class, 'destroy']);
     Route::post('/equipment/{id}/maintenance', [EquipmentController::class, 'addMaintenanceHistory']);
+    
+    // Equipment Assignment Routes
+    Route::post('/equipment/{id}/assign', [EquipmentController::class, 'assignEquipment']);
+    Route::post('/equipment/assignments/{assignmentId}/return', [EquipmentController::class, 'returnEquipment']);
+    Route::get('/equipment/{id}/assignments', [EquipmentController::class, 'getAssignments']);
+    Route::get('/equipment/{id}/assignments/active', [EquipmentController::class, 'getActiveAssignments']);
 });

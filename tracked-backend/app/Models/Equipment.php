@@ -41,4 +41,14 @@ class Equipment extends Model
     {
         return $this->hasMany(EquipmentMaintenanceHistory::class);
     }
+
+    public function assignments()
+    {
+        return $this->hasMany(EquipmentAssignment::class);
+    }
+
+    public function activeAssignments()
+    {
+        return $this->hasMany(EquipmentAssignment::class)->where('status', 'active');
+    }
 }
