@@ -11,6 +11,7 @@ use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\BatchController;
 use App\Http\Controllers\VoucherController;
+use App\Http\Controllers\EquipmentController;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 
@@ -569,4 +570,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/documents/upload', [DocumentController::class, 'upload']);
     Route::delete('/documents/{type}', [DocumentController::class, 'delete']);
     Route::get('/documents/{type}/view', [DocumentController::class, 'view']);
+    
+    // Equipment Routes
+    Route::get('/equipment', [EquipmentController::class, 'index']);
+    Route::get('/equipment/statistics', [EquipmentController::class, 'statistics']);
+    Route::get('/equipment/categories', [EquipmentController::class, 'categories']);
+    Route::get('/equipment/locations', [EquipmentController::class, 'locations']);
+    Route::post('/equipment', [EquipmentController::class, 'store']);
+    Route::get('/equipment/{id}', [EquipmentController::class, 'show']);
+    Route::put('/equipment/{id}', [EquipmentController::class, 'update']);
+    Route::delete('/equipment/{id}', [EquipmentController::class, 'destroy']);
+    Route::post('/equipment/{id}/maintenance', [EquipmentController::class, 'addMaintenanceHistory']);
 });

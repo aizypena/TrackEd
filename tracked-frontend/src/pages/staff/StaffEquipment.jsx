@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import StaffSidebar from '../../layouts/staff/StaffSidebar';
+import AddEditEquipmentModal from '../../components/staff/AddEditEquipmentModal';
+import { equipmentAPI } from '../../services/equipmentAPI';
 import { 
   MdMenu,
   MdSearch,
@@ -38,225 +40,134 @@ const StaffEquipment = () => {
   const [sortBy, setSortBy] = useState('name');
   const [viewMode, setViewMode] = useState('grid'); // grid or list
   const [selectedEquipment, setSelectedEquipment] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingEquipment, setEditingEquipment] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [equipment, setEquipment] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [locations, setLocations] = useState([]);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [stats, setStats] = useState({
+    totalEquipment: 0,
+    available: 0,
+    inUse: 0,
+    needsMaintenance: 0
+  });
 
-  // Mock data - replace with actual API calls
-  const [equipment, setEquipment] = useState([
-    {
-      id: 1,
-      equipmentCode: 'EQP-WLD-001',
-      name: 'Arc Welding Machine',
-      category: 'Welding Equipment',
-      brand: 'Lincoln Electric',
-      model: 'Power MIG 260',
-      serialNumber: 'U1170512345',
-      quantity: 5,
-      available: 3,
-      inUse: 2,
-      maintenance: 0,
-      damaged: 0,
-      location: 'Workshop A',
-      status: 'available',
-      condition: 'good',
-      purchaseDate: '2024-01-15',
-      lastMaintenance: '2025-09-01',
-      nextMaintenance: '2025-12-01',
-      value: 85000,
-      description: 'Professional arc welding machine for SMAW training',
-      maintenanceHistory: [
-        { date: '2025-09-01', type: 'Routine', notes: 'Cleaned and tested all functions' },
-        { date: '2025-06-15', type: 'Repair', notes: 'Replaced cooling fan' }
-      ]
-    },
-    {
-      id: 2,
-      equipmentCode: 'EQP-AUTO-001',
-      name: 'Engine Diagnostic Scanner',
-      category: 'Automotive Tools',
-      brand: 'Bosch',
-      model: 'KTS 560',
-      serialNumber: 'BSH2025001',
-      quantity: 3,
-      available: 2,
-      inUse: 1,
-      maintenance: 0,
-      damaged: 0,
-      location: 'Auto Lab',
-      status: 'available',
-      condition: 'good',
-      purchaseDate: '2024-03-20',
-      lastMaintenance: '2025-08-15',
-      nextMaintenance: '2026-02-15',
-      value: 125000,
-      description: 'Advanced diagnostic tool for automotive systems',
-      maintenanceHistory: [
-        { date: '2025-08-15', type: 'Routine', notes: 'Software update and calibration' }
-      ]
-    },
-    {
-      id: 3,
-      equipmentCode: 'EQP-ELEC-001',
-      name: 'Digital Oscilloscope',
-      category: 'Electronics Equipment',
-      brand: 'Tektronix',
-      model: 'TBS 2000',
-      serialNumber: 'TEK2025789',
-      quantity: 4,
-      available: 4,
-      inUse: 0,
-      maintenance: 0,
-      damaged: 0,
-      location: 'Room 201',
-      status: 'available',
-      condition: 'excellent',
-      purchaseDate: '2024-06-10',
-      lastMaintenance: '2025-09-20',
-      nextMaintenance: '2026-03-20',
-      value: 95000,
-      description: 'High-precision oscilloscope for circuit analysis',
-      maintenanceHistory: [
-        { date: '2025-09-20', type: 'Routine', notes: 'Calibration and testing' }
-      ]
-    },
-    {
-      id: 4,
-      equipmentCode: 'EQP-WLD-002',
-      name: 'MIG Welding Machine',
-      category: 'Welding Equipment',
-      brand: 'Miller',
-      model: 'Millermatic 252',
-      serialNumber: 'MLR2024456',
-      quantity: 4,
-      available: 2,
-      inUse: 1,
-      maintenance: 1,
-      damaged: 0,
-      location: 'Workshop A',
-      status: 'maintenance',
-      condition: 'fair',
-      purchaseDate: '2023-11-05',
-      lastMaintenance: '2025-10-01',
-      nextMaintenance: '2025-10-15',
-      value: 92000,
-      description: 'MIG welding machine for metal fabrication training',
-      maintenanceHistory: [
-        { date: '2025-10-01', type: 'Repair', notes: 'Wire feed mechanism adjustment in progress' },
-        { date: '2025-07-10', type: 'Routine', notes: 'Regular maintenance completed' }
-      ]
-    },
-    {
-      id: 5,
-      equipmentCode: 'EQP-PLMB-001',
-      name: 'Pipe Threading Machine',
-      category: 'Plumbing Tools',
-      brand: 'RIDGID',
-      model: '300 Compact',
-      serialNumber: 'RDG2024123',
-      quantity: 2,
-      available: 1,
-      inUse: 1,
-      maintenance: 0,
-      damaged: 0,
-      location: 'Workshop B',
-      status: 'available',
-      condition: 'good',
-      purchaseDate: '2024-02-28',
-      lastMaintenance: '2025-08-20',
-      nextMaintenance: '2025-11-20',
-      value: 68000,
-      description: 'Portable pipe threading machine for plumbing training',
-      maintenanceHistory: [
-        { date: '2025-08-20', type: 'Routine', notes: 'Lubrication and inspection' }
-      ]
-    },
-    {
-      id: 6,
-      equipmentCode: 'EQP-CARP-001',
-      name: 'Table Saw',
-      category: 'Carpentry Equipment',
-      brand: 'DeWalt',
-      model: 'DWE7491RS',
-      serialNumber: 'DWT2024789',
-      quantity: 3,
-      available: 0,
-      inUse: 2,
-      maintenance: 0,
-      damaged: 1,
-      location: 'Carpentry Shop',
-      status: 'damaged',
-      condition: 'poor',
-      purchaseDate: '2023-09-15',
-      lastMaintenance: '2025-07-05',
-      nextMaintenance: '2025-10-05',
-      value: 45000,
-      description: 'Professional table saw for woodworking projects',
-      maintenanceHistory: [
-        { date: '2025-09-28', type: 'Incident', notes: 'Blade guard damaged, needs replacement' },
-        { date: '2025-07-05', type: 'Routine', notes: 'Blade sharpening and alignment' }
-      ]
-    },
-    {
-      id: 7,
-      equipmentCode: 'EQP-FOOD-001',
-      name: 'Industrial Mixer',
-      category: 'Food Processing Equipment',
-      brand: 'KitchenAid',
-      model: 'Commercial 8Qt',
-      serialNumber: 'KTC2025456',
-      quantity: 2,
-      available: 2,
-      inUse: 0,
-      maintenance: 0,
-      damaged: 0,
-      location: 'Food Lab',
-      status: 'available',
-      condition: 'excellent',
-      purchaseDate: '2024-08-12',
-      lastMaintenance: '2025-09-25',
-      nextMaintenance: '2025-12-25',
-      value: 38000,
-      description: 'Heavy-duty mixer for food processing training',
-      maintenanceHistory: [
-        { date: '2025-09-25', type: 'Routine', notes: 'Deep cleaning and motor check' }
-      ]
-    },
-    {
-      id: 8,
-      equipmentCode: 'EQP-AUTO-002',
-      name: 'Hydraulic Lift',
-      category: 'Automotive Tools',
-      brand: 'BendPak',
-      model: 'XPR-10AS',
-      serialNumber: 'BND2023789',
-      quantity: 2,
-      available: 1,
-      inUse: 1,
-      maintenance: 0,
-      damaged: 0,
-      location: 'Auto Lab',
-      status: 'available',
-      condition: 'good',
-      purchaseDate: '2023-05-20',
-      lastMaintenance: '2025-09-10',
-      nextMaintenance: '2025-12-10',
-      value: 185000,
-      description: 'Two-post vehicle lift for automotive service training',
-      maintenanceHistory: [
-        { date: '2025-09-10', type: 'Safety Inspection', notes: 'All safety checks passed' },
-        { date: '2025-06-01', type: 'Routine', notes: 'Hydraulic system serviced' }
-      ]
+  // Fetch equipment on mount and when filters change
+  useEffect(() => {
+    fetchEquipment();
+    fetchCategories();
+    fetchLocations();
+  }, []);
+
+  useEffect(() => {
+    fetchEquipment();
+  }, [searchTerm, categoryFilter, statusFilter, locationFilter, sortBy]);
+
+  const fetchEquipment = async () => {
+    try {
+      setLoading(true);
+      const response = await equipmentAPI.getAll({
+        category: categoryFilter,
+        status: statusFilter,
+        location: locationFilter,
+        search: searchTerm,
+        sort_by: sortBy,
+        sort_order: 'asc'
+      });
+      
+      if (response.success) {
+        setEquipment(response.data);
+        calculateStats(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching equipment:', error);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
-  const categories = [
-    'Welding Equipment',
-    'Automotive Tools',
-    'Electronics Equipment',
-    'Plumbing Tools',
-    'Carpentry Equipment',
-    'Food Processing Equipment'
-  ];
+  const fetchCategories = async () => {
+    try {
+      const response = await equipmentAPI.getCategories();
+      console.log('Categories response:', response); // Debug log
+      if (response.success) {
+        setCategories(response.data);
+        console.log('Categories set:', response.data); // Debug log
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      setErrorMessage('Failed to load program categories');
+    }
+  };
 
-  const locations = ['Workshop A', 'Workshop B', 'Auto Lab', 'Room 201', 'Food Lab', 'Carpentry Shop'];
+  const fetchLocations = async () => {
+    try {
+      const response = await equipmentAPI.getLocations();
+      console.log('Locations response:', response); // Debug log
+      if (response.success) {
+        setLocations(response.data);
+        console.log('Locations set:', response.data); // Debug log
+      }
+    } catch (error) {
+      console.error('Error fetching locations:', error);
+      setErrorMessage('Failed to load locations');
+    }
+  };
+
+  const calculateStats = (data) => {
+    const calculated = {
+      totalEquipment: data.reduce((sum, item) => sum + item.quantity, 0),
+      available: data.reduce((sum, item) => sum + item.available, 0),
+      inUse: data.reduce((sum, item) => sum + item.in_use, 0),
+      needsMaintenance: data.filter(item => item.status === 'maintenance' || item.status === 'damaged').length
+    };
+    setStats(calculated);
+  };
+
+  // Auto-hide messages
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => setSuccessMessage(''), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
+
+  useEffect(() => {
+    if (errorMessage) {
+      const timer = setTimeout(() => setErrorMessage(''), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [errorMessage]);
+
+  const handleAddEquipment = () => {
+    setEditingEquipment(null);
+    setShowAddModal(true);
+  };
+
+  const handleEditEquipment = (item) => {
+    setEditingEquipment(item);
+    setShowAddModal(true);
+  };
+
+  const handleDeleteEquipment = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this equipment?')) {
+      return;
+    }
+
+    try {
+      const response = await equipmentAPI.delete(id);
+      if (response.success) {
+        setSuccessMessage('Equipment deleted successfully');
+        fetchEquipment();
+      }
+    } catch (error) {
+      console.error('Error deleting equipment:', error);
+      setErrorMessage('Failed to delete equipment: ' + error.message);
+    }
+  };
 
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -321,35 +232,8 @@ const StaffEquipment = () => {
     }).format(amount);
   };
 
-  const filteredEquipment = equipment
-    .filter(item => {
-      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           item.equipmentCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           item.brand.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
-      const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
-      const matchesLocation = locationFilter === 'all' || item.location === locationFilter;
-      return matchesSearch && matchesCategory && matchesStatus && matchesLocation;
-    })
-    .sort((a, b) => {
-      if (sortBy === 'name') {
-        return a.name.localeCompare(b.name);
-      } else if (sortBy === 'category') {
-        return a.category.localeCompare(b.category);
-      } else if (sortBy === 'quantity') {
-        return b.quantity - a.quantity;
-      } else if (sortBy === 'value') {
-        return b.value - a.value;
-      }
-      return 0;
-    });
-
-  const stats = {
-    totalEquipment: equipment.reduce((sum, item) => sum + item.quantity, 0),
-    available: equipment.reduce((sum, item) => sum + item.available, 0),
-    inUse: equipment.reduce((sum, item) => sum + item.inUse, 0),
-    needsMaintenance: equipment.filter(item => item.status === 'maintenance' || item.status === 'damaged').length
-  };
+  // Filtered equipment is now handled by API, so we just use equipment directly
+  const filteredEquipment = equipment;
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -377,9 +261,12 @@ const StaffEquipment = () => {
                 <p className="text-sm text-blue-100">Track and manage training equipment inventory</p>
               </div>
             </div>
-            <button className="flex items-center gap-2 px-4 py-2 bg-tracked-secondary hover:bg-opacity-90 rounded-md transition-colors">
+            <button 
+              onClick={handleAddEquipment}
+              className="flex items-center gap-2 px-4 py-2 bg-tracked-secondary hover:bg-opacity-90 rounded-md transition-colors"
+            >
               <MdAdd className="h-5 w-5" />
-              <span className="hidden sm:inline">Add Equipment</span>
+              <span className="hidden sm:inline hover:cursor-pointer">Add Equipment</span>
             </button>
           </div>
         </nav>
@@ -518,17 +405,17 @@ const StaffEquipment = () => {
             {/* Action Buttons */}
             <div className="flex items-center justify-between">
               <div className="flex gap-2">
-                <button className="flex items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors">
-                  <MdRefresh className="h-5 w-5" />
+                <button 
+                  onClick={fetchEquipment}
+                  disabled={loading}
+                  className="flex hover:cursor-pointer items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors"
+                >
+                  <MdRefresh className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
                   Refresh
                 </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
+                <button className="flex hover:cursor-pointer items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
                   <MdDownload className="h-5 w-5" />
                   Export
-                </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors">
-                  <MdPrint className="h-5 w-5" />
-                  Print
                 </button>
               </div>
               <div className="flex gap-2">
@@ -565,7 +452,7 @@ const StaffEquipment = () => {
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex-1">
                           <h3 className="text-lg font-bold mb-1 line-clamp-2">{item.name}</h3>
-                          <p className="text-sm text-blue-100">{item.equipmentCode}</p>
+                          <p className="text-sm text-blue-100">{item.equipment_code}</p>
                         </div>
                       </div>
                       <div className="flex gap-2 mt-2">
@@ -636,11 +523,17 @@ const StaffEquipment = () => {
                           <MdVisibility className="h-4 w-4" />
                           View
                         </button>
-                        <button className="flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm">
+                        <button 
+                          onClick={() => handleEditEquipment(item)}
+                          className="flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm"
+                        >
                           <MdEdit className="h-4 w-4" />
                         </button>
-                        <button className="flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm">
-                          <MdQrCode className="h-4 w-4" />
+                        <button 
+                          onClick={() => handleDeleteEquipment(item.id)}
+                          className="flex items-center justify-center gap-2 px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm"
+                        >
+                          <MdDelete className="h-4 w-4" />
                         </button>
                       </div>
                     </div>
@@ -694,7 +587,7 @@ const StaffEquipment = () => {
                         <tr key={item.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4">
                             <div className="text-sm font-medium text-gray-900">{item.name}</div>
-                            <div className="text-xs text-gray-500">{item.equipmentCode}</div>
+                            <div className="text-xs text-gray-500">{item.equipment_code}</div>
                             <div className="text-xs text-gray-500 mt-1">{item.brand} - {item.model}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -710,7 +603,7 @@ const StaffEquipment = () => {
                             <div className="text-sm font-semibold text-gray-900">{item.available}/{item.quantity}</div>
                             <div className="flex gap-2 mt-1 text-xs">
                               <span className="text-green-600">✓ {item.available}</span>
-                              <span className="text-blue-600">● {item.inUse}</span>
+                              <span className="text-blue-600">● {item.in_use}</span>
                               {(item.maintenance + item.damaged) > 0 && (
                                 <span className="text-red-600">⚠ {item.maintenance + item.damaged}</span>
                               )}
@@ -735,16 +628,18 @@ const StaffEquipment = () => {
                                 <MdVisibility className="h-5 w-5" />
                               </button>
                               <button
+                                onClick={() => handleEditEquipment(item)}
                                 className="text-blue-600 hover:text-blue-700"
                                 title="Edit Equipment"
                               >
                                 <MdEdit className="h-5 w-5" />
                               </button>
                               <button
-                                className="text-green-600 hover:text-green-700"
-                                title="Generate QR Code"
+                                onClick={() => handleDeleteEquipment(item.id)}
+                                className="text-red-600 hover:text-red-700"
+                                title="Delete Equipment"
                               >
-                                <MdQrCode className="h-5 w-5" />
+                                <MdDelete className="h-5 w-5" />
                               </button>
                             </div>
                           </td>
@@ -774,7 +669,7 @@ const StaffEquipment = () => {
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <h2 className="text-2xl font-bold mb-2">{selectedEquipment.name}</h2>
-                  <p className="text-blue-100">{selectedEquipment.equipmentCode}</p>
+                  <p className="text-blue-100">{selectedEquipment.equipment_code}</p>
                   <p className="text-blue-100 mt-1">{selectedEquipment.brand} - {selectedEquipment.model}</p>
                   <div className="flex gap-2 mt-3">
                     {getStatusBadge(selectedEquipment.status)}
@@ -804,7 +699,7 @@ const StaffEquipment = () => {
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4">
                   <p className="text-sm text-gray-600 mb-1">Serial Number</p>
-                  <p className="text-lg font-bold text-gray-800">{selectedEquipment.serialNumber}</p>
+                  <p className="text-lg font-bold text-gray-800">{selectedEquipment.serial_number}</p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4">
                   <p className="text-sm text-gray-600 mb-1">Unit Value</p>
@@ -812,7 +707,7 @@ const StaffEquipment = () => {
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4">
                   <p className="text-sm text-gray-600 mb-1">Purchase Date</p>
-                  <p className="text-lg font-bold text-gray-800">{selectedEquipment.purchaseDate}</p>
+                  <p className="text-lg font-bold text-gray-800">{selectedEquipment.purchase_date}</p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4">
                   <p className="text-sm text-gray-600 mb-1">Total Value</p>
@@ -867,24 +762,24 @@ const StaffEquipment = () => {
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div>
                     <p className="text-sm text-gray-600">Last Maintenance</p>
-                    <p className="text-lg font-bold text-gray-800">{selectedEquipment.lastMaintenance}</p>
+                    <p className="text-lg font-bold text-gray-800">{selectedEquipment.last_maintenance || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Next Maintenance</p>
-                    <p className="text-lg font-bold text-gray-800">{selectedEquipment.nextMaintenance}</p>
+                    <p className="text-lg font-bold text-gray-800">{selectedEquipment.next_maintenance || 'N/A'}</p>
                   </div>
                 </div>
               </div>
 
               {/* Maintenance History */}
-              {selectedEquipment.maintenanceHistory.length > 0 && (
+              {selectedEquipment.maintenance_history && selectedEquipment.maintenance_history.length > 0 && (
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                     <MdHistory className="h-5 w-5 text-tracked-primary" />
                     Maintenance History
                   </h3>
                   <div className="space-y-3">
-                    {selectedEquipment.maintenanceHistory.map((record, index) => (
+                    {selectedEquipment.maintenance_history.map((record, index) => (
                       <div key={index} className="bg-white p-4 rounded-lg border border-gray-200">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -935,6 +830,53 @@ const StaffEquipment = () => {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add/Edit Equipment Modal */}
+      {showAddModal && (
+        <AddEditEquipmentModal
+          isOpen={showAddModal}
+          onClose={() => {
+            setShowAddModal(false);
+            setEditingEquipment(null);
+          }}
+          equipment={editingEquipment}
+          categories={categories}
+          locations={locations}
+          onSuccess={() => {
+            fetchEquipment();
+            setShowAddModal(false);
+            setEditingEquipment(null);
+            setSuccessMessage(editingEquipment ? 'Equipment updated successfully' : 'Equipment added successfully');
+          }}
+          onError={(message) => setErrorMessage(message)}
+        />
+      )}
+
+      {/* Success Toast */}
+      {successMessage && (
+        <div className="fixed top-4 right-4 z-50 animate-fade-in-down">
+          <div className="flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg bg-green-50 border border-green-200">
+            <MdCheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+            <p className="text-sm font-medium text-green-800">{successMessage}</p>
+            <button onClick={() => setSuccessMessage('')} className="ml-2 text-green-600 hover:text-green-800">
+              <MdClose className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Error Toast */}
+      {errorMessage && (
+        <div className="fixed top-4 right-4 z-50 animate-fade-in-down">
+          <div className="flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg bg-red-50 border border-red-200">
+            <MdError className="h-5 w-5 text-red-600 flex-shrink-0" />
+            <p className="text-sm font-medium text-red-800">{errorMessage}</p>
+            <button onClick={() => setErrorMessage('')} className="ml-2 text-red-600 hover:text-red-800">
+              <MdClose className="h-4 w-4" />
+            </button>
           </div>
         </div>
       )}
