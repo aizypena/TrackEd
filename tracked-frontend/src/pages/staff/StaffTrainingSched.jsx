@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import StaffSidebar from '../../layouts/staff/StaffSidebar';
+import { batchAPI } from '../../services/batchAPI';
+import { programAPI } from '../../services/programAPI';
 import { 
   MdMenu,
   MdSearch,
@@ -33,12 +35,13 @@ const StaffTrainingSched = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('week'); // day, week, month
-  const [currentDate, setCurrentDate] = useState(new Date(2025, 9, 6)); // October 6, 2025
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [programFilter, setProgramFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedSession, setSelectedSession] = useState(null);
-
-  // Mock data - replace with actual API calls
+  const [batches, setBatches] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [trainingSessions, setTrainingSessions] = useState([
     {
       id: 1,
@@ -178,14 +181,126 @@ const StaffTrainingSched = () => {
     }
   ]);
 
-  const programs = [
-    'Welding NCII',
-    'Automotive Servicing NCII',
-    'Electronics NCII',
-    'Food Processing NCII',
-    'Plumbing NCII',
-    'Carpentry NCII'
-  ];
+  // Fetch batches on mount
+  useEffect(() => {
+    fetchBatches();
+    fetchPrograms();
+  }, []);
+
+  const fetchPrograms = async () => {
+    try {
+      const response = await programAPI.getAll();
+      console.log('Fetched programs:', response.data);
+      if (response.success) {
+        setPrograms(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching programs:', error);
+    }
+  };
+
+  const fetchBatches = async () => {
+    try {
+      setLoading(true);
+      const response = await batchAPI.getAll({ status: 'all' });
+      console.log('Fetched batches:', response.data);
+      if (response.success) {
+        setBatches(response.data);
+        generateScheduleFromBatches(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching batches:', error);
+      alert('Failed to load schedules: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Generate training sessions from batches
+  const generateScheduleFromBatches = (batchesData) => {
+    console.log('Generating schedules from batches:', batchesData);
+    const sessions = [];
+    
+    batchesData.forEach((batch) => {
+      console.log('Processing batch:', batch.batch_id, 'Schedule days:', batch.schedule_days);
+      console.log('Batch start date:', batch.start_date, 'Batch end date:', batch.end_date);
+      
+      if (batch.schedule_days && batch.schedule_days.length > 0 && batch.start_date && batch.end_date) {
+        // Use batch's actual start and end dates
+        const batchStartDate = new Date(batch.start_date);
+        const batchEndDate = new Date(batch.end_date);
+        
+        // Extend the range slightly to show past and future sessions
+        const rangeStartDate = new Date(batchStartDate);
+        rangeStartDate.setDate(rangeStartDate.getDate() - 7); // Show 1 week before
+        const rangeEndDate = new Date(batchEndDate);
+        rangeEndDate.setDate(rangeEndDate.getDate() + 7); // Show 1 week after
+        
+        console.log('Generating sessions from:', rangeStartDate.toISOString().split('T')[0], 'to:', rangeEndDate.toISOString().split('T')[0]);
+        
+        // Generate sessions for each scheduled day within the batch period
+        for (let d = new Date(rangeStartDate); d <= rangeEndDate; d.setDate(d.getDate() + 1)) {
+          const date = new Date(d); // Create new date object to avoid mutation
+          const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+          
+          // Check if date is within batch period and matches schedule days
+          if (date >= batchStartDate && date <= batchEndDate && batch.schedule_days.includes(dayName)) {
+            const dateStr = date.toISOString().split('T')[0];
+            
+            const session = {
+              id: `${batch.id}-${dateStr}`,
+              title: `${batch.program?.title || 'Training'} - ${batch.batch_id}`,
+              program: batch.program?.title || 'N/A',
+              batch: batch.batch_id,
+              instructor: batch.trainer ? `${batch.trainer.first_name} ${batch.trainer.last_name}` : 'No trainer assigned',
+              date: dateStr,
+              startTime: batch.schedule_time_start,
+              endTime: batch.schedule_time_end,
+              duration: calculateDuration(batch.schedule_time_start, batch.schedule_time_end),
+              room: batch.location || 'TBA',
+              participants: batch.enrolled_students_count || 0,
+              maxParticipants: batch.max_students,
+              status: getSessionStatus(batch.status, date),
+              type: 'practical',
+              description: `${batch.program?.title || 'Training'} session for ${batch.batch_id}`
+            };
+            
+            console.log('Created session:', session);
+            sessions.push(session);
+          }
+        }
+      } else {
+        console.log('Skipping batch:', batch.batch_id, '- Missing schedule days or dates');
+      }
+    });
+    
+    console.log('Total sessions generated:', sessions.length);
+    setTrainingSessions(sessions);
+  };
+
+  const calculateDuration = (startTime, endTime) => {
+    if (!startTime || !endTime) return 'N/A';
+    const [startHour, startMin] = startTime.split(':').map(Number);
+    const [endHour, endMin] = endTime.split(':').map(Number);
+    const durationMin = (endHour * 60 + endMin) - (startHour * 60 + startMin);
+    const hours = Math.floor(durationMin / 60);
+    const minutes = durationMin % 60;
+    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+  };
+
+  const getSessionStatus = (batchStatus, sessionDate) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    sessionDate.setHours(0, 0, 0, 0);
+    
+    if (sessionDate < today) {
+      return 'completed';
+    } else if (sessionDate.getTime() === today.getTime()) {
+      return 'ongoing';
+    } else {
+      return 'scheduled';
+    }
+  };
 
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -405,7 +520,7 @@ const StaffTrainingSched = () => {
                 >
                   <option value="all">All Programs</option>
                   {programs.map((program) => (
-                    <option key={program} value={program}>{program}</option>
+                    <option key={program.id} value={program.title}>{program.title}</option>
                   ))}
                 </select>
               </div>
@@ -463,17 +578,20 @@ const StaffTrainingSched = () => {
 
             {/* Action Buttons */}
             <div className="flex gap-2">
-              <button className="flex items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors">
-                <MdRefresh className="h-5 w-5" />
+              <button 
+                onClick={() => {
+                  fetchBatches();
+                  fetchPrograms();
+                }}
+                disabled={loading}
+                className="flex hover:cursor-pointer items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors disabled:opacity-50"
+              >
+                <MdRefresh className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
                 Refresh
               </button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
+              <button className="flex hover:cursor-pointer items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
                 <MdDownload className="h-5 w-5" />
                 Export
-              </button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors">
-                <MdPrint className="h-5 w-5" />
-                Print
               </button>
             </div>
           </div>
