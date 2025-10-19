@@ -1,9 +1,9 @@
 // Program related API endpoints
 const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
-// Get token from localStorage (admin uses 'adminToken')
+// Get token from localStorage (check staff, admin, or general token)
 const getAuthToken = () => {
-  return localStorage.getItem('adminToken') || localStorage.getItem('token');
+  return localStorage.getItem('staffToken') || localStorage.getItem('adminToken') || localStorage.getItem('token');
 };
 
 export const programAPI = {
