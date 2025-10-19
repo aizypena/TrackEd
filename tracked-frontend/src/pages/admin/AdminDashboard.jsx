@@ -291,15 +291,9 @@ const AdminDashboard = () => {
                 <h2 className="text-lg font-semibold text-gray-900">ARIMA Enrollment Forecasting</h2>
                 <p className="text-sm text-gray-600">Predictive analysis for strategic planning</p>
               </div>
-              <div className="flex items-center space-x-2">
-                <div className="flex items-center space-x-1 text-sm text-green-600">
-                  <MdCheckCircle className="h-4 w-4" />
-                  <span>Model Accuracy: {forecastingData.accuracy}%</span>
-                </div>
-              </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
                 <div className="flex items-center justify-center mb-2">
                   <MdShowChart className="h-8 w-8 text-blue-600" />
@@ -325,15 +319,6 @@ const AdminDashboard = () => {
                 <p className="text-2xl font-bold text-green-600">{forecastingData.yearPrediction}</p>
                 <p className="text-sm text-green-800 font-medium">Annual Forecast</p>
                 <p className="text-xs text-green-600 mt-1">Strategic Planning</p>
-              </div>
-              
-              <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg">
-                <div className="flex items-center justify-center mb-2">
-                  <MdInsights className="h-8 w-8 text-orange-600" />
-                </div>
-                <p className="text-2xl font-bold text-orange-600">{forecastingData.confidence}%</p>
-                <p className="text-sm text-orange-800 font-medium">Confidence Level</p>
-                <p className="text-xs text-orange-600 mt-1">Model Reliability</p>
               </div>
             </div>
             
@@ -455,10 +440,6 @@ const AdminDashboard = () => {
                 <div className="flex items-center space-x-2">
                   <MdBusiness className="h-4 w-4 text-gray-500" />
                   <span className="text-sm text-gray-600">SMI Institute Inc. - TESDA Accredited</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <MdAnalytics className="h-4 w-4 text-blue-500" />
-                  <span className="text-sm text-gray-600">ARIMA Model: {forecastingData.accuracy}% Accuracy</span>
                 </div>
               </div>
               <div className="text-sm text-gray-500">
