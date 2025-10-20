@@ -51,6 +51,7 @@ const Signup = () => {
     password: '',
     confirmPassword: '',
     gender: '',
+    maritalStatus: '',
     mobileNumber: '',
     
     // Personal Background
@@ -537,6 +538,32 @@ const Signup = () => {
               <option value="male">Male</option>
               <option value="female">Female</option>
               <option value="other">Other</option>
+            </select>
+            <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        {/* Marital Status */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Marital Status *</label>
+          <div className="relative">
+            <select
+              name="maritalStatus"
+              required
+              value={formData.maritalStatus}
+              onChange={handleChange}
+              className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
+            >
+              <option value="">Select marital status</option>
+              <option value="single">Single</option>
+              <option value="married">Married</option>
+              <option value="widowed">Widowed</option>
+              <option value="separated">Separated</option>
+              <option value="divorced">Divorced</option>
             </select>
             <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
               <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

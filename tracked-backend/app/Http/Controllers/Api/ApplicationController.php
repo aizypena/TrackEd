@@ -30,6 +30,7 @@ class ApplicationController extends Controller
             'placeOfBirth' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'gender' => 'required|in:male,female,other,prefer-not-to-say',
+            'maritalStatus' => 'required|in:single,married,widowed,separated,divorced',
             'mobileNumber' => 'required|string|regex:/^9\d{9}$/|unique:users,phone_number',
             'education' => 'required|in:elementary,high-school,vocational,college-undergraduate,college-graduate,masters,doctorate',
             'school' => 'required|string|max:255',
@@ -66,6 +67,7 @@ class ApplicationController extends Controller
                 'last_name' => $request->lastName,
                 'email' => $request->email,
                 'phone_number' => $request->mobileNumber,
+                'marital_status' => $request->maritalStatus,
                 'password' => Hash::make('password123'), // Default password
                 'role' => 'applicant',
                 'status' => 'active',

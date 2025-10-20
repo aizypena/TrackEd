@@ -138,6 +138,12 @@ export const userAPI = {
     return apiClient.get('/users', params);
   },
 
+  // Get trainers (users with role 'trainer')
+  getTrainers: async () => {
+    const response = await apiClient.get('/users', { role: 'trainer' });
+    return response;
+  },
+
   // Get user statistics
   getStats: async () => {
     return apiClient.get('/users/stats');
