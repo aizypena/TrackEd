@@ -298,16 +298,8 @@ const StaffApplicantView = () => {
                     <p className="text-gray-800 font-medium">{applicant.education_level || 'N/A'}</p>
                   </div>
                   <div>
-                    <label className="text-sm text-gray-500">Field of Study</label>
-                    <p className="text-gray-800 font-medium">{applicant.field_of_study || 'N/A'}</p>
-                  </div>
-                  <div>
                     <label className="text-sm text-gray-500">Institution Name</label>
                     <p className="text-gray-800 font-medium">{applicant.institution_name || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm text-gray-500">Graduation Year</label>
-                    <p className="text-gray-800 font-medium">{applicant.graduation_year || 'N/A'}</p>
                   </div>
                   {applicant.gpa && (
                     <div>
