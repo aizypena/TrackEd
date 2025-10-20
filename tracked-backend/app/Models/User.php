@@ -23,6 +23,7 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
+        'student_id',
         'first_name',
         'last_name',
         'email',
@@ -32,6 +33,8 @@ class User extends Authenticatable
         'status',
         'application_status',
         'batch_id',
+        'voucher_eligibility',
+        'voucher_id',
         'address',
         'date_of_birth',
         'place_of_birth',
@@ -57,23 +60,11 @@ class User extends Authenticatable
         'emergency_phone',
         'emergency_relationship',
         // Application fields
-        'nationality',
-        'marital_status',
-        'education_level',
-        'field_of_study',
-        'institution_name',
-        'graduation_year',
-        'gpa',
         'computer_literacy',
         'languages',
-        'work_experience',
         'career_goals',
         'why_applying',
         'additional_info',
-        'valid_id_path',
-        'transcript_path',
-        'diploma_path',
-        'passport_photo_path',
         'application_submitted_at',
         'application_reviewed_at',
         'application_notes',
@@ -135,6 +126,15 @@ class User extends Authenticatable
      */
     public function batch()
     {
-        return $this->belongsTo(Batch::class);
+        return $this->belongsTo(Batch::class, 'batch_id', 'batch_id');
+    }
+    
+    /**
+     * Get the voucher assigned to the user.
+     */
+    public function voucher()
+    {
+        return $this->belongsTo(Voucher::class, 'voucher_id', 'voucher_id');
     }
 }
+

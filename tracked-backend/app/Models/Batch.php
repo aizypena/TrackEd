@@ -36,6 +36,13 @@ class Batch extends Model
     ];
 
     /**
+     * The accessors to append to the model's array form.
+     *
+     * @var array
+     */
+    protected $appends = ['enrolled_students_count'];
+
+    /**
      * Get the program that owns the batch.
      */
     public function program()
@@ -56,7 +63,7 @@ class Batch extends Model
      */
     public function students()
     {
-        return $this->hasMany(User::class, 'batch_id');
+        return $this->hasMany(User::class, 'batch_id', 'batch_id')->where('role', 'student');
     }
 
     /**

@@ -547,6 +547,87 @@ Route::middleware(['auth:sanctum'])->group(function () {
         ]);
     });
     
+    // Approve applicant and convert to student
+    Route::post('/staff/applicants/{id}/approve', function (Request $request, $id) {
+        $request->validate([
+            'batch_id' => 'required|exists:batches,batch_id'
+        ]);
+
+        $applicant = \App\Models\User::where('role', 'applicant')
+            ->where('id', $id)
+            ->first();
+        
+        if (!$applicant) {
+            return response()->json(['error' => 'Applicant not found'], 404);
+        }
+        
+        if ($applicant->application_status === 'approved' && $applicant->role === 'student') {
+            return response()->json(['error' => 'Applicant has already been approved and converted to student'], 400);
+        }
+        
+        // Generate unique student ID
+        $year = date('Y');
+        $lastStudent = \App\Models\User::where('student_id', 'like', "STU-{$year}-%")
+            ->orderBy('student_id', 'desc')
+            ->first();
+        
+        if ($lastStudent) {
+            $lastNumber = (int) substr($lastStudent->student_id, -4);
+            $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
+        } else {
+            $newNumber = '0001';
+        }
+        
+        $studentId = "STU-{$year}-{$newNumber}";
+        
+        // Check voucher availability at approval time FOR ALL APPLICANTS
+        $voucherStatus = 'not_eligible';
+        $assignedVoucherId = null;
+        $voucherConsumed = false;
+        
+        // Find available voucher for the batch they're being assigned to
+        $voucher = \App\Models\Voucher::where('batch_id', $request->batch_id)
+            ->whereRaw('used_count < quantity')
+            ->whereIn('status', ['pending', 'issued'])
+            ->first();
+        
+        if ($voucher) {
+            // Voucher available - assign it
+            $voucherStatus = 'eligible';
+            $assignedVoucherId = $voucher->voucher_id;
+            
+            // Increment used_count
+            $voucher->increment('used_count');
+            $voucherConsumed = true;
+            
+            // Update voucher status if all vouchers are used
+            if ($voucher->used_count >= $voucher->quantity) {
+                $voucher->update(['status' => 'used']);
+            }
+        } else {
+            // No vouchers available - mark as not eligible
+            $voucherStatus = 'not_eligible';
+        }
+        
+        // Update applicant to student
+        $applicant->update([
+            'student_id' => $studentId,
+            'role' => 'student',
+            'application_status' => 'approved',
+            'batch_id' => $request->batch_id,
+            'voucher_eligibility' => $voucherStatus,
+            'voucher_id' => $assignedVoucherId,
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Applicant approved and converted to student successfully',
+            'voucher_consumed' => $voucherConsumed,
+            'voucher_status' => $voucherStatus,
+            'student' => $applicant->fresh()
+        ]);
+    });
+    
     // Program Routes
     Route::apiResource('programs', ProgramController::class);
     

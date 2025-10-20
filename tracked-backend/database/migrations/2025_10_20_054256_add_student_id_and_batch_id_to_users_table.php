@@ -12,8 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('batch_id')->nullable()->after('role');
-            $table->foreign('batch_id')->references('batch_id')->on('batches')->onDelete('set null');
+            $table->string('student_id')->nullable()->unique()->after('id');
         });
     }
 
@@ -23,8 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropForeign(['batch_id']);
-            $table->dropColumn('batch_id');
+            $table->dropColumn('student_id');
         });
     }
 };

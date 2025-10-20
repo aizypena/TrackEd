@@ -27,4 +27,17 @@ class Voucher extends Model
     {
         return $this->belongsTo(User::class, 'issued_by');
     }
+    
+    // Relationship with batch
+    public function batch()
+    {
+        return $this->belongsTo(Batch::class, 'batch_id', 'batch_id');
+    }
+    
+    // Relationship with users who have this voucher
+    public function users()
+    {
+        return $this->hasMany(User::class, 'voucher_id', 'voucher_id');
+    }
 }
+

@@ -10,6 +10,7 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rules\Password;
 
 class ApplicationController extends Controller
@@ -61,6 +62,21 @@ class ApplicationController extends Controller
         }
 
         try {
+            // Determine potential voucher eligibility based on category
+            // Will be finalized at approval time when checking voucher availability
+            $tesdaCategory = $request->tesdaVoucherEligibility;
+            
+            $eligibleCategories = [
+                '4ps-beneficiary', 'pwd', 'senior-citizen', 'solo-parent', 
+                'ofw-dependent', 'displaced-worker', 'rebel-returnee', 
+                'student', 'unemployed-graduate'
+            ];
+            
+            // Set initial eligibility status - will be confirmed at approval
+            $initialVoucherStatus = in_array($tesdaCategory, $eligibleCategories) 
+                ? 'pending'  // Potentially eligible, pending approval and voucher availability
+                : 'not_eligible';  // Not in eligible category
+            
             // Create user account first
             $user = User::create([
                 'first_name' => $request->firstName,
@@ -72,6 +88,9 @@ class ApplicationController extends Controller
                 'role' => 'applicant',
                 'status' => 'active',
                 'application_status' => 'pending',
+                'course_program' => $request->courseProgram,
+                'voucher_eligibility' => $initialVoucherStatus,
+                'voucher_id' => null,  // Will be assigned at approval if available
             ]);
 
             // Handle file uploads
