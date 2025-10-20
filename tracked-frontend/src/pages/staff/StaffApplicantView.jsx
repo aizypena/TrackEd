@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import StaffSidebar from '../../layouts/staff/StaffSidebar';
+import ApproveApplicantModal from '../../components/staff/ApproveApplicantModal';
 import { getStaffToken } from '../../utils/staffAuth';
 import { 
   MdMenu,
@@ -26,6 +27,7 @@ const StaffApplicantView = () => {
   const [loading, setLoading] = useState(true);
   const [applicant, setApplicant] = useState(null);
   const [updating, setUpdating] = useState(false);
+  const [showApproveModal, setShowApproveModal] = useState(false);
 
   useEffect(() => {
     fetchApplicantDetails();
@@ -410,12 +412,12 @@ const StaffApplicantView = () => {
                     Mark as Under Review
                   </button>
                   <button
-                    onClick={() => updateApplicationStatus('approved')}
-                    disabled={updating || applicant.application_status === 'approved'}
+                    onClick={() => setShowApproveModal(true)}
+                    disabled={updating || applicant.application_status === 'approved' || applicant.role === 'student'}
                     className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <MdCheckCircle className="h-5 w-5" />
-                    Approve Application
+                    {applicant.role === 'student' ? 'Already a Student' : 'Approve & Enroll as Student'}
                   </button>
                   <button
                     onClick={() => updateApplicationStatus('rejected')}
@@ -439,6 +441,17 @@ const StaffApplicantView = () => {
           </div>
         </div>
       </div>
+      
+      {/* Approve Applicant Modal */}
+      <ApproveApplicantModal
+        isOpen={showApproveModal}
+        onClose={() => setShowApproveModal(false)}
+        applicant={applicant}
+        onSuccess={(updatedStudent) => {
+          fetchApplicantDetails();
+          setShowApproveModal(false);
+        }}
+      />
     </div>
   );
 };
