@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Sidebar from '../../layouts/lms/Sidebar';
+import { getStudentUser } from '../../utils/studentAuth';
 import { 
   MdSchool, 
   MdFolder, 
@@ -25,10 +26,10 @@ const StudentDashboard = () => {
   });
 
   useEffect(() => {
-    // Get user data from localStorage or API
-    const userData = localStorage.getItem('user');
+    // Get user data from localStorage
+    const userData = getStudentUser();
     if (userData) {
-      setUser(JSON.parse(userData));
+      setUser(userData);
     }
   }, []);
 

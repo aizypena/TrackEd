@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import Sidebar from '../../layouts/lms/Sidebar';
+import { getStudentUser } from '../../utils/studentAuth';
 import { 
   MdSchedule, 
   MdLocationOn, 
@@ -15,17 +17,19 @@ import {
   MdMenu,
   MdClose
 } from 'react-icons/md';
-import Sidebar from '../../layouts/lms/Sidebar';
 
 const ClassSchedule = () => {
-  const [user] = useState({
-    first_name: 'John',
-    last_name: 'Doe',
-    email: 'john.doe@smiinstitute.com'
-  });
+  const [user, setUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedView, setSelectedView] = useState('week'); // 'week' or 'month'
+
+  useEffect(() => {
+    const userData = getStudentUser();
+    if (userData) {
+      setUser(userData);
+    }
+  }, []);
 
   // Sample student's class schedule data
   const studentSchedule = [

@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import Sidebar from '../../layouts/lms/Sidebar';
+import { getStudentUser } from '../../utils/studentAuth';
 import { 
   MdQuiz, 
   MdAssignment, 
@@ -21,18 +23,20 @@ import {
   MdStar,
   MdBarChart
 } from 'react-icons/md';
-import Sidebar from '../../layouts/lms/Sidebar';
 
 const Assessments = () => {
-  const [user] = useState({
-    first_name: 'John',
-    last_name: 'Doe',
-    email: 'john.doe@smiinstitute.com'
-  });
+  const [user, setUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [activeTab, setActiveTab] = useState('upcoming');
+
+  useEffect(() => {
+    const userData = getStudentUser();
+    if (userData) {
+      setUser(userData);
+    }
+  }, []);
 
   // Sample assessments data
   const assessments = [

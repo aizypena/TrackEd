@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import StaffSidebar from '../../layouts/staff/StaffSidebar';
-import { getStaffToken } from '../../utils/staffAuth';
+import { getStaffToken, getStaffUser } from '../../utils/staffAuth';
 import { 
   MdMenu, 
   MdPeople, 
@@ -19,6 +19,7 @@ import {
 const StaffDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [user, setUser] = useState(null);
 
   // Mock data - replace with actual API calls
   const [stats, setStats] = useState({
@@ -46,6 +47,10 @@ const StaffDashboard = () => {
 
   // Fetch recent applications on component mount
   useEffect(() => {
+    // Get user data from localStorage
+    const userData = getStaffUser();
+    setUser(userData);
+
     const fetchRecentApplications = async () => {
       try {
         const token = getStaffToken();
@@ -111,6 +116,7 @@ const StaffDashboard = () => {
   return (
     <div className="min-h-screen bg-gray-100">
       <StaffSidebar 
+        user={user}
         isOpen={sidebarOpen} 
         onClose={() => setSidebarOpen(false)}
         isCollapsed={sidebarCollapsed}

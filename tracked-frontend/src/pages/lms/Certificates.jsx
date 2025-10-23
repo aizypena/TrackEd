@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../layouts/lms/Sidebar';
+import { getStudentUser } from '../../utils/studentAuth';
 import { 
   MdWorkspacePremium, 
   MdDownload, 
@@ -23,19 +24,18 @@ import {
 } from 'react-icons/md';
 
 const Certificates = () => {
+  const [user, setUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCertificate, setSelectedCertificate] = useState(null);
 
-  // Mock user data
-  const user = {
-    name: 'Maria Santos',
-    studentId: 'SMI-2024-001',
-    email: 'maria.santos@smi.edu.ph',
-    course: 'Cookery NC II',
-    year: '1st Year'
-  };
+  useEffect(() => {
+    const userData = getStudentUser();
+    if (userData) {
+      setUser(userData);
+    }
+  }, []);
 
   // Mock certificates data
   const certificates = [

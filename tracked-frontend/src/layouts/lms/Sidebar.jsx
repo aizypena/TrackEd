@@ -143,7 +143,7 @@ const Sidebar = ({ user, isOpen, onClose }) => {
                 </p>
                 <div className="flex items-center space-x-2 mt-1">
                   <span className="inline-block px-2 py-0.5 text-xs font-medium bg-tracked-secondary text-white rounded">
-                    LMS Portal
+                    {user?.student_id || 'Student'}
                   </span>
                 </div>
               </div>

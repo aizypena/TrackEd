@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import Sidebar from '../../layouts/lms/Sidebar';
+import { getStudentUser } from '../../utils/studentAuth';
 import { 
   MdFactCheck, 
   MdCheckCircle, 
@@ -18,18 +20,20 @@ import {
   MdClose,
   MdAccessTime
 } from 'react-icons/md';
-import Sidebar from '../../layouts/lms/Sidebar';
 
 const Attendance = () => {
-  const [user] = useState({
-    first_name: 'John',
-    last_name: 'Doe',
-    email: 'john.doe@smiinstitute.com'
-  });
+  const [user, setUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState('all');
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+  useEffect(() => {
+    const userData = getStudentUser();
+    if (userData) {
+      setUser(userData);
+    }
+  }, []);
 
   // Sample attendance data
   const attendanceRecords = [

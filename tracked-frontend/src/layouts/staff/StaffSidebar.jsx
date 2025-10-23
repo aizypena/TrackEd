@@ -17,7 +17,7 @@ import {
   MdChevronRight
 } from 'react-icons/md';
 
-const StaffSidebar = ({ isOpen, onClose, isCollapsed, setIsCollapsed }) => {
+const StaffSidebar = ({ user, isOpen, onClose, isCollapsed, setIsCollapsed }) => {
   const location = useLocation();
   const [expandedSections, setExpandedSections] = useState({});
 
@@ -127,7 +127,7 @@ const StaffSidebar = ({ isOpen, onClose, isCollapsed, setIsCollapsed }) => {
         bg-tracked-primary shadow-lg
       `}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4">
+        <div className="flex items-center justify-between p-4 border-b border-tracked-primary-dark">
           {!isCollapsed && (
             <div className="flex items-center space-x-3">
               <div className="w-12 h-12 overflow-hidden rounded-lg bg-white p-1">
@@ -144,13 +144,48 @@ const StaffSidebar = ({ isOpen, onClose, isCollapsed, setIsCollapsed }) => {
             </div>
           )}
           
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-1.5 rounded-md text-white hover:bg-tracked-primary-dark"
-          >
-            {isCollapsed ? <MdMenu /> : <MdClose />}
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="hidden lg:block p-1.5 rounded-md text-blue-200 hover:text-white hover:bg-tracked-primary-dark hover:cursor-pointer"
+            >
+              <MdMenu className="h-5 w-5" />
+            </button>
+            
+            <button
+              onClick={onClose}
+              className="lg:hidden p-1.5 rounded-md text-blue-200 hover:text-white hover:bg-tracked-primary-dark"
+            >
+              <MdClose className="h-5 w-5" />
+            </button>
+          </div>
         </div>
+
+        {/* User Profile */}
+        {!isCollapsed && (
+          <div className="p-4 border-b border-tracked-primary-dark">
+            <div className="flex items-center space-x-3">
+              <div className="h-10 w-10 bg-tracked-secondary rounded-full flex items-center justify-center text-white font-semibold">
+                {user?.first_name ? user.first_name.charAt(0).toUpperCase() : 'S'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-white truncate">
+                  {user?.first_name && user?.last_name 
+                    ? `${user.first_name} ${user.last_name}` 
+                    : 'Staff'}
+                </p>
+                <p className="text-xs text-blue-200 truncate">
+                  {user?.email || 'staff@smiinstitute.com'}
+                </p>
+                <div className="flex items-center space-x-2 mt-1">
+                  <span className="inline-block px-2 py-0.5 text-xs font-medium bg-tracked-secondary text-white rounded">
+                    Staff
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3 py-4">

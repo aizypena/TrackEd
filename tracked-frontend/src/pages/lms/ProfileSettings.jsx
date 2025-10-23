@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../../layouts/lms/Sidebar';
+import { getStudentUser } from '../../utils/studentAuth';
 import { 
   MdPerson, 
   MdEmail,
@@ -24,12 +25,36 @@ import {
 } from 'react-icons/md';
 
 const ProfileSettings = () => {
+  const [user, setUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('personal');
   const [isEditing, setIsEditing] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  useEffect(() => {
+    const userData = getStudentUser();
+    if (userData) {
+      setUser(userData);
+      // Initialize userProfile with real data if available
+      setUserProfile({
+        firstName: userData.first_name || 'Maria',
+        lastName: userData.last_name || 'Santos',
+        email: userData.email || 'maria.santos@smi.edu.ph',
+        phone: userData.phone_number || '+63 912 345 6789',
+        address: userData.address || '123 Main Street, Quezon City, Metro Manila',
+        dateOfBirth: userData.date_of_birth || '1999-05-15',
+        studentId: userData.student_id || 'SMI-2024-001',
+        course: userData.course_program || 'Cookery NC II',
+        yearLevel: '1st Year',
+        enrollmentDate: '2024-08-15',
+        emergencyContact: userData.emergency_contact_name || 'Juan Santos',
+        emergencyPhone: userData.emergency_contact_phone || '+63 912 345 6788',
+        avatar: null
+      });
+    }
+  }, []);
 
   // Mock user data
   const [userProfile, setUserProfile] = useState({
@@ -64,8 +89,6 @@ const ProfileSettings = () => {
     theme: 'light',
     timezone: 'Asia/Manila'
   });
-
-  const user = userProfile;
 
   const tabs = [
     { id: 'personal', name: 'Personal Information', icon: <MdPerson className="h-5 w-5" /> },
