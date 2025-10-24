@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../layouts/lms/Sidebar';
 import { getStudentUser } from '../../utils/studentAuth';
+import toast, { Toaster } from 'react-hot-toast';
 import { 
   MdPerson, 
   MdEmail,
@@ -33,45 +34,47 @@ const ProfileSettings = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  // State for user profile
+  const [userProfile, setUserProfile] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    address: '',
+    dateOfBirth: '',
+    studentId: '',
+    course: '',
+    yearLevel: '1st Year',
+    enrollmentDate: '2024-08-15',
+    emergencyContact: '',
+    emergencyPhone: '',
+    emergencyRelationship: '',
+    avatar: null
+  });
+
   useEffect(() => {
     const userData = getStudentUser();
     if (userData) {
       setUser(userData);
-      // Initialize userProfile with real data if available
+      
       setUserProfile({
-        firstName: userData.first_name || 'Maria',
-        lastName: userData.last_name || 'Santos',
-        email: userData.email || 'maria.santos@smi.edu.ph',
-        phone: userData.phone_number || '+63 912 345 6789',
-        address: userData.address || '123 Main Street, Quezon City, Metro Manila',
-        dateOfBirth: userData.date_of_birth || '1999-05-15',
-        studentId: userData.student_id || 'SMI-2024-001',
-        course: userData.course_program || 'Cookery NC II',
+        firstName: userData.first_name || '',
+        lastName: userData.last_name || '',
+        email: userData.email || '',
+        phone: userData.phone_number || '',
+        address: userData.address || '',
+        dateOfBirth: userData.date_of_birth || '',
+        studentId: userData.student_id || '',
+        course: userData.course_program || '',
         yearLevel: '1st Year',
         enrollmentDate: '2024-08-15',
-        emergencyContact: userData.emergency_contact_name || 'Juan Santos',
-        emergencyPhone: userData.emergency_contact_phone || '+63 912 345 6788',
+        emergencyContact: userData.emergency_contact || '',
+        emergencyPhone: userData.emergency_phone || '',
+        emergencyRelationship: userData.emergency_relationship || '',
         avatar: null
       });
     }
   }, []);
-
-  // Mock user data
-  const [userProfile, setUserProfile] = useState({
-    firstName: 'Maria',
-    lastName: 'Santos',
-    email: 'maria.santos@smi.edu.ph',
-    phone: '+63 912 345 6789',
-    address: '123 Main Street, Quezon City, Metro Manila',
-    dateOfBirth: '1999-05-15',
-    studentId: 'SMI-2024-001',
-    course: 'Cookery NC II',
-    yearLevel: '1st Year',
-    enrollmentDate: '2024-08-15',
-    emergencyContact: 'Juan Santos',
-    emergencyPhone: '+63 912 345 6788',
-    avatar: null
-  });
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -93,8 +96,7 @@ const ProfileSettings = () => {
   const tabs = [
     { id: 'personal', name: 'Personal Information', icon: <MdPerson className="h-5 w-5" /> },
     { id: 'academic', name: 'Academic Details', icon: <MdSchool className="h-5 w-5" /> },
-    { id: 'security', name: 'Security', icon: <MdSecurity className="h-5 w-5" /> },
-    { id: 'preferences', name: 'Preferences', icon: <MdNotifications className="h-5 w-5" /> }
+    { id: 'security', name: 'Security', icon: <MdSecurity className="h-5 w-5" /> }
   ];
 
   const handleProfileUpdate = () => {
@@ -103,10 +105,59 @@ const ProfileSettings = () => {
     console.log('Profile updated:', userProfile);
   };
 
-  const handlePasswordChange = () => {
-    // Implement password change logic
-    console.log('Password change requested');
-    setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const handlePasswordChange = async () => {
+    // Validate password fields
+    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      toast.error('Please fill in all password fields');
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error('New password and confirm password do not match');
+      return;
+    }
+
+    if (passwordData.newPassword.length < 8) {
+      toast.error('Password must be at least 8 characters long');
+      return;
+    }
+
+    const loadingToast = toast.loading('Updating password...');
+
+    try {
+      const token = localStorage.getItem('studentToken');
+      const response = await fetch('http://localhost:8000/api/student/password', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          current_password: passwordData.currentPassword,
+          new_password: passwordData.newPassword,
+          new_password_confirmation: passwordData.confirmPassword
+        })
+      });
+
+      const data = await response.json();
+
+      toast.dismiss(loadingToast);
+
+      if (response.ok) {
+        toast.success('Password updated successfully!');
+        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        setShowCurrentPassword(false);
+        setShowNewPassword(false);
+        setShowConfirmPassword(false);
+      } else {
+        toast.error(data.message || 'Failed to update password');
+      }
+    } catch (error) {
+      toast.dismiss(loadingToast);
+      console.error('Password change error:', error);
+      toast.error('An error occurred while changing password');
+    }
   };
 
   const handlePreferencesUpdate = () => {
@@ -124,6 +175,30 @@ const ProfileSettings = () => {
 
   return (
     <div className="flex h-screen bg-gray-50">
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            duration: 4000,
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
       {/* Sidebar */}
       <Sidebar 
         user={user} 
@@ -157,8 +232,9 @@ const ProfileSettings = () => {
             </div>
             <div className="flex items-center space-x-3">
               <div className="text-right">
-                <div className="text-sm font-medium text-gray-900">{userProfile.firstName} {userProfile.lastName}</div>
-                <div className="text-xs text-gray-500">{userProfile.studentId}</div>
+                <div className="text-sm font-medium text-gray-900">
+                  {userProfile.firstName.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')} {userProfile.lastName.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                </div>
               </div>
             </div>
           </div>
@@ -185,9 +261,12 @@ const ProfileSettings = () => {
                   </label>
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-xl font-bold text-gray-900">{userProfile.firstName} {userProfile.lastName}</h2>
-                  <p className="text-gray-600">{userProfile.course}</p>
-                  <p className="text-sm text-gray-500">{userProfile.studentId} • {userProfile.yearLevel}</p>
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {userProfile.firstName.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')} {userProfile.lastName.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                  </h2>
+                  {userProfile.studentId && (
+                    <p className="text-sm text-gray-500 mt-1">{userProfile.studentId}</p>
+                  )}
                   <div className="flex items-center mt-2">
                     <MdCheckCircle className="h-4 w-4 text-green-500 mr-2" />
                     <span className="text-sm text-green-600 font-medium">Verified Student</span>
@@ -316,12 +395,49 @@ const ProfileSettings = () => {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Emergency Contact</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Student ID</label>
                         <input
                           type="text"
-                          value={userProfile.emergencyContact}
+                          value={userProfile.studentId || ''}
+                          onChange={(e) => setUserProfile({...userProfile, studentId: e.target.value})}
+                          disabled={!isEditing}
+                          className="px-4 py-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Emergency Contact Name</label>
+                        <input
+                          type="text"
+                          value={userProfile.emergencyContact || ''}
                           onChange={(e) => setUserProfile({...userProfile, emergencyContact: e.target.value})}
                           disabled={!isEditing}
+                          className="px-4 py-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Emergency Contact Phone</label>
+                        <div className="relative">
+                          <MdPhone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                          <input
+                            type="tel"
+                            value={userProfile.emergencyPhone || ''}
+                            onChange={(e) => setUserProfile({...userProfile, emergencyPhone: e.target.value})}
+                            disabled={!isEditing}
+                            className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Relationship</label>
+                        <input
+                          type="text"
+                          value={userProfile.emergencyRelationship || ''}
+                          onChange={(e) => setUserProfile({...userProfile, emergencyRelationship: e.target.value})}
+                          disabled={!isEditing}
+                          placeholder="e.g., Parent, Spouse, Sibling"
                           className="px-4 py-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
                         />
                       </div>
@@ -355,17 +471,7 @@ const ProfileSettings = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="bg-gray-50 p-4 rounded-lg">
                         <label className="block text-sm font-medium text-gray-700 mb-2">Student ID</label>
-                        <p className="text-lg font-semibold text-gray-900">{userProfile.studentId}</p>
-                      </div>
-
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Course Program</label>
-                        <p className="text-lg font-semibold text-gray-900">{userProfile.course}</p>
-                      </div>
-
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Year Level</label>
-                        <p className="text-lg font-semibold text-gray-900">{userProfile.yearLevel}</p>
+                        <p className="text-lg font-semibold text-gray-900">{userProfile.studentId || 'Not Assigned'}</p>
                       </div>
 
                       <div className="bg-gray-50 p-4 rounded-lg">
@@ -468,93 +574,9 @@ const ProfileSettings = () => {
 
                       <button
                         onClick={handlePasswordChange}
-                        className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                        className="flex items-center px-4 hover:cursor-pointer py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
                       >
-                        <MdSecurity className="h-4 w-4 mr-2" />
                         Change Password
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Preferences Tab */}
-                {activeTab === 'preferences' && (
-                  <div className="space-y-6">
-                    <h3 className="text-lg font-semibold text-gray-900">Notification Preferences</h3>
-                    
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-900">Email Notifications</h4>
-                          <p className="text-sm text-gray-500">Receive updates via email</p>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={preferences.emailNotifications}
-                            onChange={(e) => setPreferences({...preferences, emailNotifications: e.target.checked})}
-                            className="sr-only peer"
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                        </label>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-900">Push Notifications</h4>
-                          <p className="text-sm text-gray-500">Receive browser notifications</p>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={preferences.pushNotifications}
-                            onChange={(e) => setPreferences({...preferences, pushNotifications: e.target.checked})}
-                            className="sr-only peer"
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                        </label>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-900">Course Updates</h4>
-                          <p className="text-sm text-gray-500">Notifications about course changes</p>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={preferences.courseUpdates}
-                            onChange={(e) => setPreferences({...preferences, courseUpdates: e.target.checked})}
-                            className="sr-only peer"
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                        </label>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-900">Assessment Reminders</h4>
-                          <p className="text-sm text-gray-500">Reminders for upcoming assessments</p>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={preferences.assessmentReminders}
-                            onChange={(e) => setPreferences({...preferences, assessmentReminders: e.target.checked})}
-                            className="sr-only peer"
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div className="pt-4 border-t border-gray-200">
-                      <button
-                        onClick={handlePreferencesUpdate}
-                        className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                      >
-                        <MdSave className="h-4 w-4 mr-2" />
-                        Save Preferences
                       </button>
                     </div>
                   </div>
