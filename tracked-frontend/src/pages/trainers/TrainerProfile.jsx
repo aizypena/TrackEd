@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import TrainerSidebar from '../../layouts/trainer/TrainerSidebar';
 import { getTrainerUser } from '../../utils/trainerAuth';
 import { trainerAPI } from '../../services/trainerAPI';
+import toast, { Toaster } from 'react-hot-toast';
 import {
   MdMenu,
   MdEdit,
@@ -23,7 +24,7 @@ const TrainerProfile = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
@@ -120,26 +121,25 @@ const TrainerProfile = () => {
   };
 
   const handlePasswordChange = async () => {
+    // Validate passwords
+    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      toast.error('All password fields are required');
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error('New passwords do not match');
+      return;
+    }
+
+    if (passwordData.newPassword.length < 8) {
+      toast.error('New password must be at least 8 characters long');
+      return;
+    }
+
+    const loadingToast = toast.loading('Updating password...');
+
     try {
-      setError(null);
-      setSuccessMessage(null);
-
-      // Validate passwords
-      if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
-        setError('All password fields are required');
-        return;
-      }
-
-      if (passwordData.newPassword !== passwordData.confirmPassword) {
-        setError('New passwords do not match');
-        return;
-      }
-
-      if (passwordData.newPassword.length < 8) {
-        setError('New password must be at least 8 characters long');
-        return;
-      }
-
       setLoading(true);
 
       // Call API to update password
@@ -149,20 +149,20 @@ const TrainerProfile = () => {
         passwordData.confirmPassword
       );
 
-      setSuccessMessage('Password updated successfully!');
-      setShowPasswordModal(false);
+      toast.success('Password updated successfully!', {
+        id: loadingToast,
+      });
+      
       setPasswordData({
         currentPassword: '',
         newPassword: '',
         confirmPassword: ''
       });
-
-      // Auto-hide success message after 3 seconds
-      setTimeout(() => {
-        setSuccessMessage(null);
-      }, 3000);
+      setIsChangingPassword(false);
     } catch (err) {
-      setError(err.message || 'Failed to update password. Please try again.');
+      toast.error(err.message || 'Failed to update password. Please try again.', {
+        id: loadingToast,
+      });
     } finally {
       setLoading(false);
     }
@@ -404,24 +404,114 @@ const TrainerProfile = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* Password Change Section */}
+                <div className="bg-white rounded-lg shadow p-6 mt-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                      <MdLock className="h-5 w-5 mr-2 text-gray-700" />
+                      Change Password
+                    </h3>
+                    <button
+                      onClick={() => {
+                        if (isChangingPassword) {
+                          // Cancel - clear fields
+                          setPasswordData({
+                            currentPassword: '',
+                            newPassword: '',
+                            confirmPassword: ''
+                          });
+                        }
+                        setIsChangingPassword(!isChangingPassword);
+                      }}
+                      className={`flex items-center px-4 py-2 rounded-lg shadow-sm text-sm font-medium ${
+                        isChangingPassword
+                          ? 'bg-gray-200 text-gray-700'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      } transition-colors duration-200`}
+                    >
+                      <MdLock className="h-5 w-5 mr-2" />
+                      {isChangingPassword ? 'Cancel' : 'Change Password'}
+                    </button>
+                  </div>
+
+                  <form onSubmit={(e) => { e.preventDefault(); handlePasswordChange(); }} className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                            <MdLock className="h-5 w-5 text-gray-400" />
+                          </div>
+                          <input
+                            type="password"
+                            value={passwordData.currentPassword}
+                            onChange={(e) => {
+                              setPasswordData({ ...passwordData, currentPassword: e.target.value });
+                            }}
+                            disabled={!isChangingPassword}
+                            className="block w-full rounded-md border-gray-300 pl-10 pr-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
+                            placeholder="Enter current password"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                            <MdLock className="h-5 w-5 text-gray-400" />
+                          </div>
+                          <input
+                            type="password"
+                            value={passwordData.newPassword}
+                            onChange={(e) => {
+                              setPasswordData({ ...passwordData, newPassword: e.target.value });
+                            }}
+                            disabled={!isChangingPassword}
+                            className="block w-full rounded-md border-gray-300 pl-10 pr-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
+                            placeholder="Enter new password"
+                          />
+                        </div>
+                        <p className="mt-1 text-xs text-gray-500">Must be at least 8 characters long</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                            <MdLock className="h-5 w-5 text-gray-400" />
+                          </div>
+                          <input
+                            type="password"
+                            value={passwordData.confirmPassword}
+                            onChange={(e) => {
+                              setPasswordData({ ...passwordData, confirmPassword: e.target.value });
+                            }}
+                            disabled={!isChangingPassword}
+                            className="block w-full rounded-md border-gray-300 pl-10 pr-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
+                            placeholder="Confirm new password"
+                          />
+                        </div>
+                      </div>
+
+                      {isChangingPassword && (
+                        <div className="flex justify-end pt-2">
+                          <button
+                            type="submit"
+                            disabled={loading}
+                            className="inline-flex items-center px-6 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                          >
+                            <MdSave className="h-5 w-5 mr-2" />
+                            {loading ? 'Updating...' : 'Update Password'}
+                          </button>
+                        </div>
+                      )}
+                    </form>
+                </div>
               </div>
 
               {/* Sidebar Information */}
               <div className="space-y-6">
-                <div className="bg-gradient-to-br from-blue-900 to-blue-800 rounded-xl shadow-lg p-6 text-white">
-                  <h3 className="text-lg font-medium mb-4 flex items-center">
-                    <MdLock className="h-6 w-6 mr-2" />
-                    Account Security
-                  </h3>
-                  <button
-                    onClick={() => setShowPasswordModal(true)}
-                    className="inline-flex items-center px-4 py-3 border border-blue-400 rounded-lg text-sm font-medium bg-blue-800 hover:bg-blue-700 focus:outline-none w-full justify-center transition-colors duration-200"
-                  >
-                    <MdLock className="h-5 w-5 mr-2" />
-                    Change Password
-                  </button>
-                </div>
-
                 <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 p-6">
                   <h3 className="text-xl font-semibold text-gray-900 flex items-center mb-6">
                     <span className="bg-blue-100 rounded-lg p-2 mr-3">
@@ -446,107 +536,31 @@ const TrainerProfile = () => {
         </div>
       </div>
 
-      {/* Password Change Modal */}
-      {showPasswordModal && (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md transform transition-all">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-gray-900 flex items-center">
-                <span className="bg-blue-100 rounded-lg p-2 mr-3">
-                  <MdLock className="h-6 w-6 text-blue-600" />
-                </span>
-                Change Password
-              </h3>
-            </div>
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
-                <div className="relative">
-                  <input
-                    type="password"
-                    value={passwordData.currentPassword}
-                    onChange={(e) => {
-                      setPasswordData({ ...passwordData, currentPassword: e.target.value });
-                      setError(null);
-                    }}
-                    className="block w-full rounded-lg border-gray-300 pr-10 shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-colors duration-200"
-                  />
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                    <MdLock className="h-5 w-5 text-gray-400" />
-                  </div>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
-                <div className="relative">
-                  <input
-                    type="password"
-                    value={passwordData.newPassword}
-                    onChange={(e) => {
-                      setPasswordData({ ...passwordData, newPassword: e.target.value });
-                      setError(null);
-                    }}
-                    className="block w-full rounded-lg border-gray-300 pr-10 shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-colors duration-200"
-                  />
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                    <MdLock className="h-5 w-5 text-gray-400" />
-                  </div>
-                </div>
-                <p className="mt-1 text-xs text-gray-500">Must be at least 8 characters long</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Confirm New Password</label>
-                <div className="relative">
-                  <input
-                    type="password"
-                    value={passwordData.confirmPassword}
-                    onChange={(e) => {
-                      setPasswordData({ ...passwordData, confirmPassword: e.target.value });
-                      setError(null);
-                    }}
-                    className="block w-full rounded-lg border-gray-300 pr-10 shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-colors duration-200"
-                  />
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                    <MdLock className="h-5 w-5 text-gray-400" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Error Message in Modal */}
-              {error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-sm text-red-800">{error}</p>
-                </div>
-              )}
-
-              <div className="flex justify-end space-x-4 mt-8">
-                <button
-                  onClick={() => {
-                    setShowPasswordModal(false);
-                    setPasswordData({
-                      currentPassword: '',
-                      newPassword: '',
-                      confirmPassword: ''
-                    });
-                    setError(null);
-                  }}
-                  disabled={loading}
-                  className="px-6 py-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handlePasswordChange}
-                  disabled={loading}
-                  className="px-6 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? 'Updating...' : 'Update Password'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Toast Notifications */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: '#4ade80',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            duration: 4000,
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
     </div>
   );
 };
