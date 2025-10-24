@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   MdPerson,
   MdLock,
@@ -14,13 +14,33 @@ import {
 
 function ProfileSettings() {
   // Get admin user info from localStorage
-  const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+  const [adminUser, setAdminUser] = useState(null);
+
+  useEffect(() => {
+    const userData = JSON.parse(localStorage.getItem('adminUser') || '{}');
+    console.log('Admin User Data:', userData); // Debug log
+    setAdminUser(userData);
+    
+    // Initialize form data with actual user data
+    if (userData && Object.keys(userData).length > 0) {
+      setFormData(prev => ({
+        ...prev,
+        firstName: userData.first_name || '',
+        lastName: userData.last_name || '',
+        email: userData.email || '',
+        phone: userData.phone_number || userData.phone || '',
+        address: userData.address || '',
+      }));
+    }
+  }, []);
 
   // State for form data
   const [formData, setFormData] = useState({
-    name: adminUser.name || '',
-    email: adminUser.email || '',
-    phone: adminUser.phone || '',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    address: '',
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
@@ -73,6 +93,19 @@ function ProfileSettings() {
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Profile Settings</h1>
               <p className="text-gray-600 mt-1">Manage your account settings and preferences</p>
+              {adminUser && (
+                <div className="mt-3 space-y-1">
+                  <p className="text-sm text-gray-700">
+                    <span className="font-medium">First Name:</span> {adminUser.first_name || formData.firstName || 'N/A'}
+                  </p>
+                  <p className="text-sm text-gray-700">
+                    <span className="font-medium">Last Name:</span> {adminUser.last_name || formData.lastName || 'N/A'}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Logged in as: {adminUser.email} (Role: {adminUser.role})
+                  </p>
+                </div>
+              )}
             </div>
             <button
               onClick={() => setIsEditing(!isEditing)}
@@ -89,20 +122,49 @@ function ProfileSettings() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Info Message if data is missing */}
+          {(!formData.firstName || !formData.lastName) && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-center">
+                <MdNotifications className="h-5 w-5 text-yellow-600 mr-2" />
+                <p className="text-sm text-yellow-800">
+                  Some profile information is missing. Please log out and log back in to refresh your profile data, or update your information below.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Personal Information */}
           <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Full Name</label>
+                <label className="block text-sm font-medium text-gray-700">First Name</label>
                 <div className="mt-1 relative rounded-md shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <MdPerson className="h-5 w-5 text-gray-400" />
                   </div>
                   <input
                     type="text"
-                    name="name"
-                    value={formData.name}
+                    name="firstName"
+                    value={formData.firstName}
+                    onChange={handleChange}
+                    disabled={!isEditing}
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Last Name</label>
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <MdPerson className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    name="lastName"
+                    value={formData.lastName}
                     onChange={handleChange}
                     disabled={!isEditing}
                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
@@ -140,6 +202,20 @@ function ProfileSettings() {
                     onChange={handleChange}
                     disabled={!isEditing}
                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                  />
+                </div>
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700">Address</label>
+                <div className="mt-1">
+                  <textarea
+                    name="address"
+                    value={formData.address}
+                    onChange={handleChange}
+                    disabled={!isEditing}
+                    rows={3}
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
                   />
                 </div>
               </div>

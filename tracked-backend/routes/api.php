@@ -50,7 +50,16 @@ Route::post('/admin/login', function (Request $request) {
 
     return response()->json([
         'token' => $token,
-        'user' => $user
+        'user' => [
+            'id' => $user->id,
+            'first_name' => $user->first_name,
+            'last_name' => $user->last_name,
+            'email' => $user->email,
+            'phone_number' => $user->phone_number,
+            'address' => $user->address,
+            'role' => $user->role,
+            'status' => $user->status,
+        ]
     ]);
 });
 
@@ -626,6 +635,37 @@ Route::middleware(['auth:sanctum'])->group(function () {
         $user = $request->user();
         
         if ($user->role !== 'student') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $request->validate([
+            'current_password' => 'required|string',
+            'new_password' => 'required|string|min:8|confirmed',
+        ]);
+
+        // Verify current password
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Current password is incorrect'
+            ], 400);
+        }
+
+        // Update password
+        $user->password = Hash::make($request->new_password);
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password updated successfully'
+        ]);
+    });
+
+    // Update Admin Password
+    Route::put('/admin/password', function (Request $request) {
+        $user = $request->user();
+        
+        if ($user->role !== 'admin') {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
