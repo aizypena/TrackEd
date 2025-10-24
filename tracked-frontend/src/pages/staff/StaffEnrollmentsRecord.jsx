@@ -158,11 +158,6 @@ const StaffEnrollmentsRecord = () => {
         className: 'bg-blue-100 text-blue-800',
         icon: <MdSchool className="h-4 w-4" />,
         label: 'Completed'
-      },
-      dropped: {
-        className: 'bg-red-100 text-red-800',
-        icon: <MdCancel className="h-4 w-4" />,
-        label: 'Dropped'
       }
     };
 
@@ -233,8 +228,7 @@ const StaffEnrollmentsRecord = () => {
     total: enrollments.length,
     active: enrollments.filter(e => e.status === 'active').length,
     pending: enrollments.filter(e => e.status === 'pending').length,
-    completed: enrollments.filter(e => e.status === 'completed').length,
-    dropped: enrollments.filter(e => e.status === 'dropped').length
+    completed: enrollments.filter(e => e.status === 'completed').length
   };
 
   return (
@@ -273,7 +267,7 @@ const StaffEnrollmentsRecord = () => {
         {/* Dashboard Content */}
         <div className="container mx-auto p-6">
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-white rounded-lg shadow-md p-4">
               <p className="text-sm text-gray-500 font-medium">Total Enrollments</p>
               <p className="text-2xl font-bold text-tracked-primary mt-1">{stats.total}</p>
@@ -289,10 +283,6 @@ const StaffEnrollmentsRecord = () => {
             <div className="bg-white rounded-lg shadow-md p-4">
               <p className="text-sm text-gray-500 font-medium">Completed</p>
               <p className="text-2xl font-bold text-blue-600 mt-1">{stats.completed}</p>
-            </div>
-            <div className="bg-white rounded-lg shadow-md p-4">
-              <p className="text-sm text-gray-500 font-medium">Dropped</p>
-              <p className="text-2xl font-bold text-red-600 mt-1">{stats.dropped}</p>
             </div>
           </div>
 
@@ -326,7 +316,6 @@ const StaffEnrollmentsRecord = () => {
                   <option value="active">Active</option>
                   <option value="pending">Pending</option>
                   <option value="completed">Completed</option>
-                  <option value="dropped">Dropped</option>
                 </select>
               </div>
 
