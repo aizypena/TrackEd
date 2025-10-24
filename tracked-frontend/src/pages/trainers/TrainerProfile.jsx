@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TrainerSidebar from '../../layouts/trainer/TrainerSidebar';
+import { getTrainerUser } from '../../utils/trainerAuth';
 import {
   MdMenu,
   MdEdit,
@@ -17,30 +18,51 @@ import {
 } from 'react-icons/md';
 
 const TrainerProfile = () => {
+  const [user, setUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   const [formData, setFormData] = useState({
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john.doe@smiinstitute.com',
-    phone: '+63 912 345 6789',
-    address: 'Makati City, Metro Manila',
-    specialization: 'Bartending and Mixology',
-    certifications: [
-      'Professional Bartender Certification',
-      'Advanced Mixology Certificate',
-      'Food Safety and Handling'
-    ],
-    experience: '8 years',
-    bio: 'Experienced bartending trainer with expertise in mixology and bar management. Passionate about developing the next generation of hospitality professionals.',
-    assignedPrograms: [
-      'Bartending NC II',
-      'Food and Beverage Services NC II'
-    ]
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    address: '',
+    specialization: '',
+    certifications: [],
+    experience: '',
+    bio: '',
+    assignedPrograms: []
   });
+
+  useEffect(() => {
+    const trainerData = getTrainerUser();
+    console.log('Trainer data from localStorage:', trainerData); // Debug log
+    if (trainerData) {
+      setUser(trainerData);
+      setFormData({
+        firstName: trainerData.first_name || '',
+        lastName: trainerData.last_name || '',
+        email: trainerData.email || '',
+        phone: trainerData.phone_number || '',
+        address: trainerData.address || '',
+        specialization: trainerData.specialization || 'Professional Trainer',
+        certifications: trainerData.certifications || [
+          'Professional Bartender Certification',
+          'Advanced Mixology Certificate',
+          'Food Safety and Handling'
+        ],
+        experience: trainerData.experience || '8 years',
+        bio: trainerData.bio || 'Experienced trainer passionate about developing the next generation of hospitality professionals.',
+        assignedPrograms: trainerData.assigned_programs || [
+          'Bartending NC II',
+          'Food and Beverage Services NC II'
+        ]
+      });
+    }
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -63,6 +85,7 @@ const TrainerProfile = () => {
   return (
     <div className="relative min-h-screen bg-gray-100">
       <TrainerSidebar 
+        user={user}
         isOpen={sidebarOpen} 
         onClose={() => setSidebarOpen(false)}
         isCollapsed={isCollapsed}
@@ -121,187 +144,135 @@ const TrainerProfile = () => {
           <div className="max-w-4xl mx-auto">
             {/* Profile Header */}
             <div className="bg-white rounded-lg shadow overflow-hidden mb-6">
-              <div className="relative h-64 bg-gradient-to-r from-blue-800 to-blue-600 overflow-visible">
-                <div className="absolute inset-0 bg-pattern opacity-10"></div>
-                <div className="absolute -bottom-20 left-8 z-10">
-                  <div className="relative group">
-                    <div className="h-40 w-40 bg-white rounded-full border-4 border-white shadow-lg overflow-hidden transition-transform hover:scale-105">
-                      <div className="h-full w-full bg-indigo-500 flex items-center justify-center text-white">
-                        <MdPerson className="h-24 w-24" />
+              <div className="relative h-32 bg-gradient-to-r from-blue-600 to-blue-500">
+                <div className="absolute -bottom-16 left-8">
+                  <div className="relative">
+                    <div className="h-32 w-32 bg-white rounded-full border-4 border-white shadow-lg overflow-hidden">
+                      <div className="h-full w-full bg-blue-500 flex items-center justify-center text-white">
+                        <MdPerson className="h-16 w-16" />
                       </div>
                       {isEditing && (
-                        <button className="absolute bottom-2 right-2 p-2 rounded-full bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg transition-all duration-200 transform hover:scale-110">
-                          <MdCamera className="h-5 w-5" />
+                        <button className="absolute bottom-1 right-1 p-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 shadow-lg">
+                          <MdCamera className="h-4 w-4" />
                         </button>
                       )}
                     </div>
                   </div>
                 </div>
-                <div className="absolute top-6 right-6">
-                  <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-white bg-opacity-90 text-blue-800 shadow-md">
-                    <MdBadge className="h-5 w-5 mr-2" />
-                    Active Trainer
-                  </span>
-                </div>
               </div>
-              <div className="pt-24 px-8 pb-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h2 className="text-3xl font-bold text-gray-900 tracking-tight">
-                      {formData.firstName} {formData.lastName}
-                    </h2>
-                    <div className="flex items-center mt-2 text-gray-600">
-                      <MdWork className="h-5 w-5 mr-2" />
-                      <span className="text-lg">Professional Trainer</span>
-                    </div>
-                  </div>
-                </div>
+              <div className="pt-20 px-8 pb-6">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {formData.firstName} {formData.lastName}
+                </h2>
+                <p className="text-gray-600 mt-1">{formData.email}</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Personal Information */}
-              <div className="md:col-span-2 space-y-6">
-                <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 p-8">
+              <div className="lg:col-span-2">
+                <div className="bg-white rounded-lg shadow p-6">
                   <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-xl font-semibold text-gray-900 flex items-center">
-                      <span className="bg-blue-100 rounded-lg p-2 mr-3">
-                        <MdPerson className="h-6 w-6 text-blue-600" />
-                      </span>
-                      Personal Information
-                    </h3>
+                    <h3 className="text-lg font-semibold text-gray-900">Personal Information</h3>
                     {isEditing && (
-                      <span className="text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
+                      <span className="text-xs text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
                         Editing
                       </span>
                     )}
                   </div>
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
                         <input
                           type="text"
                           name="firstName"
                           value={formData.firstName}
                           onChange={handleInputChange}
                           disabled={!isEditing}
-                          className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500 transition-colors duration-200"
+                          placeholder="Enter first name"
+                          className="block w-full rounded-md border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
                         <input
                           type="text"
                           name="lastName"
                           value={formData.lastName}
                           onChange={handleInputChange}
                           disabled={!isEditing}
-                          className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500 transition-colors duration-200"
+                          placeholder="Enter last name"
+                          className="block w-full rounded-md border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Email</label>
-                      <div className="mt-1 flex rounded-md shadow-sm">
-                        <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500">
-                          <MdEmail className="h-5 w-5" />
-                        </span>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                          <MdEmail className="h-5 w-5 text-gray-400" />
+                        </div>
                         <input
                           type="email"
                           name="email"
                           value={formData.email}
                           onChange={handleInputChange}
                           disabled={!isEditing}
-                          className="flex-1 block w-full rounded-none rounded-r-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                          placeholder="Enter email address"
+                          className="block w-full rounded-md border-gray-300 pl-10 pr-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Phone Number</label>
-                      <div className="mt-1 flex rounded-md shadow-sm">
-                        <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500">
-                          <MdPhone className="h-5 w-5" />
-                        </span>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                          <MdPhone className="h-5 w-5 text-gray-400" />
+                        </div>
                         <input
                           type="tel"
                           name="phone"
                           value={formData.phone}
                           onChange={handleInputChange}
                           disabled={!isEditing}
-                          className="flex-1 block w-full rounded-none rounded-r-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                          placeholder="Enter phone number"
+                          className="block w-full rounded-md border-gray-300 pl-10 pr-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Address</label>
-                      <div className="mt-1 flex rounded-md shadow-sm">
-                        <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500">
-                          <MdLocationOn className="h-5 w-5" />
-                        </span>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                      <div className="relative">
+                        <div className="absolute top-2 left-0 flex items-center pl-3 pointer-events-none">
+                          <MdLocationOn className="h-5 w-5 text-gray-400" />
+                        </div>
                         <input
                           type="text"
                           name="address"
                           value={formData.address}
                           onChange={handleInputChange}
                           disabled={!isEditing}
-                          className="flex-1 block w-full rounded-none rounded-r-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                          placeholder="Enter address"
+                          className="block w-full rounded-md border-gray-300 pl-10 pr-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Bio</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
                       <textarea
                         name="bio"
                         rows={4}
                         value={formData.bio}
                         onChange={handleInputChange}
                         disabled={!isEditing}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                        placeholder="Write a short bio about yourself..."
+                        className="block w-full rounded-md border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500 resize-none"
                       />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-lg shadow p-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Professional Information</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Specialization</label>
-                      <div className="mt-1 flex rounded-md shadow-sm">
-                        <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500">
-                          <MdWork className="h-5 w-5" />
-                        </span>
-                        <input
-                          type="text"
-                          name="specialization"
-                          value={formData.specialization}
-                          onChange={handleInputChange}
-                          disabled={!isEditing}
-                          className="flex-1 block w-full rounded-none rounded-r-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Years of Experience</label>
-                      <div className="mt-1 flex rounded-md shadow-sm">
-                        <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500">
-                          <MdWork className="h-5 w-5" />
-                        </span>
-                        <input
-                          type="text"
-                          name="experience"
-                          value={formData.experience}
-                          onChange={handleInputChange}
-                          disabled={!isEditing}
-                          className="flex-1 block w-full rounded-none rounded-r-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
-                        />
-                      </div>
                     </div>
                   </div>
                 </div>

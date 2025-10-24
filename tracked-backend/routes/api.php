@@ -119,8 +119,17 @@ Route::post('/trainer/login', function (Request $request) {
             'first_name' => $user->first_name,
             'last_name' => $user->last_name,
             'email' => $user->email,
+            'phone_number' => $user->phone_number,
+            'address' => $user->address,
+            'date_of_birth' => $user->date_of_birth,
+            'gender' => $user->gender,
             'role' => $user->role,
             'status' => $user->status,
+            'specialization' => $user->specialization,
+            'certifications' => $user->certifications,
+            'experience' => $user->experience,
+            'bio' => $user->bio,
+            'assigned_programs' => $user->assigned_programs,
         ]
     ]);
 });
