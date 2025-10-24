@@ -14,6 +14,7 @@ import StaffAssessmentResults from '../pages/staff/StaffAssessmentResults';
 import StaffEquipment from '../pages/staff/StaffEquipment';
 import StaffStockTransactions from '../pages/staff/StaffStockTransactions';
 import StaffEnrollmentTrends from '../pages/staff/StaffEnrollmentTrends';
+import StaffProfile from '../pages/staff/StaffProfile';
 
 const StaffRoutes = () => {
   return (
@@ -43,6 +44,9 @@ const StaffRoutes = () => {
       
       {/* Analytics */}
       <Route path="/analytics/enrollment" element={<ProtectedStaffRoute><StaffEnrollmentTrends /></ProtectedStaffRoute>} />
+
+      {/* Staff Profile */}
+      <Route path='/profile' element={<ProtectedStaffRoute><StaffProfile /></ProtectedStaffRoute>} />
     </Routes>
   );
 };

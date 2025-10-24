@@ -169,8 +169,11 @@ Route::post('/staff/login', function (Request $request) {
             'first_name' => $user->first_name,
             'last_name' => $user->last_name,
             'email' => $user->email,
+            'phone_number' => $user->phone_number,
+            'address' => $user->address,
             'role' => $user->role,
             'status' => $user->status,
+            'bio' => $user->bio,
         ]
     ]);
 });
@@ -527,6 +530,89 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
     
     // Staff Routes
+    // Update Staff Profile
+    Route::put('/staff/profile', function (Request $request) {
+        $user = $request->user();
+        
+        if (!in_array($user->role, ['staff', 'trainer'])) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $request->validate([
+            'first_name' => 'sometimes|string|max:255',
+            'last_name' => 'sometimes|string|max:255',
+            'phone_number' => 'sometimes|nullable|string|max:20',
+            'address' => 'sometimes|nullable|string|max:500',
+            'bio' => 'sometimes|nullable|string|max:1000',
+        ]);
+
+        // Update only the fields that were provided
+        if ($request->has('first_name')) {
+            $user->first_name = $request->first_name;
+        }
+        if ($request->has('last_name')) {
+            $user->last_name = $request->last_name;
+        }
+        if ($request->has('phone_number')) {
+            $user->phone_number = $request->phone_number;
+        }
+        if ($request->has('address')) {
+            $user->address = $request->address;
+        }
+        if ($request->has('bio')) {
+            $user->bio = $request->bio;
+        }
+
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profile updated successfully',
+            'user' => [
+                'id' => $user->id,
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
+                'email' => $user->email,
+                'phone_number' => $user->phone_number,
+                'address' => $user->address,
+                'role' => $user->role,
+                'status' => $user->status,
+                'bio' => $user->bio,
+            ]
+        ]);
+    });
+
+    // Update Staff Password
+    Route::put('/staff/password', function (Request $request) {
+        $user = $request->user();
+        
+        if (!in_array($user->role, ['staff', 'trainer'])) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $request->validate([
+            'current_password' => 'required|string',
+            'new_password' => 'required|string|min:8|confirmed',
+        ]);
+
+        // Verify current password
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Current password is incorrect'
+            ], 400);
+        }
+
+        // Update password
+        $user->password = Hash::make($request->new_password);
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password updated successfully'
+        ]);
+    });
+
     Route::get('/staff/recent-applications', function (Request $request) {
         // Get recent applicants (users with role 'applicant')
         $applications = \App\Models\User::where('role', 'applicant')
