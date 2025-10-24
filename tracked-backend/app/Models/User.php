@@ -68,6 +68,12 @@ class User extends Authenticatable
         'application_submitted_at',
         'application_reviewed_at',
         'application_notes',
+        // Trainer fields
+        'specialization',
+        'certifications',
+        'experience',
+        'bio',
+        'assigned_programs',
     ];
 
     /**
@@ -94,6 +100,8 @@ class User extends Authenticatable
             'languages' => 'array',
             'application_submitted_at' => 'datetime',
             'application_reviewed_at' => 'datetime',
+            'certifications' => 'array',
+            'assigned_programs' => 'array',
         ];
     }
     

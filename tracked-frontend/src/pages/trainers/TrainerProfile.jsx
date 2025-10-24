@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import TrainerSidebar from '../../layouts/trainer/TrainerSidebar';
 import { getTrainerUser } from '../../utils/trainerAuth';
+import { trainerAPI } from '../../services/trainerAPI';
 import {
   MdMenu,
   MdEdit,
@@ -23,6 +24,15 @@ const TrainerProfile = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
+
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -70,16 +80,92 @@ const TrainerProfile = () => {
       ...prev,
       [name]: value
     }));
+    // Clear messages when user starts typing
+    setError(null);
+    setSuccessMessage(null);
   };
 
-  const handleSave = () => {
-    console.log('Saving profile changes:', formData);
-    setIsEditing(false);
+  const handleSave = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      setSuccessMessage(null);
+
+      // Prepare data to send to API
+      const updateData = {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        phone_number: formData.phone,
+        address: formData.address,
+        bio: formData.bio,
+      };
+
+      // Call API to update profile
+      const response = await trainerAPI.updateProfile(updateData);
+      
+      // Update local state with new data
+      setUser(response.user);
+      setSuccessMessage('Profile updated successfully!');
+      setIsEditing(false);
+
+      // Auto-hide success message after 3 seconds
+      setTimeout(() => {
+        setSuccessMessage(null);
+      }, 3000);
+    } catch (err) {
+      setError(err.message || 'Failed to update profile. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handlePasswordChange = (oldPassword, newPassword) => {
-    console.log('Changing password');
-    setShowPasswordModal(false);
+  const handlePasswordChange = async () => {
+    try {
+      setError(null);
+      setSuccessMessage(null);
+
+      // Validate passwords
+      if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+        setError('All password fields are required');
+        return;
+      }
+
+      if (passwordData.newPassword !== passwordData.confirmPassword) {
+        setError('New passwords do not match');
+        return;
+      }
+
+      if (passwordData.newPassword.length < 8) {
+        setError('New password must be at least 8 characters long');
+        return;
+      }
+
+      setLoading(true);
+
+      // Call API to update password
+      await trainerAPI.updatePassword(
+        passwordData.currentPassword,
+        passwordData.newPassword,
+        passwordData.confirmPassword
+      );
+
+      setSuccessMessage('Password updated successfully!');
+      setShowPasswordModal(false);
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+
+      // Auto-hide success message after 3 seconds
+      setTimeout(() => {
+        setSuccessMessage(null);
+      }, 3000);
+    } catch (err) {
+      setError(err.message || 'Failed to update password. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -121,14 +207,35 @@ const TrainerProfile = () => {
                 <>
                   <button
                     onClick={handleSave}
-                    className="inline-flex items-center px-3 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none"
+                    disabled={loading}
+                    className="inline-flex items-center px-3 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <MdSave className="h-5 w-5 mr-2" />
-                    Save Changes
+                    {loading ? 'Saving...' : 'Save Changes'}
                   </button>
                   <button
-                    onClick={() => setIsEditing(false)}
-                    className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+                    onClick={() => {
+                      setIsEditing(false);
+                      setError(null);
+                      // Reset form data to current user data
+                      const trainerData = getTrainerUser();
+                      if (trainerData) {
+                        setFormData({
+                          firstName: trainerData.first_name || '',
+                          lastName: trainerData.last_name || '',
+                          email: trainerData.email || '',
+                          phone: trainerData.phone_number || '',
+                          address: trainerData.address || '',
+                          specialization: trainerData.specialization || 'Professional Trainer',
+                          certifications: trainerData.certifications || [],
+                          experience: trainerData.experience || '8 years',
+                          bio: trainerData.bio || '',
+                          assignedPrograms: trainerData.assigned_programs || []
+                        });
+                      }
+                    }}
+                    disabled={loading}
+                    className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <MdCancel className="h-5 w-5 mr-2" />
                     Cancel
@@ -142,6 +249,26 @@ const TrainerProfile = () => {
         {/* Content */}
         <div className="p-6">
           <div className="max-w-4xl mx-auto">
+            {/* Success Message */}
+            {successMessage && (
+              <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center">
+                <svg className="h-5 w-5 text-green-600 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span className="text-green-800 font-medium">{successMessage}</span>
+              </div>
+            )}
+
+            {/* Error Message */}
+            {error && (
+              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center">
+                <svg className="h-5 w-5 text-red-600 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <span className="text-red-800 font-medium">{error}</span>
+              </div>
+            )}
+
             {/* Profile Header */}
             <div className="bg-white rounded-lg shadow overflow-hidden mb-6">
               <div className="relative h-32 bg-gradient-to-r from-blue-600 to-blue-500">
@@ -219,11 +346,12 @@ const TrainerProfile = () => {
                           name="email"
                           value={formData.email}
                           onChange={handleInputChange}
-                          disabled={!isEditing}
+                          disabled={true}
                           placeholder="Enter email address"
                           className="block w-full rounded-md border-gray-300 pl-10 pr-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
                         />
                       </div>
+                      <p className="mt-1 text-xs text-gray-500">Email cannot be changed</p>
                     </div>
 
                     <div>
@@ -297,25 +425,6 @@ const TrainerProfile = () => {
                 <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 p-6">
                   <h3 className="text-xl font-semibold text-gray-900 flex items-center mb-6">
                     <span className="bg-blue-100 rounded-lg p-2 mr-3">
-                      <MdSchool className="h-6 w-6 text-blue-600" />
-                    </span>
-                    Certifications
-                  </h3>
-                  <ul className="space-y-4">
-                    {formData.certifications.map((cert, index) => (
-                      <li key={index} className="flex items-center p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors duration-200">
-                        <div className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                          <MdSchool className="h-6 w-6 text-blue-600" />
-                        </div>
-                        <span className="ml-4 text-sm font-medium text-gray-900">{cert}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 p-6">
-                  <h3 className="text-xl font-semibold text-gray-900 flex items-center mb-6">
-                    <span className="bg-blue-100 rounded-lg p-2 mr-3">
                       <MdWork className="h-6 w-6 text-blue-600" />
                     </span>
                     Assigned Programs
@@ -355,6 +464,11 @@ const TrainerProfile = () => {
                 <div className="relative">
                   <input
                     type="password"
+                    value={passwordData.currentPassword}
+                    onChange={(e) => {
+                      setPasswordData({ ...passwordData, currentPassword: e.target.value });
+                      setError(null);
+                    }}
                     className="block w-full rounded-lg border-gray-300 pr-10 shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-colors duration-200"
                   />
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3">
@@ -367,18 +481,29 @@ const TrainerProfile = () => {
                 <div className="relative">
                   <input
                     type="password"
+                    value={passwordData.newPassword}
+                    onChange={(e) => {
+                      setPasswordData({ ...passwordData, newPassword: e.target.value });
+                      setError(null);
+                    }}
                     className="block w-full rounded-lg border-gray-300 pr-10 shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-colors duration-200"
                   />
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3">
                     <MdLock className="h-5 w-5 text-gray-400" />
                   </div>
                 </div>
+                <p className="mt-1 text-xs text-gray-500">Must be at least 8 characters long</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Confirm New Password</label>
                 <div className="relative">
                   <input
                     type="password"
+                    value={passwordData.confirmPassword}
+                    onChange={(e) => {
+                      setPasswordData({ ...passwordData, confirmPassword: e.target.value });
+                      setError(null);
+                    }}
                     className="block w-full rounded-lg border-gray-300 pr-10 shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-colors duration-200"
                   />
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3">
@@ -386,18 +511,36 @@ const TrainerProfile = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Error Message in Modal */}
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-800">{error}</p>
+                </div>
+              )}
+
               <div className="flex justify-end space-x-4 mt-8">
                 <button
-                  onClick={() => setShowPasswordModal(false)}
-                  className="px-6 py-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none transition-colors duration-200"
+                  onClick={() => {
+                    setShowPasswordModal(false);
+                    setPasswordData({
+                      currentPassword: '',
+                      newPassword: '',
+                      confirmPassword: ''
+                    });
+                    setError(null);
+                  }}
+                  disabled={loading}
+                  className="px-6 py-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={() => handlePasswordChange()}
-                  className="px-6 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none transition-colors duration-200"
+                  onClick={handlePasswordChange}
+                  disabled={loading}
+                  className="px-6 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Update Password
+                  {loading ? 'Updating...' : 'Update Password'}
                 </button>
               </div>
             </div>

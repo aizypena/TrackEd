@@ -420,6 +420,111 @@ Route::middleware(['auth:sanctum'])->group(function () {
             'programs' => $programs
         ]);
     });
+
+    // Update Trainer Profile
+    Route::put('/trainer/profile', function (Request $request) {
+        $user = $request->user();
+        
+        if ($user->role !== 'trainer') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $request->validate([
+            'first_name' => 'sometimes|string|max:255',
+            'last_name' => 'sometimes|string|max:255',
+            'phone_number' => 'sometimes|nullable|string|max:20',
+            'address' => 'sometimes|nullable|string|max:500',
+            'date_of_birth' => 'sometimes|nullable|date',
+            'gender' => 'sometimes|nullable|in:male,female,other',
+            'specialization' => 'sometimes|nullable|string|max:255',
+            'experience' => 'sometimes|nullable|string|max:255',
+            'bio' => 'sometimes|nullable|string|max:1000',
+        ]);
+
+        // Update only the fields that were provided
+        if ($request->has('first_name')) {
+            $user->first_name = $request->first_name;
+        }
+        if ($request->has('last_name')) {
+            $user->last_name = $request->last_name;
+        }
+        if ($request->has('phone_number')) {
+            $user->phone_number = $request->phone_number;
+        }
+        if ($request->has('address')) {
+            $user->address = $request->address;
+        }
+        if ($request->has('date_of_birth')) {
+            $user->date_of_birth = $request->date_of_birth;
+        }
+        if ($request->has('gender')) {
+            $user->gender = $request->gender;
+        }
+        if ($request->has('specialization')) {
+            $user->specialization = $request->specialization;
+        }
+        if ($request->has('experience')) {
+            $user->experience = $request->experience;
+        }
+        if ($request->has('bio')) {
+            $user->bio = $request->bio;
+        }
+
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profile updated successfully',
+            'user' => [
+                'id' => $user->id,
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
+                'email' => $user->email,
+                'phone_number' => $user->phone_number,
+                'address' => $user->address,
+                'date_of_birth' => $user->date_of_birth,
+                'gender' => $user->gender,
+                'role' => $user->role,
+                'status' => $user->status,
+                'specialization' => $user->specialization,
+                'certifications' => $user->certifications,
+                'experience' => $user->experience,
+                'bio' => $user->bio,
+                'assigned_programs' => $user->assigned_programs,
+            ]
+        ]);
+    });
+
+    // Update Trainer Password
+    Route::put('/trainer/password', function (Request $request) {
+        $user = $request->user();
+        
+        if ($user->role !== 'trainer') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $request->validate([
+            'current_password' => 'required|string',
+            'new_password' => 'required|string|min:8|confirmed',
+        ]);
+
+        // Verify current password
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Current password is incorrect'
+            ], 400);
+        }
+
+        // Update password
+        $user->password = Hash::make($request->new_password);
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password updated successfully'
+        ]);
+    });
     
     // Staff Routes
     Route::get('/staff/recent-applications', function (Request $request) {
