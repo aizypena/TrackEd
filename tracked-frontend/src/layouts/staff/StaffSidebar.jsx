@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { staffLogout } from '../../utils/staffAuth';
+import { staffLogout, getStaffUser } from '../../utils/staffAuth';
 import {
   MdDashboard,
   MdPeople,
@@ -17,9 +17,20 @@ import {
   MdChevronRight
 } from 'react-icons/md';
 
-const StaffSidebar = ({ user, isOpen, onClose, isCollapsed, setIsCollapsed }) => {
+const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsCollapsed }) => {
   const location = useLocation();
   const [expandedSections, setExpandedSections] = useState({});
+  const [user, setUser] = useState(null);
+
+  // Fetch user data on mount or use prop if provided
+  useEffect(() => {
+    if (propUser) {
+      setUser(propUser);
+    } else {
+      const userData = getStaffUser();
+      setUser(userData);
+    }
+  }, [propUser]);
 
   const navigationItems = [
     {
