@@ -102,16 +102,10 @@ const VoucherManagement = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'issued':
+      case 'active':
         return 'bg-blue-100 text-blue-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
       case 'used':
         return 'bg-green-100 text-green-800';
-      case 'expired':
-        return 'bg-red-100 text-red-800';
-      case 'cancelled':
-        return 'bg-gray-100 text-gray-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -119,16 +113,10 @@ const VoucherManagement = () => {
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'issued':
+      case 'active':
         return <MdLocalOffer className="h-4 w-4 mr-1" />;
-      case 'pending':
-        return <MdHourglassEmpty className="h-4 w-4 mr-1" />;
       case 'used':
         return <MdCheckCircle className="h-4 w-4 mr-1" />;
-      case 'expired':
-        return <MdAccessTime className="h-4 w-4 mr-1" />;
-      case 'cancelled':
-        return <MdCancel className="h-4 w-4 mr-1" />;
       default:
         return null;
     }
@@ -216,14 +204,11 @@ const VoucherManagement = () => {
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="all">All Status</option>
-                  <option value="pending">Pending</option>
-                  <option value="issued">Issued</option>
+                  <option value="active">Active</option>
                   <option value="used">Used</option>
-                  <option value="expired">Expired</option>
-                  <option value="cancelled">Cancelled</option>
                 </select>
                 <button
                   onClick={() => setLoading(true)}

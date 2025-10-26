@@ -11,7 +11,7 @@ const IssueVoucher = ({ isOpen, onClose, voucher, programs, onSuccess }) => {
     // Voucher fields
     quantity: voucher?.quantity || '',
     issueDate: voucher?.issueDate || '',
-    status: voucher?.status || 'pending',
+    status: voucher?.status || 'active',
     
     // Batch fields (for creating new batch)
     programId: voucher?.programId || '',
@@ -365,8 +365,7 @@ const IssueVoucher = ({ isOpen, onClose, voucher, programs, onSuccess }) => {
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
                   required
                 >
-                  <option value="pending">Pending</option>
-                  <option value="issued">Issued</option>
+                  <option value="active">Active</option>
                   <option value="used">Used</option>
                 </select>
               </div>
