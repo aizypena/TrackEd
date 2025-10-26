@@ -13,6 +13,7 @@ import {
   MdClose,
   MdPerson,
   MdLogout,
+  MdBook,
 } from 'react-icons/md';
 
 const TrainerSidebar = ({ user, isOpen, onClose, isCollapsed, setIsCollapsed }) => {
@@ -33,6 +34,11 @@ const TrainerSidebar = ({ user, isOpen, onClose, isCollapsed, setIsCollapsed }) 
       name: 'Attendance',
       path: '/trainer-lms/attendance',
       icon: <MdPeopleAlt className="h-5 w-5" />
+    },
+    {
+      name: 'Exam Management',
+      path: '/trainer-lms/exams',
+      icon: <MdBook className="h-5 w-5" />
     },
     {
       name: 'Grade Management',
