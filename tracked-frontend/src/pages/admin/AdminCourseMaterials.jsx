@@ -379,28 +379,28 @@ const AdminCourseMaterials = () => {
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleViewMaterial(material)}
-                            className="text-green-600 hover:text-green-900"
+                            className="text-green-600 hover:text-green-900 hover:cursor-pointer"
                             title="View"
                           >
                             <MdVisibility className="h-5 w-5" />
                           </button>
                           <button
                             onClick={() => handleDownloadMaterial(material)}
-                            className="text-blue-600 hover:text-blue-900"
+                            className="text-blue-600 hover:text-blue-900 hover:cursor-pointer"
                             title="Download"
                           >
                             <MdDownload className="h-5 w-5" />
                           </button>
                           <button
                             onClick={() => handleEditMaterial(material)}
-                            className="text-gray-600 hover:text-gray-900"
+                            className="text-gray-600 hover:text-gray-900 hover:cursor-pointer"
                             title="Edit"
                           >
                             <MdEdit className="h-5 w-5" />
                           </button>
                           <button
                             onClick={() => handleDeleteMaterial(material.id)}
-                            className="text-red-600 hover:text-red-900"
+                            className="text-red-600 hover:text-red-900 hover:cursor-pointer"
                             title="Delete"
                           >
                             <MdDelete className="h-5 w-5" />
