@@ -1,15 +1,181 @@
-import { Routes, Route } from 'react-router-dom';
-import Dashboard from '../pages/admin/Dashboard';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import ProtectedAdminRoute from '../components/ProtectedAdminRoute';
+
+// Admin Pages
+import AdminDashboard from '../pages/admin/AdminDashboard';
+import AllUsers from '../pages/admin/AllUsers';
+import AdminApplications from '../pages/admin/AdminApplications';
+import Enrollments from '../pages/admin/Enrollments';
+import EnrollmentTrends from '../pages/admin/EnrollmentTrends';
+import ArimaForecasting from '../pages/admin/ArimaForecasting';
+import CoursePrograms from '../pages/admin/CoursePrograms';
+import BatchManagement from '../pages/admin/BatchManagement';
+import VoucherManagement from '../pages/admin/VoucherManagement';
+import AdminCourseMaterials from '../pages/admin/AdminCourseMaterials';
+import EnrollmentReports from '../pages/admin/EnrollmentReports';
+import AdminAssessmentResults from '../pages/admin/AdminAssessmentResults';
+import InventoryUsage from '../pages/admin/InventoryUsage';
+import StudentList from '../pages/admin/StudentList';
+import SystemSettings from '../pages/admin/SystemSettings';
+import SystemLogs from '../pages/admin/SystemLogs';
+import AdminProfileSettings from '../pages/admin/AdminProfileSettings';
 import NotFound from '../pages/NotFound';
 
 const AdminRoutes = () => {
   return (
     <Routes>
-      <Route path="/dashboard" element={<Dashboard />} />
-      {/* Add more admin routes here as needed */}
-      {/* <Route path="/users" element={<UserManagement />} /> */}
-      {/* <Route path="/courses" element={<CourseManagement />} /> */}
-      {/* <Route path="/reports" element={<Reports />} /> */}
+      {/* Dashboard */}
+      <Route 
+        path="/dashboard" 
+        element={
+          <ProtectedAdminRoute>
+            <AdminDashboard />
+          </ProtectedAdminRoute>
+        } 
+      />
+
+      {/* User Management */}
+      <Route
+        path="/all-users"
+        element={
+          <ProtectedAdminRoute>
+            <AllUsers />
+          </ProtectedAdminRoute>
+        }
+      />
+      <Route
+        path="/applications"
+        element={
+          <ProtectedAdminRoute>
+            <AdminApplications />
+          </ProtectedAdminRoute>
+        }
+      />
+      <Route
+        path="/enrollments"
+        element={
+          <ProtectedAdminRoute>
+            <Enrollments />
+          </ProtectedAdminRoute>
+        }
+      />
+
+      {/* Reports Management */}
+      <Route
+        path="/enrollment-trends"
+        element={
+          <ProtectedAdminRoute>
+            <EnrollmentTrends />
+          </ProtectedAdminRoute>
+        }
+      />
+      <Route
+        path="/arima-forecasting"
+        element={
+          <ProtectedAdminRoute>
+            <ArimaForecasting />
+          </ProtectedAdminRoute>
+        }
+      />
+      <Route
+        path="/enrollment-reports"
+        element={
+          <ProtectedAdminRoute>
+            <EnrollmentReports />
+          </ProtectedAdminRoute>
+        }
+      />
+      <Route
+        path="/assessment-results"
+        element={
+          <ProtectedAdminRoute>
+            <AdminAssessmentResults />
+          </ProtectedAdminRoute>
+        }
+      />
+      <Route
+        path="/inventory-usage"
+        element={
+          <ProtectedAdminRoute>
+            <InventoryUsage />
+          </ProtectedAdminRoute>
+        }
+      />
+      <Route
+        path="/student-list"
+        element={
+          <ProtectedAdminRoute>
+            <StudentList />
+          </ProtectedAdminRoute>
+        }
+      />
+
+      {/* Program Management */}
+      <Route
+        path="/course-programs"
+        element={
+          <ProtectedAdminRoute>
+            <CoursePrograms />
+          </ProtectedAdminRoute>
+        }
+      />
+      <Route
+        path="/batch-management"
+        element={
+          <ProtectedAdminRoute>
+            <BatchManagement />
+          </ProtectedAdminRoute>
+        }
+      />
+      <Route
+        path="/voucher-management"
+        element={
+          <ProtectedAdminRoute>
+            <VoucherManagement />
+          </ProtectedAdminRoute>
+        }
+      />
+      <Route
+        path="/course-materials"
+        element={
+          <ProtectedAdminRoute>
+            <AdminCourseMaterials />
+          </ProtectedAdminRoute>
+        }
+      />
+
+      {/* System Management */}
+      <Route
+        path="/system-settings"
+        element={
+          <ProtectedAdminRoute>
+            <SystemSettings />
+          </ProtectedAdminRoute>
+        }
+      />
+      <Route
+        path="/system-logs"
+        element={
+          <ProtectedAdminRoute>
+            <SystemLogs />
+          </ProtectedAdminRoute>
+        }
+      />
+
+      {/* Profile Settings */}
+      <Route
+        path="/profile-settings"
+        element={
+          <ProtectedAdminRoute>
+            <AdminProfileSettings />
+          </ProtectedAdminRoute>
+        }
+      />
+
+      {/* Redirect root to dashboard */}
+      <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
+
+      {/* 404 Page */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
