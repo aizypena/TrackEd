@@ -52,7 +52,7 @@ class VoucherController extends Controller
             'batch_id' => 'required|string|unique:vouchers,batch_id',
             'quantity' => 'required|integer|min:1',
             'issue_date' => 'required|date',
-            'status' => 'required|in:pending,issued,used'
+            'status' => 'required|in:active,used'
         ]);
 
         try {
@@ -104,7 +104,7 @@ class VoucherController extends Controller
             'batch_id' => 'sometimes|string|unique:vouchers,batch_id,' . $id,
             'quantity' => 'sometimes|integer|min:1',
             'issue_date' => 'sometimes|date',
-            'status' => 'sometimes|in:pending,issued,used',
+            'status' => 'sometimes|in:active,used',
             'used_count' => 'sometimes|integer|min:0'
         ]);
 
