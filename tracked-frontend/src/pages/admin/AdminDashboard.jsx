@@ -17,7 +17,6 @@ const AdminDashboard = () => {
   const [dashboardStats, setDashboardStats] = useState({
     totalApplicants: 0,
     activeApplications: 0,
-    approvedApplications: 0,
     pendingApplications: 0,
     rejectedApplications: 0,
     waitlistedApplicants: 0,
@@ -111,7 +110,6 @@ const AdminDashboard = () => {
             ...prev,
             totalApplicants: data.totalApplicants,
             activeApplications: data.activeApplications,
-            approvedApplications: data.approvedApplications,
             pendingApplications: data.pendingApplications,
             rejectedApplications: data.rejectedApplications,
             waitlistedApplicants: data.waitlistedApplicants
@@ -350,12 +348,7 @@ const AdminDashboard = () => {
                   </button>
                 </div>
                 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <p className="text-2xl font-bold text-green-600">{dashboardStats.approvedApplications}</p>
-                    <p className="text-sm text-green-800">Approved</p>
-                    <p className="text-xs text-green-600 mt-1">Ready for enrollment</p>
-                  </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                   <div className="text-center p-4 bg-yellow-50 rounded-lg">
                     <p className="text-2xl font-bold text-yellow-600">{dashboardStats.pendingApplications}</p>
                     <p className="text-sm text-yellow-800">Pending</p>
