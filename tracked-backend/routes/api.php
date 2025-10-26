@@ -472,6 +472,53 @@ Route::middleware(['auth:sanctum'])->group(function () {
         ]);
     });
 
+    // Get batches assigned to the authenticated trainer
+    Route::get('/trainer/batches', function (Request $request) {
+        $user = $request->user();
+        
+        if ($user->role !== 'trainer') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        // Get batches assigned to this trainer with program details
+        $batches = DB::table('batches')
+            ->join('programs', 'batches.program_id', '=', 'programs.id')
+            ->where('batches.trainer_id', $user->id)
+            ->select(
+                'batches.id',
+                'batches.batch_id',
+                'batches.program_id',
+                'batches.status',
+                'batches.start_date',
+                'batches.end_date',
+                'batches.max_students',
+                'batches.schedule_days',
+                'batches.schedule_time_start',
+                'batches.schedule_time_end',
+                'programs.title as program_name'
+            )
+            ->orderBy('batches.created_at', 'desc')
+            ->get();
+
+        // Count students in each batch
+        $batches = $batches->map(function ($batch) {
+            $studentCount = DB::table('users')
+                ->where('batch_id', $batch->batch_id)
+                ->where('role', 'student')
+                ->count();
+            
+            $batch->student_count = $studentCount;
+            $batch->schedule_days = json_decode($batch->schedule_days);
+            
+            return $batch;
+        });
+        
+        return response()->json([
+            'success' => true,
+            'data' => $batches
+        ]);
+    });
+
     // Update Trainer Profile
     Route::put('/trainer/profile', function (Request $request) {
         $user = $request->user();

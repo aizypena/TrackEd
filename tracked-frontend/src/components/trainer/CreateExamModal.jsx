@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { MdClose, MdAdd, MdDelete } from 'react-icons/md';
 
-const CreateExamModal = ({ isOpen, onClose, onSuccess, examType = 'written', programs = [] }) => {
+const CreateExamModal = ({ isOpen, onClose, onSuccess, examType = 'written', batches = [] }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    program: '',
+    batch_id: '',
     duration: 60,
     passing_score: 85,
     retake_limit: 1,
@@ -33,9 +33,9 @@ const CreateExamModal = ({ isOpen, onClose, onSuccess, examType = 'written', pro
     { value: 'short_answer', label: 'Short Answer' },
   ];
 
-  // Debug: Log programs when they change
-  if (isOpen && programs.length === 0) {
-    console.warn('CreateExamModal: No programs available');
+  // Debug: Log batches when they change
+  if (isOpen && batches.length === 0) {
+    console.warn('CreateExamModal: No batches available');
   }
 
   if (!isOpen) return null;
@@ -132,8 +132,8 @@ const CreateExamModal = ({ isOpen, onClose, onSuccess, examType = 'written', pro
     if (!formData.title.trim()) {
       newErrors.title = 'Title is required';
     }
-    if (!formData.program) {
-      newErrors.program = 'Program is required';
+    if (!formData.batch_id) {
+      newErrors.batch_id = 'Batch is required';
     }
     if (formData.duration < 1) {
       newErrors.duration = 'Duration must be at least 1 minute';
@@ -206,7 +206,7 @@ const CreateExamModal = ({ isOpen, onClose, onSuccess, examType = 'written', pro
     setFormData({
       title: '',
       description: '',
-      program: '',
+      batch_id: '',
       duration: 60,
       passing_score: 85,
       retake_limit: 1,
@@ -283,35 +283,35 @@ const CreateExamModal = ({ isOpen, onClose, onSuccess, examType = 'written', pro
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Program *
+                  Assign to Batch *
                 </label>
                 <select
-                  name="program"
-                  value={formData.program}
+                  name="batch_id"
+                  value={formData.batch_id}
                   onChange={handleInputChange}
                   className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.program ? 'border-red-500' : 'border-gray-300'
+                    errors.batch_id ? 'border-red-500' : 'border-gray-300'
                   }`}
-                  disabled={programs.length === 0}
+                  disabled={batches.length === 0}
                 >
                   <option value="">
-                    {programs.length === 0 ? 'Loading programs...' : 'Select Program'}
+                    {batches.length === 0 ? 'Loading batches...' : 'Select Batch'}
                   </option>
-                  {programs && programs.length > 0 && programs.map((prog) => (
-                    <option key={prog.value} value={prog.value}>
-                      {prog.label}
+                  {batches && batches.length > 0 && batches.map((batch) => (
+                    <option key={batch.value} value={batch.value}>
+                      {batch.label} ({batch.student_count} students)
                     </option>
                   ))}
                 </select>
-                {errors.program && <p className="text-red-500 text-xs mt-1">{errors.program}</p>}
-                {programs.length === 0 && (
+                {errors.batch_id && <p className="text-red-500 text-xs mt-1">{errors.batch_id}</p>}
+                {batches.length === 0 && (
                   <p className="text-amber-600 text-xs mt-1">
-                    Programs are loading. Please wait...
+                    No batches assigned to you yet.
                   </p>
                 )}
-                {programs.length > 0 && (
+                {batches.length > 0 && (
                   <p className="text-gray-500 text-xs mt-1">
-                    {programs.length} program{programs.length !== 1 ? 's' : ''} available
+                    {batches.length} batch{batches.length !== 1 ? 'es' : ''} available
                   </p>
                 )}
               </div>

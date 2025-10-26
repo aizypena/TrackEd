@@ -5,7 +5,7 @@ import TrainerSidebar from '../../layouts/trainer/TrainerSidebar';
 import CreateExamModal from '../../components/trainer/CreateExamModal';
 import ConfirmPasswordModal from '../../components/trainer/ConfirmPasswordModal';
 import { quizService } from '../../services/quizService';
-import { programService } from '../../services/programService';
+import batchService from '../../services/batchService';
 import {
   MdMenu,
   MdAdd,
@@ -32,7 +32,7 @@ const TrainerExams = () => {
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [programs, setPrograms] = useState([]);
+  const [batches, setBatches] = useState([]);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [examToDelete, setExamToDelete] = useState(null);
 
@@ -43,28 +43,32 @@ const TrainerExams = () => {
     { value: 'observation', label: 'Observation', icon: MdRemoveRedEye, color: 'orange' },
   ];
 
-  // Load exams and programs on component mount
+  // Load exams and batches on component mount
   useEffect(() => {
     loadExams();
-    loadPrograms();
+    loadBatches();
   }, []);
 
-  const loadPrograms = async () => {
+  const loadBatches = async () => {
     try {
-      const programsData = await programService.getPrograms();
-      if (programsData && Array.isArray(programsData)) {
-        // Transform programs data to match dropdown format
-        const formattedPrograms = programsData.map(program => ({
-          value: program.id,
-          label: program.title,
-          slug: program.title.toLowerCase().replace(/\s+/g, '-'),
-          availability: program.availability
+      const response = await batchService.getTrainerBatches();
+      if (response.success && Array.isArray(response.data)) {
+        // Transform batches data to match dropdown format
+        const formattedBatches = response.data.map(batch => ({
+          value: batch.batch_id,
+          label: `${batch.batch_id} - ${batch.program_name}`,
+          batch_id: batch.batch_id,
+          program_name: batch.program_name,
+          status: batch.status,
+          student_count: batch.student_count,
+          start_date: batch.start_date,
+          end_date: batch.end_date
         }));
-        setPrograms(formattedPrograms);
+        setBatches(formattedBatches);
       }
     } catch (err) {
-      console.error('Error loading programs:', err);
-      setError('Failed to load programs. Please refresh the page.');
+      console.error('Error loading batches:', err);
+      toast.error('Failed to load batches');
     }
   };
 
@@ -298,7 +302,7 @@ const TrainerExams = () => {
                       Type
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Program
+                      Batch
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Questions
@@ -337,7 +341,7 @@ const TrainerExams = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {programs.find(p => p.value === exam.program)?.label || exam.program}
+                        {batches.find(b => b.value === exam.batch_id)?.batch_id || exam.batch_id || 'Not assigned'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {exam.total_questions || 0}
@@ -416,7 +420,7 @@ const TrainerExams = () => {
         onClose={() => setShowCreateModal(false)}
         onSuccess={handleCreateExam}
         examType="written"
-        programs={programs}
+        batches={batches}
       />
 
       {/* Confirm Password Modal for Delete */}
