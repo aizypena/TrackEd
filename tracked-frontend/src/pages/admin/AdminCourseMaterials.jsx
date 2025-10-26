@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../layouts/admin/Sidebar';
 import UploadMaterial from '../../components/admin/UploadMaterial';
+import ViewMaterial from '../../components/admin/ViewMaterial';
 import {
   MdMenu,
   MdAdd,
@@ -27,12 +28,13 @@ import {
 const AdminCourseMaterials = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState(null);
+  const [viewingMaterial, setViewingMaterial] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterProgram, setFilterProgram] = useState('all');
   const [filterType, setFilterType] = useState('all');
   const [loading, setLoading] = useState(false);
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
 
   // Mock data - replace with actual API calls
   const [materials, setMaterials] = useState([
@@ -128,6 +130,11 @@ const AdminCourseMaterials = () => {
     setEditingMaterial(null);
   };
 
+  const handleViewMaterial = (material) => {
+    setViewingMaterial(material);
+    setShowViewModal(true);
+  };
+
   const handleEditMaterial = (material) => {
     setEditingMaterial(material);
     setShowUploadModal(true);
@@ -139,6 +146,11 @@ const AdminCourseMaterials = () => {
     }
     setMaterials(materials.filter(m => m.id !== materialId));
     alert('Material deleted successfully');
+  };
+
+  const handleDownloadMaterial = (material) => {
+    alert(`Downloading: ${material.title}`);
+    // Here you would implement actual download logic
   };
 
   const getFileIcon = (type) => {
@@ -311,87 +323,21 @@ const AdminCourseMaterials = () => {
                 </select>
               </div>
 
-              {/* View Mode and Refresh */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  {viewMode === 'grid' ? 'List View' : 'Grid View'}
-                </button>
+              {/* Refresh */}
+              <div>
                 <button
                   onClick={() => setLoading(true)}
-                  className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center"
                 >
-                  <MdRefresh className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
+                  <MdRefresh className={`h-5 w-5 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                  Refresh
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Materials Grid/List */}
-          {viewMode === 'grid' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredMaterials.map((material) => (
-                <div key={material.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-                  <div className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      {getFileIcon(material.type)}
-                      <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                        {material.type}
-                      </span>
-                    </div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">{material.title}</h3>
-                    <p className="text-sm text-gray-600 mb-4 line-clamp-2">{material.description}</p>
-                    
-                    <div className="space-y-2 mb-4">
-                      <div className="flex items-center text-sm text-gray-500">
-                        <MdSchool className="h-4 w-4 mr-2" />
-                        {material.program}
-                      </div>
-                      <div className="flex items-center text-sm text-gray-500">
-                        <MdAttachFile className="h-4 w-4 mr-2" />
-                        {material.fileSize}
-                      </div>
-                      <div className="flex items-center text-sm text-gray-500">
-                        <MdDownload className="h-4 w-4 mr-2" />
-                        {material.downloads} downloads
-                      </div>
-                      <div className="flex items-center text-sm text-gray-500">
-                        <MdDateRange className="h-4 w-4 mr-2" />
-                        {new Date(material.uploadDate).toLocaleDateString()}
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => alert('Download functionality')}
-                        className="flex-1 inline-flex items-center justify-center px-3 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
-                      >
-                        <MdDownload className="h-4 w-4 mr-1" />
-                        Download
-                      </button>
-                      <button
-                        onClick={() => handleEditMaterial(material)}
-                        className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                        title="Edit"
-                      >
-                        <MdEdit className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteMaterial(material.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete"
-                      >
-                        <MdDelete className="h-5 w-5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          {/* Materials List */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
@@ -432,7 +378,14 @@ const AdminCourseMaterials = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex gap-2">
                           <button
-                            onClick={() => alert('Download functionality')}
+                            onClick={() => handleViewMaterial(material)}
+                            className="text-green-600 hover:text-green-900"
+                            title="View"
+                          >
+                            <MdVisibility className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={() => handleDownloadMaterial(material)}
                             className="text-blue-600 hover:text-blue-900"
                             title="Download"
                           >
@@ -459,7 +412,6 @@ const AdminCourseMaterials = () => {
                 </tbody>
               </table>
             </div>
-          )}
 
           {filteredMaterials.length === 0 && (
             <div className="text-center py-12">
@@ -495,6 +447,17 @@ const AdminCourseMaterials = () => {
           setLoading(true);
           setTimeout(() => setLoading(false), 1000);
         }}
+      />
+
+      {/* View Material Modal */}
+      <ViewMaterial
+        isOpen={showViewModal}
+        onClose={() => {
+          setShowViewModal(false);
+          setViewingMaterial(null);
+        }}
+        material={viewingMaterial}
+        onDownload={handleDownloadMaterial}
       />
     </div>
   );
