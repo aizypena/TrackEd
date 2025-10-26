@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { trainerLogout } from '../../utils/trainerAuth';
+import { trainerLogout, getTrainerUser } from '../../utils/trainerAuth';
 import { 
   MdDashboard, 
   MdSchool, 
@@ -16,8 +16,15 @@ import {
   MdBook,
 } from 'react-icons/md';
 
-const TrainerSidebar = ({ user, isOpen, onClose, isCollapsed, setIsCollapsed }) => {
+const TrainerSidebar = ({ isOpen, onClose, isCollapsed, setIsCollapsed }) => {
   const location = useLocation();
+  const [user, setUser] = useState(null);
+
+  // Get user data from localStorage on component mount
+  useEffect(() => {
+    const trainerUser = getTrainerUser();
+    setUser(trainerUser);
+  }, []);
 
   const navigationItems = [
     {
