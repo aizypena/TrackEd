@@ -12,6 +12,7 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\BatchController;
 use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\EquipmentController;
+use App\Http\Controllers\QuizController;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 
@@ -73,6 +74,36 @@ Route::post('/admin/verify-password', function (Request $request) {
     $user = $request->user();
 
     if (!$user || !in_array($user->role, ['admin', 'administrator'])) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Unauthorized'
+        ], 401);
+    }
+
+    // Check password
+    if (!Hash::check($request->password, $user->password)) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Incorrect password'
+        ], 401);
+    }
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Password verified'
+    ]);
+})->middleware('auth:sanctum');
+
+// Trainer password verification endpoint
+Route::post('/trainer/verify-password', function (Request $request) {
+    $request->validate([
+        'password' => 'required|string',
+    ]);
+
+    // Get authenticated trainer user
+    $user = $request->user();
+
+    if (!$user || $user->role !== 'trainer') {
         return response()->json([
             'success' => false,
             'message' => 'Unauthorized'
@@ -947,4 +978,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/equipment/assignments/{assignmentId}/return', [EquipmentController::class, 'returnEquipment']);
     Route::get('/equipment/{id}/assignments', [EquipmentController::class, 'getAssignments']);
     Route::get('/equipment/{id}/assignments/active', [EquipmentController::class, 'getActiveAssignments']);
+    
+    // Quiz/Exam Routes
+    Route::get('/quizzes', [QuizController::class, 'index']);
+    Route::post('/quizzes', [QuizController::class, 'store']);
+    Route::get('/quizzes/{id}', [QuizController::class, 'show']);
+    Route::put('/quizzes/{id}', [QuizController::class, 'update']);
+    Route::delete('/quizzes/{id}', [QuizController::class, 'destroy']);
 });

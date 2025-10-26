@@ -1,5 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import toast, { Toaster } from 'react-hot-toast';
+import axios from 'axios';
 import TrainerSidebar from '../../layouts/trainer/TrainerSidebar';
+import CreateExamModal from '../../components/trainer/CreateExamModal';
+import ConfirmPasswordModal from '../../components/trainer/ConfirmPasswordModal';
+import { quizService } from '../../services/quizService';
+import { programService } from '../../services/programService';
 import {
   MdMenu,
   MdAdd,
@@ -23,6 +29,12 @@ const TrainerExams = () => {
   const [selectedType, setSelectedType] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [exams, setExams] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [programs, setPrograms] = useState([]);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [examToDelete, setExamToDelete] = useState(null);
 
   const examTypes = [
     { value: 'written', label: 'Written Test', icon: MdAssignment, color: 'blue' },
@@ -31,69 +43,46 @@ const TrainerExams = () => {
     { value: 'observation', label: 'Observation', icon: MdRemoveRedEye, color: 'orange' },
   ];
 
-  const programs = [
-    { value: 'bartending-nc-ii', label: 'Bartending NC II' },
-    { value: 'barista-training-nc-ii', label: 'Barista Training NC II' },
-    { value: 'housekeeping-nc-ii', label: 'Housekeeping NC II' },
-    { value: 'food-beverage-services-nc-ii', label: 'Food and Beverage Services NC II' },
-    { value: 'bread-pastry-production-nc-ii', label: 'Bread and Pastry Production NC II' },
-  ];
+  // Load exams and programs on component mount
+  useEffect(() => {
+    loadExams();
+    loadPrograms();
+  }, []);
 
-  // Mock data
-  const [exams, setExams] = useState([
-    {
-      id: 1,
-      title: 'Bartending Fundamentals Written Test',
-      type: 'written',
-      program: 'bartending-nc-ii',
-      totalQuestions: 50,
-      duration: 60,
-      passingScore: 85,
-      status: 'active',
-      createdAt: '2025-10-20',
-      assignedStudents: 25,
-      completedCount: 18
-    },
-    {
-      id: 2,
-      title: 'Coffee Preparation Oral Assessment',
-      type: 'oral',
-      program: 'barista-training-nc-ii',
-      totalQuestions: 20,
-      duration: 30,
-      passingScore: 85,
-      status: 'active',
-      createdAt: '2025-10-18',
-      assignedStudents: 20,
-      completedCount: 15
-    },
-    {
-      id: 3,
-      title: 'Cocktail Making Demonstration',
-      type: 'demonstration',
-      program: 'bartending-nc-ii',
-      totalQuestions: 10,
-      duration: 45,
-      passingScore: 85,
-      status: 'active',
-      createdAt: '2025-10-15',
-      assignedStudents: 25,
-      completedCount: 20
-    },
-    {
-      id: 4,
-      title: 'Professional Behavior Observation',
-      type: 'observation',
-      program: 'housekeeping-nc-ii',
-      totalQuestions: 15,
-      duration: 120,
-      passingScore: 85,
-      status: 'draft',
-      createdAt: '2025-10-12',
-      assignedStudents: 0,
-      completedCount: 0
+  const loadPrograms = async () => {
+    try {
+      const programsData = await programService.getPrograms();
+      if (programsData && Array.isArray(programsData)) {
+        // Transform programs data to match dropdown format
+        const formattedPrograms = programsData.map(program => ({
+          value: program.id,
+          label: program.title,
+          slug: program.title.toLowerCase().replace(/\s+/g, '-'),
+          availability: program.availability
+        }));
+        setPrograms(formattedPrograms);
+      }
+    } catch (err) {
+      console.error('Error loading programs:', err);
+      setError('Failed to load programs. Please refresh the page.');
     }
-  ]);
+  };
+
+  const loadExams = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await quizService.getQuizzes();
+      if (response.success) {
+        setExams(response.data || []);
+      }
+    } catch (err) {
+      console.error('Error loading exams:', err);
+      setError('Failed to load exams. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredExams = exams.filter(exam => {
     const matchesType = selectedType === 'all' || exam.type === selectedType;
@@ -124,18 +113,73 @@ const TrainerExams = () => {
     }
   };
 
-  const handleCreateExam = () => {
-    setShowCreateModal(true);
+  const handleCreateExam = async (quizData) => {
+    try {
+      const response = await quizService.createQuiz(quizData);
+      if (response.success) {
+        await loadExams(); // Reload exams list
+        toast.success('Exam created successfully!', {
+          duration: 4000,
+          position: 'top-right',
+        });
+      }
+    } catch (err) {
+      console.error('Error creating exam:', err);
+      toast.error(err.message || 'Failed to create exam', {
+        duration: 4000,
+        position: 'top-right',
+      });
+      throw new Error(err.message || 'Failed to create exam');
+    }
   };
 
-  const handleDeleteExam = (examId) => {
-    if (window.confirm('Are you sure you want to delete this exam?')) {
-      setExams(exams.filter(e => e.id !== examId));
+  const handleDeleteExam = async (examId) => {
+    setExamToDelete(examId);
+    setShowPasswordModal(true);
+  };
+
+  const handleConfirmDelete = async (password) => {
+    try {
+      // Verify password first
+      const token = localStorage.getItem('trainerToken');
+      const verifyResponse = await axios.post(
+        'http://localhost:8000/api/trainer/verify-password',
+        { password },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+
+      if (!verifyResponse.data.success) {
+        throw new Error('Incorrect password');
+      }
+
+      // Password verified, now delete the exam
+      const response = await quizService.deleteQuiz(examToDelete);
+      if (response.success) {
+        await loadExams();
+        toast.success('Exam deleted successfully!', {
+          duration: 3000,
+          position: 'top-right',
+        });
+        setShowPasswordModal(false);
+        setExamToDelete(null);
+      }
+    } catch (err) {
+      console.error('Error deleting exam:', err);
+      if (err.response?.status === 401 || err.message === 'Incorrect password') {
+        throw new Error('Incorrect password. Please try again.');
+      }
+      throw new Error('Failed to delete exam. Please try again.');
     }
   };
 
   return (
     <div className="relative min-h-screen bg-gray-100">
+      <Toaster />
       <TrainerSidebar 
         isOpen={sidebarOpen} 
         onClose={() => setSidebarOpen(false)}
@@ -163,8 +207,8 @@ const TrainerExams = () => {
               </div>
             </div>
             <button
-              onClick={handleCreateExam}
-              className="inline-flex items-center px-4 py-2 bg-tracked-primary text-white rounded-lg hover:bg-tracked-secondary transition-colors"
+              onClick={() => setShowCreateModal(true)}
+              className="inline-flex items-center px-4 py-2 hover:cursor-pointer bg-tracked-primary text-white rounded-lg hover:bg-tracked-secondary transition-colors"
             >
               <MdAdd className="h-5 w-5 mr-2" />
               Create Exam
@@ -209,8 +253,23 @@ const TrainerExams = () => {
 
         {/* Content */}
         <div className="p-6">
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-600">{error}</p>
+            </div>
+          )}
+
+          {/* Loading State */}
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              <p className="mt-4 text-gray-600">Loading exams...</p>
+            </div>
+          ) : (
+            <>
+              {/* Stats Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
             {examTypes.map((type) => {
               const typeExams = exams.filter(e => e.type === type.value);
               const activeCount = typeExams.filter(e => e.status === 'active').length;
@@ -268,7 +327,7 @@ const TrainerExams = () => {
                           </div>
                           <div className="ml-4">
                             <div className="text-sm font-medium text-gray-900">{exam.title}</div>
-                            <div className="text-sm text-gray-500">Created {new Date(exam.createdAt).toLocaleDateString()}</div>
+                            <div className="text-sm text-gray-500">Created {new Date(exam.created_at).toLocaleDateString()}</div>
                           </div>
                         </div>
                       </td>
@@ -278,22 +337,22 @@ const TrainerExams = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {programs.find(p => p.value === exam.program)?.label}
+                        {programs.find(p => p.value === exam.program)?.label || exam.program}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {exam.totalQuestions}
+                        {exam.total_questions || 0}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center text-sm text-gray-900">
                           <MdAccessTime className="h-4 w-4 mr-1 text-gray-400" />
-                          {exam.duration} min
+                          {exam.time_limit} min
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <MdPeople className="h-4 w-4 mr-1 text-gray-400" />
                           <span className="text-sm text-gray-900">
-                            {exam.completedCount}/{exam.assignedStudents}
+                            {exam.completed_count || 0}/{exam.assigned_students || 0}
                           </span>
                         </div>
                       </td>
@@ -337,8 +396,8 @@ const TrainerExams = () => {
               <p className="mt-1 text-sm text-gray-500">Get started by creating a new exam.</p>
               <div className="mt-6">
                 <button
-                  onClick={handleCreateExam}
-                  className="inline-flex items-center px-4 py-2 bg-tracked-primary text-white rounded-lg hover:bg-tracked-secondary transition-colors"
+                  onClick={() => setShowCreateModal(true)}
+                  className="inline-flex items-center px-4 py-2 hover:cursor-pointer bg-tracked-primary text-white rounded-lg hover:bg-tracked-secondary transition-colors"
                 >
                   <MdAdd className="h-5 w-5 mr-2" />
                   Create Exam
@@ -346,8 +405,31 @@ const TrainerExams = () => {
               </div>
             </div>
           )}
+          </>
+        )}
         </div>
       </div>
+
+      {/* Create Exam Modal */}
+      <CreateExamModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={handleCreateExam}
+        examType="written"
+        programs={programs}
+      />
+
+      {/* Confirm Password Modal for Delete */}
+      <ConfirmPasswordModal
+        isOpen={showPasswordModal}
+        onClose={() => {
+          setShowPasswordModal(false);
+          setExamToDelete(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        title="Confirm Exam Deletion"
+        message="This action cannot be undone. Please enter your password to confirm deletion of this exam."
+      />
     </div>
   );
 };

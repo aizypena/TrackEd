@@ -17,11 +17,14 @@ class Quiz extends Model
     protected $fillable = [
         'title',
         'description',
+        'type',
+        'program',
         'batch_id',
         'program_id',
         'total_points',
         'time_limit',
         'retake_limit',
+        'passing_score',
         'status',
     ];
 
