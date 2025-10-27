@@ -30,6 +30,52 @@ const IssueVoucher = ({ isOpen, onClose, voucher, programs, onSuccess }) => {
 
   const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
+  // Update form data when voucher prop changes (for editing)
+  useEffect(() => {
+    if (voucher) {
+      // Format date to YYYY-MM-DD for date input
+      const formatDateForInput = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
+      setFormData({
+        quantity: voucher.quantity || '',
+        issueDate: formatDateForInput(voucher.issue_date),
+        status: voucher.status || 'active',
+        programId: voucher.program_id || '',
+        trainerId: voucher.trainer_id || '',
+        scheduleDays: voucher.schedule_days || [],
+        scheduleTimeStart: voucher.schedule_time_start || '08:00',
+        scheduleTimeEnd: voucher.schedule_time_end || '17:00',
+        batchStatus: voucher.batch_status || 'not started',
+        startDate: formatDateForInput(voucher.start_date),
+        endDate: formatDateForInput(voucher.end_date),
+        maxStudents: voucher.max_students || ''
+      });
+    } else {
+      // Reset form for creating new voucher
+      setFormData({
+        quantity: '',
+        issueDate: '',
+        status: 'active',
+        programId: '',
+        trainerId: '',
+        scheduleDays: [],
+        scheduleTimeStart: '08:00',
+        scheduleTimeEnd: '17:00',
+        batchStatus: 'not started',
+        startDate: '',
+        endDate: '',
+        maxStudents: ''
+      });
+    }
+  }, [voucher]);
+
   // Fetch programs and trainers when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -83,7 +129,42 @@ const IssueVoucher = ({ isOpen, onClose, voucher, programs, onSuccess }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validation
+    // Check if we're editing an existing voucher
+    if (voucher) {
+      // Edit mode - update existing voucher
+      try {
+        setSubmitting(true);
+        
+        const updateData = {
+          quantity: parseInt(formData.quantity),
+          issue_date: formData.issueDate,
+          status: formData.status
+        };
+        
+        const response = await voucherAPI.update(voucher.id, updateData);
+        
+        if (response.success) {
+          toast.success('Voucher updated successfully!');
+          onClose();
+          if (onSuccess) onSuccess();
+        }
+      } catch (error) {
+        console.error('Error updating voucher:', error);
+        
+        if (error.errors) {
+          Object.keys(error.errors).forEach(key => {
+            toast.error(`${key}: ${error.errors[key].join(', ')}`);
+          });
+        } else {
+          toast.error(error.message || 'Failed to update voucher');
+        }
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+    
+    // Create mode - validation for new voucher
     if (formData.scheduleDays.length === 0) {
       toast.error('Please select at least one schedule day');
       return;
@@ -161,7 +242,7 @@ const IssueVoucher = ({ isOpen, onClose, voucher, programs, onSuccess }) => {
       <div className="relative top-10 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white my-10">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-semibold text-gray-900">
-            Create Batch & Issue Voucher
+            {voucher ? 'Edit Voucher' : 'Create Batch & Issue Voucher'}
           </h3>
           <button
             onClick={onClose}
@@ -173,10 +254,11 @@ const IssueVoucher = ({ isOpen, onClose, voucher, programs, onSuccess }) => {
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Batch Information Section */}
-          <div>
-            <h4 className="text-md font-semibold text-gray-800 mb-3 pb-2 border-b">Batch Information</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Show batch fields only when creating new */}
+          {!voucher && (
+            <div>
+              <h4 className="text-md font-semibold text-gray-800 mb-3 pb-2 border-b">Batch Information</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Program *</label>
                 <select
@@ -316,6 +398,7 @@ const IssueVoucher = ({ isOpen, onClose, voucher, programs, onSuccess }) => {
               </div>
             </div>
           </div>
+          )}
 
           {/* Voucher Information Section */}
           <div>
@@ -417,7 +500,10 @@ const IssueVoucher = ({ isOpen, onClose, voucher, programs, onSuccess }) => {
               disabled={submitting}
               className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 hover:cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
             >
-              {submitting ? 'Creating...' : 'Create Batch & Issue Voucher'}
+              {submitting 
+                ? (voucher ? 'Updating...' : 'Creating...') 
+                : (voucher ? 'Update Voucher' : 'Create Batch & Issue Voucher')
+              }
             </button>
           </div>
         </form>
