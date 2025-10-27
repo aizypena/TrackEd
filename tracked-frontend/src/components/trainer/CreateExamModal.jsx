@@ -141,6 +141,9 @@ const CreateExamModal = ({ isOpen, onClose, onSuccess, examType = 'written', bat
     if (formData.passing_score < 0 || formData.passing_score > 100) {
       newErrors.passing_score = 'Passing score must be between 0 and 100';
     }
+    if (formData.retake_limit < 1) {
+      newErrors.retake_limit = 'Retake limit must be at least 1';
+    }
 
     // Validate questions
     questions.forEach((q, index) => {

@@ -129,10 +129,25 @@ const TrainerExams = () => {
       }
     } catch (err) {
       console.error('Error creating exam:', err);
-      toast.error(err.message || 'Failed to create exam', {
-        duration: 4000,
-        position: 'top-right',
-      });
+      
+      // Show specific validation errors if available
+      if (err.errors && typeof err.errors === 'object') {
+        Object.keys(err.errors).forEach(field => {
+          const errorMessages = Array.isArray(err.errors[field]) 
+            ? err.errors[field].join(', ') 
+            : err.errors[field];
+          toast.error(`${field}: ${errorMessages}`, {
+            duration: 5000,
+            position: 'top-right',
+          });
+        });
+      } else {
+        toast.error(err.message || 'Failed to create exam', {
+          duration: 4000,
+          position: 'top-right',
+        });
+      }
+      
       throw new Error(err.message || 'Failed to create exam');
     }
   };
