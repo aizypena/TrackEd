@@ -1284,7 +1284,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 'obtained_marks' => $attempt->score,
                 'passing_marks' => $quiz->passing_score,
                 'percentage' => $attempt->percentage,
-                'status' => $attempt->score >= $quiz->passing_score ? 'passed' : 'failed',
+                'status' => $attempt->percentage >= $quiz->passing_score ? 'passed' : 'failed',
                 'attempt_number' => $attempt->attempt_number,
                 'max_attempts' => $quiz->retake_limit,
                 'total_questions' => $quiz->questions()->count(),
@@ -1382,7 +1382,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
                     'total_questions' => $quiz->questions->count(),
                     'correct_answers' => $attempt->answers->where('is_correct', true)->count(),
                     'incorrect_answers' => $attempt->answers->where('is_correct', false)->count(),
-                    'passed' => $attempt->score >= $quiz->passing_score,
+                    'passed' => $attempt->percentage >= $quiz->passing_score,
                 ]
             ]
         ]);

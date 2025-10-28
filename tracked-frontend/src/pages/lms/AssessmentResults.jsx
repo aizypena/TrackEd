@@ -11,7 +11,6 @@ import {
   MdTrendingUp,
   MdTrendingDown,
   MdFilterList,
-  MdDownload,
   MdChevronRight,
   MdStars,
   MdSchool,
@@ -311,9 +310,6 @@ const AssessmentResults = () => {
                           </div>
                         </div>
                         <div className="ml-6 flex flex-col items-end space-y-3">
-                          <span className={`px-4 py-2 text-sm font-bold rounded-full border ${getGradeColor(result.status, result.grade)}`}>
-                            {result.grade}
-                          </span>
                           <div className="text-right">
                             <div className="text-2xl font-bold text-gray-900">
                               {result.obtainedMarks}/{result.totalMarks}
@@ -341,12 +337,6 @@ const AssessmentResults = () => {
                           )}
                         </div>
                         <div className="flex space-x-3">
-                          {result.status === 'passed' && (
-                            <button className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors">
-                              <MdDownload className="h-4 w-4 mr-2" />
-                              Download Certificate
-                            </button>
-                          )}
                           <button 
                             onClick={() => navigate(`/smi-lms/assessment-result-detail/${result.id}`)}
                             className="flex items-center px-4 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"

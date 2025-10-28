@@ -217,11 +217,6 @@ const AssessmentResultDetail = () => {
                       </span>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className={`inline-flex px-6 py-3 rounded-lg border-2 ${getGradeColor(attempt.percentage)}`}>
-                      <span className="text-3xl font-bold">{grade}</span>
-                    </div>
-                  </div>
                 </div>
               </div>
 

@@ -29,6 +29,7 @@ const Assessments = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [assessments, setAssessments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -179,11 +180,15 @@ const Assessments = () => {
       <Sidebar 
         user={user} 
         isOpen={sidebarOpen} 
-        onClose={() => setSidebarOpen(false)} 
+        onClose={() => setSidebarOpen(false)}
+        sidebarOpen={sidebarCollapsed}
+        setSidebarOpen={setSidebarCollapsed}
       />
 
       {/* Main Content */}
-      <div className="flex-1 lg:ml-64">
+      <div className={`flex-1 transition-all duration-300 ${
+        sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'
+      }`}>
         {/* Mobile Header */}
         <div className="lg:hidden bg-white shadow-sm border-b px-4 py-3">
           <div className="flex items-center justify-between">
@@ -198,7 +203,7 @@ const Assessments = () => {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center justify-between">
