@@ -11,66 +11,68 @@ import {
   MdMenu,
   MdPictureAsPdf,
   MdPlayCircleOutline,
-  MdDescription
+  MdDescription,
+  MdSchedule
 } from 'react-icons/md';
 
 const StudentDashboard = () => {
   const [user, setUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [stats, setStats] = useState({
-    enrolledCourses: 4,
-    totalMaterials: 28,
-    attendanceRate: 92,
-    pendingAssessments: 3,
-    certificatesEarned: 2
-  });
+  const [studentSchedule, setStudentSchedule] = useState([]);
+  const [batchInfo, setBatchInfo] = useState(null);
+  const [programInfo, setProgramInfo] = useState(null);
+  const [trainerInfo, setTrainerInfo] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Get user data from localStorage
     const userData = getStudentUser();
     if (userData) {
       setUser(userData);
+      fetchStudentSchedule();
     }
   }, []);
 
-  const recentCourses = [
-    {
-      id: 1,
-      title: "Cookery NC II",
-      schedule: "Mon, Wed, Fri - 8:00 AM",
-      instructor: "Chef Maria Santos",
-      materials: 15,
-      nextClass: "September 20, 2025",
-      attendance: "18/20 sessions"
-    },
-    {
-      id: 2,
-      title: "Food and Beverage Services NC II",
-      schedule: "Tue, Thu - 1:00 PM",
-      instructor: "Prof. Juan Cruz",
-      materials: 12,
-      nextClass: "September 19, 2025",
-      attendance: "15/16 sessions"
-    },
-    {
-      id: 3,
-      title: "Bread and Pastry Production NC II",
-      schedule: "Sat - 9:00 AM",
-      instructor: "Chef Ana Rodriguez",
-      materials: 10,
-      nextClass: "September 21, 2025",
-      attendance: "7/8 sessions"
-    },
-    {
-      id: 4,
-      title: "Housekeeping NC II",
-      schedule: "Wed, Fri - 2:00 PM",
-      instructor: "Ms. Carlos Mendez",
-      materials: 8,
-      nextClass: "September 25, 2025",
-      attendance: "12/14 sessions"
+  const fetchStudentSchedule = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('studentToken');
+      
+      const response = await fetch('http://localhost:8000/api/student/schedule', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setStudentSchedule(data.schedule || []);
+        setBatchInfo(data.batch);
+        setProgramInfo(data.program);
+        setTrainerInfo(data.trainer);
+      } else {
+        console.error('Failed to fetch schedule');
+        setStudentSchedule([]);
+      }
+    } catch (error) {
+      console.error('Error fetching schedule:', error);
+      setStudentSchedule([]);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+  const formatTime = (time) => {
+    const [hours, minutes] = time.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minutes} ${ampm}`;
+  };
 
   const pendingAssessments = [
     {
@@ -234,68 +236,6 @@ const StudentDashboard = () => {
               </div>
             </div>
           </div>
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <MdSchool className="h-6 w-6 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-2xl font-semibold text-gray-900">{stats.enrolledCourses}</p>
-                <p className="text-sm text-gray-600">Enrolled Courses</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <MdFolder className="h-6 w-6 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-2xl font-semibold text-gray-900">{stats.totalMaterials}</p>
-                <p className="text-sm text-gray-600">Course Materials</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <MdFactCheck className="h-6 w-6 text-yellow-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-2xl font-semibold text-gray-900">{stats.attendanceRate}%</p>
-                <p className="text-sm text-gray-600">Attendance Rate</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <MdQuiz className="h-6 w-6 text-red-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-2xl font-semibold text-gray-900">{stats.pendingAssessments}</p>
-                <p className="text-sm text-gray-600">Pending Assessments</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <MdWorkspacePremium className="h-6 w-6 text-purple-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-2xl font-semibold text-gray-900">{stats.certificatesEarned}</p>
-                <p className="text-sm text-gray-600">Certificates Earned</p>
-              </div>
-            </div>
-          </div>
-        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Course Schedule & Attendance */}
@@ -305,49 +245,72 @@ const StudentDashboard = () => {
                 <h2 className="text-lg font-semibold text-gray-900">Course Schedule & Attendance</h2>
               </div>
               <div className="p-6">
-                <div className="space-y-6">
-                  {recentCourses.map((course) => (
-                    <div key={course.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                {loading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading schedule...</p>
+                  </div>
+                ) : studentSchedule.length === 0 ? (
+                  <div className="text-center py-8">
+                    <MdSchedule className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">No schedule available yet.</p>
+                    <p className="text-gray-500 text-sm mt-2">Please contact the administration office.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <div className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
                       <div className="flex justify-between items-start mb-3">
                         <div>
-                          <h3 className="font-semibold text-gray-900">{course.title}</h3>
-                          <p className="text-sm text-gray-600">Instructor: {course.instructor}</p>
-                          <p className="text-sm text-blue-600 font-medium">{course.schedule}</p>
+                          <h3 className="font-semibold text-gray-900">{programInfo?.name || 'N/A'}</h3>
+                          {trainerInfo && trainerInfo.name !== 'TBA' && (
+                            <p className="text-sm text-gray-600">Instructor: {trainerInfo.name}</p>
+                          )}
+                          <div className="mt-2 space-y-1">
+                            {studentSchedule.map((schedule, index) => (
+                              <p key={index} className="text-sm text-blue-600 font-medium">
+                                {daysOfWeek[schedule.dayOfWeek]} - {formatTime(schedule.startTime)} to {formatTime(schedule.endTime)}
+                              </p>
+                            ))}
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded">
-                            {course.attendance}
-                          </span>
-                        </div>
+                        {batchInfo && (
+                          <div className="text-right">
+                            <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
+                              {batchInfo.batch_id}
+                            </span>
+                            <p className="text-xs text-gray-500 mt-1 capitalize">{batchInfo.status}</p>
+                          </div>
+                        )}
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-4 mb-3">
-                        <div>
-                          <p className="text-xs text-gray-500">Course Materials</p>
-                          <p className="text-sm font-medium text-gray-900">{course.materials} files</p>
+                      {batchInfo && (
+                        <div className="grid grid-cols-2 gap-4 mb-3 pt-3 border-t">
+                          <div>
+                            <p className="text-xs text-gray-500">Start Date</p>
+                            <p className="text-sm font-medium text-gray-900">
+                              {batchInfo.start_date ? new Date(batchInfo.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'TBA'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">End Date</p>
+                            <p className="text-sm font-medium text-gray-900">
+                              {batchInfo.end_date ? new Date(batchInfo.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'TBA'}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-xs text-gray-500">Next Class</p>
-                          <p className="text-sm font-medium text-gray-900">{course.nextClass}</p>
-                        </div>
-                      </div>
+                      )}
                       
-                      <div className="flex justify-between items-center">
-                        <div className="flex space-x-2">
-                          <button className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors">
-                            View Materials
-                          </button>
-                          <button className="px-3 py-1 border border-gray-300 text-gray-700 text-xs rounded hover:bg-gray-50 transition-colors">
-                            View Schedule
-                          </button>
-                        </div>
-                        <button className="text-xs text-blue-600 hover:text-blue-800">
+                      <div className="flex justify-between items-center pt-3 border-t">
+                        <Link to="/smi-lms/schedule" className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors">
+                          View Full Schedule
+                        </Link>
+                        <Link to="/smi-lms/attendance" className="text-xs text-blue-600 hover:text-blue-800">
                           Attendance History →
-                        </button>
+                        </Link>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -423,34 +386,6 @@ const StudentDashboard = () => {
                 </div>
                 <button className="w-full mt-4 px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded hover:bg-gray-50 transition-colors">
                   Browse All Materials
-                </button>
-              </div>
-            </div>
-
-            {/* Certificates */}
-            <div className="bg-white rounded-lg shadow">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">My Certificates</h2>
-              </div>
-              <div className="p-6">
-                <div className="space-y-4">
-                  {certificates.map((certificate) => (
-                    <div key={certificate.id} className="flex justify-between items-center p-3 border rounded-lg">
-                      <div>
-                        <p className="font-medium text-gray-900">{certificate.title}</p>
-                        <p className="text-xs text-gray-500">Issued: {certificate.issueDate}</p>
-                        <span className="inline-block px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded mt-1">
-                          {certificate.status.charAt(0).toUpperCase() + certificate.status.slice(1)}
-                        </span>
-                      </div>
-                      <button className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors">
-                        Download
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <button className="w-full mt-4 px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded hover:bg-gray-50 transition-colors">
-                  View All Certificates
                 </button>
               </div>
             </div>
