@@ -3,6 +3,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import axios from 'axios';
 import TrainerSidebar from '../../layouts/trainer/TrainerSidebar';
 import CreateExamModal from '../../components/trainer/CreateExamModal';
+import EditExamModal from '../../components/trainer/EditExamModal';
 import ConfirmPasswordModal from '../../components/trainer/ConfirmPasswordModal';
 import { quizService } from '../../services/quizService';
 import batchService from '../../services/batchService';
@@ -14,21 +15,17 @@ import {
   MdDelete,
   MdVisibility,
   MdAssignment,
-  MdRecordVoiceOver,
-  MdComputer,
-  MdRemoveRedEye,
-  MdFilterList,
   MdAccessTime,
   MdPeople,
-  MdCheckCircle,
 } from 'react-icons/md';
 
 const TrainerExams = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [selectedType, setSelectedType] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [examToEdit, setExamToEdit] = useState(null);
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -38,9 +35,6 @@ const TrainerExams = () => {
 
   const examTypes = [
     { value: 'written', label: 'Written Test', icon: MdAssignment, color: 'blue' },
-    { value: 'oral', label: 'Oral Questioning', icon: MdRecordVoiceOver, color: 'green' },
-    { value: 'demonstration', label: 'Demonstration', icon: MdComputer, color: 'purple' },
-    { value: 'observation', label: 'Observation', icon: MdRemoveRedEye, color: 'orange' },
   ];
 
   // Load exams and batches on component mount
@@ -89,9 +83,8 @@ const TrainerExams = () => {
   };
 
   const filteredExams = exams.filter(exam => {
-    const matchesType = selectedType === 'all' || exam.type === selectedType;
     const matchesSearch = exam.title.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesType && matchesSearch;
+    return matchesSearch;
   });
 
   const getTypeIcon = (type) => {
@@ -175,6 +168,58 @@ const TrainerExams = () => {
       }
       
       throw new Error(err.message || 'Failed to create exam');
+    }
+  };
+
+  const handleEditExam = async (examId) => {
+    try {
+      // Fetch the full exam details including questions
+      const response = await quizService.getQuiz(examId);
+      if (response.success) {
+        setExamToEdit(response.data);
+        setShowEditModal(true);
+      }
+    } catch (err) {
+      console.error('Error loading exam details:', err);
+      toast.error('Failed to load exam details', {
+        duration: 3000,
+        position: 'top-right',
+      });
+    }
+  };
+
+  const handleUpdateExam = async (examId, quizData) => {
+    try {
+      const response = await quizService.updateQuiz(examId, quizData);
+      if (response.success) {
+        await loadExams(); // Reload exams list
+        toast.success('Exam updated successfully!', {
+          duration: 4000,
+          position: 'top-right',
+        });
+      }
+    } catch (err) {
+      console.error('Error updating exam:', err);
+      
+      // Show specific validation errors if available
+      if (err.errors && typeof err.errors === 'object') {
+        Object.keys(err.errors).forEach(field => {
+          const errorMessages = Array.isArray(err.errors[field]) 
+            ? err.errors[field].join(', ') 
+            : err.errors[field];
+          toast.error(`${field}: ${errorMessages}`, {
+            duration: 5000,
+            position: 'top-right',
+          });
+        });
+      } else {
+        toast.error(err.message || 'Failed to update exam', {
+          duration: 4000,
+          position: 'top-right',
+        });
+      }
+      
+      throw new Error(err.message || 'Failed to update exam');
     }
   };
 
@@ -262,25 +307,9 @@ const TrainerExams = () => {
 
           {/* Filters */}
           <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Exam Type Filter */}
-              <div className="relative">
-                <select
-                  value={selectedType}
-                  onChange={(e) => setSelectedType(e.target.value)}
-                  className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md"
-                >
-                  <option value="all">All Exam Types</option>
-                  {examTypes.map((type) => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
+            <div className="flex justify-end">
               {/* Search */}
-              <div className="relative">
+              <div className="relative w-full md:w-96">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <MdSearch className="h-5 w-5 text-gray-400" />
                 </div>
@@ -314,21 +343,29 @@ const TrainerExams = () => {
           ) : (
             <>
               {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-            {examTypes.map((type) => {
-              const typeExams = exams.filter(e => e.type === type.value);
-              const activeCount = typeExams.filter(e => e.status === 'active').length;
-              return (
-                <div key={type.value} className={`bg-white rounded-lg shadow-sm border-l-4 border-${type.color}-500 p-4`}>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div className="bg-white rounded-lg shadow-sm border-l-4 border-blue-500 p-4">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">{type.label}</p>
-                    <p className="text-2xl font-bold text-gray-900 mt-1">{typeExams.length}</p>
-                    <p className="text-xs text-gray-500 mt-1">{activeCount} active</p>
+                    <p className="text-sm font-medium text-gray-600">Total Exams</p>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">{exams.length}</p>
+                    <p className="text-xs text-gray-500 mt-1">All written tests</p>
                   </div>
                 </div>
-              );
-            })}
-          </div>
+                <div className="bg-white rounded-lg shadow-sm border-l-4 border-green-500 p-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Active Exams</p>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">{exams.filter(e => e.status === 'active').length}</p>
+                    <p className="text-xs text-gray-500 mt-1">Currently available</p>
+                  </div>
+                </div>
+                <div className="bg-white rounded-lg shadow-sm border-l-4 border-gray-500 p-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Draft Exams</p>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">{exams.filter(e => e.status === 'draft').length}</p>
+                    <p className="text-xs text-gray-500 mt-1">In preparation</p>
+                  </div>
+                </div>
+              </div>
 
           {/* Exams List */}
           <div className="bg-white rounded-lg shadow-sm overflow-hidden">
@@ -338,9 +375,6 @@ const TrainerExams = () => {
                   <tr>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Exam Title
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Type
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Batch
@@ -367,19 +401,14 @@ const TrainerExams = () => {
                     <tr key={exam.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
                         <div className="flex items-center">
-                          <div className={`flex-shrink-0 h-10 w-10 bg-${getTypeColor(exam.type)}-100 rounded-lg flex items-center justify-center`}>
-                            {getTypeIcon(exam.type)}
+                          <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <MdAssignment className="h-5 w-5 text-blue-600" />
                           </div>
                           <div className="ml-4">
                             <div className="text-sm font-medium text-gray-900">{exam.title}</div>
                             <div className="text-sm text-gray-500">Created {new Date(exam.created_at).toLocaleDateString()}</div>
                           </div>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${getTypeColor(exam.type)}-100 text-${getTypeColor(exam.type)}-800`}>
-                          {examTypes.find(t => t.value === exam.type)?.label}
-                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {batches.find(b => b.value === exam.batch_id)?.batch_id || exam.batch_id || 'Not assigned'}
@@ -427,6 +456,7 @@ const TrainerExams = () => {
                             <MdVisibility className="h-5 w-5" />
                           </button>
                           <button
+                            onClick={() => handleEditExam(exam.id)}
                             className="text-gray-600 hover:text-gray-900"
                             title="Edit"
                           >
@@ -475,6 +505,18 @@ const TrainerExams = () => {
         onClose={() => setShowCreateModal(false)}
         onSuccess={handleCreateExam}
         examType="written"
+        batches={batches}
+      />
+
+      {/* Edit Exam Modal */}
+      <EditExamModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setExamToEdit(null);
+        }}
+        onSuccess={handleUpdateExam}
+        examData={examToEdit}
         batches={batches}
       />
 

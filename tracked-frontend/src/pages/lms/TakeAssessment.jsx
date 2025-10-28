@@ -157,8 +157,8 @@ const TakeAssessment = () => {
       const data = await response.json();
 
       if (data.success) {
-        // Redirect to results page
-        navigate(`/smi-lms/assessment-results/${attemptId}`, {
+        // Redirect to assessments page
+        navigate('/smi-lms/assessments', {
           state: { message: isAutoSubmit ? 'Time expired - Quiz auto-submitted' : 'Quiz submitted successfully!' }
         });
       } else {
@@ -326,7 +326,8 @@ const TakeAssessment = () => {
                   <button
                     onClick={() => setCurrentQuestionIndex((prev) => Math.max(0, prev - 1))}
                     disabled={currentQuestionIndex === 0}
-                    className="flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title='Previous'
+                    className="flex hover:cursor-pointer items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <MdNavigateBefore className="h-5 w-5 mr-1" />
                     Previous
@@ -335,7 +336,8 @@ const TakeAssessment = () => {
                   {currentQuestionIndex < questions.length - 1 ? (
                     <button
                       onClick={() => setCurrentQuestionIndex((prev) => prev + 1)}
-                      className="flex items-center px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                      title='Next'
+                      className="flex hover:cursor-pointer items-center px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
                     >
                       Next
                       <MdNavigateNext className="h-5 w-5 ml-1" />
@@ -343,7 +345,7 @@ const TakeAssessment = () => {
                   ) : (
                     <button
                       onClick={handleSubmitClick}
-                      className="flex items-center px-6 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700"
+                      className="flex hover:cursor-pointer items-center px-6 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700"
                     >
                       <MdCheckCircle className="h-5 w-5 mr-2" />
                       Submit Quiz
@@ -388,7 +390,8 @@ const TakeAssessment = () => {
               {/* Submit Button */}
               <button
                 onClick={handleSubmitClick}
-                className="w-full flex items-center justify-center px-4 py-3 text-white bg-green-600 rounded-lg hover:bg-green-700 font-medium"
+                title='Submit Quiz'
+                className="w-full flex hover:cursor-pointer items-center justify-center px-4 py-3 text-white bg-green-600 rounded-lg hover:bg-green-700 font-medium"
               >
                 <MdFlag className="h-5 w-5 mr-2" />
                 Submit Quiz
@@ -400,7 +403,7 @@ const TakeAssessment = () => {
 
       {/* Submit Confirmation Modal */}
       {showSubmitConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Submit Quiz?</h3>
             <p className="text-gray-600 mb-2">
@@ -418,13 +421,15 @@ const TakeAssessment = () => {
             <div className="flex space-x-3">
               <button
                 onClick={() => setShowSubmitConfirm(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                title='Cancel'
+                className="flex-1 hover:cursor-pointer px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
               >
                 Cancel
               </button>
               <button
                 onClick={() => submitQuiz(false)}
-                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                title='Submit'
+                className="flex-1 hover:cursor-pointer px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
               >
                 Submit
               </button>

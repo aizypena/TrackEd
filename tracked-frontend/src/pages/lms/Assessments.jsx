@@ -402,12 +402,6 @@ const Assessments = () => {
                                 Continue Assessment
                               </button>
                             )}
-                            {assessment.status === 'completed' && (
-                              <button className="flex items-center px-6 py-2.5 text-sm font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
-                                <MdGrade className="h-4 w-4 mr-2" />
-                                View Detailed Results
-                              </button>
-                            )}
                           </div>
                         </div>
                       </div>
@@ -459,52 +453,6 @@ const Assessments = () => {
                         <span className="text-sm font-medium text-red-600">{stats.overdue}</span>
                       </div>
                     )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Upcoming Deadlines */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-                <div className="p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <MdAccessTime className="h-5 w-5 mr-2 text-orange-600" />
-                    Upcoming Deadlines
-                  </h3>
-                  <div className="space-y-3">
-                    {assessments
-                      .filter(a => a.status === 'available' || a.status === 'upcoming')
-                      .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
-                      .slice(0, 3)
-                      .map(assessment => (
-                        <div key={assessment.id} className="border-l-4 border-orange-500 pl-4">
-                          <div className="text-sm font-medium text-gray-900 truncate">
-                            {assessment.title}
-                          </div>
-                          <div className="text-xs text-gray-500 mt-1">
-                            {assessment.courseCode}
-                          </div>
-                          <div className="text-xs text-orange-600 mt-1">
-                            {getTimeRemaining(assessment.dueDate)}
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Performance Summary */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-                <div className="p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Summary</h3>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600 mb-2">{stats.averageScore}%</div>
-                    <p className="text-sm text-gray-600 mb-4">Average Score</p>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
-                      <div 
-                        className="bg-green-500 h-3 rounded-full transition-all duration-300"
-                        style={{ width: `${stats.averageScore}%` }}
-                      ></div>
-                    </div>
                   </div>
                 </div>
               </div>

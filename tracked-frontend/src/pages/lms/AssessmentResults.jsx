@@ -74,7 +74,20 @@ const AssessmentResults = () => {
           correctAnswers: result.correct_answers,
         }));
 
-        setAssessmentResults(transformedResults);
+        // Group results by quiz_id and keep only the highest scoring attempt for each quiz
+        const quizMap = new Map();
+        transformedResults.forEach(result => {
+          const existingResult = quizMap.get(result.quizId);
+          if (!existingResult || result.percentage > existingResult.percentage) {
+            quizMap.set(result.quizId, result);
+          }
+        });
+
+        // Convert map back to array and sort by date (most recent first)
+        const highestScoreResults = Array.from(quizMap.values())
+          .sort((a, b) => new Date(b.dateTaken) - new Date(a.dateTaken));
+
+        setAssessmentResults(highestScoreResults);
       } else {
         setError(data.message || 'Failed to load results');
       }
