@@ -144,5 +144,21 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Voucher::class, 'voucher_id', 'voucher_id');
     }
+    
+    /**
+     * Get all grades for the user (as student).
+     */
+    public function grades()
+    {
+        return $this->hasMany(Grade::class, 'user_id');
+    }
+    
+    /**
+     * Get all grades given by the user (as trainer).
+     */
+    public function gradedAssessments()
+    {
+        return $this->hasMany(Grade::class, 'graded_by');
+    }
 }
 

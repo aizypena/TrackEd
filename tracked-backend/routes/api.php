@@ -1229,12 +1229,39 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Calculate time taken
         $timeTaken = now()->diffInSeconds($attempt->started_at);
         
+        // Get the quiz
+        $quiz = $attempt->quiz;
+        
+        // Calculate percentage
+        $percentage = $quiz->total_points > 0 
+            ? round(($totalScore / $quiz->total_points) * 100, 2) 
+            : 0;
+        
         // Update attempt
         $attempt->update([
             'score' => $totalScore,
             'status' => 'completed',
             'completed_at' => now(),
             'time_taken' => $timeTaken
+        ]);
+        
+        // Create Grade record for this written test
+        \App\Models\Grade::create([
+            'user_id' => $user->id,
+            'quiz_id' => $quiz->id,
+            'quiz_attempt_id' => $attempt->id,
+            'assessment_type' => 'written',
+            'assessment_title' => $quiz->title,
+            'score' => $totalScore,
+            'total_points' => $quiz->total_points,
+            'percentage' => $percentage,
+            'passing_score' => $quiz->passing_score,
+            'status' => $percentage >= $quiz->passing_score ? 'passed' : 'failed',
+            'graded_by' => null, // Auto-graded
+            'graded_at' => now(),
+            'attempt_number' => $attempt->attempt_number,
+            'batch_id' => $user->batch_id,
+            'program_id' => $quiz->program_id,
         ]);
         
         return response()->json([
