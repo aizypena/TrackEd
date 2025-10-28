@@ -399,10 +399,6 @@ const ClassSchedule = () => {
                   </h3>
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Total Classes</span>
-                      <span className="text-sm font-medium text-gray-900">{studentSchedule.length}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600">Total Hours</span>
                       <span className="text-sm font-medium text-gray-900">
                         {studentSchedule.reduce((total, schedule) => {
@@ -410,12 +406,6 @@ const ClassSchedule = () => {
                           const end = parseInt(schedule.endTime.replace(':', ''));
                           return total + ((end - start) / 100);
                         }, 0)}h
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Courses</span>
-                      <span className="text-sm font-medium text-gray-900">
-                        {new Set(studentSchedule.map(s => s.courseCode)).size}
                       </span>
                     </div>
                   </div>
