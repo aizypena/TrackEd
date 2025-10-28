@@ -1,7 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import ProtectedStudentRoute from '../components/ProtectedStudentRoute';
 import StudentDashboard from '../pages/lms/Dashboard';
-import MyCourses from '../pages/lms/MyCourses';
 import ClassSchedule from '../pages/lms/ClassSchedule';
 import Attendance from '../pages/lms/Attendance';
 import Assessments from '../pages/lms/Assessments';
@@ -18,14 +17,6 @@ const StudentRoutes = () => {
         element={
           <ProtectedStudentRoute>
             <StudentDashboard />
-          </ProtectedStudentRoute>
-        } 
-      />
-      <Route 
-        path="/my-courses" 
-        element={
-          <ProtectedStudentRoute>
-            <MyCourses />
           </ProtectedStudentRoute>
         } 
       />
