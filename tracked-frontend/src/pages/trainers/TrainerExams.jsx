@@ -117,6 +117,32 @@ const TrainerExams = () => {
     }
   };
 
+  const handleStatusChange = async (examId, newStatus) => {
+    try {
+      // Only send the status field
+      const response = await quizService.updateQuiz(examId, {
+        status: newStatus
+      });
+
+      if (response.success) {
+        // Update local state
+        setExams(exams.map(e => 
+          e.id === examId ? { ...e, status: newStatus } : e
+        ));
+        toast.success('Status updated successfully!', {
+          duration: 3000,
+          position: 'top-right',
+        });
+      }
+    } catch (err) {
+      console.error('Error updating status:', err);
+      toast.error('Failed to update status', {
+        duration: 3000,
+        position: 'top-right',
+      });
+    }
+  };
+
   const handleCreateExam = async (quizData) => {
     try {
       const response = await quizService.createQuiz(quizData);
@@ -376,7 +402,21 @@ const TrainerExams = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {getStatusBadge(exam.status)}
+                        <select
+                          value={exam.status}
+                          onChange={(e) => handleStatusChange(exam.id, e.target.value)}
+                          className={`text-xs font-medium rounded-md px-3 py-1.5 border-0 focus:ring-2 focus:ring-offset-1 cursor-pointer ${
+                            exam.status === 'active' 
+                              ? 'bg-green-100 text-green-800 focus:ring-green-500' 
+                              : exam.status === 'draft'
+                              ? 'bg-gray-100 text-gray-800 focus:ring-gray-500'
+                              : 'bg-red-100 text-red-800 focus:ring-red-500'
+                          }`}
+                        >
+                          <option value="draft">Draft</option>
+                          <option value="active">Active</option>
+                          <option value="archived">Archived</option>
+                        </select>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
