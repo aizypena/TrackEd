@@ -255,7 +255,6 @@ const StaffDashboard = () => {
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Program</th>
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Date</th>
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Status</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -276,11 +275,6 @@ const StaffDashboard = () => {
                               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusInfo.class}`}>
                                 {statusInfo.label}
                               </span>
-                            </td>
-                            <td className="py-3 px-4">
-                              <button className="text-tracked-secondary hover:text-tracked-primary text-sm font-medium">
-                                Review
-                              </button>
                             </td>
                           </tr>
                         );
@@ -346,45 +340,6 @@ const StaffDashboard = () => {
                 </div>
               ))}
             </div>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Link 
-              to="/staff/enrollments/applications" 
-              className="bg-tracked-primary hover:bg-tracked-secondary text-white p-4 rounded-lg shadow-md transition-colors"
-            >
-              <MdPeople className="h-6 w-6 mb-2" />
-              <h3 className="font-semibold">Process Applications</h3>
-              <p className="text-sm text-blue-100 mt-1">Review and approve new applications</p>
-            </Link>
-
-            <Link 
-              to="/staff/training/batches" 
-              className="bg-tracked-primary hover:bg-tracked-secondary text-white p-4 rounded-lg shadow-md transition-colors"
-            >
-              <MdSchool className="h-6 w-6 mb-2" />
-              <h3 className="font-semibold">Manage Batches</h3>
-              <p className="text-sm text-blue-100 mt-1">Create and manage training batches</p>
-            </Link>
-
-            <Link 
-              to="/staff/inventory/equipment" 
-              className="bg-tracked-primary hover:bg-tracked-secondary text-white p-4 rounded-lg shadow-md transition-colors"
-            >
-              <MdInventory className="h-6 w-6 mb-2" />
-              <h3 className="font-semibold">Update Inventory</h3>
-              <p className="text-sm text-blue-100 mt-1">Track equipment and supplies</p>
-            </Link>
-
-            <Link 
-              to="/staff/reports/enrollment" 
-              className="bg-tracked-primary hover:bg-tracked-secondary text-white p-4 rounded-lg shadow-md transition-colors"
-            >
-              <MdTrendingUp className="h-6 w-6 mb-2" />
-              <h3 className="font-semibold">Generate Reports</h3>
-              <p className="text-sm text-blue-100 mt-1">View analytics and insights</p>
-            </Link>
           </div>
         </div>
       </div>
