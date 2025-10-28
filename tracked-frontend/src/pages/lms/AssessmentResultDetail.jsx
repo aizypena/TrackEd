@@ -18,6 +18,7 @@ const AssessmentResultDetail = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [resultData, setResultData] = useState(null);
@@ -97,7 +98,13 @@ const AssessmentResultDetail = () => {
   if (loading) {
     return (
       <div className="flex h-screen bg-gray-50">
-        <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+        <Sidebar 
+          user={user}
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          sidebarOpen={sidebarCollapsed}
+          setSidebarOpen={setSidebarCollapsed}
+        />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
@@ -111,7 +118,13 @@ const AssessmentResultDetail = () => {
   if (error) {
     return (
       <div className="flex h-screen bg-gray-50">
-        <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+        <Sidebar 
+          user={user}
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          sidebarOpen={sidebarCollapsed}
+          setSidebarOpen={setSidebarCollapsed}
+        />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-lg">
@@ -138,9 +151,17 @@ const AssessmentResultDetail = () => {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+      <Sidebar 
+        user={user}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        sidebarOpen={sidebarCollapsed}
+        setSidebarOpen={setSidebarCollapsed}
+      />
       
-      <div className="flex-1 flex flex-col overflow-hidden ml-0 lg:ml-64">
+      <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${
+        sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'
+      }`}>
         {/* Header */}
         <header className="bg-white shadow-sm border-b border-gray-200 px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between flex-wrap gap-4">
@@ -168,7 +189,7 @@ const AssessmentResultDetail = () => {
 
         {/* Main Content */}
         <div className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-6xl mx-auto space-y-6">
+          <div className="w-full mx-auto space-y-6">
             
             {/* Assessment Header Card */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
