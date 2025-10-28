@@ -1108,6 +1108,79 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::put('/quizzes/{id}', [QuizController::class, 'update']);
     Route::delete('/quizzes/{id}', [QuizController::class, 'destroy']);
     
+    // Student Exams/Assessments Routes
+    Route::get('/student/exams', function (Request $request) {
+        $user = $request->user();
+        
+        // Check if user is a student
+        if ($user->role !== 'student') {
+            return response()->json([
+                'error' => 'Unauthorized. Only students can access this endpoint.'
+            ], 403);
+        }
+        
+        // Check if student has a batch assigned
+        if (!$user->batch_id) {
+            return response()->json([
+                'success' => true,
+                'data' => [],
+                'batch' => null,
+                'program' => null,
+                'message' => 'No batch assigned yet'
+            ]);
+        }
+        
+        // Get batch and program details
+        $batch = \App\Models\Batch::where('batch_id', $user->batch_id)->first();
+        $program = $batch ? \App\Models\Program::find($batch->program_id) : null;
+        
+        // Get active exams for the student's batch with relationships
+        $exams = \App\Models\Quiz::where('batch_id', $user->batch_id)
+            ->where('status', 'active')
+            ->with(['questions', 'attempts' => function($query) use ($user) {
+                $query->where('user_id', $user->id);
+            }])
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        // Add additional info to each exam
+        $exams->map(function ($exam) use ($program, $user) {
+            $exam->course_title = $program ? $program->title : 'N/A';
+            $exam->course_code = $program ? ($program->code ?? $program->title) : 'N/A';
+            $exam->total_questions = $exam->questions->count();
+            
+            // Get student's attempts for this exam
+            $userAttempts = $exam->attempts;
+            $exam->attempts_taken = $userAttempts->count();
+            $exam->attempts_remaining = max(0, $exam->retake_limit - $userAttempts->count());
+            
+            // Get latest attempt info
+            $latestAttempt = $userAttempts->sortByDesc('created_at')->first();
+            if ($latestAttempt) {
+                $exam->latest_attempt_status = $latestAttempt->status;
+                $exam->latest_score = $latestAttempt->score;
+                $exam->latest_percentage = $latestAttempt->percentage;
+            } else {
+                $exam->latest_attempt_status = null;
+                $exam->latest_score = null;
+                $exam->latest_percentage = null;
+            }
+            
+            // Remove the attempts relationship from response to keep it clean
+            unset($exam->attempts);
+            unset($exam->questions);
+            
+            return $exam;
+        });
+        
+        return response()->json([
+            'success' => true,
+            'data' => $exams,
+            'batch' => $batch,
+            'program' => $program
+        ]);
+    });
+    
     // Student Schedule Routes
     Route::get('/student/schedule', function (Request $request) {
         $user = $request->user();

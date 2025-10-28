@@ -27,154 +27,80 @@ import {
 const Assessments = () => {
   const [user, setUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState('all');
-  const [selectedStatus, setSelectedStatus] = useState('all');
-  const [activeTab, setActiveTab] = useState('upcoming');
+  const [assessments, setAssessments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const userData = getStudentUser();
     if (userData) {
       setUser(userData);
     }
+    fetchExams();
   }, []);
 
-  // Sample assessments data
-  const assessments = [
-    {
-      id: 1,
-      title: 'Table Service Practical Assessment',
-      courseTitle: 'Food and Beverage Services NC II',
-      courseCode: 'FBS-NC2-2025',
-      type: 'practical',
-      status: 'upcoming',
-      dueDate: '2025-09-25',
-      timeLimit: 120,
-      totalMarks: 100,
-      passingMarks: 75,
-      attempts: 0,
-      maxAttempts: 3,
-      description: 'Practical demonstration of table service skills including table setting, order taking, and customer service.',
-      instructions: [
-        'Arrive 15 minutes before the scheduled time',
-        'Wear proper uniform and maintain hygiene standards',
-        'Demonstrate all required service techniques',
-        'Complete the assessment within the time limit'
-      ]
-    },
-    {
-      id: 2,
-      title: 'Wine Service Knowledge Test',
-      courseTitle: 'Food and Beverage Services NC II',
-      courseCode: 'FBS-NC2-2025',
-      type: 'written',
-      status: 'available',
-      dueDate: '2025-09-30',
-      timeLimit: 60,
-      totalMarks: 50,
-      passingMarks: 35,
-      attempts: 0,
-      maxAttempts: 2,
-      description: 'Written examination covering wine service procedures, wine types, and beverage knowledge.',
-      instructions: [
-        'Read all questions carefully before answering',
-        'Select the best answer for multiple choice questions',
-        'Provide detailed explanations for essay questions',
-        'Submit before the time limit expires'
-      ]
-    },
-    {
-      id: 3,
-      title: 'Basic Knife Skills Assessment',
-      courseTitle: 'Cookery NC II',
-      courseCode: 'COOK-NC2-2025',
-      type: 'practical',
-      status: 'completed',
-      dueDate: '2025-09-15',
-      completedDate: '2025-09-14',
-      timeLimit: 90,
-      totalMarks: 100,
-      passingMarks: 70,
-      score: 88,
-      attempts: 1,
-      maxAttempts: 3,
-      description: 'Practical demonstration of basic knife skills including julienne, brunoise, and chiffonade cuts.',
-      feedback: 'Excellent knife technique demonstrated. Consistent cut sizes and proper safety procedures followed.',
-      instructor: 'Chef Roberto Cruz'
-    },
-    {
-      id: 4,
-      title: 'Food Safety and Hygiene Quiz',
-      courseTitle: 'Cookery NC II',
-      courseCode: 'COOK-NC2-2025',
-      type: 'written',
-      status: 'completed',
-      dueDate: '2025-09-10',
-      completedDate: '2025-09-09',
-      timeLimit: 45,
-      totalMarks: 25,
-      passingMarks: 18,
-      score: 23,
-      attempts: 1,
-      maxAttempts: 2,
-      description: 'Assessment of food safety principles, HACCP procedures, and kitchen hygiene standards.',
-      feedback: 'Strong understanding of food safety principles. Minor areas for improvement in HACCP documentation.',
-      instructor: 'Chef Roberto Cruz'
-    },
-    {
-      id: 5,
-      title: 'Bread Production Techniques',
-      courseTitle: 'Bread and Pastry Production NC II',
-      courseCode: 'BPP-NC2-2025',
-      type: 'practical',
-      status: 'in-progress',
-      dueDate: '2025-10-05',
-      timeLimit: 180,
-      totalMarks: 100,
-      passingMarks: 75,
-      attempts: 1,
-      maxAttempts: 2,
-      startedDate: '2025-09-19',
-      description: 'Practical assessment of bread making techniques including mixing, kneading, fermentation, and baking.',
-      instructions: [
-        'Prepare all ingredients according to recipe specifications',
-        'Demonstrate proper mixing and kneading techniques',
-        'Monitor fermentation process and timing',
-        'Present finished products for evaluation'
-      ]
-    },
-    {
-      id: 6,
-      title: 'Customer Service Simulation',
-      courseTitle: 'Food and Beverage Services NC II',
-      courseCode: 'FBS-NC2-2025',
-      type: 'practical',
-      status: 'overdue',
-      dueDate: '2025-09-20',
-      timeLimit: 90,
-      totalMarks: 75,
-      passingMarks: 56,
-      attempts: 0,
-      maxAttempts: 2,
-      description: 'Role-playing assessment demonstrating customer service skills in various scenarios.',
-      isOverdue: true
+  const fetchExams = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const token = localStorage.getItem('studentToken');
+      const response = await fetch('http://localhost:8000/api/student/exams', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // Transform backend data to match frontend structure
+        const transformedExams = data.data.map(exam => {
+          // Determine status based on attempts and dates
+          let status = 'available';
+          
+          if (exam.latest_attempt_status === 'in_progress') {
+            status = 'in-progress';
+          } else if (exam.latest_attempt_status === 'completed' && exam.attempts_taken >= exam.retake_limit) {
+            status = 'completed';
+          }
+          
+          return {
+            id: exam.id,
+            title: exam.title,
+            courseTitle: exam.course_title,
+            courseCode: exam.course_code,
+            type: exam.type, // written, oral, demonstration, observation
+            status: status,
+            dueDate: exam.created_at,
+            timeLimit: exam.time_limit,
+            totalMarks: exam.total_points || 100,
+            passingMarks: exam.passing_score,
+            attempts: exam.attempts_taken || 0,
+            maxAttempts: exam.retake_limit,
+            description: exam.description || 'No description provided',
+            instructions: [],
+            totalQuestions: exam.total_questions || 0,
+            // Include attempt information
+            latestScore: exam.latest_score,
+            latestPercentage: exam.latest_percentage,
+            attemptsRemaining: exam.attempts_remaining,
+            // Include batch info
+            batchId: exam.batch_id
+          };
+        });
+        
+        setAssessments(transformedExams);
+      } else {
+        setError(data.message || 'Failed to load exams');
+      }
+    } catch (err) {
+      console.error('Error fetching exams:', err);
+      setError('Failed to load exams. Please try again.');
+    } finally {
+      setLoading(false);
     }
-  ];
-
-  const courses = [
-    { code: 'all', title: 'All Courses' },
-    { code: 'FBS-NC2-2025', title: 'Food and Beverage Services NC II' },
-    { code: 'COOK-NC2-2025', title: 'Cookery NC II' },
-    { code: 'BPP-NC2-2025', title: 'Bread and Pastry Production NC II' }
-  ];
-
-  const statusOptions = [
-    { value: 'all', label: 'All Status' },
-    { value: 'upcoming', label: 'Upcoming' },
-    { value: 'available', label: 'Available' },
-    { value: 'in-progress', label: 'In Progress' },
-    { value: 'completed', label: 'Completed' },
-    { value: 'overdue', label: 'Overdue' }
-  ];
+  };
 
   const getStatusColor = (status) => {
     switch(status) {
@@ -187,43 +113,14 @@ const Assessments = () => {
     }
   };
 
-  const getStatusIcon = (status) => {
-    switch(status) {
-      case 'completed': return <MdCheckCircle className="h-5 w-5 text-green-600" />;
-      case 'available': return <MdPlayArrow className="h-5 w-5 text-blue-600" />;
-      case 'upcoming': return <MdSchedule className="h-5 w-5 text-purple-600" />;
-      case 'in-progress': return <MdPending className="h-5 w-5 text-yellow-600" />;
-      case 'overdue': return <MdWarning className="h-5 w-5 text-red-600" />;
-      default: return <MdInfo className="h-5 w-5 text-gray-600" />;
-    }
-  };
-
   const getTypeIcon = (type) => {
     switch(type) {
       case 'practical': return <MdAssignment className="h-5 w-5 text-orange-600" />;
       case 'written': return <MdQuiz className="h-5 w-5 text-blue-600" />;
+      case 'oral': return <MdRecordVoiceOver className="h-5 w-5 text-green-600" />;
+      case 'demonstration': return <MdComputer className="h-5 w-5 text-purple-600" />;
+      case 'observation': return <MdRemoveRedEye className="h-5 w-5 text-orange-600" />;
       default: return <MdDescription className="h-5 w-5 text-gray-600" />;
-    }
-  };
-
-  const filteredAssessments = assessments.filter(assessment => {
-    const courseMatch = selectedCourse === 'all' || assessment.courseCode === selectedCourse;
-    const statusMatch = selectedStatus === 'all' || assessment.status === selectedStatus;
-    return courseMatch && statusMatch;
-  });
-
-  const getAssessmentsByTab = (tab) => {
-    switch(tab) {
-      case 'upcoming':
-        return filteredAssessments.filter(a => a.status === 'upcoming' || a.status === 'available');
-      case 'in-progress':
-        return filteredAssessments.filter(a => a.status === 'in-progress');
-      case 'completed':
-        return filteredAssessments.filter(a => a.status === 'completed');
-      case 'overdue':
-        return filteredAssessments.filter(a => a.status === 'overdue');
-      default:
-        return filteredAssessments;
     }
   };
 
@@ -273,7 +170,6 @@ const Assessments = () => {
   };
 
   const stats = calculateStats();
-  const tabAssessments = getAssessmentsByTab(activeTab);
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -317,126 +213,35 @@ const Assessments = () => {
             </div>
           </div>
 
-          {/* Statistics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-600 text-sm font-medium">Completion Rate</p>
-                  <p className="text-3xl font-bold text-blue-600 mt-1">{stats.completionRate}%</p>
-                </div>
-                <div className="p-3 bg-blue-100 rounded-lg">
-                  <MdTrendingUp className="h-6 w-6 text-blue-600" />
-                </div>
+          {/* Loading State */}
+          {loading && (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                <p className="text-gray-600">Loading assessments...</p>
               </div>
             </div>
-            
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-600 text-sm font-medium">Average Score</p>
-                  <p className="text-3xl font-bold text-green-600 mt-1">{stats.averageScore}%</p>
-                </div>
-                <div className="p-3 bg-green-100 rounded-lg">
-                  <MdStar className="h-6 w-6 text-green-600" />
-                </div>
-              </div>
-            </div>
+          )}
 
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-600 text-sm font-medium">Completed</p>
-                  <p className="text-3xl font-bold text-purple-600 mt-1">{stats.completed}</p>
-                </div>
-                <div className="p-3 bg-purple-100 rounded-lg">
-                  <MdCheckCircle className="h-6 w-6 text-purple-600" />
-                </div>
+          {/* Error State */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
+              <div className="flex items-center">
+                <MdWarning className="h-5 w-5 text-red-600 mr-2" />
+                <p className="text-red-700">{error}</p>
               </div>
             </div>
+          )}
 
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-600 text-sm font-medium">Available</p>
-                  <p className="text-3xl font-bold text-orange-600 mt-1">{stats.available}</p>
-                </div>
-                <div className="p-3 bg-orange-100 rounded-lg">
-                  <MdQuiz className="h-6 w-6 text-orange-600" />
-                </div>
-              </div>
-            </div>
-          </div>
-
+          {!loading && !error && (
+            <>
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             {/* Main Content */}
             <div className="lg:col-span-3">
-              {/* Filters */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-                <div className="p-6 border-b border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <MdFilterList className="h-5 w-5 mr-2 text-blue-600" />
-                    Filter Assessments
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Course</label>
-                      <select
-                        value={selectedCourse}
-                        onChange={(e) => setSelectedCourse(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        {courses.map(course => (
-                          <option key={course.code} value={course.code}>
-                            {course.title}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                      <select
-                        value={selectedStatus}
-                        onChange={(e) => setSelectedStatus(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        {statusOptions.map(option => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Tab Navigation */}
-                <div className="border-b border-gray-200">
-                  <nav className="flex space-x-8 px-6">
-                    {['upcoming', 'in-progress', 'completed', 'overdue'].map((tab) => (
-                      <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab)}
-                        className={`py-4 px-1 border-b-2 font-medium text-sm capitalize ${
-                          activeTab === tab
-                            ? 'border-blue-500 text-blue-600'
-                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                        }`}
-                      >
-                        {tab.replace('-', ' ')}
-                        <span className="ml-2 px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">
-                          {getAssessmentsByTab(tab).length}
-                        </span>
-                      </button>
-                    ))}
-                  </nav>
-                </div>
-              </div>
-
               {/* Assessments List */}
               <div className="space-y-6">
-                {tabAssessments.length > 0 ? (
-                  tabAssessments.map((assessment) => (
+                {assessments.length > 0 ? (
+                  assessments.map((assessment) => (
                     <div key={assessment.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-200">
                       {/* Assessment Header */}
                       <div className="p-6 border-b border-gray-100">
@@ -696,6 +501,8 @@ const Assessments = () => {
               </div>
             </div>
           </div>
+            </>
+          )}
         </div>
       </div>
     </div>
