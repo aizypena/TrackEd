@@ -16,7 +16,7 @@ import {
 } from 'react-icons/md';
 import { studentLogout } from '../../utils/studentAuth';
 
-const Sidebar = ({ user, isOpen, onClose }) => {
+const Sidebar = ({ user, isOpen, onClose, sidebarOpen, setSidebarOpen }) => {
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -100,7 +100,10 @@ const Sidebar = ({ user, isOpen, onClose }) => {
           
           <div className="flex items-center space-x-2">
             <button
-              onClick={() => setIsCollapsed(!isCollapsed)}
+              onClick={() => {
+                setIsCollapsed(!isCollapsed);
+                if (setSidebarOpen) setSidebarOpen(!isCollapsed);
+              }}
               className="hidden lg:block p-1.5 rounded-md text-blue-200 hover:text-white hover:bg-tracked-primary-dark hover:cursor-pointer"
             >
               <MdMenu className="h-5 w-5" />

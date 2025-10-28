@@ -4,7 +4,9 @@ import StudentDashboard from '../pages/lms/Dashboard';
 import ClassSchedule from '../pages/lms/ClassSchedule';
 import Attendance from '../pages/lms/Attendance';
 import Assessments from '../pages/lms/Assessments';
+import TakeAssessment from '../pages/lms/TakeAssessment';
 import AssessmentResults from '../pages/lms/AssessmentResults';
+import AssessmentResultDetail from '../pages/lms/AssessmentResultDetail';
 import Certificates from '../pages/lms/Certificates';
 import ProfileSettings from '../pages/lms/ProfileSettings';
 
@@ -45,10 +47,26 @@ const StudentRoutes = () => {
         } 
       />
       <Route 
+        path="/take-assessment/:id" 
+        element={
+          <ProtectedStudentRoute>
+            <TakeAssessment />
+          </ProtectedStudentRoute>
+        } 
+      />
+      <Route 
         path="/assessment-results" 
         element={
           <ProtectedStudentRoute>
             <AssessmentResults />
+          </ProtectedStudentRoute>
+        } 
+      />
+      <Route 
+        path="/assessment-result-detail/:attemptId" 
+        element={
+          <ProtectedStudentRoute>
+            <AssessmentResultDetail />
           </ProtectedStudentRoute>
         } 
       />

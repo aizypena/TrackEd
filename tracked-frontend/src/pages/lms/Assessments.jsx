@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from '../../layouts/lms/Sidebar';
 import { getStudentUser } from '../../utils/studentAuth';
 import { 
@@ -25,6 +26,7 @@ import {
 } from 'react-icons/md';
 
 const Assessments = () => {
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [assessments, setAssessments] = useState([]);
@@ -378,13 +380,19 @@ const Assessments = () => {
                           </div>
                           <div className="flex space-x-3">
                             {assessment.status === 'available' && (
-                              <button className="flex items-center px-6 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+                              <button 
+                                onClick={() => navigate(`/smi-lms/take-assessment/${assessment.id}`)}
+                                className="flex items-center px-6 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                              >
                                 <MdPlayArrow className="h-4 w-4 mr-2" />
                                 Begin Assessment
                               </button>
                             )}
                             {assessment.status === 'in-progress' && (
-                              <button className="flex items-center px-6 py-2.5 text-sm font-medium text-white bg-yellow-600 rounded-lg hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition-colors">
+                              <button 
+                                onClick={() => navigate(`/smi-lms/take-assessment/${assessment.id}`)}
+                                className="flex items-center px-6 py-2.5 text-sm font-medium text-white bg-yellow-600 rounded-lg hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition-colors"
+                              >
                                 <MdPending className="h-4 w-4 mr-2" />
                                 Continue Assessment
                               </button>
@@ -395,10 +403,6 @@ const Assessments = () => {
                                 View Detailed Results
                               </button>
                             )}
-                            <button className="flex items-center px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors">
-                              <MdDescription className="h-4 w-4 mr-2" />
-                              View Instructions
-                            </button>
                           </div>
                         </div>
                       </div>

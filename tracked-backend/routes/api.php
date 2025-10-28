@@ -1108,6 +1108,286 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::put('/quizzes/{id}', [QuizController::class, 'update']);
     Route::delete('/quizzes/{id}', [QuizController::class, 'destroy']);
     
+    // Quiz Attempt Routes
+    Route::post('/quiz-attempts/start', function (Request $request) {
+        $user = $request->user();
+        $quizId = $request->quiz_id;
+        
+        // Get quiz
+        $quiz = \App\Models\Quiz::find($quizId);
+        if (!$quiz) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Quiz not found'
+            ], 404);
+        }
+        
+        // Check for existing in-progress attempt
+        $existingAttempt = \App\Models\QuizAttempt::where('quiz_id', $quizId)
+            ->where('user_id', $user->id)
+            ->where('status', 'in_progress')
+            ->first();
+            
+        if ($existingAttempt) {
+            // Return existing attempt if already in progress
+            return response()->json([
+                'success' => true,
+                'data' => $existingAttempt,
+                'message' => 'Continuing existing attempt'
+            ]);
+        }
+        
+        // Check if user has exceeded attempt limit (only count completed attempts)
+        $completedAttemptCount = \App\Models\QuizAttempt::where('quiz_id', $quizId)
+            ->where('user_id', $user->id)
+            ->where('status', 'completed')
+            ->count();
+            
+        if ($completedAttemptCount >= $quiz->retake_limit) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You have exceeded the maximum number of attempts for this quiz'
+            ], 403);
+        }
+        
+        // Create new attempt
+        $attempt = \App\Models\QuizAttempt::create([
+            'quiz_id' => $quizId,
+            'user_id' => $user->id,
+            'attempt_number' => $completedAttemptCount + 1,
+            'status' => 'in_progress',
+            'started_at' => now(),
+            'total_points' => $quiz->total_points
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'data' => $attempt
+        ]);
+    });
+    
+    Route::post('/quiz-attempts/{id}/submit', function (Request $request, $id) {
+        $user = $request->user();
+        $answers = $request->answers;
+        
+        // Get attempt
+        $attempt = \App\Models\QuizAttempt::find($id);
+        if (!$attempt) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Attempt not found'
+            ], 404);
+        }
+        
+        // Check if attempt belongs to user
+        if ($attempt->user_id !== $user->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+        
+        // Check if already submitted
+        if ($attempt->status === 'completed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Attempt already submitted'
+            ], 400);
+        }
+        
+        $totalScore = 0;
+        
+        // Process each answer
+        foreach ($answers as $answerData) {
+            $question = \App\Models\QuizQuestion::find($answerData['question_id']);
+            if (!$question) continue;
+            
+            $isCorrect = false;
+            $pointsEarned = 0;
+            
+            if ($question->type === 'multiple_choice' || $question->type === 'true_false') {
+                // Check if selected option is correct
+                $option = \App\Models\QuizQuestionOption::find($answerData['option_id']);
+                if ($option && $option->is_correct) {
+                    $isCorrect = true;
+                    $pointsEarned = $question->points;
+                    $totalScore += $pointsEarned;
+                }
+            }
+            
+            // Save answer
+            \App\Models\QuizAnswer::create([
+                'attempt_id' => $attempt->id,
+                'question_id' => $question->id,
+                'option_id' => $answerData['option_id'] ?? null,
+                'answer_text' => $answerData['answer_text'] ?? null,
+                'is_correct' => $isCorrect,
+                'points_earned' => $pointsEarned
+            ]);
+        }
+        
+        // Calculate time taken
+        $timeTaken = now()->diffInSeconds($attempt->started_at);
+        
+        // Update attempt
+        $attempt->update([
+            'score' => $totalScore,
+            'status' => 'completed',
+            'completed_at' => now(),
+            'time_taken' => $timeTaken
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'data' => $attempt->fresh(),
+            'message' => 'Quiz submitted successfully'
+        ]);
+    });
+    
+    // Get student's quiz results/attempts
+    Route::get('/student/quiz-results', function (Request $request) {
+        $user = $request->user();
+        
+        // Check if user is a student
+        if ($user->role !== 'student') {
+            return response()->json([
+                'error' => 'Unauthorized. Only students can access this endpoint.'
+            ], 403);
+        }
+        
+        // Get all completed attempts for this student with quiz details
+        $attempts = \App\Models\QuizAttempt::where('user_id', $user->id)
+            ->where('status', 'completed')
+            ->with(['quiz', 'answers.question'])
+            ->orderBy('completed_at', 'desc')
+            ->get();
+        
+        // Format the results
+        $results = $attempts->map(function ($attempt) use ($user) {
+            $quiz = $attempt->quiz;
+            
+            // Get batch and program info
+            $batch = $quiz->batch_id ? \App\Models\Batch::where('batch_id', $quiz->batch_id)->first() : null;
+            $program = $batch ? \App\Models\Program::find($batch->program_id) : null;
+            
+            return [
+                'id' => $attempt->id,
+                'quiz_id' => $quiz->id,
+                'quiz_title' => $quiz->title,
+                'quiz_description' => $quiz->description,
+                'quiz_type' => $quiz->type,
+                'course_title' => $program ? $program->title : 'N/A',
+                'course_code' => $program ? ($program->code ?? $program->title) : 'N/A',
+                'date_taken' => $attempt->completed_at->toDateString(),
+                'time_taken' => $attempt->time_taken, // in seconds
+                'total_marks' => $attempt->total_points,
+                'obtained_marks' => $attempt->score,
+                'passing_marks' => $quiz->passing_score,
+                'percentage' => $attempt->percentage,
+                'status' => $attempt->score >= $quiz->passing_score ? 'passed' : 'failed',
+                'attempt_number' => $attempt->attempt_number,
+                'max_attempts' => $quiz->retake_limit,
+                'total_questions' => $quiz->questions()->count(),
+                'correct_answers' => $attempt->answers()->where('is_correct', true)->count(),
+            ];
+        });
+        
+        return response()->json([
+            'success' => true,
+            'data' => $results
+        ]);
+    });
+    
+    // Get detailed result for a specific attempt
+    Route::get('/student/quiz-results/{attemptId}', function (Request $request, $attemptId) {
+        $user = $request->user();
+        
+        // Get attempt with relationships
+        $attempt = \App\Models\QuizAttempt::with(['quiz.questions.options', 'answers'])
+            ->find($attemptId);
+            
+        if (!$attempt) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Attempt not found'
+            ], 404);
+        }
+        
+        // Check if attempt belongs to user
+        if ($attempt->user_id !== $user->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+        
+        $quiz = $attempt->quiz;
+        $batch = $quiz->batch_id ? \App\Models\Batch::where('batch_id', $quiz->batch_id)->first() : null;
+        $program = $batch ? \App\Models\Program::find($batch->program_id) : null;
+        
+        // Get detailed question-by-question breakdown
+        $questionBreakdown = $quiz->questions->map(function ($question) use ($attempt) {
+            $answer = $attempt->answers->firstWhere('question_id', $question->id);
+            
+            return [
+                'question_id' => $question->id,
+                'question_text' => $question->question,
+                'question_type' => $question->type,
+                'points' => $question->points,
+                'points_earned' => $answer ? $answer->points_earned : 0,
+                'is_correct' => $answer ? $answer->is_correct : false,
+                'student_answer' => $answer ? [
+                    'option_id' => $answer->option_id,
+                    'answer_text' => $answer->answer_text,
+                ] : null,
+                'correct_option_id' => $question->options->firstWhere('is_correct', true)?->id ?? null,
+                'options' => $question->options->map(function ($option) {
+                    return [
+                        'id' => $option->id,
+                        'text' => $option->option_text,
+                        'is_correct' => $option->is_correct,
+                    ];
+                }),
+            ];
+        });
+        
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'attempt' => [
+                    'id' => $attempt->id,
+                    'attempt_number' => $attempt->attempt_number,
+                    'status' => $attempt->status,
+                    'score' => $attempt->score,
+                    'total_points' => $attempt->total_points,
+                    'percentage' => $attempt->percentage,
+                    'time_taken' => $attempt->time_taken,
+                    'started_at' => $attempt->started_at,
+                    'completed_at' => $attempt->completed_at,
+                ],
+                'quiz' => [
+                    'id' => $quiz->id,
+                    'title' => $quiz->title,
+                    'description' => $quiz->description,
+                    'type' => $quiz->type,
+                    'passing_score' => $quiz->passing_score,
+                    'retake_limit' => $quiz->retake_limit,
+                ],
+                'course' => [
+                    'title' => $program ? $program->title : 'N/A',
+                    'code' => $program ? ($program->code ?? $program->title) : 'N/A',
+                ],
+                'questions' => $questionBreakdown,
+                'statistics' => [
+                    'total_questions' => $quiz->questions->count(),
+                    'correct_answers' => $attempt->answers->where('is_correct', true)->count(),
+                    'incorrect_answers' => $attempt->answers->where('is_correct', false)->count(),
+                    'passed' => $attempt->score >= $quiz->passing_score,
+                ]
+            ]
+        ]);
+    });
+    
     // Student Exams/Assessments Routes
     Route::get('/student/exams', function (Request $request) {
         $user = $request->user();
