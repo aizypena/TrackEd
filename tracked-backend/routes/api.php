@@ -966,6 +966,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
             $voucherStatus = 'not_eligible';
         }
         
+        // Get batch details for email
+        $batch = \App\Models\Batch::where('batch_id', $request->batch_id)->first();
+        $program = \App\Models\Program::find($batch->program_id);
+        
         // Update applicant to student
         $applicant->update([
             'student_id' => $studentId,
@@ -975,6 +979,77 @@ Route::middleware(['auth:sanctum'])->group(function () {
             'voucher_eligibility' => $voucherStatus,
             'voucher_id' => $assignedVoucherId,
         ]);
+        
+        // Send approval email
+        try {
+            $applicantName = ucwords(strtolower($applicant->first_name)) . ' ' . ucwords(strtolower($applicant->last_name));
+            $programName = $program ? $program->name : 'N/A';
+            
+            $emailBody = "Dear {$applicantName},\n\n";
+            $emailBody .= "Congratulations! We are pleased to inform you that your application for the {$programName} program at SMI Institute Inc. has been APPROVED.\n\n";
+            $emailBody .= "NEXT STEPS - ONSITE DOCUMENT VERIFICATION REQUIRED\n\n";
+            $emailBody .= "To complete your enrollment, you are required to visit our office for document verification and enrollment confirmation. Please bring the following:\n\n";
+            $emailBody .= "REQUIRED DOCUMENTS (Original and Photocopies):\n";
+            $emailBody .= "✓ Valid Government-Issued ID\n";
+            $emailBody .= "✓ Official Transcript of Records\n";
+            $emailBody .= "✓ Diploma/Certificate of Completion\n";
+            $emailBody .= "✓ Two (2) pieces of 2x2 ID Photos\n\n";
+            $emailBody .= "OFFICE VISIT SCHEDULE:\n";
+            $emailBody .= "Please visit our office within 3 WORKING DAYS from receipt of this email.\n\n";
+            $emailBody .= "Office Hours:\n";
+            $emailBody .= "• Monday to Friday: 8:00 AM - 5:00 PM\n";
+            $emailBody .= "• Saturday & Sunday: CLOSED\n\n";
+            $emailBody .= "IMPORTANT NOTE ON WORKING DAYS:\n";
+            $emailBody .= "Saturdays and Sundays are NOT counted as working days.\n\n";
+            $emailBody .= "Example: If you receive this email on Friday, your 3 working days are:\n";
+            $emailBody .= "- Day 1: Monday\n";
+            $emailBody .= "- Day 2: Tuesday\n";
+            $emailBody .= "- Day 3: Wednesday\n\n";
+            $emailBody .= "OFFICE LOCATION:\n";
+            $emailBody .= "SMI Institute Inc.\n";
+            $emailBody .= "1991 Wardley Bldg., San Juan St., Cor. Taft Ave.\n";
+            $emailBody .= "Brgy. 36, Pasay City, Metro Manila\n\n";
+            $emailBody .= "Contact Number: 09177990724\n\n";
+            $emailBody .= "IMPORTANT REMINDERS:\n";
+            $emailBody .= "1. Enrollment slots are limited and will be confirmed on a first-come, first-served basis\n";
+            $emailBody .= "2. Training vouchers (if available) will be given on a first-come, first-served basis\n";
+            $emailBody .= "3. Failure to visit within 3 working days may result in forfeiture of your slot\n";
+            $emailBody .= "4. Please bring sufficient amount for enrollment fees and other charges (if self-funded)\n";
+            $emailBody .= "5. Walk-in applicants are welcome, but scheduled appointments are prioritized\n\n";
+            $emailBody .= "ENROLLMENT FEES:\n";
+            $emailBody .= "Our staff will provide you with a detailed breakdown of fees during your visit. We accept cash and major credit/debit cards.\n\n";
+            $emailBody .= "Payment may be waived if you qualify for available training vouchers (subject to availability and eligibility).\n\n";
+            $emailBody .= "WHAT TO EXPECT DURING YOUR VISIT:\n";
+            $emailBody .= "1. Document verification (15-20 minutes)\n";
+            $emailBody .= "2. Interview with enrollment officer (10-15 minutes)\n";
+            $emailBody .= "3. Voucher eligibility assessment (if applicable)\n";
+            $emailBody .= "4. Payment processing and issuance of official receipt (for self-funded students)\n";
+            $emailBody .= "5. Schedule assignment and batch confirmation\n";
+            $emailBody .= "6. Orientation on LMS (Learning Management System) access\n\n";
+            $emailBody .= "Once your enrollment is confirmed, you will receive:\n";
+            $emailBody .= "• Official enrollment receipt\n";
+            $emailBody .= "• Student ID number\n";
+            $emailBody .= "• LMS login credentials\n";
+            $emailBody .= "• Class schedule\n";
+            $emailBody .= "• Training program guidelines\n\n";
+            $emailBody .= "Should you have any questions or need to schedule a specific appointment time, please contact us at 09177990724 or reply to this email.\n\n";
+            $emailBody .= "We look forward to welcoming you to the SMI Institute Inc. family!\n\n";
+            $emailBody .= "Warm regards,\n\n";
+            $emailBody .= "Enrollment Team\n";
+            $emailBody .= "SMI Institute Inc.\n";
+            $emailBody .= "TESDA-Accredited Training Center\n\n";
+            $emailBody .= "---\n";
+            $emailBody .= "This is an automated message. Please do not reply directly to this email.\n";
+            $emailBody .= "For inquiries, contact: 09177990724";
+            
+            \Illuminate\Support\Facades\Mail::raw($emailBody, function ($message) use ($applicant) {
+                $message->to($applicant->email)
+                        ->subject('SMI Institute Inc. - Application Approved: Next Steps for Enrollment');
+            });
+        } catch (\Exception $e) {
+            // Log error but don't fail the approval
+            \Illuminate\Support\Facades\Log::error('Failed to send approval email: ' . $e->getMessage());
+        }
         
         return response()->json([
             'success' => true,
