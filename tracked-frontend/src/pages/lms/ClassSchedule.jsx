@@ -23,89 +23,50 @@ const ClassSchedule = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedView, setSelectedView] = useState('week'); // 'week' or 'month'
+  const [studentSchedule, setStudentSchedule] = useState([]);
+  const [batchInfo, setBatchInfo] = useState(null);
+  const [programInfo, setProgramInfo] = useState(null);
+  const [trainerInfo, setTrainerInfo] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const userData = getStudentUser();
     if (userData) {
       setUser(userData);
+      fetchStudentSchedule();
     }
   }, []);
 
-  // Sample student's class schedule data
-  const studentSchedule = [
-    {
-      id: 1,
-      courseTitle: 'Food and Beverage Services NC II',
-      courseCode: 'FBS-NC2-2025',
-      instructor: 'Chef Maria Santos',
-      dayOfWeek: 1, // Monday
-      startTime: '08:00',
-      endTime: '12:00',
-      location: 'Kitchen Laboratory A',
-      color: 'blue',
-      description: 'Practical training on table service and customer relations'
-    },
-    {
-      id: 2,
-      courseTitle: 'Food and Beverage Services NC II',
-      courseCode: 'FBS-NC2-2025',
-      instructor: 'Chef Maria Santos',
-      dayOfWeek: 3, // Wednesday
-      startTime: '08:00',
-      endTime: '12:00',
-      location: 'Kitchen Laboratory A',
-      color: 'blue',
-      description: 'Wine service and beverage preparation'
-    },
-    {
-      id: 3,
-      courseTitle: 'Food and Beverage Services NC II',
-      courseCode: 'FBS-NC2-2025',
-      instructor: 'Chef Maria Santos',
-      dayOfWeek: 5, // Friday
-      startTime: '08:00',
-      endTime: '12:00',
-      location: 'Kitchen Laboratory A',
-      color: 'blue',
-      description: 'Customer service excellence and communication'
-    },
-    {
-      id: 4,
-      courseTitle: 'Cookery NC II',
-      courseCode: 'COOK-NC2-2025',
-      instructor: 'Chef Roberto Cruz',
-      dayOfWeek: 2, // Tuesday
-      startTime: '13:00',
-      endTime: '18:00',
-      location: 'Main Kitchen',
-      color: 'green',
-      description: 'Basic cooking techniques and knife skills'
-    },
-    {
-      id: 5,
-      courseTitle: 'Cookery NC II',
-      courseCode: 'COOK-NC2-2025',
-      instructor: 'Chef Roberto Cruz',
-      dayOfWeek: 4, // Thursday
-      startTime: '13:00',
-      endTime: '18:00',
-      location: 'Main Kitchen',
-      color: 'green',
-      description: 'Menu planning and food preparation'
-    },
-    {
-      id: 6,
-      courseTitle: 'Bread and Pastry Production NC II',
-      courseCode: 'BPP-NC2-2025',
-      instructor: 'Chef Anna Reyes',
-      dayOfWeek: 6, // Saturday
-      startTime: '07:00',
-      endTime: '17:00',
-      location: 'Bakery Laboratory',
-      color: 'purple',
-      description: 'Bread making and pastry fundamentals'
+  const fetchStudentSchedule = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('studentToken');
+      
+      const response = await fetch('http://localhost:8000/api/student/schedule', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setStudentSchedule(data.schedule || []);
+        setBatchInfo(data.batch);
+        setProgramInfo(data.program);
+        setTrainerInfo(data.trainer);
+      } else {
+        console.error('Failed to fetch schedule');
+        setStudentSchedule([]);
+      }
+    } catch (error) {
+      console.error('Error fetching schedule:', error);
+      setStudentSchedule([]);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const timeSlots = [
@@ -166,7 +127,31 @@ const ClassSchedule = () => {
       });
   };
 
-  const getClassesForDay = (dayIndex) => {
+  const getClassesForDay = (dayIndex, date) => {
+    // If batch info is available, check if the date is within batch start and end dates
+    if (batchInfo && batchInfo.start_date) {
+      const batchStart = new Date(batchInfo.start_date);
+      const batchEnd = batchInfo.end_date ? new Date(batchInfo.end_date) : null;
+      
+      // Set time to midnight for accurate date comparison
+      const checkDate = new Date(date);
+      checkDate.setHours(0, 0, 0, 0);
+      batchStart.setHours(0, 0, 0, 0);
+      
+      // Check if date is before batch start
+      if (checkDate < batchStart) {
+        return [];
+      }
+      
+      // Check if date is after batch end (if end date exists)
+      if (batchEnd) {
+        batchEnd.setHours(0, 0, 0, 0);
+        if (checkDate > batchEnd) {
+          return [];
+        }
+      }
+    }
+    
     return studentSchedule.filter(schedule => schedule.dayOfWeek === dayIndex);
   };
 
@@ -208,7 +193,24 @@ const ClassSchedule = () => {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {loading ? (
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading your schedule...</p>
+            </div>
+          </div>
+        ) : studentSchedule.length === 0 ? (
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="text-center">
+              <MdSchedule className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">No Schedule Available</h2>
+              <p className="text-gray-600">You haven't been assigned to a batch yet.</p>
+              <p className="text-gray-500 text-sm mt-2">Please contact the administration office.</p>
+            </div>
+          </div>
+        ) : (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center justify-between">
@@ -263,15 +265,12 @@ const ClassSchedule = () => {
                 {/* Weekly Calendar Grid */}
                 <div className="p-6">
                   <div className="overflow-x-auto">
-                    <div className="grid grid-cols-8 gap-2 min-w-[800px]">
-                      {/* Time column header */}
-                      <div className="text-sm font-medium text-gray-500 p-2">Time</div>
-                      
+                    <div className="grid grid-cols-7 gap-2 min-w-[800px]">
                       {/* Day headers */}
                       {weekDates.map((date, index) => (
-                        <div key={index} className="text-center p-2">
+                        <div key={index} className="text-center p-2 border-b border-gray-200">
                           <div className="text-sm font-medium text-gray-900">
-                            {daysOfWeek[index].substring(0, 3)}
+                            {daysOfWeek[index]}
                           </div>
                           <div className={`text-sm mt-1 w-8 h-8 mx-auto rounded-full flex items-center justify-center ${
                             date.toDateString() === new Date().toDateString()
@@ -283,46 +282,42 @@ const ClassSchedule = () => {
                         </div>
                       ))}
 
-                      {/* Time slots and classes */}
-                      {timeSlots.map(time => (
-                        <React.Fragment key={time}>
-                          {/* Time label */}
-                          <div className="text-xs text-gray-500 p-2 border-t border-gray-100">
-                            {formatTime(time)}
-                          </div>
-                          
-                          {/* Classes for each day */}
-                          {Array.from({ length: 7 }, (_, dayIndex) => {
-                            const dayClasses = getClassesForDay(dayIndex).filter(schedule => {
-                              const startHour = parseInt(schedule.startTime.split(':')[0]);
-                              const timeHour = parseInt(time.split(':')[0]);
-                              const endHour = parseInt(schedule.endTime.split(':')[0]);
-                              return timeHour >= startHour && timeHour < endHour;
-                            });
+                      {/* Classes for each day */}
+                      {weekDates.map((date, dayIndex) => {
+                        const currentDate = date;
+                        const dayClasses = getClassesForDay(dayIndex, currentDate);
 
-                            return (
-                              <div key={dayIndex} className="p-1 border-t border-gray-100 min-h-[60px]">
-                                {dayClasses.map(schedule => (
-                                  <div
-                                    key={schedule.id}
-                                    className={`p-2 rounded-md border-l-4 ${getColorClasses(schedule.color)} text-xs`}
-                                  >
-                                    <div className="font-medium truncate">
-                                      {schedule.courseTitle}
-                                    </div>
-                                    <div className="text-xs opacity-75 mt-1">
-                                      {formatTime(schedule.startTime)} - {formatTime(schedule.endTime)}
-                                    </div>
-                                    <div className="text-xs opacity-75">
-                                      {schedule.location}
-                                    </div>
+                        return (
+                          <div key={dayIndex} className="p-3 min-h-[120px] border-r border-gray-100 last:border-r-0">
+                            {dayClasses.length > 0 ? (
+                              dayClasses.map(schedule => (
+                                <div
+                                  key={schedule.id}
+                                  className={`mb-2 p-3 rounded-md border-l-4 ${getColorClasses(schedule.color)} text-xs`}
+                                >
+                                  <div className="font-semibold text-sm mb-1">
+                                    {schedule.courseTitle}
                                   </div>
-                                ))}
+                                  <div className="text-xs opacity-75 flex items-center mt-1">
+                                    <MdAccessTime className="h-3 w-3 mr-1" />
+                                    {formatTime(schedule.startTime)} - {formatTime(schedule.endTime)}
+                                  </div>
+                                  {schedule.instructor && schedule.instructor !== 'TBA' && (
+                                    <div className="text-xs opacity-75 flex items-center mt-1">
+                                      <MdPerson className="h-3 w-3 mr-1" />
+                                      {schedule.instructor}
+                                    </div>
+                                  )}
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-xs text-gray-400 text-center py-4">
+                                No classes
                               </div>
-                            );
-                          })}
-                        </React.Fragment>
-                      ))}
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -348,10 +343,12 @@ const ClassSchedule = () => {
                           <div className="text-xs text-gray-500 mt-1">
                             {daysOfWeek[schedule.dayOfWeek]} • {formatTime(schedule.startTime)} - {formatTime(schedule.endTime)}
                           </div>
-                          <div className="text-xs text-gray-500 flex items-center mt-1">
-                            <MdLocationOn className="h-3 w-3 mr-1" />
-                            {schedule.location}
-                          </div>
+                          {schedule.instructor && schedule.instructor !== 'TBA' && (
+                            <div className="text-xs text-gray-500 flex items-center mt-1">
+                              <MdPerson className="h-3 w-3 mr-1" />
+                              {schedule.instructor}
+                            </div>
+                          )}
                         </div>
                       ))
                     ) : (
@@ -369,8 +366,8 @@ const ClassSchedule = () => {
                     Today's Classes
                   </h3>
                   <div className="space-y-3">
-                    {getClassesForDay(new Date().getDay()).length > 0 ? (
-                      getClassesForDay(new Date().getDay()).map(schedule => (
+                    {getClassesForDay(new Date().getDay(), new Date()).length > 0 ? (
+                      getClassesForDay(new Date().getDay(), new Date()).map(schedule => (
                         <div key={schedule.id} className={`p-3 rounded-lg ${getColorClasses(schedule.color)}`}>
                           <div className="text-sm font-medium">
                             {schedule.courseCode}
@@ -378,14 +375,12 @@ const ClassSchedule = () => {
                           <div className="text-xs mt-1 opacity-75">
                             {formatTime(schedule.startTime)} - {formatTime(schedule.endTime)}
                           </div>
-                          <div className="text-xs mt-1 opacity-75 flex items-center">
-                            <MdLocationOn className="h-3 w-3 mr-1" />
-                            {schedule.location}
-                          </div>
-                          <div className="text-xs mt-1 opacity-75 flex items-center">
-                            <MdPerson className="h-3 w-3 mr-1" />
-                            {schedule.instructor}
-                          </div>
+                          {schedule.instructor && schedule.instructor !== 'TBA' && (
+                            <div className="text-xs mt-1 opacity-75 flex items-center">
+                              <MdPerson className="h-3 w-3 mr-1" />
+                              {schedule.instructor}
+                            </div>
+                          )}
                         </div>
                       ))
                     ) : (
@@ -430,26 +425,41 @@ const ClassSchedule = () => {
               {/* Legend */}
               <div className="bg-white rounded-lg shadow-sm border border-gray-200">
                 <div className="p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Course Legend</h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-4 h-4 bg-blue-100 border-l-4 border-blue-300 rounded"></div>
-                      <span className="text-sm text-gray-600">Food & Beverage Services</span>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Program Information</h3>
+                  {programInfo ? (
+                    <div className="space-y-3">
+                      <div>
+                        <span className="text-sm text-gray-600">Program:</span>
+                        <p className="text-sm font-medium text-gray-900">{programInfo.name}</p>
+                      </div>
+                      {trainerInfo && (
+                        <div>
+                          <span className="text-sm text-gray-600">Instructor:</span>
+                          <p className="text-sm font-medium text-gray-900">{trainerInfo.name}</p>
+                        </div>
+                      )}
+                      {batchInfo && (
+                        <>
+                          <div>
+                            <span className="text-sm text-gray-600">Batch ID:</span>
+                            <p className="text-sm font-medium text-gray-900">{batchInfo.batch_id}</p>
+                          </div>
+                          <div>
+                            <span className="text-sm text-gray-600">Status:</span>
+                            <p className="text-sm font-medium text-gray-900 capitalize">{batchInfo.status}</p>
+                          </div>
+                        </>
+                      )}
                     </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="w-4 h-4 bg-green-100 border-l-4 border-green-300 rounded"></div>
-                      <span className="text-sm text-gray-600">Cookery</span>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="w-4 h-4 bg-purple-100 border-l-4 border-purple-300 rounded"></div>
-                      <span className="text-sm text-gray-600">Bread & Pastry</span>
-                    </div>
-                  </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">No program information available</p>
+                  )}
                 </div>
               </div>
             </div>
           </div>
         </div>
+        )}
       </div>
     </div>
   );

@@ -1107,4 +1107,107 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/quizzes/{id}', [QuizController::class, 'show']);
     Route::put('/quizzes/{id}', [QuizController::class, 'update']);
     Route::delete('/quizzes/{id}', [QuizController::class, 'destroy']);
+    
+    // Student Schedule Routes
+    Route::get('/student/schedule', function (Request $request) {
+        $user = $request->user();
+        
+        // Check if user is a student
+        if ($user->role !== 'student') {
+            return response()->json([
+                'error' => 'Unauthorized. Only students can access this endpoint.'
+            ], 403);
+        }
+        
+        // Check if student has a batch assigned
+        if (!$user->batch_id) {
+            return response()->json([
+                'schedule' => [],
+                'batch' => null,
+                'program' => null,
+                'message' => 'No batch assigned yet'
+            ]);
+        }
+        
+        // Get batch details with program and trainer info
+        $batch = \App\Models\Batch::where('batch_id', $user->batch_id)->first();
+        
+        if (!$batch) {
+            return response()->json([
+                'error' => 'Batch not found'
+            ], 404);
+        }
+        
+        // Get program details
+        $program = \App\Models\Program::find($batch->program_id);
+        
+        // Get trainer assigned to this batch
+        $trainer = \App\Models\User::where('role', 'trainer')
+            ->where('batch_id', $user->batch_id)
+            ->first();
+        
+        // Parse schedule days (stored as JSON array)
+        $scheduleDays = is_string($batch->schedule_days) 
+            ? json_decode($batch->schedule_days, true) 
+            : $batch->schedule_days;
+        
+        // Map day names to day numbers (0 = Sunday, 1 = Monday, etc.)
+        $dayMap = [
+            'Sunday' => 0,
+            'Monday' => 1,
+            'Tuesday' => 2,
+            'Wednesday' => 3,
+            'Thursday' => 4,
+            'Friday' => 5,
+            'Saturday' => 6
+        ];
+        
+        // Build schedule array
+        $schedule = [];
+        if (is_array($scheduleDays)) {
+            foreach ($scheduleDays as $day) {
+                if (isset($dayMap[$day])) {
+                    $schedule[] = [
+                        'id' => uniqid(),
+                        'courseTitle' => $program ? $program->title : 'N/A',
+                        'courseCode' => $program ? $program->code : 'N/A',
+                        'instructor' => $trainer ? ($trainer->first_name . ' ' . $trainer->last_name) : 'TBA',
+                        'dayOfWeek' => $dayMap[$day],
+                        'dayName' => $day,
+                        'startTime' => substr($batch->schedule_time_start, 0, 5), // Format: HH:MM
+                        'endTime' => substr($batch->schedule_time_end, 0, 5),
+                        'location' => 'Training Room', // You can add location field to batches table if needed
+                        'description' => $program ? $program->description : '',
+                        'color' => 'blue' // You can assign different colors based on program type
+                    ];
+                }
+            }
+        }
+        
+        return response()->json([
+            'schedule' => $schedule,
+            'batch' => [
+                'batch_id' => $batch->batch_id,
+                'status' => $batch->status,
+                'start_date' => $batch->start_date,
+                'end_date' => $batch->end_date,
+                'schedule_days' => $scheduleDays,
+                'schedule_time_start' => $batch->schedule_time_start,
+                'schedule_time_end' => $batch->schedule_time_end,
+                'max_students' => $batch->max_students
+            ],
+            'program' => $program ? [
+                'id' => $program->id,
+                'name' => $program->title,
+                'code' => $program->code,
+                'description' => $program->description,
+                'duration' => $program->duration
+            ] : null,
+            'trainer' => $trainer ? [
+                'name' => $trainer->first_name . ' ' . $trainer->last_name,
+                'email' => $trainer->email,
+                'phone_number' => $trainer->phone_number
+            ] : null
+        ]);
+    });
 });
