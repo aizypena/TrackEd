@@ -37,6 +37,11 @@ const Sidebar = ({ user, isOpen, onClose, sidebarOpen, setSidebarOpen }) => {
       icon: <MdFactCheck className="h-5 w-5" />
     },
     {
+      name: 'Course Materials',
+      path: '/smi-lms/course-materials',
+      icon: <MdFolder className="h-5 w-5" />
+    },
+    {
       name: 'Assessments',
       path: '/smi-lms/assessments',
       icon: <MdQuiz className="h-5 w-5" />,

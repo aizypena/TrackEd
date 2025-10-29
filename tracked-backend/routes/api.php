@@ -1384,6 +1384,107 @@ Route::middleware(['auth:sanctum'])->group(function () {
         ]);
     });
     
+    // Student Routes
+    // Get course materials for student's program
+    Route::get('/student/course-materials', function (Request $request) {
+        $student = $request->user();
+        
+        if ($student->role !== 'student') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+        
+        // Get student's batch
+        $batch = DB::table('batches')
+            ->where('batch_id', $student->batch_id)
+            ->first();
+        
+        if (!$batch) {
+            return response()->json([
+                'success' => true,
+                'materials' => []
+            ]);
+        }
+        
+        // Get materials for the student's program
+        $materials = \App\Models\CourseMaterial::where('program_id', $batch->program_id)
+            ->with(['program', 'uploader'])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($material) {
+                return [
+                    'id' => $material->id,
+                    'title' => $material->title,
+                    'description' => $material->description,
+                    'program_id' => $material->program_id,
+                    'program_title' => $material->program->title,
+                    'type' => $material->type,
+                    'format' => $material->file_format,
+                    'size' => $material->file_size,
+                    'file_name' => $material->file_name,
+                    'downloads' => $material->downloads,
+                    'uploaded_by' => $material->uploader->first_name . ' ' . $material->uploader->last_name,
+                    'uploaded_at' => $material->created_at->toDateString(),
+                ];
+            });
+        
+        return response()->json([
+            'success' => true,
+            'materials' => $materials
+        ]);
+    });
+    
+    // Download course material (student)
+    Route::get('/student/course-materials/{id}/download', function (Request $request, $id) {
+        $student = $request->user();
+        
+        if ($student->role !== 'student') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+        
+        $material = \App\Models\CourseMaterial::find($id);
+        
+        if (!$material) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Material not found'
+            ], 404);
+        }
+        
+        // Get student's batch
+        $batch = DB::table('batches')
+            ->where('batch_id', $student->batch_id)
+            ->first();
+        
+        // Verify material belongs to student's program
+        if (!$batch || $material->program_id !== $batch->program_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have access to this material'
+            ], 403);
+        }
+        
+        // Increment download count
+        $material->increment('downloads');
+        
+        // Return file download
+        $filePath = storage_path('app/public/' . $material->file_path);
+        
+        if (!file_exists($filePath)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'File not found'
+            ], 404);
+        }
+        
+        return response()->download($filePath, $material->file_name);
+    });
+    
     // Staff Routes
     // Update Staff Profile
     Route::put('/staff/profile', function (Request $request) {

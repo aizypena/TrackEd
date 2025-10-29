@@ -3,6 +3,7 @@ import ProtectedStudentRoute from '../components/ProtectedStudentRoute';
 import StudentDashboard from '../pages/lms/Dashboard';
 import ClassSchedule from '../pages/lms/ClassSchedule';
 import Attendance from '../pages/lms/Attendance';
+import CourseMaterials from '../pages/lms/CourseMaterials';
 import Assessments from '../pages/lms/Assessments';
 import TakeAssessment from '../pages/lms/TakeAssessment';
 import AssessmentResults from '../pages/lms/AssessmentResults';
@@ -35,6 +36,14 @@ const StudentRoutes = () => {
         element={
           <ProtectedStudentRoute>
             <Attendance />
+          </ProtectedStudentRoute>
+        } 
+      />
+      <Route 
+        path="/course-materials" 
+        element={
+          <ProtectedStudentRoute>
+            <CourseMaterials />
           </ProtectedStudentRoute>
         } 
       />
