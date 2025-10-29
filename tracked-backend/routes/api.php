@@ -966,6 +966,165 @@ Route::middleware(['auth:sanctum'])->group(function () {
         ]);
     });
     
+    // Get trainer's student grades for grade management
+    Route::get('/trainer/grades', function (Request $request) {
+        $trainer = $request->user();
+        
+        if ($trainer->role !== 'trainer') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Only trainers can access this endpoint.'
+            ], 403);
+        }
+        
+        // Get batches assigned to this trainer
+        $batches = DB::table('batches')
+            ->where('trainer_id', $trainer->id)
+            ->pluck('batch_id');
+        
+        if ($batches->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'data' => [],
+                'programs' => [],
+                'batches' => [],
+                'message' => 'No batches assigned to this trainer'
+            ]);
+        }
+        
+        // Get all students in the trainer's batches
+        $students = \App\Models\User::whereIn('batch_id', $batches)
+            ->where('role', 'student')
+            ->with(['batch.program'])
+            ->get();
+        
+        // Get all grades for these students
+        $studentData = $students->map(function ($student) {
+            $batch = $student->batch;
+            $program = $batch ? $batch->program : null;
+            
+            // Get grades grouped by assessment type
+            $grades = \App\Models\Grade::where('user_id', $student->id)
+                ->get()
+                ->groupBy('assessment_type');
+            
+            // Calculate average for each assessment type
+            $gradesByType = [
+                'written' => null,
+                'oral' => null,
+                'demonstration' => null,
+                'observation' => null,
+            ];
+            
+            foreach ($grades as $type => $typeGrades) {
+                if ($typeGrades->isNotEmpty()) {
+                    $avg = $typeGrades->avg('percentage');
+                    $gradesByType[$type] = round($avg, 2);
+                }
+            }
+            
+            return [
+                'id' => $student->id,
+                'student_id' => $student->student_id ?? $student->id,
+                'name' => $student->first_name . ' ' . $student->last_name,
+                'program' => $program ? $program->title : 'N/A',
+                'program_id' => $program ? $program->id : null,
+                'batch_id' => $student->batch_id,
+                'batch_name' => $batch ? $batch->batch_id : 'N/A',
+                'grades' => $gradesByType,
+            ];
+        });
+        
+        // Get unique programs and batches for filtering
+        $programs = $studentData->unique('program_id')->filter(function ($item) {
+            return $item['program_id'] !== null;
+        })->map(function ($item) {
+            return [
+                'id' => $item['program_id'],
+                'name' => $item['program']
+            ];
+        })->values();
+        
+        $batchList = $studentData->unique('batch_id')->filter(function ($item) {
+            return $item['batch_id'] !== null;
+        })->map(function ($item) {
+            return [
+                'id' => $item['batch_id'],
+                'name' => $item['batch_name']
+            ];
+        })->values();
+        
+        return response()->json([
+            'success' => true,
+            'data' => $studentData,
+            'programs' => $programs,
+            'batches' => $batchList,
+        ]);
+    });
+    
+    // Update student grade for a specific assessment
+    Route::post('/trainer/grades/update', function (Request $request) {
+        $trainer = $request->user();
+        
+        if ($trainer->role !== 'trainer') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Only trainers can access this endpoint.'
+            ], 403);
+        }
+        
+        $request->validate([
+            'student_id' => 'required|exists:users,id',
+            'assessment_type' => 'required|in:oral,demonstration,observation',
+            'score' => 'required|numeric|min:0|max:100',
+            'assessment_title' => 'required|string',
+        ]);
+        
+        $student = \App\Models\User::find($request->student_id);
+        
+        // Verify student is in trainer's batch
+        $trainerBatches = DB::table('batches')
+            ->where('trainer_id', $trainer->id)
+            ->pluck('batch_id');
+        
+        if (!$trainerBatches->contains($student->batch_id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Student is not in your assigned batches'
+            ], 403);
+        }
+        
+        // Get batch and program info
+        $batch = \App\Models\Batch::where('batch_id', $student->batch_id)->first();
+        $programId = $batch ? $batch->program_id : null;
+        
+        // Create or update grade
+        $grade = \App\Models\Grade::updateOrCreate(
+            [
+                'user_id' => $student->id,
+                'assessment_type' => $request->assessment_type,
+                'assessment_title' => $request->assessment_title,
+            ],
+            [
+                'score' => $request->score,
+                'total_points' => 100,
+                'percentage' => $request->score,
+                'passing_score' => 75,
+                'status' => $request->score >= 75 ? 'passed' : 'failed',
+                'graded_by' => $trainer->id,
+                'graded_at' => now(),
+                'batch_id' => $student->batch_id,
+                'program_id' => $programId,
+            ]
+        );
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Grade updated successfully',
+            'grade' => $grade
+        ]);
+    });
+    
     // Staff Routes
     // Update Staff Profile
     Route::put('/staff/profile', function (Request $request) {

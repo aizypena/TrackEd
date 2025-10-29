@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TrainerSidebar from '../../layouts/trainer/TrainerSidebar';
 import {
   MdMenu,
@@ -16,118 +16,162 @@ const TrainerGrades = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [selectedProgram, setSelectedProgram] = useState('all');
-  const [selectedSection, setSelectedSection] = useState('all');
+  const [selectedBatch, setSelectedBatch] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [editingGrade, setEditingGrade] = useState(null);
   const [tempGrade, setTempGrade] = useState('');
+  const [students, setStudents] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [batches, setBatches] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [saving, setSaving] = useState(false);
 
-  const programs = [
-    { value: 'bartending-nc-ii', label: 'Bartending NC II' },
-    { value: 'barista-training-nc-ii', label: 'Barista Training NC II' },
-    { value: 'housekeeping-nc-ii', label: 'Housekeeping NC II' },
-    { value: 'food-beverage-services-nc-ii', label: 'Food and Beverage Services NC II' },
-    { value: 'bread-pastry-production-nc-ii', label: 'Bread and Pastry Production NC II' },
-  ];
+  useEffect(() => {
+    fetchGrades();
+  }, []);
 
-  const sections = [
-    { value: 'morning-a', label: 'Morning A - 8:00 AM to 12:00 PM' },
-    { value: 'morning-b', label: 'Morning B - 9:00 AM to 1:00 PM' },
-    { value: 'afternoon-a', label: 'Afternoon A - 1:00 PM to 5:00 PM' },
-    { value: 'afternoon-b', label: 'Afternoon B - 2:00 PM to 6:00 PM' },
-  ];
+  const fetchGrades = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const token = localStorage.getItem('trainerToken');
+      
+      if (!token) {
+        setError('Authentication token not found. Please log in again.');
+        setLoading(false);
+        return;
+      }
+      
+      const response = await fetch('http://localhost:8000/api/trainer/grades', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Server error' }));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setStudents(data.data || []);
+        setPrograms(data.programs || []);
+        setBatches(data.batches || []);
+      } else {
+        setError(data.message || 'Failed to load grades');
+      }
+    } catch (err) {
+      console.error('Error fetching grades:', err);
+      setError(err.message || 'Failed to load grades. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const gradeCategories = [
-    { id: 'written', label: 'Written Test', weight: 0.2 },
-    { id: 'oral', label: 'Oral Questioning', weight: 0.2 },
-    { id: 'demonstration', label: 'Demonstration', weight: 0.4 },
-    { id: 'observation', label: 'Observation', weight: 0.2 },
-  ];
-
-  const students = [
-    {
-      id: 1,
-      name: 'John Doe',
-      studentId: 'STU-2025-001',
-      program: 'bartending-nc-ii',
-      section: 'morning-a',
-      grades: {
-        written: 88,
-        oral: 90,
-        demonstration: 92,
-        observation: 85
-      }
-    },
-    {
-      id: 2,
-      name: 'Jane Smith',
-      studentId: 'STU-2025-002',
-      program: 'barista-training-nc-ii',
-      section: 'morning-b',
-      grades: {
-        written: 95,
-        oral: 92,
-        demonstration: 89,
-        observation: 93
-      }
-    },
-    {
-      id: 3,
-      name: 'Mike Johnson',
-      studentId: 'STU-2025-003',
-      program: 'housekeeping-nc-ii',
-      section: 'afternoon-a',
-      grades: {
-        written: 82,
-        oral: 85,
-        demonstration: 88,
-        observation: 86
-      }
-    },
+    { id: 'written', label: 'Written Test', weight: 0.2, editable: false },
+    { id: 'oral', label: 'Oral Questioning', weight: 0.2, editable: true },
+    { id: 'demonstration', label: 'Demonstration', weight: 0.4, editable: true },
+    { id: 'observation', label: 'Observation', weight: 0.2, editable: true },
   ];
 
   const filteredStudents = students.filter(student => {
-    const matchesProgram = selectedProgram === 'all' || student.program === selectedProgram;
-    const matchesSection = selectedSection === 'all' || student.section === selectedSection;
+    const matchesProgram = selectedProgram === 'all' || student.program_id === parseInt(selectedProgram);
+    const matchesBatch = selectedBatch === 'all' || student.batch_id === selectedBatch;
     const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         student.studentId.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesProgram && matchesSection && matchesSearch;
+                         student.student_id.toString().toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesProgram && matchesBatch && matchesSearch;
   });
 
   const calculateFinalGrade = (grades) => {
-    return gradeCategories.reduce((total, category) => {
-      return total + (grades[category.id] * category.weight);
-    }, 0).toFixed(2);
+    let total = 0;
+    let hasAllGrades = true;
+    
+    gradeCategories.forEach(category => {
+      const grade = grades[category.id];
+      if (grade !== null && grade !== undefined) {
+        total += grade * category.weight;
+      } else {
+        hasAllGrades = false;
+      }
+    });
+    
+    return hasAllGrades ? total.toFixed(2) : '-';
   };
 
   const getGradeColor = (grade) => {
-    if (grade >= 90) return 'text-green-600';
-    if (grade >= 85) return 'text-blue-600';
-    if (grade >= 75) return 'text-yellow-600';
+    if (grade === '-' || grade === null || grade === undefined) return 'text-gray-400';
+    const numGrade = parseFloat(grade);
+    if (numGrade >= 90) return 'text-green-600';
+    if (numGrade >= 85) return 'text-blue-600';
+    if (numGrade >= 75) return 'text-yellow-600';
     return 'text-red-600';
   };
 
   const handleEditGrade = (studentId, category) => {
     const student = students.find(s => s.id === studentId);
+    const currentGrade = student.grades[category];
     setEditingGrade({ studentId, category });
-    setTempGrade(student.grades[category].toString());
+    setTempGrade(currentGrade !== null && currentGrade !== undefined ? currentGrade.toString() : '');
   };
 
-  const handleSaveGrade = () => {
+  const handleSaveGrade = async () => {
     const grade = parseFloat(tempGrade);
     if (isNaN(grade) || grade < 0 || grade > 100) {
       alert('Please enter a valid grade between 0 and 100');
       return;
     }
     
-    // Here you would typically update the backend
-    console.log('Saving grade:', {
-      studentId: editingGrade.studentId,
-      category: editingGrade.category,
-      grade: grade
-    });
-    
-    setEditingGrade(null);
-    setTempGrade('');
+    try {
+      setSaving(true);
+      const token = localStorage.getItem('trainerToken');
+      
+      const response = await fetch('http://localhost:8000/api/trainer/grades/update', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          student_id: editingGrade.studentId,
+          assessment_type: editingGrade.category,
+          score: grade,
+          assessment_title: `${gradeCategories.find(c => c.id === editingGrade.category)?.label || 'Assessment'}`,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // Update local state
+        setStudents(students.map(student => {
+          if (student.id === editingGrade.studentId) {
+            return {
+              ...student,
+              grades: {
+                ...student.grades,
+                [editingGrade.category]: grade
+              }
+            };
+          }
+          return student;
+        }));
+        
+        setEditingGrade(null);
+        setTempGrade('');
+      } else {
+        alert(data.message || 'Failed to update grade');
+      }
+    } catch (err) {
+      console.error('Error updating grade:', err);
+      alert('Failed to update grade. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -177,24 +221,24 @@ const TrainerGrades = () => {
                 >
                   <option value="all">All Programs</option>
                   {programs.map((program) => (
-                    <option key={program.value} value={program.value}>
-                      {program.label}
+                    <option key={program.id} value={program.id}>
+                      {program.name}
                     </option>
                   ))}
                 </select>
               </div>
 
-              {/* Section Filter */}
+              {/* Batch Filter */}
               <div className="relative">
                 <select
-                  value={selectedSection}
-                  onChange={(e) => setSelectedSection(e.target.value)}
+                  value={selectedBatch}
+                  onChange={(e) => setSelectedBatch(e.target.value)}
                   className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md"
                 >
-                  <option value="all">All Sections</option>
-                  {sections.map((section) => (
-                    <option key={section.value} value={section.value}>
-                      {section.label}
+                  <option value="all">All Batches</option>
+                  {batches.map((batch) => (
+                    <option key={batch.id} value={batch.id}>
+                      {batch.name}
                     </option>
                   ))}
                 </select>
@@ -219,6 +263,36 @@ const TrainerGrades = () => {
 
         {/* Content */}
         <div className="p-6">
+          {loading && (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                <p className="text-gray-600">Loading grades...</p>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-8">
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <MdWarning className="h-6 w-6 text-red-600" />
+                </div>
+                <div className="ml-3 flex-1">
+                  <h3 className="text-sm font-medium text-red-800">Error Loading Grades</h3>
+                  <p className="mt-2 text-sm text-red-700">{error}</p>
+                  <button
+                    onClick={fetchGrades}
+                    className="mt-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!loading && !error && (
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
@@ -241,20 +315,19 @@ const TrainerGrades = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredStudents.map((student) => (
+                  {filteredStudents.length > 0 ? (
+                    filteredStudents.map((student) => (
                     <tr key={student.id}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex flex-col">
                           <div className="text-sm font-medium text-gray-900">{student.name}</div>
-                          <div className="text-sm text-gray-500">{student.studentId}</div>
-                          <div className="text-xs text-gray-400">
-                            {programs.find(p => p.value === student.program)?.label}
-                          </div>
+                          <div className="text-sm text-gray-500">{student.student_id}</div>
+                          <div className="text-xs text-gray-400">{student.program}</div>
                         </div>
                       </td>
                       {gradeCategories.map((category) => (
                         <td key={category.id} className="px-6 py-4 whitespace-nowrap">
-                          {editingGrade?.studentId === student.id && editingGrade?.category === category.id ? (
+                          {category.editable && editingGrade?.studentId === student.id && editingGrade?.category === category.id ? (
                             <div className="flex items-center space-x-2">
                               <input
                                 type="number"
@@ -263,16 +336,19 @@ const TrainerGrades = () => {
                                 value={tempGrade}
                                 onChange={(e) => setTempGrade(e.target.value)}
                                 className="w-20 px-2 py-1 border border-gray-300 rounded-md"
+                                disabled={saving}
                               />
                               <button
                                 onClick={handleSaveGrade}
-                                className="text-green-600 hover:text-green-800"
+                                className="text-green-600 hover:text-green-800 disabled:opacity-50"
+                                disabled={saving}
                               >
                                 <MdCheck className="h-5 w-5" />
                               </button>
                               <button
                                 onClick={() => setEditingGrade(null)}
-                                className="text-red-600 hover:text-red-800"
+                                className="text-red-600 hover:text-red-800 disabled:opacity-50"
+                                disabled={saving}
                               >
                                 <MdClose className="h-5 w-5" />
                               </button>
@@ -280,14 +356,19 @@ const TrainerGrades = () => {
                           ) : (
                             <div className="flex items-center space-x-2">
                               <span className={`text-sm font-medium ${getGradeColor(student.grades[category.id])}`}>
-                                {student.grades[category.id]}
+                                {student.grades[category.id] !== null && student.grades[category.id] !== undefined 
+                                  ? student.grades[category.id] 
+                                  : '-'}
                               </span>
-                              <button
-                                onClick={() => handleEditGrade(student.id, category.id)}
-                                className="text-gray-400 hover:text-gray-600"
-                              >
-                                <MdEdit className="h-4 w-4" />
-                              </button>
+                              {category.editable && (
+                                <button
+                                  onClick={() => handleEditGrade(student.id, category.id)}
+                                  className="text-gray-400 hover:text-gray-600"
+                                  title="Edit grade"
+                                >
+                                  <MdEdit className="h-4 w-4" />
+                                </button>
+                              )}
                             </div>
                           )}
                         </td>
@@ -298,11 +379,19 @@ const TrainerGrades = () => {
                         </span>
                       </td>
                     </tr>
-                  ))}
+                  ))
+                  ) : (
+                    <tr>
+                      <td colSpan={gradeCategories.length + 2} className="px-6 py-8 text-center text-gray-500">
+                        No students found
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
           </div>
+          )}
         </div>
       </div>
     </div>
