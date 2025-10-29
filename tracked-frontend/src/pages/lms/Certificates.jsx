@@ -130,7 +130,7 @@ const Certificates = () => {
 
   const certificateTypes = [
     { id: 'all', name: 'All Certificates', count: issuedCertificates.length },
-    { id: 'certification', name: 'National Certificates', count: issuedCertificates.filter(c => c.type === 'certification').length },
+    { id: 'certification', name: 'Training Certificates', count: issuedCertificates.filter(c => c.type === 'certification').length },
     { id: 'completion', name: 'Course Completion', count: issuedCertificates.filter(c => c.type === 'completion').length }
   ];
   
@@ -220,7 +220,7 @@ const Certificates = () => {
                     <MdWorkspacePremium className="h-6 w-6 text-blue-600" />
                   </div>
                   <div>
-                    <h1 className="text-2xl font-bold text-gray-900">National Certificates</h1>
+                    <h1 className="text-2xl font-bold text-gray-900">Training Certificates</h1>
                     <p className="text-sm text-gray-600">Official academic achievements and industry credentials</p>
                   </div>
                 </div>
@@ -266,7 +266,7 @@ const Certificates = () => {
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">National Certificates</p>
+                    <p className="text-sm font-medium text-gray-600">Training Certificates</p>
                     <p className="text-3xl font-bold text-blue-600">{certificationCount}</p>
                   </div>
                   <div className="p-3 bg-blue-100 rounded-full">
