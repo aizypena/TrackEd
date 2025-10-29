@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TrainerSidebar from '../../layouts/trainer/TrainerSidebar';
 import {
   MdMenu,
@@ -19,145 +19,79 @@ const TrainerAssessments = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [selectedProgram, setSelectedProgram] = useState('all');
-  const [selectedSection, setSelectedSection] = useState('all');
+  const [selectedBatch, setSelectedBatch] = useState('all');
   const [selectedAssessment, setSelectedAssessment] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [assessmentResults, setAssessmentResults] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [batches, setBatches] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const programs = [
-    { value: 'bartending-nc-ii', label: 'Bartending NC II' },
-    { value: 'barista-training-nc-ii', label: 'Barista Training NC II' },
-    { value: 'housekeeping-nc-ii', label: 'Housekeeping NC II' },
-    { value: 'food-beverage-services-nc-ii', label: 'Food and Beverage Services NC II' },
-    { value: 'bread-pastry-production-nc-ii', label: 'Bread and Pastry Production NC II' },
-  ];
-
-  const sections = [
-    { value: 'morning-a', label: 'Morning A - 8:00 AM to 12:00 PM' },
-    { value: 'morning-b', label: 'Morning B - 9:00 AM to 1:00 PM' },
-    { value: 'afternoon-a', label: 'Afternoon A - 1:00 PM to 5:00 PM' },
-    { value: 'afternoon-b', label: 'Afternoon B - 2:00 PM to 6:00 PM' },
-  ];
-
-  const assessments = [
-    { value: 'written-test', label: 'Written Test' },
-    { value: 'oral-questioning', label: 'Oral Questioning' },
+  const assessmentTypes = [
+    { value: 'written', label: 'Written Test' },
+    { value: 'oral', label: 'Oral Questioning' },
     { value: 'demonstration', label: 'Demonstration' },
     { value: 'observation', label: 'Observation' },
   ];
 
-  const students = [
-    {
-      id: 1,
-      name: 'John Doe',
-      studentId: 'STU-2025-001',
-      program: 'bartending-nc-ii',
-      section: 'morning-a',
-      assessments: {
-        'written-test': {
-          score: 92,
-          totalItems: 100,
-          submittedAt: '2025-09-15T10:30:00',
-          feedback: 'Excellent understanding of core concepts.'
-        },
-        'oral-questioning': {
-          score: 88,
-          totalItems: 100,
-          submittedAt: '2025-09-20T14:15:00',
-          feedback: 'Good responses to questions.'
-        },
-        'demonstration': {
-          score: 90,
-          totalItems: 100,
-          submittedAt: '2025-09-22T14:15:00',
-          feedback: 'Excellent practical demonstration skills.'
-        },
-        'observation': {
-          score: 85,
-          totalItems: 100,
-          submittedAt: '2025-09-25T14:15:00',
-          feedback: 'Good work habits and professionalism.'
-        }
-      }
-    },
-    {
-      id: 2,
-      name: 'Jane Smith',
-      studentId: 'STU-2025-002',
-      program: 'barista-training-nc-ii',
-      section: 'morning-b',
-      assessments: {
-        'written-test': {
-          score: 95,
-          totalItems: 100,
-          submittedAt: '2025-09-15T09:45:00',
-          feedback: 'Outstanding performance.'
-        },
-        'oral-questioning': {
-          score: 90,
-          totalItems: 100,
-          submittedAt: '2025-09-20T13:30:00',
-          feedback: 'Excellent knowledge demonstration.'
-        },
-        'demonstration': {
-          score: 93,
-          totalItems: 100,
-          submittedAt: '2025-09-22T13:30:00',
-          feedback: 'Outstanding practical skills.'
-        },
-        'observation': {
-          score: 88,
-          totalItems: 100,
-          submittedAt: '2025-09-25T13:30:00',
-          feedback: 'Professional work behavior.'
-        }
-      }
-    },
-    {
-      id: 3,
-      name: 'Mike Johnson',
-      studentId: 'STU-2025-003',
-      program: 'housekeeping-nc-ii',
-      section: 'afternoon-a',
-      assessments: {
-        'written-test': {
-          score: 78,
-          totalItems: 100,
-          submittedAt: '2025-09-15T11:00:00',
-          feedback: 'Needs improvement in theoretical knowledge.'
-        },
-        'oral-questioning': {
-          score: 82,
-          totalItems: 100,
-          submittedAt: '2025-09-20T15:00:00',
-          feedback: 'Fair responses, room for improvement.'
-        },
-        'demonstration': {
-          score: 80,
-          totalItems: 100,
-          submittedAt: '2025-09-22T15:00:00',
-          feedback: 'Basic skills demonstrated.'
-        },
-        'observation': {
-          score: 83,
-          totalItems: 100,
-          submittedAt: '2025-09-25T15:00:00',
-          feedback: 'Adequate work habits.'
-        }
-      }
-    }
-  ];
+  useEffect(() => {
+    fetchAssessmentResults();
+  }, []);
 
-  const filteredStudents = students.filter(student => {
-    const matchesProgram = selectedProgram === 'all' || student.program === selectedProgram;
-    const matchesSection = selectedSection === 'all' || student.section === selectedSection;
-    const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         student.studentId.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesProgram && matchesSection && matchesSearch;
+  const fetchAssessmentResults = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const token = localStorage.getItem('trainerToken');
+      
+      if (!token) {
+        setError('Authentication token not found. Please log in again.');
+        setLoading(false);
+        return;
+      }
+      
+      const response = await fetch('http://localhost:8000/api/trainer/assessment-results', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Server error' }));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setAssessmentResults(data.data || []);
+        setPrograms(data.programs || []);
+        setBatches(data.batches || []);
+      } else {
+        setError(data.message || 'Failed to load assessment results');
+      }
+    } catch (err) {
+      console.error('Error fetching assessment results:', err);
+      setError(err.message || 'Failed to load assessment results. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredResults = assessmentResults.filter(result => {
+    const matchesProgram = selectedProgram === 'all' || result.program_id === parseInt(selectedProgram);
+    const matchesBatch = selectedBatch === 'all' || result.batch_id === selectedBatch;
+    const matchesAssessment = selectedAssessment === 'all' || result.assessment_type === selectedAssessment;
+    const matchesSearch = result.student_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         result.student_id.toString().toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesProgram && matchesBatch && matchesAssessment && matchesSearch;
   });
 
-  const getCompetencyStatus = (score) => {
-    if (score === null || score === undefined) return null;
-    return score >= 85 ? 'competent' : 'not-competent';
+  const getCompetencyStatus = (percentage) => {
+    if (percentage === null || percentage === undefined) return null;
+    return percentage >= 85 ? 'competent' : 'not-competent';
   };
 
   const getStatusColor = (status) => {
@@ -178,7 +112,7 @@ const TrainerAssessments = () => {
       case 'not-competent':
         return <MdCancel className="w-4 h-4" />;
       default:
-        return <MdPending className="w-4 h-4" />;
+        return <MdPendingActions className="w-4 h-4" />;
     }
   };
 
@@ -245,24 +179,24 @@ const TrainerAssessments = () => {
                 >
                   <option value="all">All Programs</option>
                   {programs.map((program) => (
-                    <option key={program.value} value={program.value}>
-                      {program.label}
+                    <option key={program.id} value={program.id}>
+                      {program.name}
                     </option>
                   ))}
                 </select>
               </div>
 
-              {/* Section Filter */}
+              {/* Batch Filter */}
               <div className="relative">
                 <select
-                  value={selectedSection}
-                  onChange={(e) => setSelectedSection(e.target.value)}
+                  value={selectedBatch}
+                  onChange={(e) => setSelectedBatch(e.target.value)}
                   className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md"
                 >
-                  <option value="all">All Sections</option>
-                  {sections.map((section) => (
-                    <option key={section.value} value={section.value}>
-                      {section.label}
+                  <option value="all">All Batches</option>
+                  {batches.map((batch) => (
+                    <option key={batch.id} value={batch.id}>
+                      {batch.name}
                     </option>
                   ))}
                 </select>
@@ -276,7 +210,7 @@ const TrainerAssessments = () => {
                   className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md"
                 >
                   <option value="all">All Assessments</option>
-                  {assessments.map((assessment) => (
+                  {assessmentTypes.map((assessment) => (
                     <option key={assessment.value} value={assessment.value}>
                       {assessment.label}
                     </option>
@@ -303,6 +237,36 @@ const TrainerAssessments = () => {
 
         {/* Content */}
         <div className="p-6">
+          {loading && (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                <p className="text-gray-600">Loading assessment results...</p>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-8">
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <MdWarning className="h-6 w-6 text-red-600" />
+                </div>
+                <div className="ml-3 flex-1">
+                  <h3 className="text-sm font-medium text-red-800">Error Loading Assessment Results</h3>
+                  <p className="mt-2 text-sm text-red-700">{error}</p>
+                  <button
+                    onClick={fetchAssessmentResults}
+                    className="mt-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!loading && !error && (
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
@@ -323,32 +287,25 @@ const TrainerAssessments = () => {
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Submitted
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Feedback
-                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredStudents.map((student) => (
-                    assessments.map((assessment) => {
-                      const assessmentData = student.assessments[assessment.value];
-                      if (selectedAssessment !== 'all' && selectedAssessment !== assessment.value) {
-                        return null;
-                      }
-                      const competencyStatus = getCompetencyStatus(assessmentData.score);
+                  {filteredResults.length > 0 ? (
+                    filteredResults.map((result) => {
+                      const competencyStatus = getCompetencyStatus(result.percentage);
                       return (
-                        <tr key={`${student.id}-${assessment.value}`}>
+                        <tr key={result.id}>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex flex-col">
-                              <div className="text-sm font-medium text-gray-900">{student.name}</div>
-                              <div className="text-sm text-gray-500">{student.studentId}</div>
-                              <div className="text-xs text-gray-400">
-                                {programs.find(p => p.value === student.program)?.label}
-                              </div>
+                              <div className="text-sm font-medium text-gray-900">{result.student_name}</div>
+                              <div className="text-sm text-gray-500">{result.student_id}</div>
+                              <div className="text-xs text-gray-400">{result.program_name || 'N/A'}</div>
+                              <div className="text-xs text-gray-400">{result.batch_name || 'N/A'}</div>
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="text-sm text-gray-900">{assessment.label}</span>
+                          <td className="px-6 py-4">
+                            <div className="text-sm font-medium text-gray-900">{result.assessment_title}</div>
+                            <div className="text-xs text-gray-500 capitalize">{result.assessment_type}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
@@ -366,32 +323,37 @@ const TrainerAssessments = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            {assessmentData.score !== null && assessmentData.score !== undefined ? (
-                              <span className={`text-sm font-medium ${getScoreColor(assessmentData.score)}`}>
-                                {assessmentData.score}/{assessmentData.totalItems}
-                              </span>
+                            {result.score !== null && result.score !== undefined ? (
+                              <div className="flex flex-col">
+                                <span className={`text-sm font-medium ${getScoreColor(result.percentage)}`}>
+                                  {result.score}/{result.total_points}
+                                </span>
+                                <span className="text-xs text-gray-500">{result.percentage}%</span>
+                              </div>
                             ) : (
                               <span className="text-sm text-gray-400">-</span>
                             )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">
-                              {formatDate(assessmentData.submittedAt)}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="text-sm text-gray-900 max-w-xs truncate">
-                              {assessmentData.feedback || '-'}
+                              {formatDate(result.graded_at)}
                             </div>
                           </td>
                         </tr>
                       );
                     })
-                  ))}
+                  ) : (
+                    <tr>
+                      <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
+                        No assessment results found
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
           </div>
+          )}
         </div>
       </div>
     </div>

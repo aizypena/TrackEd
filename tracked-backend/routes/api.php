@@ -882,6 +882,90 @@ Route::middleware(['auth:sanctum'])->group(function () {
         ]);
     });
     
+    // Get trainer's assessment results
+    Route::get('/trainer/assessment-results', function (Request $request) {
+        $trainer = $request->user();
+        
+        if ($trainer->role !== 'trainer') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Only trainers can access this endpoint.'
+            ], 403);
+        }
+        
+        // Get batches assigned to this trainer
+        $batches = DB::table('batches')
+            ->where('trainer_id', $trainer->id)
+            ->pluck('batch_id');
+        
+        if ($batches->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'data' => [],
+                'programs' => [],
+                'batches' => [],
+                'message' => 'No batches assigned to this trainer'
+            ]);
+        }
+        
+        // Get all grades for students in the trainer's batches
+        $grades = \App\Models\Grade::whereIn('batch_id', $batches)
+            ->with(['student', 'batch.program', 'quiz'])
+            ->orderBy('graded_at', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        // Format the results
+        $results = $grades->map(function ($grade) {
+            $student = $grade->student;
+            $batch = $grade->batch;
+            $program = $batch ? $batch->program : ($grade->program ?? null);
+            
+            return [
+                'id' => $grade->id,
+                'student_id' => $student->student_id ?? $student->id,
+                'student_name' => $student->first_name . ' ' . $student->last_name,
+                'program_name' => $program ? $program->title : 'N/A',
+                'program_id' => $program ? $program->id : null,
+                'batch_id' => $grade->batch_id,
+                'batch_name' => $batch ? $batch->batch_id : 'N/A',
+                'assessment_type' => $grade->assessment_type,
+                'assessment_title' => $grade->assessment_title,
+                'score' => $grade->score,
+                'total_points' => $grade->total_points,
+                'percentage' => $grade->percentage,
+                'passing_score' => $grade->passing_score,
+                'status' => $grade->status,
+                'competency_status' => $grade->percentage >= 85 ? 'competent' : 'not-competent',
+                'graded_at' => $grade->graded_at,
+                'feedback' => $grade->feedback,
+                'attempt_number' => $grade->attempt_number,
+            ];
+        });
+        
+        // Get unique programs and batches for filtering
+        $programs = $results->unique('program_id')->map(function ($item) {
+            return [
+                'id' => $item['program_id'],
+                'name' => $item['program_name']
+            ];
+        })->values();
+        
+        $batchList = $results->unique('batch_id')->map(function ($item) {
+            return [
+                'id' => $item['batch_id'],
+                'name' => $item['batch_name']
+            ];
+        })->values();
+        
+        return response()->json([
+            'success' => true,
+            'data' => $results,
+            'programs' => $programs,
+            'batches' => $batchList,
+        ]);
+    });
+    
     // Staff Routes
     // Update Staff Profile
     Route::put('/staff/profile', function (Request $request) {
