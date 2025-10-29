@@ -44,8 +44,7 @@ const Sidebar = ({ user, isOpen, onClose, sidebarOpen, setSidebarOpen }) => {
     {
       name: 'Assessments',
       path: '/smi-lms/assessments',
-      icon: <MdQuiz className="h-5 w-5" />,
-      badge: 3
+      icon: <MdQuiz className="h-5 w-5" />
     },
     {
       name: 'Assessment Results',
@@ -55,8 +54,7 @@ const Sidebar = ({ user, isOpen, onClose, sidebarOpen, setSidebarOpen }) => {
     {
       name: 'Certificates',
       path: '/smi-lms/certificates',
-      icon: <MdWorkspacePremium className="h-5 w-5" />,
-      badge: 2
+      icon: <MdWorkspacePremium className="h-5 w-5" />
     }
   ];
 
@@ -177,11 +175,6 @@ const Sidebar = ({ user, isOpen, onClose, sidebarOpen, setSidebarOpen }) => {
                     <span className={`flex-1 ${isActivePath(item.path) ? 'font-semibold' : ''}`}>
                       {item.name}
                     </span>
-                    {item.badge && (
-                      <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
-                        {item.badge}
-                      </span>
-                    )}
                     {isActivePath(item.path) && (
                       <div className="ml-2">
                         <div className="w-2 h-2 bg-tracked-secondary-light rounded-full"></div>
