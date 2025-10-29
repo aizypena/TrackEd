@@ -9,6 +9,7 @@ import TrainerAttendance from '../pages/trainers/TrainerAttendance';
 import TrainerGrades from '../pages/trainers/TrainerGrades';
 import TrainerProfile from '../pages/trainers/TrainerProfile';
 import TrainerExams from '../pages/trainers/TrainerExams';
+import TrainerExamDetails from '../pages/trainers/TrainerExamDetails';
 import ProtectedTrainerRoute from '../components/ProtectedTrainerRoute';
 
 const TrainerRoutes = () => {
@@ -68,6 +69,14 @@ const TrainerRoutes = () => {
         element={
           <ProtectedTrainerRoute>
             <TrainerExams />
+          </ProtectedTrainerRoute>
+        } 
+      />
+      <Route 
+        path="/exams/:examId" 
+        element={
+          <ProtectedTrainerRoute>
+            <TrainerExamDetails />
           </ProtectedTrainerRoute>
         } 
       />

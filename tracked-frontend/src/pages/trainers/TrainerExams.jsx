@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
 import axios from 'axios';
 import TrainerSidebar from '../../layouts/trainer/TrainerSidebar';
@@ -20,6 +21,7 @@ import {
 } from 'react-icons/md';
 
 const TrainerExams = () => {
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -169,6 +171,10 @@ const TrainerExams = () => {
       
       throw new Error(err.message || 'Failed to create exam');
     }
+  };
+
+  const handleViewExam = (examId) => {
+    navigate(`/trainer-lms/exams/${examId}`);
   };
 
   const handleEditExam = async (examId) => {
@@ -450,6 +456,7 @@ const TrainerExams = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
                           <button
+                            onClick={() => handleViewExam(exam.id)}
                             className="text-blue-600 hover:text-blue-900"
                             title="View"
                           >

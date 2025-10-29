@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import Sidebar from '../../layouts/lms/Sidebar';
 import { getStudentUser } from '../../utils/studentAuth';
 import { 
-  MdSchool, 
+  MdSchool,
   MdFolder, 
   MdFactCheck, 
   MdQuiz, 
@@ -23,6 +23,8 @@ const StudentDashboard = () => {
   const [programInfo, setProgramInfo] = useState(null);
   const [trainerInfo, setTrainerInfo] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [pendingAssessments, setPendingAssessments] = useState([]);
+  const [loadingAssessments, setLoadingAssessments] = useState(true);
 
   useEffect(() => {
     // Get user data from localStorage
@@ -30,6 +32,7 @@ const StudentDashboard = () => {
     if (userData) {
       setUser(userData);
       fetchStudentSchedule();
+      fetchPendingAssessments();
     }
   }, []);
 
@@ -74,35 +77,33 @@ const StudentDashboard = () => {
     return `${displayHour}:${minutes} ${ampm}`;
   };
 
-  const pendingAssessments = [
-    {
-      id: 1,
-      title: "Basic Cooking Techniques Assessment",
-      course: "Cookery NC II",
-      type: "Practical Assessment",
-      dueDate: "September 22, 2025",
-      duration: "3 hours",
-      status: "pending"
-    },
-    {
-      id: 2,
-      title: "Table Service Standards Evaluation",
-      course: "Food and Beverage Services NC II", 
-      type: "Performance Assessment",
-      dueDate: "September 25, 2025",
-      duration: "2 hours",
-      status: "in-progress"
-    },
-    {
-      id: 3,
-      title: "Bread Making Competency Test",
-      course: "Bread and Pastry Production NC II",
-      type: "Practical Assessment",
-      dueDate: "September 28, 2025",
-      duration: "4 hours",
-      status: "pending"
+  const fetchPendingAssessments = async () => {
+    try {
+      setLoadingAssessments(true);
+      const token = localStorage.getItem('studentToken');
+      
+      const response = await fetch('http://localhost:8000/api/student/pending-assessments', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setPendingAssessments(data.assessments || []);
+      } else {
+        console.error('Failed to fetch pending assessments');
+        setPendingAssessments([]);
+      }
+    } catch (error) {
+      console.error('Error fetching pending assessments:', error);
+      setPendingAssessments([]);
+    } finally {
+      setLoadingAssessments(false);
     }
-  ];
+  };
 
   const recentMaterials = [
     {
@@ -323,27 +324,46 @@ const StudentDashboard = () => {
                 <h2 className="text-lg font-semibold text-gray-900">Pending Assessments</h2>
               </div>
               <div className="p-6">
-                <div className="space-y-4">
-                  {pendingAssessments.map((assessment) => (
-                    <div key={assessment.id} className="border-l-4 border-orange-400 pl-4">
-                      <h4 className="font-medium text-gray-900">{assessment.title}</h4>
-                      <p className="text-sm text-gray-600">{assessment.course}</p>
-                      <p className="text-xs text-gray-500">Type: {assessment.type}</p>
-                      <p className="text-xs text-gray-500">Due: {assessment.dueDate}</p>
-                      <p className="text-xs text-gray-500">Duration: {assessment.duration}</p>
-                      <span className={`inline-block px-2 py-1 text-xs font-medium rounded mt-1 ${
-                        assessment.status === 'pending' 
-                          ? 'bg-orange-100 text-orange-800' 
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {assessment.status.charAt(0).toUpperCase() + assessment.status.slice(1)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <button className="w-full mt-4 px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded hover:bg-gray-50 transition-colors">
+                {loadingAssessments ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading assessments...</p>
+                  </div>
+                ) : pendingAssessments.length === 0 ? (
+                  <div className="text-center py-8">
+                    <MdQuiz className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">No pending assessments</p>
+                    <p className="text-gray-500 text-sm mt-2">You're all caught up!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {pendingAssessments.map((assessment) => (
+                      <div key={assessment.id} className="border-l-4 border-orange-400 pl-4">
+                        <h4 className="font-medium text-gray-900">{assessment.title}</h4>
+                        <p className="text-sm text-gray-600">{assessment.program_name}</p>
+                        <p className="text-xs text-gray-500">Questions: {assessment.total_questions}</p>
+                        <p className="text-xs text-gray-500">Duration: {assessment.duration} minutes</p>
+                        {assessment.due_date && (
+                          <p className="text-xs text-gray-500">
+                            Due: {new Date(assessment.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </p>
+                        )}
+                        <Link
+                          to={`/smi-lms/assessments/${assessment.id}`}
+                          className="inline-block mt-2 px-3 py-1 text-xs font-medium bg-orange-100 text-orange-800 rounded hover:bg-orange-200 transition-colors"
+                        >
+                          Take Assessment
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <Link 
+                  to="/smi-lms/assessments"
+                  className="block w-full mt-4 px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded hover:bg-gray-50 transition-colors text-center"
+                >
                   View All Assessments
-                </button>
+                </Link>
               </div>
             </div>
 

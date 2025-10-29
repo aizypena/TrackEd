@@ -39,8 +39,24 @@ class QuizController extends Controller
 
         // Add computed fields
         $quizzes->map(function ($quiz) {
-            $quiz->assigned_students = 0; // TODO: Implement when student assignment is ready
-            $quiz->completed_count = 0; // TODO: Implement from quiz_attempts
+            // Get count of students in this quiz's batch
+            $batchStudentCount = 0;
+            if ($quiz->batch_id) {
+                $batchStudentCount = DB::table('users')
+                    ->where('batch_id', $quiz->batch_id)
+                    ->where('role', 'student')
+                    ->count();
+            }
+            
+            // Get count of unique students who completed this quiz
+            $completedCount = DB::table('quiz_attempts')
+                ->where('quiz_id', $quiz->id)
+                ->where('status', 'completed')
+                ->distinct('user_id')
+                ->count('user_id');
+            
+            $quiz->assigned_students = $batchStudentCount;
+            $quiz->completed_count = $completedCount;
             return $quiz;
         });
 
@@ -184,7 +200,9 @@ class QuizController extends Controller
             'title' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
             'type' => 'sometimes|required|in:written,oral,demonstration,observation',
-            'program' => 'sometimes|required|string',
+            'program' => 'nullable|string',
+            'batch_id' => 'nullable|string',
+            'program_id' => 'nullable|integer',
             'duration' => 'sometimes|required|integer|min:1',
             'passing_score' => 'sometimes|required|integer|min:0|max:100',
             'retake_limit' => 'sometimes|required|integer|min:1',
@@ -200,16 +218,21 @@ class QuizController extends Controller
 
         DB::beginTransaction();
         try {
-            $quiz->update($request->only([
-                'title',
-                'description',
-                'type',
-                'program',
-                'time_limit',
-                'retake_limit',
-                'passing_score',
-                'status'
-            ]));
+            // Prepare update data
+            $updateData = [];
+            
+            if ($request->has('title')) $updateData['title'] = $request->title;
+            if ($request->has('description')) $updateData['description'] = $request->description;
+            if ($request->has('type')) $updateData['type'] = $request->type;
+            if ($request->has('program')) $updateData['program'] = $request->program;
+            if ($request->has('batch_id')) $updateData['batch_id'] = $request->batch_id;
+            if ($request->has('program_id')) $updateData['program_id'] = $request->program_id;
+            if ($request->has('duration')) $updateData['time_limit'] = $request->duration;
+            if ($request->has('retake_limit')) $updateData['retake_limit'] = $request->retake_limit;
+            if ($request->has('passing_score')) $updateData['passing_score'] = $request->passing_score;
+            if ($request->has('status')) $updateData['status'] = $request->status;
+
+            $quiz->update($updateData);
 
             DB::commit();
 

@@ -1485,6 +1485,67 @@ Route::middleware(['auth:sanctum'])->group(function () {
         return response()->download($filePath, $material->file_name);
     });
     
+    // Get pending assessments for student (quizzes they haven't answered yet)
+    Route::get('/student/pending-assessments', function (Request $request) {
+        $student = $request->user();
+        
+        if ($student->role !== 'student') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+        
+        // Get all quizzes for the student's batch (match by batch_id)
+        $allQuizzes = DB::table('quizzes')
+            ->where('batch_id', $student->batch_id)
+            ->where('status', 'active')
+            ->select('id', 'title', 'description', 'time_limit', 'program_id', 'batch_id', 'created_at')
+            ->get();
+        
+        // Get quizzes that the student has already answered
+        $answeredQuizIds = DB::table('quiz_attempts')
+            ->where('user_id', $student->id)
+            ->pluck('quiz_id')
+            ->toArray();
+        
+        // Filter out answered quizzes
+        $pendingQuizzes = $allQuizzes->filter(function ($quiz) use ($answeredQuizIds) {
+            return !in_array($quiz->id, $answeredQuizIds);
+        });
+        
+        // Get program details and question counts
+        $assessments = $pendingQuizzes->map(function ($quiz) {
+            // Get program name from student's batch
+            $batch = DB::table('batches')->where('batch_id', $quiz->batch_id)->first();
+            $programName = 'N/A';
+            
+            if ($batch && $batch->program_id) {
+                $program = DB::table('programs')->where('id', $batch->program_id)->first();
+                $programName = $program ? $program->title : 'N/A';
+            }
+            
+            $questionCount = DB::table('quiz_questions')->where('quiz_id', $quiz->id)->count();
+            
+            return [
+                'id' => $quiz->id,
+                'title' => $quiz->title,
+                'description' => $quiz->description,
+                'duration' => $quiz->time_limit,
+                'total_questions' => $questionCount,
+                'program_id' => $quiz->program_id,
+                'program_name' => $programName,
+                'created_at' => $quiz->created_at,
+                'due_date' => null // You can add due date logic if needed
+            ];
+        })->values();
+        
+        return response()->json([
+            'success' => true,
+            'assessments' => $assessments
+        ]);
+    });
+    
     // Staff Routes
     // Update Staff Profile
     Route::put('/staff/profile', function (Request $request) {
@@ -1968,6 +2029,57 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/quizzes/{id}', [QuizController::class, 'show']);
     Route::put('/quizzes/{id}', [QuizController::class, 'update']);
     Route::delete('/quizzes/{id}', [QuizController::class, 'destroy']);
+    
+    // Get students for a quiz (with completion status)
+    Route::get('/quizzes/{id}/students', function ($id) {
+        $quiz = DB::table('quizzes')->where('id', $id)->first();
+        
+        if (!$quiz) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Quiz not found'
+            ], 404);
+        }
+        
+        if (!$quiz->batch_id) {
+            return response()->json([
+                'success' => true,
+                'students' => []
+            ]);
+        }
+        
+        // Get all students in the quiz's batch
+        $students = DB::table('users')
+            ->where('batch_id', $quiz->batch_id)
+            ->where('role', 'student')
+            ->select('id', 'first_name', 'last_name', 'email')
+            ->get();
+        
+        // Check each student's completion status
+        $studentsWithStatus = $students->map(function ($student) use ($id) {
+            $attempt = DB::table('quiz_attempts')
+                ->where('quiz_id', $id)
+                ->where('user_id', $student->id)
+                ->where('status', 'completed')
+                ->orderBy('completed_at', 'desc')
+                ->first();
+            
+            return [
+                'id' => $student->id,
+                'first_name' => $student->first_name,
+                'last_name' => $student->last_name,
+                'email' => $student->email,
+                'has_taken' => $attempt !== null,
+                'score' => $attempt ? $attempt->score : null,
+                'completed_at' => $attempt ? $attempt->completed_at : null
+            ];
+        });
+        
+        return response()->json([
+            'success' => true,
+            'students' => $studentsWithStatus
+        ]);
+    });
     
     // Quiz Attempt Routes
     Route::post('/quiz-attempts/start', function (Request $request) {
