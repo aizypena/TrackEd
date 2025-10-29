@@ -173,52 +173,24 @@ const Attendance = () => {
             <>
           {/* Attendance Overview Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-600 text-sm font-medium">Overall Attendance</p>
-                  <p className="text-3xl font-bold text-blue-600 mt-1">{statistics.percentage}%</p>
-                </div>
-                <div className="p-3 bg-blue-100 rounded-lg">
-                  <MdTrendingUp className="h-6 w-6 text-blue-600" />
-                </div>
-              </div>
+            <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <p className="text-gray-600 text-sm font-medium">Overall Attendance</p>
+              <p className="text-3xl font-bold text-gray-900 mt-1">{statistics.percentage}%</p>
             </div>
             
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-600 text-sm font-medium">Present</p>
-                  <p className="text-3xl font-bold text-green-600 mt-1">{statistics.present}</p>
-                </div>
-                <div className="p-3 bg-green-100 rounded-lg">
-                  <MdCheckCircle className="h-6 w-6 text-green-600" />
-                </div>
-              </div>
+            <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <p className="text-gray-600 text-sm font-medium">Present</p>
+              <p className="text-3xl font-bold text-gray-900 mt-1">{statistics.present}</p>
             </div>
 
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-600 text-sm font-medium">Absent</p>
-                  <p className="text-3xl font-bold text-red-600 mt-1">{statistics.absent}</p>
-                </div>
-                <div className="p-3 bg-red-100 rounded-lg">
-                  <MdCancel className="h-6 w-6 text-red-600" />
-                </div>
-              </div>
+            <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <p className="text-gray-600 text-sm font-medium">Absent</p>
+              <p className="text-3xl font-bold text-gray-900 mt-1">{statistics.absent}</p>
             </div>
 
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-600 text-sm font-medium">Late</p>
-                  <p className="text-3xl font-bold text-yellow-600 mt-1">{statistics.late}</p>
-                </div>
-                <div className="p-3 bg-yellow-100 rounded-lg">
-                  <MdWarning className="h-6 w-6 text-yellow-600" />
-                </div>
-              </div>
+            <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <p className="text-gray-600 text-sm font-medium">Late</p>
+              <p className="text-3xl font-bold text-gray-900 mt-1">{statistics.late}</p>
             </div>
           </div>
 
@@ -226,33 +198,32 @@ const Attendance = () => {
             {/* Main Attendance Records */}
             <div>
               {/* Attendance Records */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div className="bg-white rounded-lg border border-gray-200">
                 <div className="p-6 border-b border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                    <MdFactCheck className="h-5 w-5 mr-2 text-blue-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">
                     Attendance Records
                   </h3>
                 </div>
                 <div className="divide-y divide-gray-200">
                   {attendanceRecords.length > 0 ? (
                     attendanceRecords.map((record) => (
-                      <div key={record.id} className="p-6 hover:bg-gray-50 transition-colors">
+                      <div key={record.id} className="p-6 hover:bg-gray-50">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center space-x-3 mb-2">
-                              <span className={`px-3 py-1 text-sm font-medium rounded-full border ${getStatusColor(record.status)}`}>
+                              <span className={`px-3 py-1 text-sm font-medium rounded ${getStatusColor(record.status)}`}>
                                 {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
                                 {record.status === 'late' && record.lateMinutes && ` (${record.lateMinutes} min)`}
                               </span>
                               <span className="text-sm text-gray-500">{formatDate(record.date)}</span>
                             </div>
                             
-                            <h4 className="text-lg font-medium text-gray-900 mb-1">
+                            <h4 className="text-base font-medium text-gray-900 mb-1">
                               {record.courseTitle}
                             </h4>
                             <p className="text-sm text-gray-600 mb-2">{record.courseCode}</p>
                             
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-600">
                               <div>
                                 <span className="font-medium">Instructor:</span> {record.instructor}
                               </div>
@@ -262,16 +233,16 @@ const Attendance = () => {
                             </div>
                             
                             {record.topic && (
-                              <div className="mt-3 p-3 bg-blue-50 rounded-md">
-                                <p className="text-sm font-medium text-blue-900">Topic Covered:</p>
-                                <p className="text-sm text-blue-700">{record.topic}</p>
+                              <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded">
+                                <p className="text-sm font-medium text-gray-900">Topic Covered:</p>
+                                <p className="text-sm text-gray-700">{record.topic}</p>
                               </div>
                             )}
                             
                             {record.reason && (
-                              <div className="mt-3 p-3 bg-red-50 rounded-md">
-                                <p className="text-sm font-medium text-red-900">Absence Reason:</p>
-                                <p className="text-sm text-red-700">{record.reason}</p>
+                              <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded">
+                                <p className="text-sm font-medium text-gray-900">Absence Reason:</p>
+                                <p className="text-sm text-gray-700">{record.reason}</p>
                               </div>
                             )}
                           </div>
@@ -280,8 +251,7 @@ const Attendance = () => {
                     ))
                   ) : (
                     <div className="p-8 text-center">
-                      <MdCalendarToday className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500">No attendance records found for the selected filters</p>
+                      <p className="text-gray-500">No attendance records found</p>
                     </div>
                   )}
                 </div>
