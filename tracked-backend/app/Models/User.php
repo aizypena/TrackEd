@@ -160,5 +160,21 @@ class User extends Authenticatable
     {
         return $this->hasMany(Grade::class, 'graded_by');
     }
+    
+    /**
+     * Get all attendance records for the user (as student).
+     */
+    public function attendances()
+    {
+        return $this->hasMany(Attendance::class, 'user_id');
+    }
+    
+    /**
+     * Get all attendance records marked by the user (as trainer).
+     */
+    public function markedAttendances()
+    {
+        return $this->hasMany(Attendance::class, 'marked_by');
+    }
 }
 

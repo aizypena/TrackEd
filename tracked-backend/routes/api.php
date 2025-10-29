@@ -624,6 +624,264 @@ Route::middleware(['auth:sanctum'])->group(function () {
         ]);
     });
     
+    // Attendance Routes for Trainers
+    
+    // Get students for attendance marking
+    Route::get('/trainer/attendance/students', function (Request $request) {
+        $user = $request->user();
+        
+        if ($user->role !== 'trainer') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $date = $request->query('date', now()->toDateString());
+        $batchId = $request->query('batch_id');
+        $programId = $request->query('program_id');
+
+        // Build query for students in trainer's batches
+        // Only show students whose batch dates include the selected date
+        $query = DB::table('users')
+            ->join('batches', 'users.batch_id', '=', 'batches.batch_id')
+            ->join('programs', 'batches.program_id', '=', 'programs.id')
+            ->where('batches.trainer_id', $user->id)
+            ->where('users.role', 'student')
+            ->where('users.status', 'active')
+            ->where('batches.start_date', '<=', $date)
+            ->where('batches.end_date', '>=', $date);
+
+        if ($batchId && $batchId !== 'all') {
+            $query->where('batches.batch_id', $batchId);
+        }
+
+        if ($programId && $programId !== 'all') {
+            $query->where('batches.program_id', $programId);
+        }
+
+        $students = $query->select(
+            'users.id',
+            'users.student_id',
+            'users.first_name',
+            'users.last_name',
+            'users.email',
+            'users.batch_id',
+            'batches.program_id',
+            'batches.start_date',
+            'batches.end_date',
+            'programs.title as program_name',
+            'batches.schedule_time_start',
+            'batches.schedule_time_end'
+        )->get();
+
+        // Get attendance records for the specified date
+        $attendanceRecords = DB::table('attendances')
+            ->where('date', $date)
+            ->whereIn('user_id', $students->pluck('id'))
+            ->get()
+            ->keyBy('user_id');
+
+        // Calculate attendance statistics for each student
+        $studentsWithAttendance = $students->map(function ($student) use ($attendanceRecords, $date) {
+            $attendance = $attendanceRecords->get($student->id);
+            
+            // Calculate overall attendance percentage
+            $totalDays = DB::table('attendances')
+                ->where('user_id', $student->id)
+                ->distinct('date')
+                ->count();
+            
+            $presentDays = DB::table('attendances')
+                ->where('user_id', $student->id)
+                ->whereIn('status', ['present', 'late'])
+                ->count();
+            
+            $attendancePercentage = $totalDays > 0 ? round(($presentDays / $totalDays) * 100, 1) : 0;
+
+            return [
+                'id' => $student->id,
+                'student_id' => $student->student_id,
+                'name' => $student->first_name . ' ' . $student->last_name,
+                'email' => $student->email,
+                'batch_id' => $student->batch_id,
+                'program_id' => $student->program_id,
+                'program_name' => $student->program_name,
+                'schedule_time_start' => $student->schedule_time_start,
+                'schedule_time_end' => $student->schedule_time_end,
+                'attendance' => $attendance ? [
+                    'status' => $attendance->status,
+                    'time_in' => $attendance->time_in,
+                    'time_out' => $attendance->time_out,
+                    'total_hours' => $attendance->total_hours,
+                    'remarks' => $attendance->remarks,
+                ] : null,
+                'attendance_percentage' => $attendancePercentage,
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $studentsWithAttendance,
+            'date' => $date
+        ]);
+    });
+
+    // Mark or update attendance
+    Route::post('/trainer/attendance/mark', function (Request $request) {
+        $user = $request->user();
+        
+        if ($user->role !== 'trainer') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'batch_id' => 'required|exists:batches,batch_id',
+            'date' => 'required|date',
+            'status' => 'required|in:present,late,absent,excused',
+            'time_in' => 'nullable|date_format:Y-m-d H:i:s',
+            'time_out' => 'nullable|date_format:Y-m-d H:i:s',
+            'remarks' => 'nullable|string|max:500',
+        ]);
+
+        // Verify the student belongs to a batch assigned to this trainer
+        $batch = DB::table('batches')
+            ->where('batch_id', $request->batch_id)
+            ->where('trainer_id', $user->id)
+            ->first();
+
+        if (!$batch) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You are not authorized to mark attendance for this batch'
+            ], 403);
+        }
+
+        // Verify the date is within the batch's start and end dates
+        $requestDate = new \DateTime($request->date);
+        $startDate = new \DateTime($batch->start_date);
+        $endDate = new \DateTime($batch->end_date);
+
+        if ($requestDate < $startDate || $requestDate > $endDate) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot mark attendance outside of batch dates (' . 
+                    $batch->start_date . ' to ' . $batch->end_date . ')'
+            ], 400);
+        }
+
+        // Calculate total hours if both time_in and time_out are provided
+        $totalHours = 0;
+        if ($request->time_in && $request->time_out) {
+            $timeIn = new \DateTime($request->time_in);
+            $timeOut = new \DateTime($request->time_out);
+            $diff = $timeIn->diff($timeOut);
+            $totalHours = round($diff->h + ($diff->i / 60), 2);
+        }
+
+        // Create or update attendance record
+        $attendance = \App\Models\Attendance::updateOrCreate(
+            [
+                'user_id' => $request->user_id,
+                'batch_id' => $request->batch_id,
+                'date' => $request->date,
+            ],
+            [
+                'status' => $request->status,
+                'time_in' => $request->time_in,
+                'time_out' => $request->time_out,
+                'total_hours' => $totalHours,
+                'remarks' => $request->remarks,
+                'marked_by' => $user->id,
+            ]
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Attendance marked successfully',
+            'data' => $attendance
+        ]);
+    });
+
+    // Get attendance report for a batch
+    Route::get('/trainer/attendance/report', function (Request $request) {
+        $user = $request->user();
+        
+        if ($user->role !== 'trainer') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $batchId = $request->query('batch_id');
+        $startDate = $request->query('start_date', now()->startOfMonth()->toDateString());
+        $endDate = $request->query('end_date', now()->toDateString());
+
+        if (!$batchId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Batch ID is required'
+            ], 400);
+        }
+
+        // Verify the batch belongs to this trainer
+        $batch = DB::table('batches')
+            ->where('batch_id', $batchId)
+            ->where('trainer_id', $user->id)
+            ->first();
+
+        if (!$batch) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Batch not found or not assigned to you'
+            ], 404);
+        }
+
+        // Get attendance records
+        $attendanceData = DB::table('attendances')
+            ->join('users', 'attendances.user_id', '=', 'users.id')
+            ->where('attendances.batch_id', $batchId)
+            ->whereBetween('attendances.date', [$startDate, $endDate])
+            ->select(
+                'attendances.*',
+                'users.student_id',
+                'users.first_name',
+                'users.last_name'
+            )
+            ->orderBy('attendances.date', 'desc')
+            ->orderBy('users.last_name')
+            ->get();
+
+        // Group by student
+        $studentAttendance = $attendanceData->groupBy('user_id')->map(function ($records, $userId) {
+            $student = $records->first();
+            $totalDays = $records->count();
+            $presentDays = $records->whereIn('status', ['present', 'late'])->count();
+            $lateDays = $records->where('status', 'late')->count();
+            $absentDays = $records->where('status', 'absent')->count();
+            $totalHours = $records->sum('total_hours');
+
+            return [
+                'user_id' => $userId,
+                'student_id' => $student->student_id,
+                'name' => $student->first_name . ' ' . $student->last_name,
+                'total_days' => $totalDays,
+                'present_days' => $presentDays,
+                'late_days' => $lateDays,
+                'absent_days' => $absentDays,
+                'total_hours' => round($totalHours, 2),
+                'attendance_percentage' => $totalDays > 0 ? round(($presentDays / $totalDays) * 100, 1) : 0,
+                'records' => $records
+            ];
+        })->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'batch_id' => $batchId,
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'students' => $studentAttendance
+            ]
+        ]);
+    });
+    
     // Staff Routes
     // Update Staff Profile
     Route::put('/staff/profile', function (Request $request) {

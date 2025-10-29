@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TrainerSidebar from '../../layouts/trainer/TrainerSidebar';
 import {
   MdMenu,
@@ -10,7 +10,8 @@ import {
   MdCalendarToday,
   MdPrint,
   MdDownload,
-  MdPeople
+  MdPeople,
+  MdInfo
 } from 'react-icons/md';
 
 const TrainerAttendance = () => {
@@ -18,87 +19,138 @@ const TrainerAttendance = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedProgram, setSelectedProgram] = useState('all');
-  const [selectedSection, setSelectedSection] = useState('all');
+  const [selectedBatch, setSelectedBatch] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [students, setStudents] = useState([]);
+  const [batches, setBatches] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [saving, setSaving] = useState(false);
 
-  const sections = [
-    { value: 'morning-a', label: 'Morning A - 8:00 AM to 12:00 PM' },
-    { value: 'morning-b', label: 'Morning B - 9:00 AM to 1:00 PM' },
-    { value: 'afternoon-a', label: 'Afternoon A - 1:00 PM to 5:00 PM' },
-    { value: 'afternoon-b', label: 'Afternoon B - 2:00 PM to 6:00 PM' },
-  ];
+  useEffect(() => {
+    fetchBatches();
+    fetchPrograms();
+  }, []);
 
-  const programs = [
-    { value: 'bartending-nc-ii', label: 'Bartending NC II' },
-    { value: 'barista-training-nc-ii', label: 'Barista Training NC II' },
-    { value: 'housekeeping-nc-ii', label: 'Housekeeping NC II' },
-    { value: 'food-beverage-services-nc-ii', label: 'Food and Beverage Services NC II' },
-    { value: 'bread-pastry-production-nc-ii', label: 'Bread and Pastry Production NC II' },
-  ];
+  useEffect(() => {
+    if (selectedDate) {
+      fetchStudents();
+    }
+  }, [selectedDate, selectedBatch, selectedProgram]);
 
-  const students = [
-    {
-      id: 1,
-      name: 'John Doe',
-      studentId: 'STU-2025-001',
-      program: 'bartending-nc-ii',
-      section: 'morning-a',
-      attendance: 'present',
-      timeIn: '08:30 AM',
-      timeOut: '05:00 PM',
-      totalHours: 8.5,
-      attendancePercentage: 95
-    },
-    {
-      id: 2,
-      name: 'Jane Smith',
-      studentId: 'STU-2025-002',
-      program: 'barista-training-nc-ii',
-      section: 'morning-b',
-      attendance: 'late',
-      timeIn: '09:15 AM',
-      timeOut: '05:00 PM',
-      totalHours: 7.75,
-      attendancePercentage: 88
-    },
-    {
-      id: 3,
-      name: 'Mike Johnson',
-      studentId: 'STU-2025-003',
-      program: 'housekeeping-nc-ii',
-      section: 'afternoon-a',
-      attendance: 'absent',
-      timeIn: null,
-      timeOut: null,
-      totalHours: 0,
-      attendancePercentage: 92
-    },
-    // Add more students as needed
-  ];
+  const fetchBatches = async () => {
+    try {
+      const token = localStorage.getItem('trainerToken');
+      const response = await fetch('http://localhost:8000/api/trainer/batches', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
-  const filteredStudents = students.filter(student => {
-    const matchesProgram = selectedProgram === 'all' || student.program === selectedProgram;
-    const matchesSection = selectedSection === 'all' || student.section === selectedSection;
-    const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         student.studentId.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesProgram && matchesSection && matchesSearch;
-  });
-
-  const getAttendanceStatusColor = (status) => {
-    switch (status) {
-      case 'present':
-        return 'text-green-600 bg-green-50';
-      case 'late':
-        return 'text-yellow-600 bg-yellow-50';
-      case 'absent':
-        return 'text-red-600 bg-red-50';
-      default:
-        return 'text-gray-600 bg-gray-50';
+      const data = await response.json();
+      if (data.success) {
+        setBatches(data.data);
+      }
+    } catch (err) {
+      console.error('Error fetching batches:', err);
     }
   };
 
-  const handleAttendanceChange = (studentId, status) => {
-    console.log('Attendance updated:', { studentId, status });
+  const fetchPrograms = async () => {
+    try {
+      const token = localStorage.getItem('trainerToken');
+      const response = await fetch('http://localhost:8000/api/trainer/assigned-programs', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      if (data.programs) {
+        setPrograms(data.programs);
+      }
+    } catch (err) {
+      console.error('Error fetching programs:', err);
+    }
+  };
+
+  const fetchStudents = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const token = localStorage.getItem('trainerToken');
+      
+      const params = new URLSearchParams({
+        date: selectedDate,
+      });
+      
+      if (selectedBatch !== 'all') {
+        params.append('batch_id', selectedBatch);
+      }
+      
+      if (selectedProgram !== 'all') {
+        params.append('program_id', selectedProgram);
+      }
+
+      const response = await fetch(`http://localhost:8000/api/trainer/attendance/students?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setStudents(data.data);
+      } else {
+        setError(data.message || 'Failed to load students');
+      }
+    } catch (err) {
+      console.error('Error fetching students:', err);
+      setError('Failed to load students. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAttendanceChange = async (student, status) => {
+    try {
+      setSaving(true);
+      const token = localStorage.getItem('trainerToken');
+
+      const response = await fetch('http://localhost:8000/api/trainer/attendance/mark', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: student.id,
+          batch_id: student.batch_id,
+          date: selectedDate,
+          status: status,
+          time_in: status !== 'absent' ? `${selectedDate} ${student.schedule_time_start}` : null,
+          time_out: status !== 'absent' ? `${selectedDate} ${student.schedule_time_end}` : null,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // Refresh the student list to get updated data
+        fetchStudents();
+      } else {
+        setError(data.message || 'Failed to mark attendance');
+      }
+    } catch (err) {
+      console.error('Error marking attendance:', err);
+      setError('Failed to mark attendance. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -167,24 +219,24 @@ const TrainerAttendance = () => {
                 >
                   <option value="all">All Programs</option>
                   {programs.map((program) => (
-                    <option key={program.value} value={program.value}>
-                      {program.label}
+                    <option key={program.id} value={program.id}>
+                      {program.name}
                     </option>
                   ))}
                 </select>
               </div>
 
-              {/* Section Filter */}
+              {/* Batch Filter */}
               <div className="relative">
                 <select
-                  value={selectedSection}
-                  onChange={(e) => setSelectedSection(e.target.value)}
+                  value={selectedBatch}
+                  onChange={(e) => setSelectedBatch(e.target.value)}
                   className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md"
                 >
-                  <option value="all">All Sections</option>
-                  {sections.map((section) => (
-                    <option key={section.value} value={section.value}>
-                      {section.label}
+                  <option value="all">All Batches</option>
+                  {batches.map((batch) => (
+                    <option key={batch.batch_id} value={batch.batch_id}>
+                      {batch.batch_id} - {batch.program_name}
                     </option>
                   ))}
                 </select>
@@ -209,87 +261,153 @@ const TrainerAttendance = () => {
 
         {/* Content */}
         <div className="p-6">
-          <div className="bg-white rounded-lg shadow">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Student
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Program
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Time In
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Time Out
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Total Hours
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Attendance %
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredStudents.map((student) => (
-                    <tr key={student.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">{student.name}</div>
-                            <div className="text-sm text-gray-500">{student.studentId}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {programs.find(p => p.value === student.program)?.label}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <select
-                          value={student.attendance}
-                          onChange={(e) => handleAttendanceChange(student.id, e.target.value)}
-                          className={`text-sm rounded-full px-3 py-1 font-medium ${getAttendanceStatusColor(student.attendance)}`}
-                        >
-                          <option value="present">Present</option>
-                          <option value="late">Late</option>
-                          <option value="absent">Absent</option>
-                        </select>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {student.timeIn || '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {student.timeOut || '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {student.totalHours > 0 ? `${student.totalHours}h` : '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="relative w-16 h-2 bg-gray-200 rounded-full mr-2">
-                            <div
-                              className="absolute left-0 top-0 h-2 bg-green-500 rounded-full"
-                              style={{ width: `${student.attendancePercentage}%` }}
-                            />
-                          </div>
-                          <span className="text-sm text-gray-900">{student.attendancePercentage}%</span>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          {loading && (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                <p className="text-gray-600">Loading students...</p>
+              </div>
             </div>
-          </div>
+          )}
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+              <p className="text-red-700">{error}</p>
+            </div>
+          )}
+
+          {/* Batch Date Info */}
+          {!loading && selectedBatch !== 'all' && batches.length > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <div className="flex items-start">
+                <MdInfo className="h-5 w-5 text-blue-600 mt-0.5 mr-2" />
+                <div className="text-sm text-blue-700">
+                  {(() => {
+                    const batch = batches.find(b => b.batch_id === selectedBatch);
+                    if (batch) {
+                      const startDate = new Date(batch.start_date).toLocaleDateString('en-US', { 
+                        year: 'numeric', month: 'short', day: 'numeric' 
+                      });
+                      const endDate = new Date(batch.end_date).toLocaleDateString('en-US', { 
+                        year: 'numeric', month: 'short', day: 'numeric' 
+                      });
+                      return (
+                        <>
+                          <strong>Batch Period:</strong> {startDate} to {endDate}
+                          <br />
+                          <span className="text-xs">Attendance can only be marked within this date range.</span>
+                        </>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!loading && !error && (
+            <div className="bg-white rounded-lg shadow">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Student
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Program
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Batch
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Attendance %
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {students.filter(student => {
+                      const matchesProgram = selectedProgram === 'all' || student.program_id === parseInt(selectedProgram);
+                      const matchesBatch = selectedBatch === 'all' || student.batch_id === selectedBatch;
+                      const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                           (student.student_id && student.student_id.toLowerCase().includes(searchQuery.toLowerCase()));
+                      return matchesProgram && matchesBatch && matchesSearch;
+                    }).map((student) => {
+                      const currentStatus = student.attendance?.status || 'absent';
+                      return (
+                        <tr key={student.id}>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div>
+                                <div className="text-sm font-medium text-gray-900">{student.name}</div>
+                                <div className="text-sm text-gray-500">{student.student_id}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{student.program_name}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{student.batch_id}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <select
+                              value={currentStatus}
+                              onChange={(e) => handleAttendanceChange(student, e.target.value)}
+                              disabled={saving}
+                              className={`text-sm rounded-full px-3 py-1 font-medium border ${
+                                saving ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                              } ${
+                                currentStatus === 'present' ? 'text-green-700 bg-green-50 border-green-200' :
+                                currentStatus === 'late' ? 'text-yellow-700 bg-yellow-50 border-yellow-200' :
+                                currentStatus === 'excused' ? 'text-blue-700 bg-blue-50 border-blue-200' :
+                                'text-red-700 bg-red-50 border-red-200'
+                              }`}
+                            >
+                              <option value="present">Present</option>
+                              <option value="late">Late</option>
+                              <option value="absent">Absent</option>
+                              <option value="excused">Excused</option>
+                            </select>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="relative w-16 h-2 bg-gray-200 rounded-full mr-2">
+                                <div
+                                  className="absolute left-0 top-0 h-2 bg-green-500 rounded-full"
+                                  style={{ width: `${student.attendance_percentage}%` }}
+                                />
+                              </div>
+                              <span className="text-sm text-gray-900">{student.attendance_percentage}%</span>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {students.length === 0 && (
+                      <tr>
+                        <td colSpan="5" className="px-6 py-12 text-center">
+                          <div className="text-gray-500">
+                            <MdPeople className="h-12 w-12 mx-auto mb-2 text-gray-400" />
+                            <p className="font-medium mb-2">No students found</p>
+                            <p className="text-sm">
+                              {selectedDate && batches.length > 0 
+                                ? "No students found for the selected date and filters. Please ensure the selected date falls within the batch start and end dates."
+                                : "No students found for the selected filters."}
+                            </p>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
