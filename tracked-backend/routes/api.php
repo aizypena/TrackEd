@@ -463,7 +463,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         $programs = DB::table('batches')
             ->join('programs', 'batches.program_id', '=', 'programs.id')
             ->where('batches.trainer_id', $user->id)
-            ->select('programs.id', 'programs.name', 'programs.code')
+            ->select('programs.id', 'programs.title')
             ->distinct()
             ->get();
         
@@ -1122,6 +1122,265 @@ Route::middleware(['auth:sanctum'])->group(function () {
             'success' => true,
             'message' => 'Grade updated successfully',
             'grade' => $grade
+        ]);
+    });
+    
+    // Course Materials Routes
+    // Get course materials for trainer's assigned programs
+    Route::get('/trainer/course-materials', function (Request $request) {
+        $trainer = $request->user();
+        
+        if ($trainer->role !== 'trainer') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+        
+        // Get programs assigned to this trainer
+        $programIds = DB::table('batches')
+            ->where('trainer_id', $trainer->id)
+            ->distinct()
+            ->pluck('program_id');
+        
+        // Get materials for these programs
+        $materials = \App\Models\CourseMaterial::whereIn('program_id', $programIds)
+            ->with(['program', 'uploader'])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($material) {
+                return [
+                    'id' => $material->id,
+                    'title' => $material->title,
+                    'description' => $material->description,
+                    'program_id' => $material->program_id,
+                    'program_title' => $material->program->title,
+                    'type' => $material->type,
+                    'format' => $material->file_format,
+                    'size' => $material->file_size,
+                    'file_name' => $material->file_name,
+                    'downloads' => $material->downloads,
+                    'uploaded_by' => $material->uploader->first_name . ' ' . $material->uploader->last_name,
+                    'uploaded_at' => $material->created_at->toDateString(),
+                ];
+            });
+        
+        return response()->json([
+            'success' => true,
+            'materials' => $materials
+        ]);
+    });
+    
+    // Upload course material
+    Route::post('/trainer/course-materials/upload', function (Request $request) {
+        $trainer = $request->user();
+        
+        if ($trainer->role !== 'trainer') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+        
+        $request->validate([
+            'program_id' => 'required|exists:programs,id',
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'type' => 'required|in:document,video,presentation,image,assessment',
+            'file' => 'required|file|max:512000', // 500MB max
+        ]);
+        
+        // Verify trainer has access to this program
+        $hasAccess = DB::table('batches')
+            ->where('trainer_id', $trainer->id)
+            ->where('program_id', $request->program_id)
+            ->exists();
+        
+        if (!$hasAccess) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have access to upload materials for this program'
+            ], 403);
+        }
+        
+        // Handle file upload
+        $file = $request->file('file');
+        $originalName = $file->getClientOriginalName();
+        $extension = $file->getClientOriginalExtension();
+        $fileSize = $file->getSize();
+        
+        // Create unique filename
+        $fileName = time() . '_' . uniqid() . '.' . $extension;
+        
+        // Store file in storage/app/public/course_materials
+        $path = $file->storeAs('course_materials', $fileName, 'public');
+        
+        // Create database record
+        $material = \App\Models\CourseMaterial::create([
+            'program_id' => $request->program_id,
+            'uploaded_by' => $trainer->id,
+            'title' => $request->title,
+            'description' => $request->description,
+            'type' => $request->type,
+            'file_path' => $path,
+            'file_name' => $originalName,
+            'file_format' => $extension,
+            'file_size' => $fileSize,
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Material uploaded successfully',
+            'material' => [
+                'id' => $material->id,
+                'title' => $material->title,
+                'file_name' => $material->file_name,
+            ]
+        ], 201);
+    });
+    
+    // Download course material
+    Route::get('/trainer/course-materials/{id}/download', function (Request $request, $id) {
+        $trainer = $request->user();
+        
+        if ($trainer->role !== 'trainer') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+        
+        $material = \App\Models\CourseMaterial::find($id);
+        
+        if (!$material) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Material not found'
+            ], 404);
+        }
+        
+        // Verify trainer has access to this program
+        $hasAccess = DB::table('batches')
+            ->where('trainer_id', $trainer->id)
+            ->where('program_id', $material->program_id)
+            ->exists();
+        
+        if (!$hasAccess) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have access to this material'
+            ], 403);
+        }
+        
+        // Increment download count
+        $material->increment('downloads');
+        
+        // Return file download
+        $filePath = storage_path('app/public/' . $material->file_path);
+        
+        if (!file_exists($filePath)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'File not found'
+            ], 404);
+        }
+        
+        return response()->download($filePath, $material->file_name);
+    });
+    
+    // Delete course material
+    Route::delete('/trainer/course-materials/{id}', function (Request $request, $id) {
+        $trainer = $request->user();
+        
+        if ($trainer->role !== 'trainer') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+        
+        $material = \App\Models\CourseMaterial::find($id);
+        
+        if (!$material) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Material not found'
+            ], 404);
+        }
+        
+        // Verify trainer uploaded this material
+        if ($material->uploaded_by !== $trainer->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You can only delete materials you uploaded'
+            ], 403);
+        }
+        
+        // Delete file from storage
+        $filePath = storage_path('app/public/' . $material->file_path);
+        if (file_exists($filePath)) {
+            unlink($filePath);
+        }
+        
+        // Delete database record
+        $material->delete();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Material deleted successfully'
+        ]);
+    });
+    
+    // Update course material
+    Route::put('/trainer/course-materials/{id}', function (Request $request, $id) {
+        $trainer = $request->user();
+        
+        if ($trainer->role !== 'trainer') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+        
+        $material = \App\Models\CourseMaterial::find($id);
+        
+        if (!$material) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Material not found'
+            ], 404);
+        }
+        
+        // Verify trainer uploaded this material
+        if ($material->uploaded_by !== $trainer->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You can only edit materials you uploaded'
+            ], 403);
+        }
+        
+        $request->validate([
+            'title' => 'sometimes|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'type' => 'sometimes|in:document,video,presentation,image,assessment',
+        ]);
+        
+        if ($request->has('title')) {
+            $material->title = $request->title;
+        }
+        if ($request->has('description')) {
+            $material->description = $request->description;
+        }
+        if ($request->has('type')) {
+            $material->type = $request->type;
+        }
+        
+        $material->save();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Material updated successfully',
+            'material' => $material
         ]);
     });
     

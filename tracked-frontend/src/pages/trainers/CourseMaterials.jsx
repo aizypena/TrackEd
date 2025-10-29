@@ -16,7 +16,8 @@ import {
   MdDescription,
   MdFolder,
   MdKeyboardArrowDown,
-  MdKeyboardArrowUp
+  MdKeyboardArrowUp,
+  MdImage
 } from 'react-icons/md';
 
 const CourseMaterials = () => {
@@ -27,13 +28,37 @@ const CourseMaterials = () => {
   const [expandedPrograms, setExpandedPrograms] = useState({});
   const [assignedPrograms, setAssignedPrograms] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [materials, setMaterials] = useState([]);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [selectedProgram, setSelectedProgram] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingMaterial, setEditingMaterial] = useState(null);
+  const [toast, setToast] = useState({ show: false, message: '', type: '' });
+  
+  const [uploadForm, setUploadForm] = useState({
+    title: '',
+    description: '',
+    type: 'document',
+    file: null
+  });
 
-  // Fetch assigned programs on mount
+  // Toast notification function
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: '', type: '' });
+    }, 3000);
+  };
+
+  // Fetch assigned programs and materials on mount
   useEffect(() => {
-    const fetchAssignedPrograms = async () => {
+    const fetchData = async () => {
       try {
         const token = getTrainerToken();
-        const response = await fetch('http://localhost:8000/api/trainer/assigned-programs', {
+        
+        // Fetch assigned programs
+        const programsResponse = await fetch('http://localhost:8000/api/trainer/assigned-programs', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -41,32 +66,44 @@ const CourseMaterials = () => {
           }
         });
 
-        if (response.ok) {
-          const data = await response.json();
-          setAssignedPrograms(data.programs);
-        } else {
-          console.error('Failed to fetch assigned programs');
+        if (programsResponse.ok) {
+          const programsData = await programsResponse.json();
+          setAssignedPrograms(programsData.programs);
+        }
+        
+        // Fetch course materials
+        const materialsResponse = await fetch('http://localhost:8000/api/trainer/course-materials', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        });
+
+        if (materialsResponse.ok) {
+          const materialsData = await materialsResponse.json();
+          setMaterials(materialsData.materials || []);
         }
       } catch (error) {
-        console.error('Error fetching assigned programs:', error);
+        console.error('Error fetching data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchAssignedPrograms();
+    fetchData();
   }, []);
 
-  // Map program codes to match material program values
-  const programCodeMap = {
-    'BART-NC2': 'bartending-nc-ii',
-    'BARI-NC2': 'barista-training-nc-ii',
-    'HOUSE-NC2': 'housekeeping-nc-ii',
-    'FBS-NC2': 'food-beverage-services-nc-ii',
-    'BPP-NC2': 'bread-pastry-production-nc-ii',
-    'EM-NC3': 'events-management-nc-iii',
-    'CCS-NC2': 'chefs-catering-services-nc-ii',
-    'COOK-NC2': 'cookery-nc-ii',
+  // Map program titles to match material program values
+  const programTitleMap = {
+    'Bartending NC II': 'bartending-nc-ii',
+    'Barista Training NC II': 'barista-training-nc-ii',
+    'Housekeeping NC II': 'housekeeping-nc-ii',
+    'Food and Beverage Services NC II': 'food-beverage-services-nc-ii',
+    'Bread and Pastry Production NC II': 'bread-pastry-production-nc-ii',
+    'Events Management NC III': 'events-management-nc-iii',
+    "Chef's Catering Services NC II": 'chefs-catering-services-nc-ii',
+    'Cookery NC II': 'cookery-nc-ii',
   };
 
   const programs = [
@@ -88,8 +125,8 @@ const CourseMaterials = () => {
     
     // Check if this program is assigned to the trainer
     return assignedPrograms.some(assigned => {
-      const mappedCode = programCodeMap[assigned.code];
-      return mappedCode === program.value;
+      const mappedValue = programTitleMap[assigned.title];
+      return mappedValue === program.value;
     });
   });
 
@@ -98,143 +135,35 @@ const CourseMaterials = () => {
     { value: 'document', label: 'Documents' },
     { value: 'video', label: 'Videos' },
     { value: 'presentation', label: 'Presentations' },
+    { value: 'image', label: 'Images' },
     { value: 'assessment', label: 'Assessments' }
   ];
 
-  const materials = [
-    {
-      id: 1,
-      title: 'Introduction to Bartending',
-      program: 'bartending-nc-ii',
-      type: 'document',
-      format: 'pdf',
-      size: '2.4 MB',
-      uploadDate: '2025-10-01',
-      description: 'Basic principles and techniques of bartending',
-      downloads: 45,
-      icon: <MdPictureAsPdf className="h-8 w-8 text-red-500" />
-    },
-    {
-      id: 2,
-      title: 'Advanced Cocktail Mixing',
-      program: 'bartending-nc-ii',
-      type: 'video',
-      format: 'mp4',
-      size: '120 MB',
-      uploadDate: '2025-10-05',
-      description: 'Professional cocktail preparation techniques',
-      downloads: 38,
-      icon: <MdVideoLibrary className="h-8 w-8 text-blue-500" />
-    },
-    {
-      id: 3,
-      title: 'Coffee Making Techniques',
-      program: 'barista-training-nc-ii',
-      type: 'video',
-      format: 'mp4',
-      size: '156 MB',
-      uploadDate: '2025-09-28',
-      description: 'Step-by-step guide to brewing perfect coffee',
-      downloads: 32,
-      icon: <MdVideoLibrary className="h-8 w-8 text-blue-500" />
-    },
-    {
-      id: 4,
-      title: 'Espresso Fundamentals',
-      program: 'barista-training-nc-ii',
-      type: 'document',
-      format: 'pdf',
-      size: '3.2 MB',
-      uploadDate: '2025-09-30',
-      description: 'Understanding espresso extraction and quality',
-      downloads: 41,
-      icon: <MdPictureAsPdf className="h-8 w-8 text-red-500" />
-    },
-    {
-      id: 5,
-      title: 'Room Cleaning Standards',
-      program: 'housekeeping-nc-ii',
-      type: 'presentation',
-      format: 'pptx',
-      size: '5.1 MB',
-      uploadDate: '2025-09-25',
-      description: 'Professional housekeeping guidelines',
-      downloads: 28,
-      icon: <MdDescription className="h-8 w-8 text-yellow-500" />
-    },
-    {
-      id: 6,
-      title: 'Linen Management',
-      program: 'housekeeping-nc-ii',
-      type: 'document',
-      format: 'pdf',
-      size: '1.8 MB',
-      uploadDate: '2025-09-27',
-      description: 'Best practices for linen care and inventory',
-      downloads: 24,
-      icon: <MdPictureAsPdf className="h-8 w-8 text-red-500" />
-    },
-    {
-      id: 7,
-      title: 'Customer Service Excellence',
-      program: 'food-beverage-services-nc-ii',
-      type: 'presentation',
-      format: 'pptx',
-      size: '4.5 MB',
-      uploadDate: '2025-10-02',
-      description: 'Delivering exceptional dining experiences',
-      downloads: 36,
-      icon: <MdDescription className="h-8 w-8 text-yellow-500" />
-    },
-    {
-      id: 8,
-      title: 'Pastry Basics',
-      program: 'bread-pastry-production-nc-ii',
-      type: 'video',
-      format: 'mp4',
-      size: '180 MB',
-      uploadDate: '2025-09-29',
-      description: 'Introduction to pastry making techniques',
-      downloads: 52,
-      icon: <MdVideoLibrary className="h-8 w-8 text-blue-500" />
-    },
-    {
-      id: 9,
-      title: 'Event Planning Essentials',
-      program: 'events-management-nc-iii',
-      type: 'document',
-      format: 'pdf',
-      size: '3.8 MB',
-      uploadDate: '2025-10-03',
-      description: 'Comprehensive guide to event coordination',
-      downloads: 29,
-      icon: <MdPictureAsPdf className="h-8 w-8 text-red-500" />
-    },
-    {
-      id: 10,
-      title: 'Catering Menu Design',
-      program: 'chefs-catering-services-nc-ii',
-      type: 'presentation',
-      format: 'pptx',
-      size: '6.2 MB',
-      uploadDate: '2025-10-01',
-      description: 'Creating appealing and practical catering menus',
-      downloads: 34,
-      icon: <MdDescription className="h-8 w-8 text-yellow-500" />
-    },
-    {
-      id: 11,
-      title: 'Basic Cooking Techniques',
-      program: 'cookery-nc-ii',
-      type: 'video',
-      format: 'mp4',
-      size: '145 MB',
-      uploadDate: '2025-10-04',
-      description: 'Fundamental culinary skills and methods',
-      downloads: 47,
-      icon: <MdVideoLibrary className="h-8 w-8 text-blue-500" />
-    },
-  ];
+  // Helper function to get file icon based on format
+  const getFileIcon = (format, type) => {
+    const lowerFormat = format?.toLowerCase() || '';
+    
+    if (['pdf'].includes(lowerFormat) || type === 'document') {
+      return <MdPictureAsPdf className="h-8 w-8 text-red-500" />;
+    } else if (['mp4', 'avi', 'mov', 'wmv'].includes(lowerFormat) || type === 'video') {
+      return <MdVideoLibrary className="h-8 w-8 text-blue-500" />;
+    } else if (['ppt', 'pptx'].includes(lowerFormat) || type === 'presentation') {
+      return <MdDescription className="h-8 w-8 text-yellow-500" />;
+    } else if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(lowerFormat) || type === 'image') {
+      return <MdImage className="h-8 w-8 text-green-500" />;
+    } else {
+      return <MdDescription className="h-8 w-8 text-gray-500" />;
+    }
+  };
+
+  // Helper function to format file size
+  const formatFileSize = (bytes) => {
+    if (!bytes) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+  };
 
   const toggleProgramExpansion = (programValue) => {
     setExpandedPrograms(prev => ({
@@ -258,33 +187,209 @@ const CourseMaterials = () => {
   };
 
   const getProgramMaterials = (programValue) => {
+    // Find program ID from programValue
+    const program = programs.find(p => p.value === programValue);
+    if (!program) return [];
+    
+    const assignedProgram = assignedPrograms.find(ap => {
+      const mappedValue = programTitleMap[ap.title];
+      return mappedValue === programValue;
+    });
+    
+    if (!assignedProgram) return [];
+    
     return materials.filter(material => {
-      const matchesProgram = material.program === programValue;
+      const matchesProgram = material.program_id === assignedProgram.id;
       const matchesType = selectedType === 'all' || material.type === selectedType;
       const matchesSearch = material.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           material.description.toLowerCase().includes(searchQuery.toLowerCase());
+                           (material.description && material.description.toLowerCase().includes(searchQuery.toLowerCase()));
       return matchesProgram && matchesType && matchesSearch;
     });
   };
 
   const handleUpload = (programValue) => {
-    // Implement file upload logic for specific program
-    console.log('Upload clicked for program:', programValue);
+    const program = programs.find(p => p.value === programValue);
+    if (!program) return;
+    
+    const assignedProgram = assignedPrograms.find(ap => {
+      const mappedValue = programTitleMap[ap.title];
+      return mappedValue === programValue;
+    });
+    
+    if (!assignedProgram) return;
+    
+    setSelectedProgram(assignedProgram);
+    setUploadModalOpen(true);
   };
 
-  const handleDelete = (id) => {
-    // Implement delete logic
-    console.log('Delete clicked for id:', id);
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setUploadForm(prev => ({ ...prev, file }));
+    }
   };
 
-  const handleEdit = (id) => {
-    // Implement edit logic
-    console.log('Edit clicked for id:', id);
+  const handleUploadSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!uploadForm.file || !uploadForm.title || !selectedProgram) {
+      showToast('Please fill in all required fields', 'error');
+      return;
+    }
+    
+    setUploading(true);
+    
+    try {
+      const token = getTrainerToken();
+      const formData = new FormData();
+      formData.append('program_id', selectedProgram.id);
+      formData.append('title', uploadForm.title);
+      formData.append('description', uploadForm.description);
+      formData.append('type', uploadForm.type);
+      formData.append('file', uploadForm.file);
+      
+      const response = await fetch('http://localhost:8000/api/trainer/course-materials/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData
+      });
+
+      if (response.ok) {
+        showToast('Material uploaded successfully!', 'success');
+        setUploadModalOpen(false);
+        setUploadForm({ title: '', description: '', type: 'document', file: null });
+        
+        // Refresh materials
+        const materialsResponse = await fetch('http://localhost:8000/api/trainer/course-materials', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        });
+
+        if (materialsResponse.ok) {
+          const materialsData = await materialsResponse.json();
+          setMaterials(materialsData.materials || []);
+        }
+      } else {
+        const error = await response.json();
+        showToast(error.message || 'Failed to upload material', 'error');
+      }
+    } catch (error) {
+      console.error('Error uploading material:', error);
+      showToast('Failed to upload material', 'error');
+    } finally {
+      setUploading(false);
+    }
   };
 
-  const handleDownload = (id) => {
-    // Implement download logic
-    console.log('Download clicked for id:', id);
+  const handleDelete = async (id) => {
+    if (!confirm('Are you sure you want to delete this material?')) {
+      return;
+    }
+    
+    try {
+      const token = getTrainerToken();
+      const response = await fetch(`http://localhost:8000/api/trainer/course-materials/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (response.ok) {
+        showToast('Material deleted successfully', 'success');
+        setMaterials(materials.filter(m => m.id !== id));
+      } else {
+        const error = await response.json();
+        showToast(error.message || 'Failed to delete material', 'error');
+      }
+    } catch (error) {
+      console.error('Error deleting material:', error);
+      showToast('Failed to delete material', 'error');
+    }
+  };
+
+  const handleEdit = (material) => {
+    setEditingMaterial(material);
+    setUploadForm({
+      title: material.title,
+      description: material.description || '',
+      type: material.type,
+      file: null
+    });
+    setEditModalOpen(true);
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!uploadForm.title || !editingMaterial) {
+      showToast('Please fill in all required fields', 'error');
+      return;
+    }
+    
+    setUploading(true);
+    
+    try {
+      const token = getTrainerToken();
+      const response = await fetch(`http://localhost:8000/api/trainer/course-materials/${editingMaterial.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: uploadForm.title,
+          description: uploadForm.description,
+          type: uploadForm.type,
+        })
+      });
+
+      if (response.ok) {
+        showToast('Material updated successfully!', 'success');
+        setEditModalOpen(false);
+        setEditingMaterial(null);
+        setUploadForm({ title: '', description: '', type: 'document', file: null });
+        
+        // Refresh materials
+        const materialsResponse = await fetch('http://localhost:8000/api/trainer/course-materials', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        });
+
+        if (materialsResponse.ok) {
+          const materialsData = await materialsResponse.json();
+          setMaterials(materialsData.materials || []);
+        }
+      } else {
+        const error = await response.json();
+        showToast(error.message || 'Failed to update material', 'error');
+      }
+    } catch (error) {
+      console.error('Error updating material:', error);
+      showToast('Failed to update material', 'error');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDownload = async (id) => {
+    try {
+      const token = getTrainerToken();
+      window.open(`http://localhost:8000/api/trainer/course-materials/${id}/download?token=${token}`, '_blank');
+      showToast('Download started', 'success');
+    } catch (error) {
+      console.error('Error downloading material:', error);
+      showToast('Failed to download material', 'error');
+    }
   };
 
   return (
@@ -420,19 +525,19 @@ const CourseMaterials = () => {
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-4 flex-1">
                               <div className="p-3 bg-gray-50 rounded-lg">
-                                {material.icon}
+                                {getFileIcon(material.format, material.type)}
                               </div>
                               <div className="flex-1">
                                 <h3 className="text-base font-semibold text-gray-900">{material.title}</h3>
-                                <p className="text-sm text-gray-500 mt-1">{material.description}</p>
+                                <p className="text-sm text-gray-500 mt-1">{material.description || 'No description'}</p>
                                 <div className="flex items-center mt-2 space-x-4">
                                   <span className="text-xs text-gray-500 flex items-center">
                                     <MdDescription className="h-3 w-3 mr-1" />
-                                    {material.format.toUpperCase()}
+                                    {material.format?.toUpperCase()}
                                   </span>
-                                  <span className="text-xs text-gray-500">{material.size}</span>
+                                  <span className="text-xs text-gray-500">{formatFileSize(material.size)}</span>
                                   <span className="text-xs text-gray-500">
-                                    {new Date(material.uploadDate).toLocaleDateString()}
+                                    {new Date(material.uploaded_at).toLocaleDateString()}
                                   </span>
                                   <span className="text-xs text-gray-500">
                                     <MdDownload className="h-3 w-3 inline mr-1" />
@@ -450,7 +555,7 @@ const CourseMaterials = () => {
                                 <MdDownload className="h-5 w-5" />
                               </button>
                               <button
-                                onClick={() => handleEdit(material.id)}
+                                onClick={() => handleEdit(material)}
                                 className="p-2 text-gray-600 hover:text-yellow-600 hover:bg-yellow-50 rounded-full transition-colors"
                                 title="Edit"
                               >
@@ -488,6 +593,255 @@ const CourseMaterials = () => {
           )}
         </div>
       </div>
+
+      {/* Upload Modal */}
+      {uploadModalOpen && (
+        <div 
+          className="fixed inset-0 flex items-center justify-center z-50 p-4"
+          style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)'
+          }}
+        >
+          <div 
+            className="rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)'
+            }}
+          >
+            <div className="p-6">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+                Upload Material for {selectedProgram?.title}
+              </h2>
+              <form onSubmit={handleUploadSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Title <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={uploadForm.title}
+                    onChange={(e) => setUploadForm(prev => ({ ...prev, title: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., Introduction to Bartending"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    value={uploadForm.description}
+                    onChange={(e) => setUploadForm(prev => ({ ...prev, description: e.target.value }))}
+                    rows="3"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Brief description of the material"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Type <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    required
+                    value={uploadForm.type}
+                    onChange={(e) => setUploadForm(prev => ({ ...prev, type: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="document">Document</option>
+                    <option value="video">Video</option>
+                    <option value="presentation">Presentation</option>
+                    <option value="image">Image</option>
+                    <option value="assessment">Assessment</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    File <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="file"
+                    required
+                    onChange={handleFileChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {uploadForm.file && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      Selected: {uploadForm.file.name} ({formatFileSize(uploadForm.file.size)})
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">Maximum file size: 500MB</p>
+                </div>
+
+                <div className="flex items-center space-x-3 pt-4">
+                  <button
+                    type="submit"
+                    disabled={uploading}
+                    className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {uploading ? 'Uploading...' : 'Upload'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUploadModalOpen(false);
+                      setUploadForm({ title: '', description: '', type: 'document', file: null });
+                    }}
+                    disabled={uploading}
+                    className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editModalOpen && (
+        <div 
+          className="fixed inset-0 flex items-center justify-center z-50 p-4"
+          style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)'
+          }}
+        >
+          <div 
+            className="rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)'
+            }}
+          >
+            <div className="p-6">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+                Edit Material
+              </h2>
+              <form onSubmit={handleEditSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Title <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={uploadForm.title}
+                    onChange={(e) => setUploadForm(prev => ({ ...prev, title: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    value={uploadForm.description}
+                    onChange={(e) => setUploadForm(prev => ({ ...prev, description: e.target.value }))}
+                    rows="3"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Type <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    required
+                    value={uploadForm.type}
+                    onChange={(e) => setUploadForm(prev => ({ ...prev, type: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="document">Document</option>
+                    <option value="video">Video</option>
+                    <option value="presentation">Presentation</option>
+                    <option value="image">Image</option>
+                    <option value="assessment">Assessment</option>
+                  </select>
+                </div>
+
+                <p className="text-sm text-gray-500">
+                  Note: You cannot change the file. To upload a different file, delete this material and upload a new one.
+                </p>
+
+                <div className="flex items-center space-x-3 pt-4">
+                  <button
+                    type="submit"
+                    disabled={uploading}
+                    className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {uploading ? 'Updating...' : 'Update'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditModalOpen(false);
+                      setEditingMaterial(null);
+                      setUploadForm({ title: '', description: '', type: 'document', file: null });
+                    }}
+                    disabled={uploading}
+                    className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast.show && (
+        <div 
+          className={`fixed top-4 right-4 z-[60] px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 ease-in-out ${
+            toast.type === 'success' 
+              ? 'bg-green-500 text-white' 
+              : 'bg-red-500 text-white'
+          }`}
+          style={{
+            animation: 'slideInRight 0.3s ease-out'
+          }}
+        >
+          <div className="flex items-center space-x-2">
+            {toast.type === 'success' ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            )}
+            <span className="font-medium">{toast.message}</span>
+          </div>
+        </div>
+      )}
+
+      <style jsx>{`
+        @keyframes slideInRight {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+      `}</style>
     </div>
   );
 };
