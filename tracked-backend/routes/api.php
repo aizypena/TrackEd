@@ -1546,6 +1546,74 @@ Route::middleware(['auth:sanctum'])->group(function () {
         ]);
     });
     
+    // Get Recent Course Materials for Student
+    Route::get('/student/recent-materials', function (Request $request) {
+        $student = $request->user();
+        
+        if (!$student || $student->role !== 'student') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+        
+        // Get student's batch
+        $batch = DB::table('batches')->where('batch_id', $student->batch_id)->first();
+        
+        if (!$batch) {
+            return response()->json([
+                'success' => true,
+                'materials' => []
+            ]);
+        }
+        
+        // Get recent materials for the student's program (last 3)
+        $materials = DB::table('course_materials')
+            ->where('program_id', $batch->program_id)
+            ->orderBy('created_at', 'desc')
+            ->limit(3)
+            ->get();
+        
+        // Get program name
+        $program = DB::table('programs')->where('id', $batch->program_id)->first();
+        $programName = $program ? $program->title : 'N/A';
+        
+        // Format materials
+        $formattedMaterials = $materials->map(function ($material) use ($programName) {
+            // Format file size
+            $fileSize = 'N/A';
+            if ($material->file_size) {
+                $bytes = floatval($material->file_size);
+                if ($bytes >= 1048576) {
+                    $fileSize = number_format($bytes / 1048576, 1) . ' MB';
+                } else if ($bytes >= 1024) {
+                    $fileSize = number_format($bytes / 1024, 1) . ' KB';
+                } else {
+                    $fileSize = $bytes . ' B';
+                }
+            }
+            
+            // Construct file URL
+            $fileUrl = url('storage/' . $material->file_path);
+            
+            return [
+                'id' => $material->id,
+                'title' => $material->title,
+                'description' => $material->description,
+                'file_type' => $material->file_format,
+                'file_url' => $fileUrl,
+                'file_size' => $fileSize,
+                'program_name' => $programName,
+                'created_at' => $material->created_at
+            ];
+        });
+        
+        return response()->json([
+            'success' => true,
+            'materials' => $formattedMaterials
+        ]);
+    });
+    
     // Staff Routes
     // Update Staff Profile
     Route::put('/staff/profile', function (Request $request) {

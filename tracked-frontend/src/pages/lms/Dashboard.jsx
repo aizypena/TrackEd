@@ -25,6 +25,8 @@ const StudentDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [pendingAssessments, setPendingAssessments] = useState([]);
   const [loadingAssessments, setLoadingAssessments] = useState(true);
+  const [recentMaterials, setRecentMaterials] = useState([]);
+  const [loadingMaterials, setLoadingMaterials] = useState(true);
 
   useEffect(() => {
     // Get user data from localStorage
@@ -33,6 +35,7 @@ const StudentDashboard = () => {
       setUser(userData);
       fetchStudentSchedule();
       fetchPendingAssessments();
+      fetchRecentMaterials();
     }
   }, []);
 
@@ -105,32 +108,33 @@ const StudentDashboard = () => {
     }
   };
 
-  const recentMaterials = [
-    {
-      id: 1,
-      title: "Basic Knife Skills and Safety.pdf",
-      course: "Cookery NC II",
-      type: "PDF",
-      uploadDate: "September 15, 2025",
-      size: "3.2 MB"
-    },
-    {
-      id: 2,
-      title: "Professional Service Standards.pptx",
-      course: "Food and Beverage Services NC II",
-      type: "Presentation",
-      uploadDate: "September 14, 2025",
-      size: "4.8 MB"
-    },
-    {
-      id: 3,
-      title: "Bread Making Techniques Tutorial.mp4",
-      course: "Bread and Pastry Production NC II",
-      type: "Video",
-      uploadDate: "September 13, 2025",
-      size: "52.1 MB"
+  const fetchRecentMaterials = async () => {
+    try {
+      setLoadingMaterials(true);
+      const token = localStorage.getItem('studentToken');
+      
+      const response = await fetch('http://localhost:8000/api/student/recent-materials', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setRecentMaterials(data.materials || []);
+      } else {
+        console.error('Failed to fetch recent materials');
+        setRecentMaterials([]);
+      }
+    } catch (error) {
+      console.error('Error fetching recent materials:', error);
+      setRecentMaterials([]);
+    } finally {
+      setLoadingMaterials(false);
     }
-  ];
+  };
 
   const certificates = [
     {
@@ -373,40 +377,63 @@ const StudentDashboard = () => {
                 <h2 className="text-lg font-semibold text-gray-900">Recent Materials</h2>
               </div>
               <div className="p-6">
-                <div className="space-y-4">
-                  {recentMaterials.map((material) => (
-                    <div key={material.id} className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2">
-                          <div className={`p-1 rounded ${
-                            material.type === 'PDF' ? 'bg-red-100 text-red-600' :
-                            material.type === 'Video' ? 'bg-purple-100 text-purple-600' :
-                            'bg-blue-100 text-blue-600'
-                          }`}>
-                            {material.type === 'PDF' ? (
-                              <MdPictureAsPdf className="h-4 w-4" />
-                            ) : material.type === 'Video' ? (
-                              <MdPlayCircleOutline className="h-4 w-4" />
-                            ) : (
-                              <MdDescription className="h-4 w-4" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">{material.title}</p>
-                            <p className="text-xs text-gray-500">{material.course}</p>
-                            <p className="text-xs text-gray-400">{material.size} • {material.uploadDate}</p>
+                {loadingMaterials ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading materials...</p>
+                  </div>
+                ) : recentMaterials.length === 0 ? (
+                  <div className="text-center py-8">
+                    <MdFolder className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">No materials available</p>
+                    <p className="text-gray-500 text-sm mt-2">Check back later for new materials</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {recentMaterials.map((material) => (
+                      <div key={material.id} className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2">
+                            <div className={`p-1 rounded ${
+                              material.file_type?.includes('pdf') ? 'bg-red-100 text-red-600' :
+                              material.file_type?.includes('video') ? 'bg-purple-100 text-purple-600' :
+                              'bg-blue-100 text-blue-600'
+                            }`}>
+                              {material.file_type?.includes('pdf') ? (
+                                <MdPictureAsPdf className="h-4 w-4" />
+                              ) : material.file_type?.includes('video') ? (
+                                <MdPlayCircleOutline className="h-4 w-4" />
+                              ) : (
+                                <MdDescription className="h-4 w-4" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate">{material.title}</p>
+                              <p className="text-xs text-gray-500">{material.program_name}</p>
+                              <p className="text-xs text-gray-400">
+                                {material.file_size} • {new Date(material.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </p>
+                            </div>
                           </div>
                         </div>
+                        <a 
+                          href={material.file_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="ml-2 text-blue-600 hover:text-blue-800 text-xs"
+                        >
+                          View
+                        </a>
                       </div>
-                      <button className="ml-2 text-blue-600 hover:text-blue-800 text-xs">
-                        Download
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <button className="w-full mt-4 px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded hover:bg-gray-50 transition-colors">
+                    ))}
+                  </div>
+                )}
+                <Link
+                  to="/smi-lms/course-materials"
+                  className="block w-full mt-4 px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded hover:bg-gray-50 transition-colors text-center"
+                >
                   Browse All Materials
-                </button>
+                </Link>
               </div>
             </div>
           </div>
