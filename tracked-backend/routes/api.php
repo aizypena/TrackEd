@@ -1848,4 +1848,94 @@ Route::middleware(['auth:sanctum'])->group(function () {
             ] : null
         ]);
     });
+
+    // Get student's own attendance records
+    Route::get('/student/attendance', function (Request $request) {
+        $user = $request->user();
+        
+        // Check if user is a student
+        if ($user->role !== 'student') {
+            return response()->json([
+                'error' => 'Unauthorized. Only students can access this endpoint.'
+            ], 403);
+        }
+        
+        // Check if student has a batch assigned
+        if (!$user->batch_id) {
+            return response()->json([
+                'success' => true,
+                'data' => [],
+                'message' => 'No batch assigned yet'
+            ]);
+        }
+        
+        // Get batch details
+        $batch = \App\Models\Batch::where('batch_id', $user->batch_id)->first();
+        
+        if (!$batch) {
+            return response()->json([
+                'error' => 'Batch not found'
+            ], 404);
+        }
+        
+        // Get program details
+        $program = \App\Models\Program::find($batch->program_id);
+        
+        // Get trainer details
+        $trainer = \App\Models\User::find($batch->trainer_id);
+        
+        // Get attendance records for this student
+        $attendanceRecords = DB::table('attendances')
+            ->where('user_id', $user->id)
+            ->where('batch_id', $user->batch_id)
+            ->orderBy('date', 'desc')
+            ->get();
+        
+        // Transform the records
+        $formattedRecords = $attendanceRecords->map(function ($record) use ($program, $trainer, $batch) {
+            return [
+                'id' => $record->id,
+                'date' => $record->date,
+                'status' => $record->status,
+                'time_in' => $record->time_in,
+                'time_out' => $record->time_out,
+                'total_hours' => $record->total_hours,
+                'remarks' => $record->remarks,
+                'courseTitle' => $program ? $program->title : 'N/A',
+                'courseCode' => $program ? $program->code : 'N/A',
+                'instructor' => $trainer ? ($trainer->first_name . ' ' . $trainer->last_name) : 'TBA',
+                'location' => 'Training Room',
+                'startTime' => substr($batch->schedule_time_start, 0, 5),
+                'endTime' => substr($batch->schedule_time_end, 0, 5),
+            ];
+        });
+        
+        // Calculate statistics
+        $total = $attendanceRecords->count();
+        $present = $attendanceRecords->where('status', 'present')->count();
+        $late = $attendanceRecords->where('status', 'late')->count();
+        $absent = $attendanceRecords->where('status', 'absent')->count();
+        $excused = $attendanceRecords->where('status', 'excused')->count();
+        $percentage = $total > 0 ? round((($present + $late) / $total) * 100, 1) : 0;
+        
+        return response()->json([
+            'success' => true,
+            'data' => $formattedRecords,
+            'statistics' => [
+                'total' => $total,
+                'present' => $present,
+                'late' => $late,
+                'absent' => $absent,
+                'excused' => $excused,
+                'percentage' => $percentage
+            ],
+            'batch' => [
+                'batch_id' => $batch->batch_id,
+                'program_name' => $program ? $program->title : 'N/A',
+                'start_date' => $batch->start_date,
+                'end_date' => $batch->end_date
+            ]
+        ]);
+    });
 });
+
