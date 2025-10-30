@@ -434,10 +434,6 @@ const ClassSchedule = () => {
                             <span className="text-sm text-gray-600">Batch ID:</span>
                             <p className="text-sm font-medium text-gray-900">{batchInfo.batch_id}</p>
                           </div>
-                          <div>
-                            <span className="text-sm text-gray-600">Status:</span>
-                            <p className="text-sm font-medium text-gray-900 capitalize">{batchInfo.status}</p>
-                          </div>
                         </>
                       )}
                     </div>

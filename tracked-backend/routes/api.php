@@ -1614,6 +1614,76 @@ Route::middleware(['auth:sanctum'])->group(function () {
         ]);
     });
     
+    // Update Student Profile
+    Route::put('/student/profile', function (Request $request) {
+        $student = $request->user();
+        
+        if (!$student || $student->role !== 'student') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
+        $request->validate([
+            'first_name' => 'sometimes|string|max:255',
+            'last_name' => 'sometimes|string|max:255',
+            'phone_number' => 'sometimes|nullable|string|max:20',
+            'address' => 'sometimes|nullable|string|max:500',
+            'date_of_birth' => 'sometimes|nullable|date',
+            'emergency_contact' => 'sometimes|nullable|string|max:255',
+            'emergency_phone' => 'sometimes|nullable|string|max:20',
+            'emergency_relationship' => 'sometimes|nullable|string|max:100',
+        ]);
+
+        // Update only the fields that were provided
+        if ($request->has('first_name')) {
+            $student->first_name = $request->first_name;
+        }
+        if ($request->has('last_name')) {
+            $student->last_name = $request->last_name;
+        }
+        if ($request->has('phone_number')) {
+            $student->phone_number = $request->phone_number;
+        }
+        if ($request->has('address')) {
+            $student->address = $request->address;
+        }
+        if ($request->has('date_of_birth')) {
+            $student->date_of_birth = $request->date_of_birth;
+        }
+        if ($request->has('emergency_contact')) {
+            $student->emergency_contact = $request->emergency_contact;
+        }
+        if ($request->has('emergency_phone')) {
+            $student->emergency_phone = $request->emergency_phone;
+        }
+        if ($request->has('emergency_relationship')) {
+            $student->emergency_relationship = $request->emergency_relationship;
+        }
+
+        $student->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profile updated successfully',
+            'user' => [
+                'id' => $student->id,
+                'first_name' => $student->first_name,
+                'last_name' => $student->last_name,
+                'email' => $student->email,
+                'phone_number' => $student->phone_number,
+                'address' => $student->address,
+                'date_of_birth' => $student->date_of_birth,
+                'emergency_contact' => $student->emergency_contact,
+                'emergency_phone' => $student->emergency_phone,
+                'emergency_relationship' => $student->emergency_relationship,
+                'student_id' => $student->student_id,
+                'role' => $student->role
+            ]
+        ]);
+    });
+    
     // Staff Routes
     // Update Staff Profile
     Route::put('/staff/profile', function (Request $request) {

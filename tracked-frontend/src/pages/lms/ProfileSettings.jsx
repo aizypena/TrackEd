@@ -56,25 +56,68 @@ const ProfileSettings = () => {
     const userData = getStudentUser();
     if (userData) {
       setUser(userData);
-      
-      setUserProfile({
-        firstName: userData.first_name || '',
-        lastName: userData.last_name || '',
-        email: userData.email || '',
-        phone: userData.phone_number || '',
-        address: userData.address || '',
-        dateOfBirth: userData.date_of_birth || '',
-        studentId: userData.student_id || '',
-        course: userData.course_program || '',
-        yearLevel: '1st Year',
-        enrollmentDate: '2024-08-15',
-        emergencyContact: userData.emergency_contact || '',
-        emergencyPhone: userData.emergency_phone || '',
-        emergencyRelationship: userData.emergency_relationship || '',
-        avatar: null
-      });
+      fetchUserProfile();
     }
   }, []);
+
+  const fetchUserProfile = async () => {
+    try {
+      const token = localStorage.getItem('studentToken');
+      const response = await fetch('http://localhost:8000/api/user', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        
+        setUserProfile({
+          firstName: userData.first_name || '',
+          lastName: userData.last_name || '',
+          email: userData.email || '',
+          phone: userData.phone_number || '',
+          address: userData.address || '',
+          dateOfBirth: userData.date_of_birth || '',
+          studentId: userData.student_id || '',
+          course: userData.course_program || '',
+          yearLevel: '1st Year',
+          enrollmentDate: '2024-08-15',
+          emergencyContact: userData.emergency_contact || '',
+          emergencyPhone: userData.emergency_phone || '',
+          emergencyRelationship: userData.emergency_relationship || '',
+          avatar: null
+        });
+        
+        // Update localStorage with fresh data
+        localStorage.setItem('studentUser', JSON.stringify(userData));
+        setUser(userData);
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      // Fallback to localStorage data
+      const userData = getStudentUser();
+      if (userData) {
+        setUserProfile({
+          firstName: userData.first_name || '',
+          lastName: userData.last_name || '',
+          email: userData.email || '',
+          phone: userData.phone_number || '',
+          address: userData.address || '',
+          dateOfBirth: userData.date_of_birth || '',
+          studentId: userData.student_id || '',
+          course: userData.course_program || '',
+          yearLevel: '1st Year',
+          enrollmentDate: '2024-08-15',
+          emergencyContact: userData.emergency_contact || '',
+          emergencyPhone: userData.emergency_phone || '',
+          emergencyRelationship: userData.emergency_relationship || '',
+          avatar: null
+        });
+      }
+    }
+  };
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -99,10 +142,60 @@ const ProfileSettings = () => {
     { id: 'security', name: 'Security', icon: <MdSecurity className="h-5 w-5" /> }
   ];
 
-  const handleProfileUpdate = () => {
-    // Implement profile update logic
-    setIsEditing(false);
-    console.log('Profile updated:', userProfile);
+  const handleProfileUpdate = async () => {
+    const loadingToast = toast.loading('Updating profile...');
+
+    try {
+      const token = localStorage.getItem('studentToken');
+      const response = await fetch('http://localhost:8000/api/student/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          first_name: userProfile.firstName,
+          last_name: userProfile.lastName,
+          phone_number: userProfile.phone,
+          address: userProfile.address,
+          date_of_birth: userProfile.dateOfBirth,
+          emergency_contact: userProfile.emergencyContact,
+          emergency_phone: userProfile.emergencyPhone,
+          emergency_relationship: userProfile.emergencyRelationship
+        })
+      });
+
+      const data = await response.json();
+
+      toast.dismiss(loadingToast);
+
+      if (response.ok) {
+        toast.success('Profile updated successfully!');
+        setIsEditing(false);
+        
+        // Update localStorage with new user data
+        const updatedUser = {
+          ...user,
+          first_name: userProfile.firstName,
+          last_name: userProfile.lastName,
+          phone_number: userProfile.phone,
+          address: userProfile.address,
+          date_of_birth: userProfile.dateOfBirth,
+          emergency_contact: userProfile.emergencyContact,
+          emergency_phone: userProfile.emergencyPhone,
+          emergency_relationship: userProfile.emergencyRelationship
+        };
+        localStorage.setItem('studentUser', JSON.stringify(updatedUser));
+        setUser(updatedUser);
+      } else {
+        toast.error(data.message || 'Failed to update profile');
+      }
+    } catch (error) {
+      toast.dismiss(loadingToast);
+      console.error('Profile update error:', error);
+      toast.error('An error occurred while updating profile');
+    }
   };
 
   const handlePasswordChange = async () => {
@@ -144,7 +237,7 @@ const ProfileSettings = () => {
 
       toast.dismiss(loadingToast);
 
-      if (response.ok) {
+      if (response.ok && data.success) {
         toast.success('Password updated successfully!');
         setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
         setShowCurrentPassword(false);
@@ -348,11 +441,11 @@ const ProfileSettings = () => {
                           <input
                             type="email"
                             value={userProfile.email}
-                            onChange={(e) => setUserProfile({...userProfile, email: e.target.value})}
-                            disabled={!isEditing}
-                            className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                            disabled={true}
+                            className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
                           />
                         </div>
+                        <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
                       </div>
 
                       <div>
@@ -399,10 +492,10 @@ const ProfileSettings = () => {
                         <input
                           type="text"
                           value={userProfile.studentId || ''}
-                          onChange={(e) => setUserProfile({...userProfile, studentId: e.target.value})}
-                          disabled={!isEditing}
-                          className="px-4 py-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                          disabled={true}
+                          className="px-4 py-3 w-full border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
                         />
+                        <p className="text-xs text-gray-500 mt-1">Student ID cannot be changed</p>
                       </div>
 
                       <div>
@@ -432,14 +525,30 @@ const ProfileSettings = () => {
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Relationship</label>
-                        <input
-                          type="text"
-                          value={userProfile.emergencyRelationship || ''}
-                          onChange={(e) => setUserProfile({...userProfile, emergencyRelationship: e.target.value})}
-                          disabled={!isEditing}
-                          placeholder="e.g., Parent, Spouse, Sibling"
-                          className="px-4 py-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
-                        />
+                        {isEditing ? (
+                          <select
+                            value={userProfile.emergencyRelationship || ''}
+                            onChange={(e) => setUserProfile({...userProfile, emergencyRelationship: e.target.value})}
+                            className="px-4 py-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          >
+                            <option value="">Select Relationship</option>
+                            <option value="parent">Parent</option>
+                            <option value="sibling">Sibling</option>
+                            <option value="spouse">Spouse</option>
+                            <option value="child">Child</option>
+                            <option value="relative">Relative</option>
+                            <option value="friend">Friend</option>
+                            <option value="guardian">Guardian</option>
+                            <option value="other">Other</option>
+                          </select>
+                        ) : (
+                          <input
+                            type="text"
+                            value={userProfile.emergencyRelationship || ''}
+                            disabled={true}
+                            className="px-4 py-3 w-full border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed capitalize"
+                          />
+                        )}
                       </div>
                     </div>
 
@@ -574,8 +683,9 @@ const ProfileSettings = () => {
 
                       <button
                         onClick={handlePasswordChange}
-                        className="flex items-center px-4 hover:cursor-pointer py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                        className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
                       >
+                        <MdSave className="h-4 w-4 mr-2" />
                         Change Password
                       </button>
                     </div>
