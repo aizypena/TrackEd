@@ -1125,6 +1125,286 @@ Route::middleware(['auth:sanctum'])->group(function () {
         ]);
     });
     
+    // Certification Management Route
+    Route::get('/trainer/certification/students', function (Request $request) {
+        $trainer = $request->user();
+        
+        if ($trainer->role !== 'trainer') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Only trainers can access this endpoint.'
+            ], 403);
+        }
+        
+        // Get batches assigned to this trainer
+        $batches = DB::table('batches')
+            ->where('trainer_id', $trainer->id)
+            ->pluck('batch_id');
+        
+        if ($batches->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'students' => [],
+                'programs' => [],
+                'sections' => [],
+                'message' => 'No batches assigned to this trainer'
+            ]);
+        }
+        
+        // Get all students in the trainer's batches with their progress data
+        $students = \App\Models\User::whereIn('batch_id', $batches)
+            ->where('role', 'student')
+            ->with(['batch.program', 'grades', 'attendances'])
+            ->get();
+        
+        // Calculate certification eligibility for each student
+        $studentData = $students->map(function ($student) {
+            $batch = $student->batch;
+            $program = $batch ? $batch->program : null;
+            
+            // Calculate attendance percentage
+            $totalClasses = \App\Models\Attendance::where('batch_id', $student->batch_id)
+                ->select('attendance_date')
+                ->distinct()
+                ->count();
+            
+            $attendedClasses = \App\Models\Attendance::where('user_id', $student->id)
+                ->where('status', 'present')
+                ->count();
+            
+            $attendancePercentage = $totalClasses > 0 ? round(($attendedClasses / $totalClasses) * 100, 2) : 0;
+            
+            // Calculate grades by assessment type
+            $grades = $student->grades;
+            $gradesByType = [
+                'practical' => $grades->whereIn('assessment_type', ['demonstration', 'observation'])->avg('percentage') ?? 0,
+                'theoretical' => $grades->whereIn('assessment_type', ['oral', 'written'])->avg('percentage') ?? 0,
+            ];
+            
+            $overallGrade = $grades->avg('percentage') ?? 0;
+            
+            // Count completed modules (assessments passed)
+            $completedModules = $grades->where('status', 'passed')->count();
+            $totalModules = 12; // Default, can be made dynamic
+            
+            // Get detailed grades list
+            $gradesList = $grades->map(function ($grade) {
+                return [
+                    'id' => $grade->id,
+                    'assessment_title' => $grade->assessment_title,
+                    'assessment_type' => $grade->assessment_type,
+                    'score' => $grade->score,
+                    'total_points' => $grade->total_points,
+                    'percentage' => $grade->percentage,
+                    'status' => $grade->status,
+                    'graded_at' => $grade->graded_at ? $grade->graded_at->toDateString() : null,
+                ];
+            })->values();
+            
+            // Determine certification requirements
+            $requirements = [
+                'attendance' => $attendancePercentage >= 85,
+                'grades' => $overallGrade >= 75,
+                'practicals' => $gradesByType['practical'] >= 75,
+                'theoretical' => $gradesByType['theoretical'] >= 75,
+                'modules' => $completedModules >= $totalModules,
+            ];
+            
+            // Determine certification status
+            $allRequirementsMet = !in_array(false, $requirements, true);
+            $status = $allRequirementsMet ? 'eligible' : 
+                     ($attendancePercentage >= 85 && $overallGrade >= 70 ? 'pending' : 'not-eligible');
+            
+            // Generate remarks
+            $remarks = '';
+            if (!$requirements['attendance']) {
+                $remarks = 'Attendance below required threshold (85%)';
+            } elseif (!$requirements['modules']) {
+                $remarks = 'Pending completion of remaining modules';
+            } elseif (!$requirements['grades']) {
+                $remarks = 'Overall grades below required threshold (75%)';
+            }
+            
+            return [
+                'id' => $student->id,
+                'name' => $student->first_name . ' ' . $student->last_name,
+                'student_id' => $student->student_id ?? 'N/A',
+                'program' => $program ? $program->title : 'N/A',
+                'program_id' => $program ? $program->id : null,
+                'section' => $batch ? $batch->batch_id : 'N/A',
+                'batch_id' => $student->batch_id,
+                'progress' => [
+                    'attendance' => round($attendancePercentage, 2),
+                    'overall_grade' => round($overallGrade, 2),
+                    'practical_assessments' => round($gradesByType['practical'], 2),
+                    'theoretical_assessments' => round($gradesByType['theoretical'], 2),
+                    'completed_modules' => $completedModules,
+                    'total_modules' => $totalModules,
+                ],
+                'grades' => $gradesList,
+                'certification' => [
+                    'status' => $status,
+                    'remarks' => $remarks,
+                    'last_updated' => now()->toIso8601String(),
+                    'requirements' => $requirements,
+                ],
+            ];
+        });
+        
+        // Get unique programs for filtering
+        $programs = $studentData->unique('program_id')->filter(function ($item) {
+            return $item['program_id'] !== null;
+        })->map(function ($item) {
+            return [
+                'value' => $item['program_id'],
+                'label' => $item['program']
+            ];
+        })->values();
+        
+        // Get unique sections for filtering
+        $sections = $studentData->unique('batch_id')->filter(function ($item) {
+            return $item['batch_id'] !== null;
+        })->map(function ($item) {
+            return [
+                'value' => $item['batch_id'],
+                'label' => $item['section']
+            ];
+        })->values();
+        
+        return response()->json([
+            'success' => true,
+            'students' => $studentData->values(),
+            'programs' => $programs,
+            'sections' => $sections,
+        ]);
+    });
+    
+    // Generate Certificate for Student
+    Route::post('/trainer/certification/generate', function (Request $request) {
+        $trainer = $request->user();
+        
+        if ($trainer->role !== 'trainer') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Only trainers can access this endpoint.'
+            ], 403);
+        }
+        
+        $request->validate([
+            'student_id' => 'required|exists:users,id',
+        ]);
+        
+        $student = \App\Models\User::with(['batch.program'])->find($request->student_id);
+        
+        if (!$student || $student->role !== 'student') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Student not found'
+            ], 404);
+        }
+        
+        // Verify student is in trainer's batch
+        $trainerBatches = DB::table('batches')
+            ->where('trainer_id', $trainer->id)
+            ->pluck('batch_id');
+        
+        if (!$trainerBatches->contains($student->batch_id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You are not authorized to generate certificate for this student'
+            ], 403);
+        }
+        
+        // Verify student is eligible
+        $grades = $student->grades;
+        $overallGrade = $grades->avg('percentage') ?? 0;
+        
+        $totalClasses = \App\Models\Attendance::where('batch_id', $student->batch_id)
+            ->select('attendance_date')
+            ->distinct()
+            ->count();
+        
+        $attendedClasses = \App\Models\Attendance::where('user_id', $student->id)
+            ->where('status', 'present')
+            ->count();
+        
+        $attendancePercentage = $totalClasses > 0 ? round(($attendedClasses / $totalClasses) * 100, 2) : 0;
+        
+        if ($attendancePercentage < 85 || $overallGrade < 75) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Student does not meet certification requirements',
+                'requirements' => [
+                    'attendance' => $attendancePercentage,
+                    'overall_grade' => $overallGrade,
+                    'required_attendance' => 85,
+                    'required_grade' => 75,
+                ]
+            ], 400);
+        }
+        
+        // Check if certificate already exists
+        $existingCertificate = DB::table('certificates')
+            ->where('user_id', $student->id)
+            ->where('program_id', $student->batch->program_id)
+            ->first();
+        
+        if ($existingCertificate) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Certificate already exists for this student',
+                'certificate' => [
+                    'id' => $existingCertificate->id,
+                    'certificate_number' => $existingCertificate->certificate_number,
+                    'issued_date' => $existingCertificate->issued_date,
+                ]
+            ], 400);
+        }
+        
+        // Generate certificate number
+        $year = now()->year;
+        $lastCertificate = DB::table('certificates')
+            ->where('certificate_number', 'like', "CERT-$year-%")
+            ->orderBy('id', 'desc')
+            ->first();
+        
+        $lastNumber = $lastCertificate 
+            ? intval(substr($lastCertificate->certificate_number, -4)) 
+            : 0;
+        
+        $certificateNumber = sprintf("CERT-%s-%04d", $year, $lastNumber + 1);
+        
+        // Create certificate record
+        $certificateId = DB::table('certificates')->insertGetId([
+            'certificate_number' => $certificateNumber,
+            'user_id' => $student->id,
+            'program_id' => $student->batch->program_id,
+            'issued_date' => now(),
+            'issued_by' => $trainer->id,
+            'grade' => round($overallGrade, 2),
+            'attendance_rate' => round($attendancePercentage, 2),
+            'status' => 'issued',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Certificate generated successfully',
+            'certificate' => [
+                'id' => $certificateId,
+                'certificate_number' => $certificateNumber,
+                'student_name' => $student->first_name . ' ' . $student->last_name,
+                'student_id' => $student->student_id,
+                'program' => $student->batch->program->title,
+                'grade' => round($overallGrade, 2),
+                'attendance_rate' => round($attendancePercentage, 2),
+                'issued_date' => now()->toDateString(),
+                'issued_by' => $trainer->first_name . ' ' . $trainer->last_name,
+            ]
+        ]);
+    });
+    
     // Course Materials Routes
     // Get course materials for trainer's assigned programs
     Route::get('/trainer/course-materials', function (Request $request) {

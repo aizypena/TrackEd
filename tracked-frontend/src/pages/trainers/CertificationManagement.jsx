@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TrainerSidebar from '../../layouts/trainer/TrainerSidebar';
+import toast, { Toaster } from 'react-hot-toast';
 import {
   MdMenu,
   MdSearch,
@@ -14,7 +15,10 @@ import {
   MdStarHalf,
   MdAccessTime,
   MdBarChart,
-  MdSend
+  MdSend,
+  MdVisibility,
+  MdClose,
+  MdDownload
 } from 'react-icons/md';
 
 const CertificationManagement = () => {
@@ -24,22 +28,273 @@ const CertificationManagement = () => {
   const [selectedSection, setSelectedSection] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [students, setStudents] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [sections, setSections] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [generatingCertificate, setGeneratingCertificate] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewStudent, setPreviewStudent] = useState(null);
+
+  useEffect(() => {
+    fetchCertificationData();
+  }, []);
+
+  const fetchCertificationData = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('trainerToken');
+      const response = await fetch('http://localhost:8000/api/trainer/certification/students', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setStudents(data.students || []);
+        setPrograms(data.programs || []);
+        setSections(data.sections || []);
+      }
+    } catch (error) {
+      console.error('Error fetching certification data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGenerateCertificate = async (studentId, studentName) => {
+    if (!window.confirm(`Are you sure you want to generate a certificate for ${studentName}?`)) {
+      return;
+    }
+
+    setGeneratingCertificate(true);
+    const loadingToast = toast.loading('Generating certificate...');
+
+    try {
+      const token = localStorage.getItem('trainerToken');
+      const response = await fetch('http://localhost:8000/api/trainer/certification/generate', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          student_id: studentId
+        })
+      });
+
+      const data = await response.json();
+
+      toast.dismiss(loadingToast);
+
+      if (response.ok && data.success) {
+        toast.success('Certificate generated successfully!');
+        // Refresh the data to update the status
+        fetchCertificationData();
+      } else {
+        toast.error(data.message || 'Failed to generate certificate');
+      }
+    } catch (error) {
+      toast.dismiss(loadingToast);
+      console.error('Error generating certificate:', error);
+      toast.error('An error occurred while generating certificate');
+    } finally {
+      setGeneratingCertificate(false);
+    }
+  };
+
+  const handlePreviewCertificate = (student) => {
+    setPreviewStudent(student);
+    setShowPreview(true);
+  };
+
+  const handleGenerateCertificateFromPreview = async () => {
+    if (previewStudent) {
+      setShowPreview(false);
+      await handleGenerateCertificate(previewStudent.id, previewStudent.name);
+    }
+  };
+
+  const handleDownloadCertificate = () => {
+    if (!previewStudent) return;
+
+    // Get the certificate content
+    const certificateContent = document.getElementById('certificate-preview');
+    
+    // Create a new window for printing
+    const printWindow = window.open('', '', 'width=800,height=600');
+    
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Certificate - ${previewStudent.name}</title>
+          <style>
+            @media print {
+              body { margin: 0; padding: 20px; }
+              @page { size: landscape; margin: 0; }
+            }
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+              margin: 0;
+              padding: 20px;
+              background: white;
+            }
+            .certificate-container {
+              border: 8px double #CA8A04;
+              padding: 60px;
+              background: linear-gradient(to bottom right, #FFFBEB, white);
+              position: relative;
+              min-height: 600px;
+            }
+            .corner {
+              position: absolute;
+              width: 60px;
+              height: 60px;
+              border-color: #CA8A04;
+              border-style: solid;
+            }
+            .corner-tl { top: 16px; left: 16px; border-width: 4px 0 0 4px; }
+            .corner-tr { top: 16px; right: 16px; border-width: 4px 4px 0 0; }
+            .corner-bl { bottom: 16px; left: 16px; border-width: 0 0 4px 4px; }
+            .corner-br { bottom: 16px; right: 16px; border-width: 0 4px 4px 0; }
+            .certificate-content {
+              text-align: center;
+            }
+            .certificate-title {
+              font-size: 48px;
+              font-weight: bold;
+              color: #1F2937;
+              margin-bottom: 8px;
+              font-family: Georgia, serif;
+            }
+            .title-underline {
+              width: 120px;
+              height: 4px;
+              background: #CA8A04;
+              margin: 0 auto 40px;
+            }
+            .cert-text {
+              font-size: 18px;
+              color: #374151;
+              margin: 20px 0;
+            }
+            .student-name {
+              font-size: 40px;
+              font-weight: bold;
+              color: #111827;
+              margin: 30px 0;
+              font-family: Georgia, serif;
+            }
+            .program-name {
+              font-size: 28px;
+              font-weight: 600;
+              color: #B45309;
+              margin: 30px 0;
+            }
+            .footer-info {
+              display: flex;
+              justify-content: space-around;
+              padding-top: 60px;
+              margin-top: 40px;
+              border-top: 1px solid #D1D5DB;
+            }
+            .footer-item {
+              text-align: center;
+            }
+            .footer-label {
+              font-size: 14px;
+              color: #6B7280;
+              margin-bottom: 4px;
+            }
+            .footer-value {
+              font-size: 16px;
+              font-weight: 600;
+              color: #111827;
+            }
+            .signature-line {
+              border-top: 2px solid #1F2937;
+              width: 250px;
+              margin: 0 auto 8px;
+              margin-top: 60px;
+            }
+            .signature-text {
+              font-size: 14px;
+              color: #374151;
+            }
+            .seal {
+              position: absolute;
+              bottom: 60px;
+              left: 60px;
+              width: 100px;
+              height: 100px;
+              border-radius: 50%;
+              border: 4px solid #CA8A04;
+              background: #FFFBEB;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 12px;
+              color: #92400E;
+              font-weight: bold;
+              text-align: center;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="certificate-container">
+            <div class="corner corner-tl"></div>
+            <div class="corner corner-tr"></div>
+            <div class="corner corner-bl"></div>
+            <div class="corner corner-br"></div>
+            
+            <div class="certificate-content">
+              <h1 class="certificate-title">Certificate of Completion</h1>
+              <div class="title-underline"></div>
+              
+              <p class="cert-text">This is to certify that</p>
+              <p class="student-name">${previewStudent.name}</p>
+              <p class="cert-text">has successfully completed the program</p>
+              <p class="program-name">${previewStudent.program}</p>
+              <p class="cert-text">with an overall grade of <strong>${previewStudent.progress.overall_grade}%</strong></p>
+              
+              <div class="footer-info">
+                <div class="footer-item">
+                  <div class="footer-label">Date Issued</div>
+                  <div class="footer-value">${new Date().toLocaleDateString()}</div>
+                </div>
+                <div class="footer-item">
+                  <div class="footer-label">Certificate No.</div>
+                  <div class="footer-value">CERT-${new Date().getFullYear()}-XXXX</div>
+                </div>
+                <div class="footer-item">
+                  <div class="footer-label">Grade</div>
+                  <div class="footer-value">${previewStudent.progress.overall_grade}%</div>
+                </div>
+              </div>
+              
+              <div class="signature-line"></div>
+              <p class="signature-text">Authorized Signature</p>
+            </div>
+            
+            <div class="seal">
+              OFFICIAL<br/>SEAL
+            </div>
+          </div>
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+    
+    // Wait for content to load, then print
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
+  };
   
-  const programs = [
-    { value: 'bartending-nc-ii', label: 'Bartending NC II' },
-    { value: 'barista-training-nc-ii', label: 'Barista Training NC II' },
-    { value: 'housekeeping-nc-ii', label: 'Housekeeping NC II' },
-    { value: 'food-beverage-services-nc-ii', label: 'Food and Beverage Services NC II' },
-    { value: 'bread-pastry-production-nc-ii', label: 'Bread and Pastry Production NC II' },
-  ];
-
-  const sections = [
-    { value: 'morning-a', label: 'Morning A - 8:00 AM to 12:00 PM' },
-    { value: 'morning-b', label: 'Morning B - 9:00 AM to 1:00 PM' },
-    { value: 'afternoon-a', label: 'Afternoon A - 1:00 PM to 5:00 PM' },
-    { value: 'afternoon-b', label: 'Afternoon B - 2:00 PM to 6:00 PM' },
-  ];
-
   const certificationStatus = [
     { value: 'eligible', label: 'Eligible for Certification' },
     { value: 'pending', label: 'Pending Review' },
@@ -47,96 +302,12 @@ const CertificationManagement = () => {
     { value: 'not-eligible', label: 'Not Eligible' },
   ];
 
-  const students = [
-    {
-      id: 1,
-      name: 'John Doe',
-      studentId: 'STU-2025-001',
-      program: 'bartending-nc-ii',
-      section: 'morning-a',
-      progress: {
-        attendance: 95,
-        overallGrade: 92,
-        practicalAssessments: 90,
-        theoreticalAssessments: 94,
-        completedModules: 12,
-        totalModules: 12
-      },
-      certification: {
-        status: 'eligible',
-        remarks: '',
-        lastUpdated: '2025-09-30T10:00:00',
-        requirements: {
-          attendance: true,
-          grades: true,
-          practicals: true,
-          theoretical: true,
-          modules: true
-        }
-      }
-    },
-    {
-      id: 2,
-      name: 'Jane Smith',
-      studentId: 'STU-2025-002',
-      program: 'barista-training-nc-ii',
-      section: 'morning-b',
-      progress: {
-        attendance: 88,
-        overallGrade: 85,
-        practicalAssessments: 86,
-        theoreticalAssessments: 84,
-        completedModules: 10,
-        totalModules: 12
-      },
-      certification: {
-        status: 'pending',
-        remarks: 'Pending completion of remaining modules',
-        lastUpdated: '2025-09-29T14:30:00',
-        requirements: {
-          attendance: true,
-          grades: true,
-          practicals: true,
-          theoretical: true,
-          modules: false
-        }
-      }
-    },
-    {
-      id: 3,
-      name: 'Mike Johnson',
-      studentId: 'STU-2025-003',
-      program: 'housekeeping-nc-ii',
-      section: 'afternoon-a',
-      progress: {
-        attendance: 78,
-        overallGrade: 82,
-        practicalAssessments: 80,
-        theoreticalAssessments: 84,
-        completedModules: 11,
-        totalModules: 12
-      },
-      certification: {
-        status: 'not-eligible',
-        remarks: 'Attendance below required threshold',
-        lastUpdated: '2025-09-28T15:45:00',
-        requirements: {
-          attendance: false,
-          grades: true,
-          practicals: true,
-          theoretical: true,
-          modules: false
-        }
-      }
-    }
-  ];
-
   const filteredStudents = students.filter(student => {
-    const matchesProgram = selectedProgram === 'all' || student.program === selectedProgram;
-    const matchesSection = selectedSection === 'all' || student.section === selectedSection;
+    const matchesProgram = selectedProgram === 'all' || student.program_id === parseInt(selectedProgram);
+    const matchesSection = selectedSection === 'all' || student.batch_id === selectedSection;
     const matchesStatus = selectedStatus === 'all' || student.certification.status === selectedStatus;
     const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         student.studentId.toLowerCase().includes(searchQuery.toLowerCase());
+                         student.student_id.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesProgram && matchesSection && matchesStatus && matchesSearch;
   });
 
@@ -184,6 +355,30 @@ const CertificationManagement = () => {
 
   return (
     <div className="relative min-h-screen bg-gray-100">
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            duration: 4000,
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
       <TrainerSidebar 
         isOpen={sidebarOpen} 
         onClose={() => setSidebarOpen(false)}
@@ -279,148 +474,246 @@ const CertificationManagement = () => {
 
         {/* Content */}
         <div className="p-6">
-          <div className="grid grid-cols-1 gap-6">
-            {filteredStudents.map((student) => (
-              <div key={student.id} className="bg-white rounded-lg shadow overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900">{student.name}</h3>
-                      <p className="text-sm text-gray-500">{student.studentId}</p>
-                      <p className="text-sm text-gray-500">
-                        {programs.find(p => p.value === student.program)?.label}
-                      </p>
+          {loading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+          ) : filteredStudents.length === 0 ? (
+            <div className="bg-white rounded-lg shadow p-12 text-center">
+              <MdPersonSearch className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Students Found</h3>
+              <p className="text-gray-500">
+                {students.length === 0 
+                  ? "No students are enrolled in your batches yet."
+                  : "Try adjusting your filters to see more results."}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-6">
+              {filteredStudents.map((student) => (
+                <div key={student.id} className="bg-white rounded-lg shadow overflow-hidden">
+                  <div className="px-6 py-4 border-b border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900">{student.name}</h3>
+                        <p className="text-sm text-gray-500">{student.student_id}</p>
+                        <p className="text-sm text-gray-500">{student.program}</p>
+                      </div>
+                      <div className="flex items-center">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(student.certification.status)}`}>
+                          {getStatusIcon(student.certification.status)}
+                          <span className="ml-2 capitalize">{student.certification.status.replace('-', ' ')}</span>
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(student.certification.status)}`}>
-                        {getStatusIcon(student.certification.status)}
-                        <span className="ml-2 capitalize">{student.certification.status}</span>
-                      </span>
+                  </div>
+
+                  <div className="px-6 py-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Progress Metrics */}
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-medium text-gray-900">Progress Metrics</h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="bg-gray-50 rounded-lg p-4">
+                            <div className="text-sm text-gray-500">Attendance</div>
+                            <div className="mt-1 flex items-center">
+                              <span className="text-2xl font-semibold text-gray-900">{student.progress.attendance}%</span>
+                            </div>
+                          </div>
+                          <div className="bg-gray-50 rounded-lg p-4">
+                            <div className="text-sm text-gray-500">Overall Grade</div>
+                            <div className="mt-1 flex items-center">
+                              <span className="text-2xl font-semibold text-gray-900">{student.progress.overall_grade}%</span>
+                            </div>
+                          </div>
+                          <div className="bg-gray-50 rounded-lg p-4">
+                            <div className="text-sm text-gray-500">Practical</div>
+                            <div className="mt-1 flex items-center">
+                              <span className="text-2xl font-semibold text-gray-900">{student.progress.practical_assessments}%</span>
+                            </div>
+                          </div>
+                          <div className="bg-gray-50 rounded-lg p-4">
+                            <div className="text-sm text-gray-500">Theoretical</div>
+                            <div className="mt-1 flex items-center">
+                              <span className="text-2xl font-semibold text-gray-900">{student.progress.theoretical_assessments}%</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Certification Requirements */}
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-medium text-gray-900">Certification Requirements</h4>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <span className="text-sm text-gray-700">Minimum Attendance (85%)</span>
+                            {getRequirementIcon(student.certification.requirements.attendance)}
+                          </div>
+                          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <span className="text-sm text-gray-700">Overall Grades (75%)</span>
+                            {getRequirementIcon(student.certification.requirements.grades)}
+                          </div>
+                          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <span className="text-sm text-gray-700">Practical Assessments</span>
+                            {getRequirementIcon(student.certification.requirements.practicals)}
+                          </div>
+                          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <span className="text-sm text-gray-700">Theoretical Assessments</span>
+                            {getRequirementIcon(student.certification.requirements.theoretical)}
+                          </div>
+                        </div>
+
+                        {/* Remarks */}
+                        {student.certification.remarks && (
+                          <div className="mt-4">
+                            <h4 className="text-sm font-medium text-gray-900">Remarks</h4>
+                            <p className="mt-1 text-sm text-gray-500">{student.certification.remarks}</p>
+                          </div>
+                        )}
+
+                        {/* Actions */}
+                        <div className="mt-6 flex space-x-3">
+                          <button
+                            onClick={() => handlePreviewCertificate(student)}
+                            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                          >
+                            <MdVisibility className="h-5 w-5 mr-2" />
+                            Preview Certificate
+                          </button>
+                          
+                          {student.certification.status === 'eligible' && (
+                            <button
+                              onClick={() => handleGenerateCertificate(student.id, student.name)}
+                              disabled={generatingCertificate}
+                              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <MdSchool className="h-5 w-5 mr-2" />
+                              Generate Certificate
+                            </button>
+                          )}
+                          
+                          {student.certification.status === 'pending' && (
+                            <button
+                              onClick={() => handleRecommendation(student.id, 'review')}
+                              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            >
+                              <MdPersonSearch className="h-5 w-5 mr-2" />
+                              Review Progress
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
-                <div className="px-6 py-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Progress Metrics */}
-                    <div className="space-y-4">
-                      <h4 className="text-sm font-medium text-gray-900">Progress Metrics</h4>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <div className="text-sm text-gray-500">Attendance</div>
-                          <div className="mt-1 flex items-center">
-                            <span className="text-2xl font-semibold text-gray-900">{student.progress.attendance}%</span>
-                          </div>
-                        </div>
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <div className="text-sm text-gray-500">Overall Grade</div>
-                          <div className="mt-1 flex items-center">
-                            <span className="text-2xl font-semibold text-gray-900">{student.progress.overallGrade}%</span>
-                          </div>
-                        </div>
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <div className="text-sm text-gray-500">Practical</div>
-                          <div className="mt-1 flex items-center">
-                            <span className="text-2xl font-semibold text-gray-900">{student.progress.practicalAssessments}%</span>
-                          </div>
-                        </div>
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <div className="text-sm text-gray-500">Theoretical</div>
-                          <div className="mt-1 flex items-center">
-                            <span className="text-2xl font-semibold text-gray-900">{student.progress.theoreticalAssessments}%</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <div className="text-sm text-gray-500">Module Completion</div>
-                        <div className="mt-2">
-                          <div className="relative pt-1">
-                            <div className="flex mb-2 items-center justify-between">
-                              <div>
-                                <span className="text-xs font-semibold inline-block text-blue-600">
-                                  {Math.round((student.progress.completedModules / student.progress.totalModules) * 100)}%
-                                </span>
-                              </div>
-                              <div className="text-right">
-                                <span className="text-xs font-semibold inline-block text-blue-600">
-                                  {student.progress.completedModules}/{student.progress.totalModules}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-blue-200">
-                              <div
-                                style={{ width: `${(student.progress.completedModules / student.progress.totalModules) * 100}%` }}
-                                className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500"
-                              ></div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+      {/* Certificate Preview Modal */}
+      {showPreview && previewStudent && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Certificate Preview</h2>
+              <button
+                onClick={() => setShowPreview(false)}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                <MdClose className="h-6 w-6" />
+              </button>
+            </div>
+
+            {/* Certificate Design */}
+            <div className="p-8">
+              <div id="certificate-preview" className="border-8 border-double border-yellow-600 p-12 bg-gradient-to-br from-yellow-50 to-white relative">
+                {/* Decorative Corners */}
+                <div className="absolute top-4 left-4 w-16 h-16 border-t-4 border-l-4 border-yellow-600"></div>
+                <div className="absolute top-4 right-4 w-16 h-16 border-t-4 border-r-4 border-yellow-600"></div>
+                <div className="absolute bottom-4 left-4 w-16 h-16 border-b-4 border-l-4 border-yellow-600"></div>
+                <div className="absolute bottom-4 right-4 w-16 h-16 border-b-4 border-r-4 border-yellow-600"></div>
+
+                <div className="text-center space-y-6">
+                  {/* Header */}
+                  <div>
+                    <h1 className="text-5xl font-serif font-bold text-gray-800 mb-2">Certificate of Completion</h1>
+                    <div className="w-32 h-1 bg-yellow-600 mx-auto"></div>
+                  </div>
+
+                  {/* Body */}
+                  <div className="space-y-4 py-8">
+                    <p className="text-lg text-gray-700">This is to certify that</p>
+                    <p className="text-4xl font-serif font-bold text-gray-900 my-4">{previewStudent.name}</p>
+                    <p className="text-lg text-gray-700">has successfully completed the program</p>
+                    <p className="text-2xl font-semibold text-yellow-700 my-4">{previewStudent.program}</p>
+                    <p className="text-lg text-gray-700">
+                      with an overall grade of <span className="font-semibold text-gray-900">{previewStudent.progress.overall_grade}%</span>
+                    </p>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="grid grid-cols-3 gap-8 pt-12 mt-8 border-t border-gray-300">
+                    <div className="text-center">
+                      <p className="text-sm text-gray-600 mb-1">Date Issued</p>
+                      <p className="font-semibold text-gray-900">{new Date().toLocaleDateString()}</p>
                     </div>
+                    <div className="text-center">
+                      <p className="text-sm text-gray-600 mb-1">Certificate No.</p>
+                      <p className="font-semibold text-gray-900">CERT-{new Date().getFullYear()}-XXXX</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm text-gray-600 mb-1">Grade</p>
+                      <p className="font-semibold text-gray-900">{previewStudent.progress.overall_grade}%</p>
+                    </div>
+                  </div>
 
-                    {/* Certification Requirements */}
-                    <div className="space-y-4">
-                      <h4 className="text-sm font-medium text-gray-900">Certification Requirements</h4>
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                          <span className="text-sm text-gray-700">Minimum Attendance (85%)</span>
-                          {getRequirementIcon(student.certification.requirements.attendance)}
-                        </div>
-                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                          <span className="text-sm text-gray-700">Overall Grades (75%)</span>
-                          {getRequirementIcon(student.certification.requirements.grades)}
-                        </div>
-                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                          <span className="text-sm text-gray-700">Practical Assessments</span>
-                          {getRequirementIcon(student.certification.requirements.practicals)}
-                        </div>
-                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                          <span className="text-sm text-gray-700">Theoretical Assessments</span>
-                          {getRequirementIcon(student.certification.requirements.theoretical)}
-                        </div>
-                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                          <span className="text-sm text-gray-700">All Modules Completed</span>
-                          {getRequirementIcon(student.certification.requirements.modules)}
-                        </div>
-                      </div>
+                  <div className="pt-8 mt-8">
+                    <div className="border-t-2 border-gray-800 w-64 mx-auto mb-2"></div>
+                    <p className="text-sm text-gray-700">Authorized Signature</p>
+                  </div>
 
-                      {/* Remarks */}
-                      {student.certification.remarks && (
-                        <div className="mt-4">
-                          <h4 className="text-sm font-medium text-gray-900">Remarks</h4>
-                          <p className="mt-1 text-sm text-gray-500">{student.certification.remarks}</p>
-                        </div>
-                      )}
-
-                      {/* Actions */}
-                      <div className="mt-6 flex space-x-3">
-                        {student.certification.status === 'eligible' && (
-                          <button
-                            onClick={() => handleRecommendation(student.id, 'recommend')}
-                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                          >
-                            <MdSchool className="h-5 w-5 mr-2" />
-                            Recommend for Certification
-                          </button>
-                        )}
-                        {student.certification.status === 'pending' && (
-                          <button
-                            onClick={() => handleRecommendation(student.id, 'review')}
-                            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                          >
-                            <MdPersonSearch className="h-5 w-5 mr-2" />
-                            Review Progress
-                          </button>
-                        )}
-                      </div>
+                  {/* Seal Placeholder */}
+                  <div className="absolute bottom-12 left-12">
+                    <div className="w-24 h-24 rounded-full border-4 border-yellow-600 flex items-center justify-center bg-yellow-50">
+                      <MdSchool className="h-12 w-12 text-yellow-600" />
                     </div>
                   </div>
                 </div>
               </div>
-            ))}
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-between gap-3 p-6 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={handleDownloadCertificate}
+                className="inline-flex items-center px-4 py-2 border border-blue-600 text-sm font-medium rounded-md text-blue-600 bg-white hover:bg-blue-50"
+              >
+                <MdDownload className="h-5 w-5 mr-2" />
+                Download/Print Certificate
+              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowPreview(false)}
+                  className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={handleGenerateCertificateFromPreview}
+                  disabled={generatingCertificate}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <MdSchool className="h-5 w-5 mr-2" />
+                  Generate Official Certificate
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
