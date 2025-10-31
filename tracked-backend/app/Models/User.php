@@ -87,6 +87,15 @@ class User extends Authenticatable
     ];
 
     /**
+     * The accessors to append to the model's array form.
+     *
+     * @var array
+     */
+    protected $appends = [
+        'course_program_formatted',
+    ];
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -138,6 +147,14 @@ class User extends Authenticatable
     }
     
     /**
+     * Get the program that the user is enrolled in.
+     */
+    public function program()
+    {
+        return $this->belongsTo(Program::class, 'course_program');
+    }
+    
+    /**
      * Get the voucher assigned to the user.
      */
     public function voucher()
@@ -175,6 +192,32 @@ class User extends Authenticatable
     public function markedAttendances()
     {
         return $this->hasMany(Attendance::class, 'marked_by');
+    }
+
+    /**
+     * Get formatted course program name.
+     */
+    public function getCourseProgramFormattedAttribute()
+    {
+        if (!$this->course_program) {
+            return 'N/A';
+        }
+
+        // Map course codes to full names
+        $programNames = [
+            'CRS' => 'Computer Repair Servicing',
+            'DM' => 'Digital Marketing',
+            'FS' => 'Food Safety',
+            'SMAW' => 'Shielded Metal Arc Welding',
+            'HOUSEKEEPING' => 'Housekeeping',
+            'COOKERY' => 'Cookery',
+            'BARISTA' => 'Barista',
+            'FOOD_BEVERAGE' => 'Food & Beverage Services',
+            'BREAD_PASTRY' => 'Bread and Pastry Production',
+            'EVENTS_MANAGEMENT' => 'Events Management',
+        ];
+
+        return $programNames[$this->course_program] ?? $this->course_program;
     }
 }
 

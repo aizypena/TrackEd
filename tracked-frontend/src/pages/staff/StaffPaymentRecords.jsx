@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import StaffSidebar from '../../layouts/staff/StaffSidebar';
+import PaymentDetailModal from '../../components/staff/PaymentDetailModal';
+import { getStaffToken } from '../../utils/staffAuth';
+import toast from 'react-hot-toast';
 import { 
   MdMenu,
   MdSearch,
@@ -14,9 +17,7 @@ import {
   MdReceipt,
   MdAdd,
   MdPrint,
-  MdHistory,
-  MdAttachMoney,
-  MdCalendarToday
+  MdAttachMoney
 } from 'react-icons/md';
 
 const StaffPaymentRecords = () => {
@@ -27,115 +28,75 @@ const StaffPaymentRecords = () => {
   const [programFilter, setProgramFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [paymentRecords, setPaymentRecords] = useState([]);
 
-  // Mock data - replace with actual API calls
-  const [paymentRecords, setPaymentRecords] = useState([
-    {
-      id: 1,
-      studentId: 'STU-2025-001',
-      studentName: 'Juan Dela Cruz',
-      program: 'Welding NCII',
-      batch: 'Batch 01-2025',
-      totalFee: 15000,
-      amountPaid: 15000,
-      balance: 0,
-      paymentStatus: 'paid',
-      lastPaymentDate: '2025-09-15',
-      paymentMethod: 'Cash',
-      transactions: [
-        { date: '2025-09-15', amount: 15000, method: 'Cash', receiptNo: 'REC-001', remarks: 'Full payment' }
-      ]
-    },
-    {
-      id: 2,
-      studentId: 'STU-2025-002',
-      studentName: 'Maria Santos',
-      program: 'Automotive Servicing NCII',
-      batch: 'Batch 02-2025',
-      totalFee: 18000,
-      amountPaid: 10000,
-      balance: 8000,
-      paymentStatus: 'partial',
-      lastPaymentDate: '2025-10-01',
-      paymentMethod: 'Bank Transfer',
-      transactions: [
-        { date: '2025-09-20', amount: 5000, method: 'Cash', receiptNo: 'REC-002', remarks: 'Initial payment' },
-        { date: '2025-10-01', amount: 5000, method: 'Bank Transfer', receiptNo: 'REC-003', remarks: 'Second installment' }
-      ]
-    },
-    {
-      id: 3,
-      studentId: 'STU-2025-003',
-      studentName: 'Pedro Reyes',
-      program: 'Electronics NCII',
-      batch: 'Batch 01-2025',
-      totalFee: 16000,
-      amountPaid: 16000,
-      balance: 0,
-      paymentStatus: 'paid',
-      lastPaymentDate: '2025-08-10',
-      paymentMethod: 'GCash',
-      transactions: [
-        { date: '2025-08-10', amount: 16000, method: 'GCash', receiptNo: 'REC-004', remarks: 'Full payment' }
-      ]
-    },
-    {
-      id: 4,
-      studentId: 'STU-2025-004',
-      studentName: 'Ana Garcia',
-      program: 'Food Processing NCII',
-      batch: 'Batch 03-2025',
-      totalFee: 14000,
-      amountPaid: 0,
-      balance: 14000,
-      paymentStatus: 'unpaid',
-      lastPaymentDate: null,
-      paymentMethod: null,
-      transactions: []
-    },
-    {
-      id: 5,
-      studentId: 'STU-2025-005',
-      studentName: 'Roberto Cruz',
-      program: 'Welding NCII',
-      batch: 'Batch 01-2025',
-      totalFee: 15000,
-      amountPaid: 8000,
-      balance: 7000,
-      paymentStatus: 'overdue',
-      lastPaymentDate: '2025-08-20',
-      paymentMethod: 'Cash',
-      transactions: [
-        { date: '2025-08-15', amount: 5000, method: 'Cash', receiptNo: 'REC-005', remarks: 'Initial payment' },
-        { date: '2025-08-20', amount: 3000, method: 'Cash', receiptNo: 'REC-006', remarks: 'Partial payment' }
-      ]
-    },
-    {
-      id: 6,
-      studentId: 'STU-2025-006',
-      studentName: 'Carmen Lopez',
-      program: 'Plumbing NCII',
-      batch: 'Batch 02-2025',
-      totalFee: 15500,
-      amountPaid: 15500,
-      balance: 0,
-      paymentStatus: 'paid',
-      lastPaymentDate: '2025-09-18',
-      paymentMethod: 'Bank Transfer',
-      transactions: [
-        { date: '2025-09-18', amount: 15500, method: 'Bank Transfer', receiptNo: 'REC-007', remarks: 'Full payment via bank' }
-      ]
+  useEffect(() => {
+    fetchPaymentRecords();
+  }, []);
+
+  const fetchPaymentRecords = async () => {
+    try {
+      setLoading(true);
+      const token = getStaffToken();
+      const response = await fetch('http://localhost:8000/api/payments', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Payment records:', data);
+        
+        // Transform the data to match our component structure
+        const transformedRecords = data.payments.map(payment => {
+          // Check if user has a voucher
+          const hasVoucher = payment.user?.voucher_id && payment.user?.voucher;
+          
+          return {
+            id: payment.id,
+            studentId: payment.user?.student_id || 'N/A',
+            studentName: `${payment.user?.first_name || ''} ${payment.user?.last_name || ''}`.trim() || 'Unknown',
+            program: payment.user?.program?.title || 'N/A',
+            batch: payment.batch_id || 'N/A',
+            hasVoucher: hasVoucher,
+            totalFee: hasVoucher ? 0 : parseFloat(payment.amount),
+            amountPaid: hasVoucher ? 0 : (payment.payment_status === 'paid' ? parseFloat(payment.amount) : 0),
+            balance: hasVoucher ? 0 : (payment.payment_status === 'paid' ? 0 : parseFloat(payment.amount)),
+            paymentStatus: hasVoucher ? 'voucher' : payment.payment_status,
+            lastPaymentDate: payment.updated_at ? new Date(payment.updated_at).toISOString().split('T')[0] : null,
+            paymentMethod: hasVoucher ? 'VOUCHER' : (payment.payment_method ? payment.payment_method.toUpperCase() : 'N/A'),
+            referenceCode: payment.reference_code,
+            paymongoPaymentId: payment.paymongo_payment_id,
+            description: payment.payment_description,
+            createdAt: payment.created_at,
+            transactions: payment.payment_status === 'paid' ? [
+              {
+                date: payment.updated_at ? new Date(payment.updated_at).toISOString().split('T')[0] : 'N/A',
+                amount: parseFloat(payment.amount),
+                method: payment.payment_method ? payment.payment_method.toUpperCase() : 'N/A',
+                receiptNo: payment.reference_code,
+                remarks: payment.payment_description
+              }
+            ] : []
+          };
+        });
+
+        setPaymentRecords(transformedRecords);
+      } else {
+        toast.error('Failed to fetch payment records');
+      }
+    } catch (error) {
+      console.error('Error fetching payment records:', error);
+      toast.error('Error loading payment records');
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
-  const programs = [
-    'Welding NCII',
-    'Automotive Servicing NCII',
-    'Electronics NCII',
-    'Food Processing NCII',
-    'Plumbing NCII',
-    'Carpentry NCII'
-  ];
+  const programs = [];
 
   const getPaymentStatusBadge = (status) => {
     const statusConfig = {
@@ -143,6 +104,11 @@ const StaffPaymentRecords = () => {
         className: 'bg-green-100 text-green-800',
         icon: <MdCheckCircle className="h-4 w-4" />,
         label: 'Paid'
+      },
+      voucher: {
+        className: 'bg-purple-100 text-purple-800',
+        icon: <MdCheckCircle className="h-4 w-4" />,
+        label: 'Voucher'
       },
       partial: {
         className: 'bg-yellow-100 text-yellow-800',
@@ -202,7 +168,7 @@ const StaffPaymentRecords = () => {
   const stats = {
     totalRevenue: paymentRecords.reduce((sum, r) => sum + r.amountPaid, 0),
     totalOutstanding: paymentRecords.reduce((sum, r) => sum + r.balance, 0),
-    paidCount: paymentRecords.filter(r => r.paymentStatus === 'paid').length,
+    paidCount: paymentRecords.filter(r => r.paymentStatus === 'paid' || r.paymentStatus === 'voucher').length,
     unpaidCount: paymentRecords.filter(r => r.paymentStatus === 'unpaid' || r.paymentStatus === 'overdue').length
   };
 
@@ -271,7 +237,7 @@ const StaffPaymentRecords = () => {
                   <MdCheckCircle className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 font-medium">Fully Paid</p>
+                  <p className="text-sm text-gray-500 font-medium">Paid/Voucher</p>
                   <p className="text-xl font-bold text-blue-600">{stats.paidCount}</p>
                 </div>
               </div>
@@ -356,7 +322,11 @@ const StaffPaymentRecords = () => {
 
             {/* Action Buttons */}
             <div className="flex gap-2 mt-4">
-              <button className="flex items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors">
+              <button 
+                onClick={fetchPaymentRecords}
+                disabled={loading}
+                className="flex items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors disabled:opacity-50"
+              >
                 <MdRefresh className="h-5 w-5" />
                 Refresh
               </button>
@@ -373,6 +343,12 @@ const StaffPaymentRecords = () => {
 
           {/* Payment Records Table */}
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-tracked-primary"></div>
+                <span className="ml-3 text-gray-600">Loading payment records...</span>
+              </div>
+            ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -474,6 +450,7 @@ const StaffPaymentRecords = () => {
                 </tbody>
               </table>
             </div>
+            )}
 
             {/* Pagination */}
             {filteredRecords.length > 0 && (
@@ -497,134 +474,10 @@ const StaffPaymentRecords = () => {
       </div>
 
       {/* Payment Detail Modal */}
-      {selectedStudent && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
-            <div className="bg-tracked-primary p-6 text-white sticky top-0">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold">{selectedStudent.studentName}</h2>
-                  <p className="text-blue-100">{selectedStudent.studentId} • {selectedStudent.program}</p>
-                  <div className="flex gap-2 mt-2">
-                    {getPaymentStatusBadge(selectedStudent.paymentStatus)}
-                  </div>
-                </div>
-                <button
-                  onClick={() => setSelectedStudent(null)}
-                  className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2"
-                >
-                  <MdClose className="h-6 w-6" />
-                </button>
-              </div>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-6">
-              {/* Payment Summary */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-blue-50 rounded-lg p-4">
-                  <p className="text-sm text-blue-600 font-medium">Total Fee</p>
-                  <p className="text-2xl font-bold text-blue-800 mt-2">{formatCurrency(selectedStudent.totalFee)}</p>
-                </div>
-                <div className="bg-green-50 rounded-lg p-4">
-                  <p className="text-sm text-green-600 font-medium">Amount Paid</p>
-                  <p className="text-2xl font-bold text-green-800 mt-2">{formatCurrency(selectedStudent.amountPaid)}</p>
-                  <div className="mt-2">
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-green-600 h-2 rounded-full" 
-                        style={{ width: `${(selectedStudent.amountPaid / selectedStudent.totalFee) * 100}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-gray-600 mt-1">
-                      {((selectedStudent.amountPaid / selectedStudent.totalFee) * 100).toFixed(1)}% paid
-                    </p>
-                  </div>
-                </div>
-                <div className={`rounded-lg p-4 ${selectedStudent.balance > 0 ? 'bg-red-50' : 'bg-green-50'}`}>
-                  <p className={`text-sm font-medium ${selectedStudent.balance > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                    Balance
-                  </p>
-                  <p className={`text-2xl font-bold mt-2 ${selectedStudent.balance > 0 ? 'text-red-800' : 'text-green-800'}`}>
-                    {formatCurrency(selectedStudent.balance)}
-                  </p>
-                </div>
-              </div>
-
-              {/* Transaction History */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                  <MdHistory className="h-5 w-5 text-tracked-primary" />
-                  Transaction History
-                </h3>
-                {selectedStudent.transactions.length > 0 ? (
-                  <div className="space-y-3">
-                    {selectedStudent.transactions.map((transaction, index) => (
-                      <div key={index} className="bg-white p-4 rounded-lg border border-gray-200">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <MdCalendarToday className="h-4 w-4 text-gray-400" />
-                              <span className="text-sm font-medium text-gray-900">{transaction.date}</span>
-                              <span className="text-xs text-gray-500">• Receipt: {transaction.receiptNo}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <MdPayment className="h-4 w-4 text-gray-400" />
-                              <span className="text-sm text-gray-600">{transaction.method}</span>
-                            </div>
-                            {transaction.remarks && (
-                              <p className="text-xs text-gray-500 mt-2 italic">{transaction.remarks}</p>
-                            )}
-                          </div>
-                          <div className="text-right">
-                            <div className="text-xl font-bold text-green-600">
-                              {formatCurrency(transaction.amount)}
-                            </div>
-                            <button className="mt-2 text-xs text-tracked-primary hover:text-tracked-secondary flex items-center gap-1">
-                              <MdReceipt className="h-3 w-3" />
-                              Print Receipt
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <MdWarning className="h-12 w-12 mx-auto text-gray-300 mb-2" />
-                    <p>No payment transactions recorded yet.</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-2 mt-6 pt-6 border-t border-gray-200">
-                {selectedStudent.balance > 0 && (
-                  <button className="flex items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors">
-                    <MdPayment className="h-5 w-5" />
-                    Record Payment
-                  </button>
-                )}
-                <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
-                  <MdPrint className="h-5 w-5" />
-                  Print Summary
-                </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-                  <MdDownload className="h-5 w-5" />
-                  Download Statement
-                </button>
-                <button 
-                  onClick={() => setSelectedStudent(null)}
-                  className="ml-auto px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <PaymentDetailModal 
+        student={selectedStudent}
+        onClose={() => setSelectedStudent(null)}
+      />
     </div>
   );
 };

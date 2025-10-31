@@ -555,4 +555,31 @@ class PaymentController extends Controller
         $html = view('mock-payment', compact('payment'))->render();
         return response($html)->header('Content-Type', 'text/html');
     }
+
+    /**
+     * Get all payments for staff view
+     */
+    public function getAllPayments(Request $request)
+    {
+        try {
+            $payments = Payment::with(['user.program', 'user.voucher', 'batch'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'payments' => $payments
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching payments:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to fetch payments'
+            ], 500);
+        }
+    }
 }

@@ -19,6 +19,7 @@ class Payment extends Model
         'paymongo_payment_id',
         'paymongo_payment_intent_id',
         'paymongo_source_id',
+        'checkout_session_id',
         'paymongo_response',
         'reference_code',
         'payment_description',

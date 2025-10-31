@@ -2500,6 +2500,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::apiResource('vouchers', VoucherController::class);
     
     // Payment Routes
+    Route::get('/payments', [PaymentController::class, 'getAllPayments']);
     Route::post('/payments/check-required', [PaymentController::class, 'checkPaymentRequired']);
     Route::post('/payments/intent', [PaymentController::class, 'createPaymentIntent']);
     Route::post('/payments/source', [PaymentController::class, 'createPaymentSource']);
