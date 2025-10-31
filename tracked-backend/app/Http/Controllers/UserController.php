@@ -118,7 +118,7 @@ class UserController extends Controller
 
     public function index(Request $request)
     {
-        $query = User::query();
+        $query = User::with(['program', 'batch', 'voucher']);
         
         // Apply search filter
         if ($request->has('search')) {
@@ -142,6 +142,15 @@ class UserController extends Controller
             $query->where('application_status', $request->status);
         }
 
+        // Get all users without pagination if per_page is 'all'
+        if ($request->has('per_page') && $request->per_page === 'all') {
+            $users = $query->get();
+            return response()->json([
+                'success' => true,
+                'users' => $users
+            ]);
+        }
+
         // Paginate results
         $perPage = $request->per_page ?? 10;
         $users = $query->paginate($perPage);
@@ -149,6 +158,7 @@ class UserController extends Controller
         return response()->json([
             'success' => true,
             'data' => $users->items(),
+            'users' => $users->items(),
             'pagination' => [
                 'current_page' => $users->currentPage(),
                 'last_page' => $users->lastPage(),

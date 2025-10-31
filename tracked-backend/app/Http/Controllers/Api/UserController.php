@@ -14,7 +14,7 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
-        $query = User::query();
+        $query = User::with(['program', 'batch', 'voucher']);
 
         // Search functionality
         if ($request->has('search') && $request->search) {
@@ -35,6 +35,15 @@ class UserController extends Controller
         // Status filter
         if ($request->has('status') && $request->status !== 'all') {
             $query->where('status', $request->status);
+        }
+
+        // Get all users without pagination if per_page is 'all'
+        if ($request->has('per_page') && $request->per_page === 'all') {
+            $users = $query->latest()->get();
+            return response()->json([
+                'success' => true,
+                'users' => $users
+            ]);
         }
 
         // Pagination

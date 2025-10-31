@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import StaffSidebar from '../../layouts/staff/StaffSidebar';
+import StudentDetailModal from '../../components/staff/StudentDetailModal';
+import { getStaffToken } from '../../utils/staffAuth';
+import toast from 'react-hot-toast';
 import { 
   MdMenu,
   MdSearch,
@@ -20,7 +23,8 @@ import {
   MdDescription,
   MdAssignment,
   MdPayment,
-  MdPrint
+  MdPrint,
+  MdClose
 } from 'react-icons/md';
 
 const StaffStudentProfile = () => {
@@ -31,149 +35,133 @@ const StaffStudentProfile = () => {
   const [programFilter, setProgramFilter] = useState('all');
   const [sortBy, setSortBy] = useState('name');
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data - replace with actual API calls
-  const [students, setStudents] = useState([
-    {
-      id: 1,
-      studentId: 'STU-2025-001',
-      firstName: 'Juan',
-      middleName: 'Santos',
-      lastName: 'Dela Cruz',
-      email: 'juan.delacruz@email.com',
-      phone: '09171234567',
-      dateOfBirth: '2000-05-15',
-      gender: 'Male',
-      address: '123 Main St, Manila, Philippines',
-      enrollmentStatus: 'active',
-      program: 'Welding NCII',
-      batch: 'Batch 01-2025',
-      enrollmentDate: '2025-09-15',
-      expectedGraduation: '2025-12-15',
-      attendance: 95,
-      overallGrade: 92,
-      paymentStatus: 'paid',
-      documents: ['Birth Certificate', 'Valid ID', '2x2 Photo', 'Medical Certificate'],
-      emergencyContact: {
-        name: 'Maria Dela Cruz',
-        relationship: 'Mother',
-        phone: '09181234567'
+  useEffect(() => {
+    fetchStudents();
+  }, []);
+
+  const fetchStudents = async () => {
+    try {
+      setLoading(true);
+      const token = getStaffToken();
+      
+      // Fetch both students and payment records
+      const [studentsResponse, paymentsResponse] = await Promise.all([
+        fetch('http://localhost:8000/api/users?role=student&per_page=all', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
+        }),
+        fetch('http://localhost:8000/api/payments', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
+        })
+      ]);
+
+      if (studentsResponse.ok && paymentsResponse.ok) {
+        const studentsData = await studentsResponse.json();
+        const paymentsData = await paymentsResponse.json();
+        
+        // Create a map of user payments for quick lookup
+        const userPaymentMap = {};
+        paymentsData.payments.forEach(payment => {
+          const userId = payment.user_id;
+          const hasVoucher = payment.user?.voucher_id && payment.user?.voucher;
+          
+          // Use the payment_status from the database
+          let status = payment.payment_status;
+          
+          // Override with 'voucher' if user has a voucher
+          if (hasVoucher) {
+            status = 'voucher';
+          }
+          
+          // Store the most recent or most relevant payment status
+          if (!userPaymentMap[userId]) {
+            userPaymentMap[userId] = {
+              status: status,
+              totalFee: parseFloat(payment.amount || 0),
+              amountPaid: parseFloat(payment.amount_paid || 0)
+            };
+          } else {
+            // If there are multiple payments, aggregate the amounts
+            userPaymentMap[userId].totalFee += parseFloat(payment.amount || 0);
+            userPaymentMap[userId].amountPaid += parseFloat(payment.amount_paid || 0);
+            
+            // Update status based on priority: voucher > paid > partial > unpaid
+            if (status === 'voucher' || hasVoucher) {
+              userPaymentMap[userId].status = 'voucher';
+            } else if (status === 'paid' && userPaymentMap[userId].status !== 'voucher') {
+              userPaymentMap[userId].status = 'paid';
+            } else if (status === 'partial' && !['voucher', 'paid'].includes(userPaymentMap[userId].status)) {
+              userPaymentMap[userId].status = 'partial';
+            }
+          }
+        });
+        
+        // Transform the data to match our component structure
+        const transformedStudents = studentsData.users.map(user => {
+          // Check if user has a voucher
+          const hasVoucher = user.voucher_id && user.voucher;
+          
+          // Get payment info from the map
+          const paymentInfo = userPaymentMap[user.id];
+          
+          // Determine payment status
+          let paymentStatus = 'unpaid';
+          if (hasVoucher) {
+            paymentStatus = 'voucher';
+          } else if (paymentInfo) {
+            paymentStatus = paymentInfo.status;
+          }
+          
+          return {
+            id: user.id,
+            studentId: user.student_id || 'N/A',
+            firstName: user.first_name,
+            middleName: user.middle_name || '',
+            lastName: user.last_name,
+            email: user.email,
+            phone: user.phone_number,
+            dateOfBirth: user.date_of_birth ? user.date_of_birth.split('T')[0] : 'N/A',
+            gender: user.gender,
+            address: user.address,
+            enrollmentStatus: user.status,
+            program: user.program?.title || 'N/A',
+            batch: user.batch_id || 'N/A',
+            enrollmentDate: user.created_at ? new Date(user.created_at).toISOString().split('T')[0] : 'N/A',
+            expectedGraduation: user.batch?.end_date ? new Date(user.batch.end_date).toISOString().split('T')[0] : 'N/A',
+            attendance: 0, // TODO: Calculate from actual attendance data
+            overallGrade: 0, // TODO: Calculate from actual grades
+            paymentStatus: paymentStatus,
+            documents: [], // TODO: Get actual documents
+            emergencyContact: {
+              name: user.emergency_contact || 'N/A',
+              relationship: user.emergency_relationship || 'N/A',
+              phone: user.emergency_phone || 'N/A'
+            }
+          };
+        });
+
+        setStudents(transformedStudents);
+      } else {
+        toast.error('Failed to fetch students');
       }
-    },
-    {
-      id: 2,
-      studentId: 'STU-2025-002',
-      firstName: 'Maria',
-      middleName: 'Garcia',
-      lastName: 'Santos',
-      email: 'maria.santos@email.com',
-      phone: '09181234567',
-      dateOfBirth: '1999-08-20',
-      gender: 'Female',
-      address: '456 Oak Ave, Quezon City, Philippines',
-      enrollmentStatus: 'active',
-      program: 'Automotive Servicing NCII',
-      batch: 'Batch 02-2025',
-      enrollmentDate: '2025-09-20',
-      expectedGraduation: '2025-12-20',
-      attendance: 88,
-      overallGrade: 89,
-      paymentStatus: 'partial',
-      documents: ['Birth Certificate', 'Valid ID', '2x2 Photo'],
-      emergencyContact: {
-        name: 'Roberto Santos',
-        relationship: 'Father',
-        phone: '09191234567'
-      }
-    },
-    {
-      id: 3,
-      studentId: 'STU-2025-003',
-      firstName: 'Pedro',
-      middleName: 'Lopez',
-      lastName: 'Reyes',
-      email: 'pedro.reyes@email.com',
-      phone: '09191234567',
-      dateOfBirth: '2001-03-10',
-      gender: 'Male',
-      address: '789 Pine Rd, Pasig City, Philippines',
-      enrollmentStatus: 'completed',
-      program: 'Electronics NCII',
-      batch: 'Batch 01-2025',
-      enrollmentDate: '2025-08-10',
-      expectedGraduation: '2025-11-30',
-      attendance: 98,
-      overallGrade: 95,
-      paymentStatus: 'paid',
-      documents: ['Birth Certificate', 'Valid ID', '2x2 Photo', 'Diploma'],
-      emergencyContact: {
-        name: 'Ana Reyes',
-        relationship: 'Sister',
-        phone: '09201234567'
-      }
-    },
-    {
-      id: 4,
-      studentId: 'STU-2025-004',
-      firstName: 'Ana',
-      middleName: 'Cruz',
-      lastName: 'Garcia',
-      email: 'ana.garcia@email.com',
-      phone: '09201234567',
-      dateOfBirth: '2000-11-25',
-      gender: 'Female',
-      address: '321 Elm St, Makati City, Philippines',
-      enrollmentStatus: 'pending',
-      program: 'Food Processing NCII',
-      batch: 'Batch 03-2025',
-      enrollmentDate: '2025-09-25',
-      expectedGraduation: '2025-12-25',
-      attendance: 0,
-      overallGrade: 0,
-      paymentStatus: 'unpaid',
-      documents: ['Birth Certificate', 'Valid ID'],
-      emergencyContact: {
-        name: 'Carmen Garcia',
-        relationship: 'Mother',
-        phone: '09211234567'
-      }
-    },
-    {
-      id: 5,
-      studentId: 'STU-2025-005',
-      firstName: 'Roberto',
-      middleName: 'Mendoza',
-      lastName: 'Cruz',
-      email: 'roberto.cruz@email.com',
-      phone: '09211234567',
-      dateOfBirth: '1998-07-08',
-      gender: 'Male',
-      address: '654 Maple Dr, Taguig City, Philippines',
-      enrollmentStatus: 'dropped',
-      program: 'Welding NCII',
-      batch: 'Batch 01-2025',
-      enrollmentDate: '2025-08-15',
-      expectedGraduation: '2025-11-15',
-      attendance: 45,
-      overallGrade: 55,
-      paymentStatus: 'partial',
-      documents: ['Birth Certificate', 'Valid ID', '2x2 Photo'],
-      emergencyContact: {
-        name: 'Elena Cruz',
-        relationship: 'Wife',
-        phone: '09221234567'
-      }
+    } catch (error) {
+      console.error('Error fetching students:', error);
+      toast.error('Error loading students');
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
-  const programs = [
-    'Welding NCII',
-    'Automotive Servicing NCII',
-    'Electronics NCII',
-    'Food Processing NCII',
-    'Plumbing NCII',
-    'Carpentry NCII'
-  ];
+  // Get unique programs from students
+  const programs = [...new Set(students.map(s => s.program))].filter(p => p !== 'N/A');
 
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -212,6 +200,7 @@ const StaffStudentProfile = () => {
   const getPaymentBadge = (paymentStatus) => {
     const paymentConfig = {
       paid: { className: 'bg-green-100 text-green-800', label: 'Paid' },
+      voucher: { className: 'bg-purple-100 text-purple-800', label: 'Voucher' },
       partial: { className: 'bg-yellow-100 text-yellow-800', label: 'Partial' },
       unpaid: { className: 'bg-red-100 text-red-800', label: 'Unpaid' }
     };
@@ -375,7 +364,11 @@ const StaffStudentProfile = () => {
 
             {/* Action Buttons */}
             <div className="flex gap-2 mt-4">
-              <button className="flex items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors">
+              <button 
+                onClick={fetchStudents}
+                disabled={loading}
+                className="flex items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors disabled:opacity-50"
+              >
                 <MdRefresh className="h-5 w-5" />
                 Refresh
               </button>
@@ -390,303 +383,97 @@ const StaffStudentProfile = () => {
             </div>
           </div>
 
-          {/* Students Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Students List */}
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-tracked-primary"></div>
+              <span className="ml-3 text-gray-600">Loading students...</span>
+            </div>
+          ) : (
+          <div className="bg-white rounded-lg shadow-md overflow-hidden">
             {filteredStudents.length > 0 ? (
-              filteredStudents.map((student) => (
-                <div key={student.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                  {/* Header */}
-                  <div className="bg-tracked-primary p-4 text-white">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <div className="h-16 w-16 bg-white rounded-full flex items-center justify-center">
-                          <MdPerson className="h-10 w-10 text-tracked-primary" />
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-lg">
-                            {student.firstName} {student.lastName}
-                          </h3>
-                          <p className="text-sm text-blue-100">{student.studentId}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Body */}
-                  <div className="p-4">
-                    <div className="space-y-3">
-                      {/* Status & Payment */}
-                      <div className="flex items-center justify-between">
-                        {getStatusBadge(student.enrollmentStatus)}
-                        {getPaymentBadge(student.paymentStatus)}
-                      </div>
-
-                      {/* Contact Info */}
-                      <div className="space-y-2 text-sm">
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <MdEmail className="h-4 w-4 text-gray-400" />
-                          <span className="truncate">{student.email}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <MdPhone className="h-4 w-4 text-gray-400" />
-                          <span>{student.phone}</span>
-                        </div>
-                      </div>
-
-                      {/* Program Info */}
-                      <div className="pt-2 border-t border-gray-200">
-                        <div className="flex items-center gap-2 text-sm mb-1">
-                          <MdSchool className="h-4 w-4 text-tracked-primary" />
-                          <span className="font-medium text-gray-800">{student.program}</span>
-                        </div>
-                        <div className="text-xs text-gray-500 ml-6">
-                          {student.batch}
-                        </div>
-                      </div>
-
-                      {/* Performance */}
-                      {student.enrollmentStatus !== 'pending' && (
-                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-200">
-                          <div className="text-center p-2 bg-gray-50 rounded">
-                            <p className="text-xs text-gray-500">Attendance</p>
-                            <p className="text-lg font-bold text-tracked-primary">{student.attendance}%</p>
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Student
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Contact
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Program
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredStudents.map((student) => (
+                    <tr key={student.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="h-10 w-10 bg-tracked-primary rounded-full flex items-center justify-center flex-shrink-0">
+                            <MdPerson className="h-6 w-6 text-white" />
                           </div>
-                          <div className="text-center p-2 bg-gray-50 rounded">
-                            <p className="text-xs text-gray-500">Grade</p>
-                            <p className="text-lg font-bold text-tracked-secondary">{student.overallGrade}%</p>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">
+                              {student.firstName} {student.lastName}
+                            </div>
+                            <div className="text-sm text-gray-500">{student.studentId}</div>
                           </div>
                         </div>
-                      )}
-
-                      {/* Documents */}
-                      <div className="pt-2 border-t border-gray-200">
-                        <div className="flex items-center gap-2 mb-1">
-                          <MdDescription className="h-4 w-4 text-gray-400" />
-                          <span className="text-xs text-gray-500">
-                            {student.documents.length} document{student.documents.length !== 1 ? 's' : ''} submitted
-                          </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{student.email}</div>
+                        <div className="text-sm text-gray-500">{student.phone}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{student.program}</div>
+                        <div className="text-sm text-gray-500">{student.batch}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex flex-col gap-1">
+                          {getStatusBadge(student.enrollmentStatus)}
+                          {getPaymentBadge(student.paymentStatus)}
                         </div>
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex gap-2 mt-4 pt-4 border-t border-gray-200">
-                      <button
-                        onClick={() => setSelectedStudent(student)}
-                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors text-sm"
-                      >
-                        <MdVisibility className="h-4 w-4" />
-                        View Full Profile
-                      </button>
-                      <button
-                        className="flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                        title="Edit"
-                      >
-                        <MdEdit className="h-5 w-5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button
+                          onClick={() => setSelectedStudent(student)}
+                          className="text-tracked-primary hover:text-tracked-secondary mr-3"
+                        >
+                          <MdVisibility className="h-5 w-5 inline" />
+                        </button>
+                        <button className="text-blue-600 hover:text-blue-900">
+                          <MdEdit className="h-5 w-5 inline" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             ) : (
               <div className="col-span-full text-center py-12 text-gray-500 bg-white rounded-lg shadow-md">
                 No students found matching your filters.
               </div>
             )}
           </div>
+          )}
         </div>
       </div>
 
       {/* Student Detail Modal */}
-      {selectedStudent && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
-            <div className="bg-tracked-primary p-6 text-white sticky top-0">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="h-20 w-20 bg-white rounded-full flex items-center justify-center">
-                    <MdPerson className="h-12 w-12 text-tracked-primary" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold">
-                      {selectedStudent.firstName} {selectedStudent.middleName} {selectedStudent.lastName}
-                    </h2>
-                    <p className="text-blue-100">{selectedStudent.studentId}</p>
-                    <div className="flex gap-2 mt-2">
-                      {getStatusBadge(selectedStudent.enrollmentStatus)}
-                      {getPaymentBadge(selectedStudent.paymentStatus)}
-                    </div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setSelectedStudent(null)}
-                  className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2"
-                >
-                  <MdClose className="h-6 w-6" />
-                </button>
-              </div>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Personal Information */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <MdPerson className="h-5 w-5 text-tracked-primary" />
-                    Personal Information
-                  </h3>
-                  <div className="space-y-3 text-sm">
-                    <div>
-                      <p className="text-gray-500">Full Name</p>
-                      <p className="font-medium text-gray-800">
-                        {selectedStudent.firstName} {selectedStudent.middleName} {selectedStudent.lastName}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Date of Birth</p>
-                      <p className="font-medium text-gray-800">{selectedStudent.dateOfBirth}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Gender</p>
-                      <p className="font-medium text-gray-800">{selectedStudent.gender}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Email</p>
-                      <p className="font-medium text-gray-800">{selectedStudent.email}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Phone</p>
-                      <p className="font-medium text-gray-800">{selectedStudent.phone}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Address</p>
-                      <p className="font-medium text-gray-800">{selectedStudent.address}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Emergency Contact */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <MdPhone className="h-5 w-5 text-tracked-primary" />
-                    Emergency Contact
-                  </h3>
-                  <div className="space-y-3 text-sm">
-                    <div>
-                      <p className="text-gray-500">Contact Name</p>
-                      <p className="font-medium text-gray-800">{selectedStudent.emergencyContact.name}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Relationship</p>
-                      <p className="font-medium text-gray-800">{selectedStudent.emergencyContact.relationship}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Phone Number</p>
-                      <p className="font-medium text-gray-800">{selectedStudent.emergencyContact.phone}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Enrollment Details */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <MdSchool className="h-5 w-5 text-tracked-primary" />
-                    Enrollment Details
-                  </h3>
-                  <div className="space-y-3 text-sm">
-                    <div>
-                      <p className="text-gray-500">Program</p>
-                      <p className="font-medium text-gray-800">{selectedStudent.program}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Batch</p>
-                      <p className="font-medium text-gray-800">{selectedStudent.batch}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Enrollment Date</p>
-                      <p className="font-medium text-gray-800">{selectedStudent.enrollmentDate}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Expected Graduation</p>
-                      <p className="font-medium text-gray-800">{selectedStudent.expectedGraduation}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Academic Performance */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <MdAssignment className="h-5 w-5 text-tracked-primary" />
-                    Academic Performance
-                  </h3>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Attendance Rate</span>
-                      <span className="text-2xl font-bold text-tracked-primary">{selectedStudent.attendance}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-tracked-primary h-2 rounded-full" 
-                        style={{ width: `${selectedStudent.attendance}%` }}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between mt-4">
-                      <span className="text-sm text-gray-600">Overall Grade</span>
-                      <span className="text-2xl font-bold text-tracked-secondary">{selectedStudent.overallGrade}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-tracked-secondary h-2 rounded-full" 
-                        style={{ width: `${selectedStudent.overallGrade}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Documents */}
-                <div className="bg-gray-50 rounded-lg p-4 md:col-span-2">
-                  <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <MdDescription className="h-5 w-5 text-tracked-primary" />
-                    Submitted Documents
-                  </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {selectedStudent.documents.map((doc, index) => (
-                      <div key={index} className="flex items-center gap-2 bg-white p-2 rounded border border-gray-200">
-                        <MdCheckCircle className="h-4 w-4 text-green-500" />
-                        <span className="text-xs text-gray-700">{doc}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-2 mt-6 pt-6 border-t border-gray-200">
-                <button className="flex items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors">
-                  <MdEdit className="h-5 w-5" />
-                  Edit Profile
-                </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
-                  <MdPrint className="h-5 w-5" />
-                  Print Profile
-                </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-                  <MdPayment className="h-5 w-5" />
-                  Payment History
-                </button>
-                <button 
-                  onClick={() => setSelectedStudent(null)}
-                  className="ml-auto px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <StudentDetailModal
+        student={selectedStudent}
+        onClose={() => setSelectedStudent(null)}
+        getStatusBadge={getStatusBadge}
+        getPaymentBadge={getPaymentBadge}
+      />
     </div>
   );
 };
