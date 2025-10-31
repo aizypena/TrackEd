@@ -33,8 +33,20 @@ class PaymentController extends Controller
 
         $voucher = Voucher::where('batch_id', $request->batch_id)
             ->whereRaw('used_count < quantity')
-            ->whereIn('status', ['pending', 'issued'])
+            ->whereIn('status', ['pending', 'issued', 'active'])
             ->first();
+
+        Log::info('Payment check:', [
+            'batch_id' => $request->batch_id,
+            'voucher_found' => $voucher !== null,
+            'voucher_details' => $voucher ? [
+                'id' => $voucher->id,
+                'quantity' => $voucher->quantity,
+                'used_count' => $voucher->used_count,
+                'status' => $voucher->status,
+                'remaining' => $voucher->quantity - $voucher->used_count
+            ] : null
+        ]);
 
         $voucherAvailable = $voucher !== null;
         $enrollmentFee = config('paymongo.enrollment_fee', 5000.00);

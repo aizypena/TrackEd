@@ -2342,7 +2342,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Find available voucher for the batch they're being assigned to
         $voucher = \App\Models\Voucher::where('batch_id', $request->batch_id)
             ->whereRaw('used_count < quantity')
-            ->whereIn('status', ['pending', 'issued'])
+            ->whereIn('status', ['pending', 'issued', 'active'])
             ->first();
         
         if ($voucher) {

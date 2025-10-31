@@ -210,7 +210,7 @@
     </div>
 
     <script>
-        const paymentId = {{ $payment->id }};
+        const paymentId = "{{ $payment->id }}";
         
         async function completePayment() {
             showLoading();

@@ -51,11 +51,15 @@ const ApproveApplicantModal = ({ isOpen, onClose, applicant, onSuccess }) => {
 
       const data = await response.json();
       
+      console.log('Payment check response:', data); // Debug log
+      
       if (data.payment_required) {
         setPaymentRequired(true);
         setEnrollmentFee(data.enrollment_fee || 5000);
+        console.log('Payment IS required - no vouchers available');
       } else {
         setPaymentRequired(false);
+        console.log('Payment NOT required - vouchers available:', data.vouchers_remaining);
       }
     } catch (error) {
       console.error('Error checking payment requirement:', error);
@@ -85,10 +89,26 @@ const ApproveApplicantModal = ({ isOpen, onClose, applicant, onSuccess }) => {
         const matchingBatches = data.data.filter(batch => {
           // Check if batch matches applicant's program (convert both to numbers for comparison)
           const programMatch = parseInt(batch.program_id) === parseInt(applicant.course_program);
-          // Check if batch is not full (assuming each batch has enrolled_students and max_students)
-          const notFull = !batch.max_students || (batch.enrolled_students || 0) < batch.max_students;
+          
+          // Check if batch is not full
+          const enrolledStudents = parseInt(batch.enrolled_students_count || batch.enrolled_students) || 0;
+          const maxStudents = parseInt(batch.max_students) || 0;
+          
+          // If max_students is set and greater than 0, check if not full
+          // If max_students is 0 or null, assume unlimited capacity
+          const notFull = maxStudents === 0 || enrolledStudents < maxStudents;
+          
           // Check if batch is not completed (allow all statuses except 'completed')
           const isNotCompleted = batch.batch_status !== 'completed';
+          
+          console.log(`Batch ${batch.batch_id}:`, {
+            programMatch,
+            enrolledStudents,
+            maxStudents,
+            notFull,
+            isNotCompleted,
+            included: programMatch && notFull && isNotCompleted
+          });
           
           return programMatch && notFull && isNotCompleted;
         });
@@ -299,7 +319,7 @@ const ApproveApplicantModal = ({ isOpen, onClose, applicant, onSuccess }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b border-gray-200">
@@ -362,7 +382,7 @@ const ApproveApplicantModal = ({ isOpen, onClose, applicant, onSuccess }) => {
                   {batches.map((batch) => (
                     <option key={batch.id} value={batch.batch_id}>
                       {batch.batch_id} - {batch.program_name || 'Program'} 
-                      {batch.max_students && ` (${batch.enrolled_students || 0}/${batch.max_students})`}
+                      {batch.max_students && ` (${batch.enrolled_students_count || batch.enrolled_students || 0}/${batch.max_students})`}
                       {batch.start_date && ` - Starts: ${new Date(batch.start_date).toLocaleDateString()}`}
                     </option>
                   ))}
