@@ -326,7 +326,7 @@ const ApproveApplicantModal = ({ isOpen, onClose, applicant, onSuccess }) => {
           <h2 className="text-xl font-bold text-gray-800">Approve Applicant</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 hover:cursor-pointer hover:text-gray-600 transition-colors"
           >
             <MdClose className="h-6 w-6" />
           </button>
@@ -481,7 +481,7 @@ const ApproveApplicantModal = ({ isOpen, onClose, applicant, onSuccess }) => {
           <button
             onClick={onClose}
             disabled={loading || processingPayment}
-            className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="flex-1 hover:cursor-pointer px-4 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
@@ -517,7 +517,7 @@ const ApproveApplicantModal = ({ isOpen, onClose, applicant, onSuccess }) => {
             <button
               onClick={handleApprove}
               disabled={loading || !selectedBatchId || batches.length === 0 || checkingPayment}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              className={`flex-1 hover:cursor-pointer flex items-center justify-center gap-2 px-4 py-3 text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                 paymentRequired ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'
               }`}
             >
