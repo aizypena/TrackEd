@@ -327,6 +327,9 @@ const BatchManagement = () => {
                       Enrollment
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Vouchers
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -337,13 +340,13 @@ const BatchManagement = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {loading ? (
                     <tr>
-                      <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
+                      <td colSpan="8" className="px-6 py-4 text-center text-gray-500">
                         Loading batches...
                       </td>
                     </tr>
                   ) : batches.length === 0 ? (
                     <tr>
-                      <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
+                      <td colSpan="8" className="px-6 py-4 text-center text-gray-500">
                         No batches found.
                       </td>
                     </tr>
@@ -386,10 +389,39 @@ const BatchManagement = () => {
                           </div>
                           <div className="w-24 bg-gray-200 rounded-full h-2.5 mt-1">
                             <div
-                              className="bg-blue-600 h-2.5 rounded-full"
+                              className={`h-2.5 rounded-full ${
+                                ((batch.enrolled_students_count || 0) / batch.max_students) >= 0.95
+                                  ? 'bg-red-500'
+                                  : ((batch.enrolled_students_count || 0) / batch.max_students) >= 0.80
+                                  ? 'bg-yellow-500'
+                                  : 'bg-blue-600'
+                              }`}
                               style={{ width: `${((batch.enrolled_students_count || 0) / batch.max_students) * 100}%` }}
                             ></div>
                           </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {batch.voucher_quantity > 0 ? (
+                            <>
+                              <div className="text-sm text-gray-900">
+                                {batch.voucher_used_count || 0}/{batch.voucher_quantity}
+                              </div>
+                              <div className="w-24 bg-gray-200 rounded-full h-2.5 mt-1">
+                                <div
+                                  className={`h-2.5 rounded-full ${
+                                    ((batch.voucher_used_count || 0) / batch.voucher_quantity) >= 0.95
+                                      ? 'bg-red-500'
+                                      : ((batch.voucher_used_count || 0) / batch.voucher_quantity) >= 0.80
+                                      ? 'bg-yellow-500'
+                                      : 'bg-green-600'
+                                  }`}
+                                  style={{ width: `${((batch.voucher_used_count || 0) / batch.voucher_quantity) * 100}%` }}
+                                ></div>
+                              </div>
+                            </>
+                          ) : (
+                            <span className="text-sm text-gray-400 italic">No vouchers</span>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(batch.status)}`}>

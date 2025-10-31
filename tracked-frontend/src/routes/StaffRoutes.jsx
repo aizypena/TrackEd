@@ -15,12 +15,16 @@ import StaffEquipment from '../pages/staff/StaffEquipment';
 import StaffStockTransactions from '../pages/staff/StaffStockTransactions';
 import StaffEnrollmentTrends from '../pages/staff/StaffEnrollmentTrends';
 import StaffProfile from '../pages/staff/StaffProfile';
+import PaymentCallback from '../pages/staff/PaymentCallback';
 
 const StaffRoutes = () => {
   return (
     <Routes>
       {/* Dashboard */}
       <Route path="/dashboard" element={<ProtectedStaffRoute><StaffDashboard /></ProtectedStaffRoute>} />
+      
+      {/* Payment Callback */}
+      <Route path="/payment-callback" element={<ProtectedStaffRoute><PaymentCallback /></ProtectedStaffRoute>} />
       
       {/* Enrollment Management */}
       <Route path="/enrollments/applications" element={<ProtectedStaffRoute><StaffApplications /></ProtectedStaffRoute>} />

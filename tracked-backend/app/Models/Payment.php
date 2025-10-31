@@ -11,16 +11,29 @@ class Payment extends Model
 
     protected $fillable = [
         'user_id',
+        'batch_id',
         'amount',
-        'method',
-        'status',
+        'currency',
+        'payment_method',
+        'payment_status',
+        'paymongo_payment_id',
+        'paymongo_payment_intent_id',
+        'paymongo_source_id',
+        'paymongo_response',
         'reference_code',
+        'payment_description',
+        'notes',
         'paid_at',
+        'failed_at',
+        'refunded_at',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'paymongo_response' => 'array',
         'paid_at' => 'datetime',
+        'failed_at' => 'datetime',
+        'refunded_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -34,11 +47,19 @@ class Payment extends Model
     }
 
     /**
-     * Scope a query to only include completed payments.
+     * Get the batch for this payment.
      */
-    public function scopeCompleted($query)
+    public function batch()
     {
-        return $query->where('status', 'completed');
+        return $this->belongsTo(Batch::class, 'batch_id', 'batch_id');
+    }
+
+    /**
+     * Scope a query to only include paid payments.
+     */
+    public function scopePaid($query)
+    {
+        return $query->where('payment_status', 'paid');
     }
 
     /**
@@ -46,7 +67,7 @@ class Payment extends Model
      */
     public function scopePending($query)
     {
-        return $query->where('status', 'pending');
+        return $query->where('payment_status', 'pending');
     }
 
     /**
@@ -54,16 +75,24 @@ class Payment extends Model
      */
     public function scopeFailed($query)
     {
-        return $query->where('status', 'failed');
+        return $query->where('payment_status', 'failed');
     }
 
     /**
-     * Mark payment as completed.
+     * Scope a query to only include processing payments.
      */
-    public function markAsCompleted()
+    public function scopeProcessing($query)
+    {
+        return $query->where('payment_status', 'processing');
+    }
+
+    /**
+     * Mark payment as paid.
+     */
+    public function markAsPaid()
     {
         $this->update([
-            'status' => 'completed',
+            'payment_status' => 'paid',
             'paid_at' => now(),
         ]);
     }
@@ -71,10 +100,12 @@ class Payment extends Model
     /**
      * Mark payment as failed.
      */
-    public function markAsFailed()
+    public function markAsFailed($reason = null)
     {
         $this->update([
-            'status' => 'failed',
+            'payment_status' => 'failed',
+            'failed_at' => now(),
+            'notes' => $reason ? ($this->notes ? $this->notes . "\n" . $reason : $reason) : $this->notes,
         ]);
     }
 
@@ -84,7 +115,42 @@ class Payment extends Model
     public function markAsRefunded()
     {
         $this->update([
-            'status' => 'refunded',
+            'payment_status' => 'refunded',
+            'refunded_at' => now(),
         ]);
+    }
+
+    /**
+     * Mark payment as processing.
+     */
+    public function markAsProcessing()
+    {
+        $this->update([
+            'payment_status' => 'processing',
+        ]);
+    }
+
+    /**
+     * Check if payment is paid.
+     */
+    public function isPaid()
+    {
+        return $this->payment_status === 'paid';
+    }
+
+    /**
+     * Check if payment is pending.
+     */
+    public function isPending()
+    {
+        return $this->payment_status === 'pending';
+    }
+
+    /**
+     * Check if payment is failed.
+     */
+    public function isFailed()
+    {
+        return $this->payment_status === 'failed';
     }
 }

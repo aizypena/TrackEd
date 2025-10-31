@@ -35,9 +35,24 @@ class BatchController extends Controller
 
         $batches = $query->orderBy('created_at', 'desc')->get();
 
-        // Add enrolled students count to each batch
+        // Add enrolled students count and voucher info to each batch
         $batches = $batches->map(function ($batch) {
             $batch->enrolled_students_count = $batch->students()->count();
+            
+            // Get voucher information for this batch
+            $voucher = \App\Models\Voucher::where('batch_id', $batch->batch_id)->first();
+            if ($voucher) {
+                $batch->voucher_quantity = $voucher->quantity;
+                $batch->voucher_used_count = $voucher->used_count;
+                $batch->voucher_available = $voucher->quantity - $voucher->used_count;
+                $batch->voucher_status = $voucher->status;
+            } else {
+                $batch->voucher_quantity = 0;
+                $batch->voucher_used_count = 0;
+                $batch->voucher_available = 0;
+                $batch->voucher_status = null;
+            }
+            
             return $batch;
         });
 
@@ -140,6 +155,20 @@ class BatchController extends Controller
         }
 
         $batch->enrolled_students_count = $batch->students()->count();
+        
+        // Get voucher information for this batch
+        $voucher = \App\Models\Voucher::where('batch_id', $batch->batch_id)->first();
+        if ($voucher) {
+            $batch->voucher_quantity = $voucher->quantity;
+            $batch->voucher_used_count = $voucher->used_count;
+            $batch->voucher_available = $voucher->quantity - $voucher->used_count;
+            $batch->voucher_status = $voucher->status;
+        } else {
+            $batch->voucher_quantity = 0;
+            $batch->voucher_used_count = 0;
+            $batch->voucher_available = 0;
+            $batch->voucher_status = null;
+        }
 
         return response()->json([
             'success' => true,

@@ -13,6 +13,7 @@ use App\Http\Controllers\BatchController;
 use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\QuizController;
+use App\Http\Controllers\PaymentController;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 
@@ -23,6 +24,9 @@ Route::get('/test', function () {
 
 // Application routes
 Route::post('/application', [ApplicationController::class, 'submit']);
+
+// PayMongo Webhook (no auth required)
+Route::post('/webhooks/paymongo', [PaymentController::class, 'handleWebhook']);
 
 // Authentication routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -2235,6 +2239,39 @@ Route::middleware(['auth:sanctum'])->group(function () {
             return response()->json(['error' => 'Applicant not found'], 404);
         }
         
+        // Handle rejection - free up voucher slot if applicant was eligible
+        if ($request->application_status === 'rejected') {
+            // Check if applicant had a voucher assigned (only for approved applicants who were converted to students)
+            if ($applicant->role === 'student' && 
+                $applicant->voucher_eligibility === 'eligible' && 
+                $applicant->voucher_id) {
+                
+                // Find the voucher and decrement used_count
+                $voucher = \App\Models\Voucher::where('voucher_id', $applicant->voucher_id)->first();
+                if ($voucher && $voucher->used_count > 0) {
+                    $voucher->decrement('used_count');
+                    
+                    // Update voucher status back to 'issued' if it was marked as 'used'
+                    if ($voucher->status === 'used' && $voucher->used_count < $voucher->quantity) {
+                        $voucher->update(['status' => 'issued']);
+                    }
+                }
+                
+                // Clear voucher assignment
+                $applicant->voucher_id = null;
+            }
+            
+            // Update voucher eligibility to not_eligible for rejected applicants
+            $applicant->voucher_eligibility = 'not_eligible';
+            
+            // If they were a student, revert back to applicant
+            if ($applicant->role === 'student') {
+                $applicant->role = 'applicant';
+                $applicant->batch_id = null;
+                $applicant->student_id = null;
+            }
+        }
+        
         $applicant->application_status = $request->application_status;
         $applicant->save();
         
@@ -2247,7 +2284,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Approve applicant and convert to student
     Route::post('/staff/applicants/{id}/approve', function (Request $request, $id) {
         $request->validate([
-            'batch_id' => 'required|exists:batches,batch_id'
+            'batch_id' => 'required|exists:batches,batch_id',
+            'payment_id' => 'nullable|exists:payments,id'
         ]);
 
         $applicant = \App\Models\User::where('role', 'applicant')
@@ -2260,6 +2298,25 @@ Route::middleware(['auth:sanctum'])->group(function () {
         
         if ($applicant->application_status === 'approved' && $applicant->role === 'student') {
             return response()->json(['error' => 'Applicant has already been approved and converted to student'], 400);
+        }
+        
+        // Get batch details
+        $batch = \App\Models\Batch::where('batch_id', $request->batch_id)->first();
+        if (!$batch) {
+            return response()->json(['error' => 'Batch not found'], 404);
+        }
+        
+        // Check batch capacity
+        $currentEnrollment = \App\Models\User::where('batch_id', $request->batch_id)
+            ->where('role', 'student')
+            ->count();
+        
+        if ($currentEnrollment >= $batch->max_students) {
+            return response()->json([
+                'error' => 'Batch has reached maximum capacity',
+                'current_enrollment' => $currentEnrollment,
+                'max_students' => $batch->max_students
+            ], 400);
         }
         
         // Generate unique student ID
@@ -2302,12 +2359,44 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 $voucher->update(['status' => 'used']);
             }
         } else {
-            // No vouchers available - mark as not eligible
+            // No vouchers available - PAYMENT REQUIRED
             $voucherStatus = 'not_eligible';
+            
+            // Check if payment_id was provided
+            if (!$request->payment_id) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'No vouchers available. Payment required before enrollment.',
+                    'payment_required' => true,
+                    'enrollment_fee' => config('paymongo.enrollment_fee', 5000.00),
+                    'vouchers_exhausted' => true
+                ], 422);
+            }
+            
+            // Verify payment exists and is paid
+            $payment = \App\Models\Payment::where('id', $request->payment_id)
+                ->where('user_id', $applicant->id)
+                ->first();
+            
+            if (!$payment) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Payment not found for this applicant'
+                ], 422);
+            }
+            
+            if ($payment->payment_status !== 'paid') {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Payment has not been completed yet',
+                    'payment_status' => $payment->payment_status
+                ], 422);
+            }
+            
+            // Payment verified, link it to the batch
+            $payment->update(['batch_id' => $request->batch_id]);
         }
         
-        // Get batch details for email
-        $batch = \App\Models\Batch::where('batch_id', $request->batch_id)->first();
         $program = \App\Models\Program::find($batch->program_id);
         
         // Update applicant to student
@@ -2409,6 +2498,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
     
     // Voucher Routes
     Route::apiResource('vouchers', VoucherController::class);
+    
+    // Payment Routes
+    Route::post('/payments/check-required', [PaymentController::class, 'checkPaymentRequired']);
+    Route::post('/payments/intent', [PaymentController::class, 'createPaymentIntent']);
+    Route::post('/payments/source', [PaymentController::class, 'createPaymentSource']);
+    Route::post('/payments/manual', [PaymentController::class, 'manualPayment']);
+    Route::get('/payments/{id}', [PaymentController::class, 'getPayment']);
+    Route::get('/payments/{id}/verify', [PaymentController::class, 'verifyPayment']);
+    Route::get('/users/{userId}/payments', [PaymentController::class, 'getUserPayments']);
     
     // User Routes
     Route::get('/users', [UserController::class, 'index']);
