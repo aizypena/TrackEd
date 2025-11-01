@@ -2789,6 +2789,99 @@ Route::middleware(['auth:sanctum'])->group(function () {
             'student' => $applicant->fresh()
         ]);
     });
+
+    // Staff Enrollment Records Endpoint
+    Route::get('/staff/enrollments', function (Request $request) {
+        try {
+            // Get all students (users with role 'student')
+            $students = \App\Models\User::where('role', 'student')
+                ->with(['batch.program', 'voucher'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+            
+            // Get all payments for mapping
+            $payments = \App\Models\Payment::all()->keyBy('user_id');
+            
+            // Transform the data into enrollment records
+            $enrollments = $students->map(function ($student) use ($payments) {
+                $payment = $payments->get($student->id);
+                $hasVoucher = $student->voucher_id && $student->voucher;
+                
+                // Determine payment status
+                $paymentStatus = 'unpaid';
+                if ($hasVoucher) {
+                    $paymentStatus = 'voucher';
+                } elseif ($payment) {
+                    $paymentStatus = $payment->payment_status;
+                }
+                
+                // Get batch and program info
+                $batch = $student->batch;
+                $program = $batch ? $batch->program : null;
+                
+                // Calculate actual attendance
+                $attendancePercentage = 0;
+                if ($batch && $batch->batch_id) {
+                    // Get total number of unique dates with attendance records for this batch
+                    $totalClasses = DB::table('attendances')
+                        ->where('batch_id', $batch->batch_id)
+                        ->selectRaw('COUNT(DISTINCT date) as total')
+                        ->value('total') ?? 0;
+                    
+                    // Get number of days student was present or late
+                    $attendedClasses = \App\Models\Attendance::where('user_id', $student->id)
+                        ->where('batch_id', $batch->batch_id)
+                        ->whereIn('status', ['present', 'late'])
+                        ->count();
+                    
+                    // Calculate percentage
+                    $attendancePercentage = $totalClasses > 0 
+                        ? round(($attendedClasses / $totalClasses) * 100) 
+                        : 0;
+                }
+                
+                return [
+                    'id' => $student->id,
+                    'enrollment_id' => 'ENR-' . str_pad($student->id, 6, '0', STR_PAD_LEFT),
+                    'student_id' => $student->student_id,
+                    'student_name' => $student->first_name . ' ' . ($student->middle_name ? $student->middle_name . ' ' : '') . $student->last_name,
+                    'first_name' => $student->first_name,
+                    'middle_name' => $student->middle_name,
+                    'last_name' => $student->last_name,
+                    'email' => $student->email,
+                    'phone' => $student->phone_number,
+                    'date_of_birth' => $student->date_of_birth ? (is_string($student->date_of_birth) ? $student->date_of_birth : $student->date_of_birth->format('Y-m-d')) : null,
+                    'gender' => $student->gender ? ucfirst($student->gender) : null,
+                    'address' => $student->address,
+                    'emergency_contact' => [
+                        'name' => $student->emergency_contact,
+                        'relationship' => $student->emergency_relationship,
+                        'phone' => $student->emergency_phone
+                    ],
+                    'program' => $program ? $program->title : 'N/A',
+                    'batch' => $batch ? $batch->batch_id : 'N/A',
+                    'enrollment_date' => $student->created_at ? $student->created_at->format('Y-m-d') : null,
+                    'start_date' => $batch && $batch->start_date ? (is_string($batch->start_date) ? $batch->start_date : $batch->start_date->format('Y-m-d')) : null,
+                    'expected_end_date' => $batch && $batch->end_date ? (is_string($batch->end_date) ? $batch->end_date : $batch->end_date->format('Y-m-d')) : null,
+                    'status' => $student->status === 'active' ? 'active' : ($batch && $batch->status === 'finished' ? 'completed' : 'pending'),
+                    'payment_status' => $paymentStatus,
+                    'attendance' => $attendancePercentage,
+                ];
+            });
+            
+            return response()->json([
+                'success' => true,
+                'enrollments' => $enrollments->values(),
+                'total' => $enrollments->count()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch enrollment records',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
     
     // Program Routes
     Route::apiResource('programs', ProgramController::class);

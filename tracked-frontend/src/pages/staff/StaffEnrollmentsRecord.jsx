@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import StaffSidebar from '../../layouts/staff/StaffSidebar';
+import StudentDetailModal from '../../components/staff/StudentDetailModal';
+import { getStaffToken } from '../../utils/staffAuth';
+import toast, { Toaster } from 'react-hot-toast';
 import { 
   MdMenu,
   MdSearch,
@@ -25,122 +28,127 @@ const StaffEnrollmentsRecord = () => {
   const [programFilter, setProgramFilter] = useState('all');
   const [batchFilter, setBatchFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
+  const [loading, setLoading] = useState(true);
+  const [enrollments, setEnrollments] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [batches, setBatches] = useState([]);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
-  // Mock data - replace with actual API calls
-  const [enrollments, setEnrollments] = useState([
-    {
-      id: 1,
-      enrollmentId: 'ENR-2025-001',
-      studentName: 'Juan Dela Cruz',
-      studentId: 'STU-2025-001',
-      email: 'juan.delacruz@email.com',
-      phone: '09171234567',
-      program: 'Welding NCII',
-      batch: 'Batch 01-2025',
-      enrollmentDate: '2025-09-15',
-      startDate: '2025-10-01',
-      expectedEndDate: '2025-12-15',
-      status: 'active',
-      paymentStatus: 'paid',
-      attendance: 95
-    },
-    {
-      id: 2,
-      enrollmentId: 'ENR-2025-002',
-      studentName: 'Maria Santos',
-      studentId: 'STU-2025-002',
-      email: 'maria.santos@email.com',
-      phone: '09181234567',
-      program: 'Automotive Servicing NCII',
-      batch: 'Batch 02-2025',
-      enrollmentDate: '2025-09-20',
-      startDate: '2025-10-05',
-      expectedEndDate: '2025-12-20',
-      status: 'active',
-      paymentStatus: 'partial',
-      attendance: 88
-    },
-    {
-      id: 3,
-      enrollmentId: 'ENR-2025-003',
-      studentName: 'Pedro Reyes',
-      studentId: 'STU-2025-003',
-      email: 'pedro.reyes@email.com',
-      phone: '09191234567',
-      program: 'Electronics NCII',
-      batch: 'Batch 01-2025',
-      enrollmentDate: '2025-08-10',
-      startDate: '2025-09-01',
-      expectedEndDate: '2025-11-30',
-      status: 'completed',
-      paymentStatus: 'paid',
-      attendance: 98
-    },
-    {
-      id: 4,
-      enrollmentId: 'ENR-2025-004',
-      studentName: 'Ana Garcia',
-      studentId: 'STU-2025-004',
-      email: 'ana.garcia@email.com',
-      phone: '09201234567',
-      program: 'Food Processing NCII',
-      batch: 'Batch 03-2025',
-      enrollmentDate: '2025-09-25',
-      startDate: '2025-10-10',
-      expectedEndDate: '2025-12-25',
-      status: 'pending',
-      paymentStatus: 'unpaid',
-      attendance: 0
-    },
-    {
-      id: 5,
-      enrollmentId: 'ENR-2025-005',
-      studentName: 'Roberto Cruz',
-      studentId: 'STU-2025-005',
-      email: 'roberto.cruz@email.com',
-      phone: '09211234567',
-      program: 'Welding NCII',
-      batch: 'Batch 01-2025',
-      enrollmentDate: '2025-08-15',
-      startDate: '2025-09-01',
-      expectedEndDate: '2025-11-15',
-      status: 'dropped',
-      paymentStatus: 'partial',
-      attendance: 45
-    },
-    {
-      id: 6,
-      enrollmentId: 'ENR-2025-006',
-      studentName: 'Carmen Lopez',
-      studentId: 'STU-2025-006',
-      email: 'carmen.lopez@email.com',
-      phone: '09221234567',
-      program: 'Plumbing NCII',
-      batch: 'Batch 02-2025',
-      enrollmentDate: '2025-09-18',
-      startDate: '2025-10-03',
-      expectedEndDate: '2025-12-18',
-      status: 'active',
-      paymentStatus: 'paid',
-      attendance: 92
+  useEffect(() => {
+    fetchEnrollments();
+    fetchPrograms();
+    fetchBatches();
+  }, []);
+
+  // Transform enrollment data to match StudentDetailModal props
+  const transformEnrollmentForModal = (enrollment) => {
+    return {
+      firstName: enrollment.first_name || enrollment.student_name.split(' ')[0] || '',
+      middleName: enrollment.middle_name || '',
+      lastName: enrollment.last_name || enrollment.student_name.split(' ').pop() || '',
+      studentId: enrollment.student_id,
+      email: enrollment.email,
+      phone: enrollment.phone || 'N/A',
+      dateOfBirth: enrollment.date_of_birth || 'N/A',
+      gender: enrollment.gender || 'N/A',
+      address: enrollment.address || 'N/A',
+      emergencyContact: enrollment.emergency_contact || {
+        name: 'N/A',
+        relationship: 'N/A',
+        phone: 'N/A'
+      },
+      program: enrollment.program,
+      batch: enrollment.batch,
+      enrollmentStatus: enrollment.status,
+      paymentStatus: enrollment.payment_status,
+      enrollmentDate: enrollment.enrollment_date,
+      expectedGraduation: enrollment.expected_end_date,
+      enrollmentId: enrollment.enrollment_id,
+      startDate: enrollment.start_date,
+      attendance: enrollment.attendance || 0,
+      overallGrade: 0, // Not available in enrollment data
+      documents: [] // Not available in enrollment data
+    };
+  };
+
+  // Handle view enrollment details
+  const handleViewEnrollment = (enrollment) => {
+    setSelectedStudent(transformEnrollmentForModal(enrollment));
+    setShowDetailModal(true);
+  };
+
+  // Handle edit enrollment
+  const handleEditEnrollment = (enrollment) => {
+    // For now, show a toast - we'll implement edit form later
+    toast.info(`Edit functionality for ${enrollment.student_name} coming soon!`);
+    // TODO: Navigate to edit page or open edit modal
+    // navigate(`/staff/enrollments/${enrollment.id}/edit`);
+  };
+
+  const fetchEnrollments = async () => {
+    try {
+      setLoading(true);
+      const token = getStaffToken();
+      
+      const response = await fetch('http://localhost:8000/api/staff/enrollments', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setEnrollments(data.enrollments || []);
+      } else {
+        toast.error('Failed to fetch enrollment records');
+      }
+    } catch (error) {
+      console.error('Error fetching enrollments:', error);
+      toast.error('Error loading enrollment records');
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
-  const programs = [
-    'Welding NCII',
-    'Automotive Servicing NCII',
-    'Electronics NCII',
-    'Food Processing NCII',
-    'Plumbing NCII',
-    'Carpentry NCII'
-  ];
+  const fetchPrograms = async () => {
+    try {
+      const token = getStaffToken();
+      const response = await fetch('http://localhost:8000/api/programs', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
 
-  const batches = [
-    'Batch 01-2025',
-    'Batch 02-2025',
-    'Batch 03-2025',
-    'Batch 04-2025'
-  ];
+      if (response.ok) {
+        const data = await response.json();
+        setPrograms(data.programs || []);
+      }
+    } catch (error) {
+      console.error('Error fetching programs:', error);
+    }
+  };
+
+  const fetchBatches = async () => {
+    try {
+      const token = getStaffToken();
+      const response = await fetch('http://localhost:8000/api/batches', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setBatches(data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching batches:', error);
+    }
+  };
 
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -184,6 +192,10 @@ const StaffEnrollmentsRecord = () => {
       unpaid: {
         className: 'bg-red-100 text-red-800',
         label: 'Unpaid'
+      },
+      voucher: {
+        className: 'bg-blue-100 text-blue-800',
+        label: 'Voucher'
       }
     };
 
@@ -204,10 +216,10 @@ const StaffEnrollmentsRecord = () => {
 
   const filteredEnrollments = enrollments
     .filter(enrollment => {
-      const matchesSearch = enrollment.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           enrollment.enrollmentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           enrollment.studentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           enrollment.email.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = enrollment.student_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           enrollment.enrollment_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           enrollment.student_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           enrollment.email?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'all' || enrollment.status === statusFilter;
       const matchesProgram = programFilter === 'all' || enrollment.program === programFilter;
       const matchesBatch = batchFilter === 'all' || enrollment.batch === batchFilter;
@@ -215,11 +227,11 @@ const StaffEnrollmentsRecord = () => {
     })
     .sort((a, b) => {
       if (sortBy === 'newest') {
-        return new Date(b.enrollmentDate) - new Date(a.enrollmentDate);
+        return new Date(b.enrollment_date) - new Date(a.enrollment_date);
       } else if (sortBy === 'oldest') {
-        return new Date(a.enrollmentDate) - new Date(b.enrollmentDate);
+        return new Date(a.enrollment_date) - new Date(b.enrollment_date);
       } else if (sortBy === 'name') {
-        return a.studentName.localeCompare(b.studentName);
+        return a.student_name?.localeCompare(b.student_name);
       }
       return 0;
     });
@@ -329,7 +341,7 @@ const StaffEnrollmentsRecord = () => {
                 >
                   <option value="all">All Programs</option>
                   {programs.map((program) => (
-                    <option key={program} value={program}>{program}</option>
+                    <option key={program.id} value={program.title}>{program.title}</option>
                   ))}
                 </select>
               </div>
@@ -344,7 +356,7 @@ const StaffEnrollmentsRecord = () => {
                 >
                   <option value="all">All Batches</option>
                   {batches.map((batch) => (
-                    <option key={batch} value={batch}>{batch}</option>
+                    <option key={batch.id} value={batch.batch_id}>{batch.batch_id}</option>
                   ))}
                 </select>
               </div>
@@ -362,8 +374,12 @@ const StaffEnrollmentsRecord = () => {
                 <option value="name">Name (A-Z)</option>
               </select>
               
-              <button className="flex items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors">
-                <MdRefresh className="h-5 w-5" />
+              <button 
+                onClick={fetchEnrollments}
+                disabled={loading}
+                className="flex items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors disabled:opacity-50"
+              >
+                <MdRefresh className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
                 Refresh
               </button>
               <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
@@ -396,9 +412,6 @@ const StaffEnrollmentsRecord = () => {
                       Dates
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Attendance
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Payment
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -410,17 +423,26 @@ const StaffEnrollmentsRecord = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredEnrollments.length > 0 ? (
+                  {loading ? (
+                    <tr>
+                      <td colSpan="7" className="px-6 py-12 text-center">
+                        <div className="flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-tracked-primary"></div>
+                          <span className="ml-2 text-gray-600">Loading enrollment records...</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : filteredEnrollments.length > 0 ? (
                     filteredEnrollments.map((enrollment) => (
                       <tr key={enrollment.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-tracked-primary">{enrollment.enrollmentId}</div>
-                          <div className="text-xs text-gray-500">{enrollment.studentId}</div>
+                          <div className="text-sm font-medium text-tracked-primary">{enrollment.enrollment_id}</div>
+                          <div className="text-xs text-gray-500">{enrollment.student_id || 'N/A'}</div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-sm font-medium text-gray-900">{enrollment.studentName}</div>
+                          <div className="text-sm font-medium text-gray-900">{enrollment.student_name}</div>
                           <div className="text-xs text-gray-500">{enrollment.email}</div>
-                          <div className="text-xs text-gray-500">{enrollment.phone}</div>
+                          <div className="text-xs text-gray-500">{enrollment.phone || 'N/A'}</div>
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-sm text-gray-900 font-medium">{enrollment.program}</div>
@@ -428,23 +450,16 @@ const StaffEnrollmentsRecord = () => {
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-xs text-gray-900">
-                            <div className="flex items-center gap-1">
-                              <MdCalendarToday className="h-3 w-3 text-gray-400" />
-                              <span>Start: {enrollment.startDate}</span>
+                            <div>
+                              <span>Start: {enrollment.start_date || 'TBA'}</span>
                             </div>
-                            <div className="flex items-center gap-1 mt-1">
-                              <MdCalendarToday className="h-3 w-3 text-gray-400" />
-                              <span>End: {enrollment.expectedEndDate}</span>
+                            <div className="mt-1">
+                              <span>End: {enrollment.expected_end_date || 'TBA'}</span>
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className={`text-sm font-semibold ${getAttendanceColor(enrollment.attendance)}`}>
-                            {enrollment.attendance}%
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {getPaymentBadge(enrollment.paymentStatus)}
+                          {getPaymentBadge(enrollment.payment_status)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {getStatusBadge(enrollment.status)}
@@ -452,22 +467,18 @@ const StaffEnrollmentsRecord = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex gap-2">
                             <button
-                              className="text-tracked-primary hover:text-tracked-secondary"
+                              onClick={() => handleViewEnrollment(enrollment)}
+                              className="text-tracked-primary hover:text-tracked-secondary transition-colors"
                               title="View Details"
                             >
                               <MdVisibility className="h-5 w-5" />
                             </button>
                             <button
-                              className="text-blue-600 hover:text-blue-700"
+                              onClick={() => handleEditEnrollment(enrollment)}
+                              className="text-blue-600 hover:text-blue-700 transition-colors"
                               title="Edit"
                             >
                               <MdEdit className="h-5 w-5" />
-                            </button>
-                            <button
-                              className="text-gray-600 hover:text-gray-700"
-                              title="Print Certificate"
-                            >
-                              <MdPrint className="h-5 w-5" />
                             </button>
                           </div>
                         </td>
@@ -475,7 +486,7 @@ const StaffEnrollmentsRecord = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
+                      <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
                         No enrollment records found matching your filters.
                       </td>
                     </tr>
@@ -504,6 +515,45 @@ const StaffEnrollmentsRecord = () => {
           </div>
         </div>
       </div>
+
+      {/* Toast Notifications */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: '#4ade80',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            duration: 4000,
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
+
+      {/* Student Detail Modal */}
+      {showDetailModal && selectedStudent && (
+        <StudentDetailModal
+          student={selectedStudent}
+          onClose={() => {
+            setShowDetailModal(false);
+            setSelectedStudent(null);
+          }}
+          getStatusBadge={getStatusBadge}
+          getPaymentBadge={getPaymentBadge}
+        />
+      )}
     </div>
   );
 };
