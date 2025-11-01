@@ -21,6 +21,7 @@ import {
 const ClassSchedule = () => {
   const [user, setUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedView, setSelectedView] = useState('week'); // 'week' or 'month'
   const [studentSchedule, setStudentSchedule] = useState([]);
@@ -174,11 +175,13 @@ const ClassSchedule = () => {
       <Sidebar 
         user={user} 
         isOpen={sidebarOpen} 
-        onClose={() => setSidebarOpen(false)} 
+        onClose={() => setSidebarOpen(false)}
+        isCollapsed={sidebarCollapsed}
+        setIsCollapsed={setSidebarCollapsed}
       />
 
       {/* Main Content */}
-      <div className="flex-1 lg:ml-64">
+      <div className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'}`}>
         {/* Mobile Header */}
         <div className="lg:hidden bg-white shadow-sm border-b px-4 py-3">
           <div className="flex items-center justify-between">
@@ -210,7 +213,7 @@ const ClassSchedule = () => {
             </div>
           </div>
         ) : (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center justify-between">
@@ -298,13 +301,12 @@ const ClassSchedule = () => {
                                   <div className="font-semibold text-sm mb-1">
                                     {schedule.courseTitle}
                                   </div>
-                                  <div className="text-xs opacity-75 flex items-center mt-1">
-                                    <MdAccessTime className="h-3 w-3 mr-1" />
+                                  <div className="text-xs opacity-75 mt-1">
                                     {formatTime(schedule.startTime)} - {formatTime(schedule.endTime)}
                                   </div>
-                                  {schedule.instructor && schedule.instructor !== 'TBA' && (
-                                    <div className="text-xs opacity-75 flex items-center mt-1">
-                                      <MdPerson className="h-3 w-3 mr-1" />
+                                    {schedule.instructor && schedule.instructor !== 'TBA' && (
+                                    <div className="text-xs opacity-75 mt-1">
+                                      <MdPerson className="h-3 w-3 mr-1 inline" />
                                       {schedule.instructor}
                                     </div>
                                   )}
@@ -386,28 +388,6 @@ const ClassSchedule = () => {
                     ) : (
                       <p className="text-gray-500 text-sm">No classes scheduled for today</p>
                     )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Schedule Summary */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-                <div className="p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <MdInfo className="h-5 w-5 mr-2 text-purple-600" />
-                    Weekly Summary
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Total Hours</span>
-                      <span className="text-sm font-medium text-gray-900">
-                        {studentSchedule.reduce((total, schedule) => {
-                          const start = parseInt(schedule.startTime.replace(':', ''));
-                          const end = parseInt(schedule.endTime.replace(':', ''));
-                          return total + ((end - start) / 100);
-                        }, 0)}h
-                      </span>
-                    </div>
                   </div>
                 </div>
               </div>

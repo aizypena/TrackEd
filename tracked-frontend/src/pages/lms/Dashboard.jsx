@@ -18,6 +18,7 @@ import {
 const StudentDashboard = () => {
   const [user, setUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [studentSchedule, setStudentSchedule] = useState([]);
   const [batchInfo, setBatchInfo] = useState(null);
   const [programInfo, setProgramInfo] = useState(null);
@@ -189,11 +190,13 @@ const StudentDashboard = () => {
       <Sidebar 
         user={user} 
         isOpen={sidebarOpen} 
-        onClose={() => setSidebarOpen(false)} 
+        onClose={() => setSidebarOpen(false)}
+        isCollapsed={sidebarCollapsed}
+        setIsCollapsed={setSidebarCollapsed}
       />
 
       {/* Main Content */}
-      <div className="lg:pl-64">
+      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
         {/* Top Header */}
         <header className="bg-white shadow-sm border-b lg:hidden">
           <div className="px-4 sm:px-6 lg:px-8">
@@ -221,7 +224,7 @@ const StudentDashboard = () => {
         </header>
 
         {/* Dashboard Content */}
-        <main className="p-4 sm:p-6 lg:p-8">
+        <main className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
           {/* Welcome Header */}
           <div className="mb-8">
             <div className="flex items-center justify-between">
