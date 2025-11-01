@@ -67,7 +67,6 @@ const TrainerSidebar = ({ isOpen, onClose, isCollapsed, setIsCollapsed }) => {
       name: 'Certification',
       path: '/trainer-lms/certification',
       icon: <MdVerified className="h-5 w-5" />,
-      badge: 'New'
     }
   ];
 
