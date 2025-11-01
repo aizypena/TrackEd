@@ -28,6 +28,8 @@ const StudentDashboard = () => {
   const [loadingAssessments, setLoadingAssessments] = useState(true);
   const [recentMaterials, setRecentMaterials] = useState([]);
   const [loadingMaterials, setLoadingMaterials] = useState(true);
+  const [announcements, setAnnouncements] = useState([]);
+  const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
 
   useEffect(() => {
     // Get user data from localStorage
@@ -37,6 +39,7 @@ const StudentDashboard = () => {
       fetchStudentSchedule();
       fetchPendingAssessments();
       fetchRecentMaterials();
+      fetchAnnouncements();
     }
   }, []);
 
@@ -134,6 +137,34 @@ const StudentDashboard = () => {
       setRecentMaterials([]);
     } finally {
       setLoadingMaterials(false);
+    }
+  };
+
+  const fetchAnnouncements = async () => {
+    try {
+      setLoadingAnnouncements(true);
+      const token = localStorage.getItem('studentToken');
+      
+      const response = await fetch('http://localhost:8000/api/student/announcements', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAnnouncements(data.announcements || []);
+      } else {
+        console.error('Failed to fetch announcements');
+        setAnnouncements([]);
+      }
+    } catch (error) {
+      console.error('Error fetching announcements:', error);
+      setAnnouncements([]);
+    } finally {
+      setLoadingAnnouncements(false);
     }
   };
 
@@ -245,9 +276,8 @@ const StudentDashboard = () => {
             </div>
           </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Course Schedule & Attendance */}
-          <div className="lg:col-span-2">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Course Schedule & Attendance */}
             <div className="bg-white rounded-lg shadow">
               <div className="px-6 py-4 border-b border-gray-200">
                 <h2 className="text-lg font-semibold text-gray-900">Course Schedule & Attendance</h2>
@@ -321,58 +351,139 @@ const StudentDashboard = () => {
                 )}
               </div>
             </div>
-          </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
             {/* Pending Assessments */}
             <div className="bg-white rounded-lg shadow">
               <div className="px-6 py-4 border-b border-gray-200">
                 <h2 className="text-lg font-semibold text-gray-900">Pending Assessments</h2>
               </div>
               <div className="p-6">
-                {loadingAssessments ? (
-                  <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600">Loading assessments...</p>
-                  </div>
-                ) : pendingAssessments.length === 0 ? (
-                  <div className="text-center py-8">
-                    <MdQuiz className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">No pending assessments</p>
-                    <p className="text-gray-500 text-sm mt-2">You're all caught up!</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {pendingAssessments.map((assessment) => (
-                      <div key={assessment.id} className="border-l-4 border-orange-400 pl-4">
-                        <h4 className="font-medium text-gray-900">{assessment.title}</h4>
-                        <p className="text-sm text-gray-600">{assessment.program_name}</p>
-                        <p className="text-xs text-gray-500">Questions: {assessment.total_questions}</p>
-                        <p className="text-xs text-gray-500">Duration: {assessment.duration} minutes</p>
-                        {assessment.due_date && (
-                          <p className="text-xs text-gray-500">
-                            Due: {new Date(assessment.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                          </p>
-                        )}
-                        <Link
-                          to={`/smi-lms/assessments/${assessment.id}`}
-                          className="inline-block mt-2 px-3 py-1 text-xs font-medium bg-orange-100 text-orange-800 rounded hover:bg-orange-200 transition-colors"
-                        >
-                          Take Assessment
-                        </Link>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <Link 
-                  to="/smi-lms/assessments"
-                  className="block w-full mt-4 px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded hover:bg-gray-50 transition-colors text-center"
-                >
-                  View All Assessments
-                </Link>
+              {loadingAssessments ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Loading assessments...</p>
+                </div>
+              ) : pendingAssessments.length === 0 ? (
+                <div className="text-center py-8">
+                  <MdQuiz className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">No pending assessments</p>
+                  <p className="text-gray-500 text-sm mt-2">You're all caught up!</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {pendingAssessments.map((assessment) => (
+                    <div key={assessment.id} className="border-l-4 border-orange-400 pl-4">
+                      <h4 className="font-medium text-gray-900">{assessment.title}</h4>
+                      <p className="text-sm text-gray-600">{assessment.program_name}</p>
+                      <p className="text-xs text-gray-500">Questions: {assessment.total_questions}</p>
+                      <p className="text-xs text-gray-500">Duration: {assessment.duration} minutes</p>
+                      {assessment.due_date && (
+                        <p className="text-xs text-gray-500">
+                          Due: {new Date(assessment.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </p>
+                      )}
+                      <Link
+                        to={`/smi-lms/assessments/${assessment.id}`}
+                        className="inline-block mt-2 px-3 py-1 text-xs font-medium bg-orange-100 text-orange-800 rounded hover:bg-orange-200 transition-colors"
+                      >
+                        Take Assessment
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <Link 
+                to="/smi-lms/assessments"
+                className="block w-full mt-4 px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded hover:bg-gray-50 transition-colors text-center"
+              >
+                View All Assessments
+              </Link>
               </div>
             </div>
+
+            {/* Announcements Section */}
+            {loadingAnnouncements ? (
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="text-center py-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Loading announcements...</p>
+                </div>
+              </div>
+            ) : announcements.length > 0 ? (
+              <div className="bg-white rounded-lg shadow">
+                <div className="px-6 py-4 border-b border-gray-200">
+                  <h2 className="text-lg font-semibold text-gray-900">Announcements</h2>
+                </div>
+                <div className="p-6 space-y-4">
+                  {announcements.slice(0, 3).map((announcement) => (
+                    <div
+                      key={announcement.id}
+                      className={`border-l-4 pl-4 py-2 ${
+                        announcement.priority === 'high'
+                          ? 'border-red-500 bg-red-50'
+                          : announcement.priority === 'normal'
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-400 bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <h3 className="text-base font-semibold text-gray-900">
+                              {announcement.title}
+                            </h3>
+                            {announcement.priority === 'high' && (
+                              <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded">
+                                High Priority
+                              </span>
+                            )}
+                            {announcement.priority === 'low' && (
+                              <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded">
+                                Low Priority
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-700 whitespace-pre-wrap mb-2">
+                            {announcement.content}
+                          </p>
+                          <div className="flex items-center space-x-4 text-xs text-gray-500">
+                            <span>
+                              Posted: {new Date(announcement.created_at).toLocaleDateString('en-US', { 
+                                month: 'short', 
+                                day: 'numeric', 
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                            {announcement.target_type === 'specific' && announcement.batches && (
+                              <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
+                                For your batch
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {announcements.length > 3 && (
+                    <div className="pt-4 text-center border-t">
+                      <p className="text-sm text-gray-600">
+                        Showing {Math.min(3, announcements.length)} of {announcements.length} announcements
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="text-center py-8">
+                  <MdCampaign className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">No announcements yet</p>
+                  <p className="text-gray-500 text-sm mt-2">Check back later for updates</p>
+                </div>
+              </div>
+            )}
 
             {/* Recent Course Materials */}
             <div className="bg-white rounded-lg shadow">
@@ -380,67 +491,66 @@ const StudentDashboard = () => {
                 <h2 className="text-lg font-semibold text-gray-900">Recent Materials</h2>
               </div>
               <div className="p-6">
-                {loadingMaterials ? (
-                  <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600">Loading materials...</p>
-                  </div>
-                ) : recentMaterials.length === 0 ? (
-                  <div className="text-center py-8">
-                    <MdFolder className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">No materials available</p>
-                    <p className="text-gray-500 text-sm mt-2">Check back later for new materials</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {recentMaterials.map((material) => (
-                      <div key={material.id} className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2">
-                            <div className={`p-1 rounded ${
-                              material.file_type?.includes('pdf') ? 'bg-red-100 text-red-600' :
-                              material.file_type?.includes('video') ? 'bg-purple-100 text-purple-600' :
-                              'bg-blue-100 text-blue-600'
-                            }`}>
-                              {material.file_type?.includes('pdf') ? (
-                                <MdPictureAsPdf className="h-4 w-4" />
-                              ) : material.file_type?.includes('video') ? (
-                                <MdPlayCircleOutline className="h-4 w-4" />
-                              ) : (
-                                <MdDescription className="h-4 w-4" />
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 truncate">{material.title}</p>
-                              <p className="text-xs text-gray-500">{material.program_name}</p>
-                              <p className="text-xs text-gray-400">
-                                {material.file_size} • {new Date(material.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                              </p>
+                  {loadingMaterials ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                      <p className="text-gray-600">Loading materials...</p>
+                    </div>
+                  ) : recentMaterials.length === 0 ? (
+                    <div className="text-center py-8">
+                      <MdFolder className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600">No materials available</p>
+                      <p className="text-gray-500 text-sm mt-2">Check back later for new materials</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {recentMaterials.map((material) => (
+                        <div key={material.id} className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2">
+                              <div className={`p-1 rounded ${
+                                material.file_type?.includes('pdf') ? 'bg-red-100 text-red-600' :
+                                material.file_type?.includes('video') ? 'bg-purple-100 text-purple-600' :
+                                'bg-blue-100 text-blue-600'
+                              }`}>
+                                {material.file_type?.includes('pdf') ? (
+                                  <MdPictureAsPdf className="h-4 w-4" />
+                                ) : material.file_type?.includes('video') ? (
+                                  <MdPlayCircleOutline className="h-4 w-4" />
+                                ) : (
+                                  <MdDescription className="h-4 w-4" />
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">{material.title}</p>
+                                <p className="text-xs text-gray-500">{material.program_name}</p>
+                                <p className="text-xs text-gray-400">
+                                  {material.file_size} • {new Date(material.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </p>
+                              </div>
                             </div>
                           </div>
+                          <a 
+                            href={material.file_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="ml-2 text-blue-600 hover:text-blue-800 text-xs"
+                          >
+                            View
+                          </a>
                         </div>
-                        <a 
-                          href={material.file_url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="ml-2 text-blue-600 hover:text-blue-800 text-xs"
-                        >
-                          View
-                        </a>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <Link
-                  to="/smi-lms/course-materials"
-                  className="block w-full mt-4 px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded hover:bg-gray-50 transition-colors text-center"
-                >
-                  Browse All Materials
-                </Link>
+                      ))}
+                    </div>
+                  )}
+                  <Link
+                    to="/smi-lms/course-materials"
+                    className="block w-full mt-4 px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded hover:bg-gray-50 transition-colors text-center"
+                  >
+                    Browse All Materials
+                  </Link>
               </div>
             </div>
           </div>
-        </div>
         </main>
       </div>
     </div>

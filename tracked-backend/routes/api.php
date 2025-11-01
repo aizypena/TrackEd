@@ -683,15 +683,18 @@ Route::middleware(['auth:sanctum'])->group(function () {
             'batch_ids.*' => 'exists:batches,id'
         ]);
         
+        // Get current time in Philippine timezone
+        $philippineTime = now()->setTimezone('Asia/Manila');
+        
         // Create announcement
         $announcementId = DB::table('trainer_announcements')->insertGetId([
             'trainer_id' => $trainer->id,
-            'title' => $request->title,
-            'content' => $request->content,
-            'priority' => $request->priority,
-            'target_type' => $request->target_type,
-            'created_at' => now(),
-            'updated_at' => now()
+            'title' => $request->input('title'),
+            'content' => $request->input('content'),
+            'priority' => $request->input('priority'),
+            'target_type' => $request->input('target_type'),
+            'created_at' => $philippineTime,
+            'updated_at' => $philippineTime
         ]);
         
         // If specific batches, create relationships
@@ -703,8 +706,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
                     DB::table('announcement_batches')->insert([
                         'announcement_id' => $announcementId,
                         'batch_id' => $batch->batch_id,
-                        'created_at' => now(),
-                        'updated_at' => now()
+                        'created_at' => $philippineTime,
+                        'updated_at' => $philippineTime
                     ]);
                 }
             }
@@ -746,15 +749,18 @@ Route::middleware(['auth:sanctum'])->group(function () {
             'batch_ids.*' => 'exists:batches,id'
         ]);
         
+        // Get current time in Philippine timezone
+        $philippineTime = now()->setTimezone('Asia/Manila');
+        
         // Update announcement
         DB::table('trainer_announcements')
             ->where('id', $id)
             ->update([
-                'title' => $request->title,
-                'content' => $request->content,
-                'priority' => $request->priority,
-                'target_type' => $request->target_type,
-                'updated_at' => now()
+                'title' => $request->input('title'),
+                'content' => $request->input('content'),
+                'priority' => $request->input('priority'),
+                'target_type' => $request->input('target_type'),
+                'updated_at' => $philippineTime
             ]);
         
         // Delete old batch relationships
@@ -769,8 +775,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
                     DB::table('announcement_batches')->insert([
                         'announcement_id' => $id,
                         'batch_id' => $batch->batch_id,
-                        'created_at' => now(),
-                        'updated_at' => now()
+                        'created_at' => $philippineTime,
+                        'updated_at' => $philippineTime
                     ]);
                 }
             }
@@ -832,11 +838,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
         
         $isArchived = $request->input('is_archived', true);
         
+        // Get current time in Philippine timezone
+        $philippineTime = now()->setTimezone('Asia/Manila');
+        
         DB::table('trainer_announcements')
             ->where('id', $id)
             ->update([
                 'is_archived' => $isArchived,
-                'updated_at' => now()
+                'updated_at' => $philippineTime
             ]);
         
         return response()->json([
