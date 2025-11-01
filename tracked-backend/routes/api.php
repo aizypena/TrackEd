@@ -628,6 +628,223 @@ Route::middleware(['auth:sanctum'])->group(function () {
         ]);
     });
     
+    // Trainer Announcements Routes
+    
+    // Get all announcements for trainer
+    Route::get('/trainer/announcements', function (Request $request) {
+        $trainer = $request->user();
+        
+        if ($trainer->role !== 'trainer') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+        
+        $announcements = DB::table('trainer_announcements')
+            ->where('trainer_id', $trainer->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        // Get batches for each announcement
+        $announcements = $announcements->map(function ($announcement) {
+            if ($announcement->target_type === 'specific') {
+                $batches = DB::table('announcement_batches')
+                    ->join('batches', 'announcement_batches.batch_id', '=', 'batches.batch_id')
+                    ->where('announcement_batches.announcement_id', $announcement->id)
+                    ->select('batches.id', 'batches.batch_id as batch_name')
+                    ->get();
+                
+                $announcement->batches = $batches;
+            } else {
+                $announcement->batches = [];
+            }
+            
+            return $announcement;
+        });
+        
+        return response()->json([
+            'success' => true,
+            'announcements' => $announcements
+        ]);
+    });
+    
+    // Create announcement
+    Route::post('/trainer/announcements', function (Request $request) {
+        $trainer = $request->user();
+        
+        if ($trainer->role !== 'trainer') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+        
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'content' => 'required|string',
+            'priority' => 'required|in:low,normal,high',
+            'target_type' => 'required|in:all,specific',
+            'batch_ids' => 'required_if:target_type,specific|array',
+            'batch_ids.*' => 'exists:batches,id'
+        ]);
+        
+        // Create announcement
+        $announcementId = DB::table('trainer_announcements')->insertGetId([
+            'trainer_id' => $trainer->id,
+            'title' => $request->title,
+            'content' => $request->content,
+            'priority' => $request->priority,
+            'target_type' => $request->target_type,
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+        
+        // If specific batches, create relationships
+        if ($request->target_type === 'specific' && !empty($request->batch_ids)) {
+            foreach ($request->batch_ids as $batchId) {
+                // Get batch_id from id
+                $batch = DB::table('batches')->where('id', $batchId)->first();
+                if ($batch) {
+                    DB::table('announcement_batches')->insert([
+                        'announcement_id' => $announcementId,
+                        'batch_id' => $batch->batch_id,
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
+                }
+            }
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Announcement created successfully',
+            'announcement_id' => $announcementId
+        ], 201);
+    });
+    
+    // Update announcement
+    Route::put('/trainer/announcements/{id}', function (Request $request, $id) {
+        $trainer = $request->user();
+        
+        if ($trainer->role !== 'trainer') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+        
+        $announcement = DB::table('trainer_announcements')
+            ->where('id', $id)
+            ->where('trainer_id', $trainer->id)
+            ->first();
+        
+        if (!$announcement) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Announcement not found'
+            ], 404);
+        }
+        
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'content' => 'required|string',
+            'priority' => 'required|in:low,normal,high',
+            'target_type' => 'required|in:all,specific',
+            'batch_ids' => 'required_if:target_type,specific|array',
+            'batch_ids.*' => 'exists:batches,id'
+        ]);
+        
+        // Update announcement
+        DB::table('trainer_announcements')
+            ->where('id', $id)
+            ->update([
+                'title' => $request->title,
+                'content' => $request->content,
+                'priority' => $request->priority,
+                'target_type' => $request->target_type,
+                'updated_at' => now()
+            ]);
+        
+        // Delete old batch relationships
+        DB::table('announcement_batches')->where('announcement_id', $id)->delete();
+        
+        // If specific batches, create new relationships
+        if ($request->target_type === 'specific' && !empty($request->batch_ids)) {
+            foreach ($request->batch_ids as $batchId) {
+                // Get batch_id from id
+                $batch = DB::table('batches')->where('id', $batchId)->first();
+                if ($batch) {
+                    DB::table('announcement_batches')->insert([
+                        'announcement_id' => $id,
+                        'batch_id' => $batch->batch_id,
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
+                }
+            }
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Announcement updated successfully'
+        ]);
+    });
+    
+    // Delete announcement
+    Route::delete('/trainer/announcements/{id}', function (Request $request, $id) {
+        $trainer = $request->user();
+        
+        if ($trainer->role !== 'trainer') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+        
+        $announcement = DB::table('trainer_announcements')
+            ->where('id', $id)
+            ->where('trainer_id', $trainer->id)
+            ->first();
+        
+        if (!$announcement) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Announcement not found'
+            ], 404);
+        }
+        
+        DB::table('trainer_announcements')->where('id', $id)->delete();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Announcement deleted successfully'
+        ]);
+    });
+    
+    // Archive/Unarchive announcement
+    Route::patch('/trainer/announcements/{id}/archive', function (Request $request, $id) {
+        $trainer = $request->user();
+        
+        if ($trainer->role !== 'trainer') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+        
+        $announcement = DB::table('trainer_announcements')
+            ->where('id', $id)
+            ->where('trainer_id', $trainer->id)
+            ->first();
+        
+        if (!$announcement) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Announcement not found'
+            ], 404);
+        }
+        
+        $isArchived = $request->input('is_archived', true);
+        
+        DB::table('trainer_announcements')
+            ->where('id', $id)
+            ->update([
+                'is_archived' => $isArchived,
+                'updated_at' => now()
+            ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => $isArchived ? 'Announcement archived successfully' : 'Announcement restored successfully'
+        ]);
+    });
+    
     // Attendance Routes for Trainers
     
     // Get students for attendance marking
@@ -1767,6 +1984,81 @@ Route::middleware(['auth:sanctum'])->group(function () {
         }
         
         return response()->download($filePath, $material->file_name);
+    });
+    
+    // Get announcements for student
+    Route::get('/student/announcements', function (Request $request) {
+        $student = $request->user();
+        
+        if ($student->role !== 'student') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+        
+        // Get student's batch
+        $batch = DB::table('batches')
+            ->where('batch_id', $student->batch_id)
+            ->first();
+        
+        if (!$batch) {
+            return response()->json([
+                'success' => true,
+                'announcements' => []
+            ]);
+        }
+        
+        // Get trainer for this batch
+        $trainerId = $batch->trainer_id;
+        
+        // Get announcements that are either:
+        // 1. For all students (target_type = 'all') from this trainer
+        // 2. Specifically for this student's batch (target_type = 'specific')
+        // Exclude archived announcements
+        $allAnnouncements = DB::table('trainer_announcements')
+            ->where('trainer_id', $trainerId)
+            ->where('target_type', 'all')
+            ->where('is_archived', false)
+            ->select('id', 'title', 'content', 'priority', 'target_type', 'created_at', 'updated_at', 'trainer_id')
+            ->get();
+        
+        $specificAnnouncements = DB::table('trainer_announcements')
+            ->join('announcement_batches', 'trainer_announcements.id', '=', 'announcement_batches.announcement_id')
+            ->where('trainer_announcements.trainer_id', $trainerId)
+            ->where('announcement_batches.batch_id', $student->batch_id)
+            ->where('trainer_announcements.target_type', 'specific')
+            ->where('trainer_announcements.is_archived', false)
+            ->select('trainer_announcements.id', 'trainer_announcements.title', 'trainer_announcements.content', 
+                     'trainer_announcements.priority', 'trainer_announcements.target_type', 
+                     'trainer_announcements.created_at', 'trainer_announcements.updated_at', 'trainer_announcements.trainer_id')
+            ->get();
+        
+        // Merge and sort by created_at
+        $announcements = $allAnnouncements->merge($specificAnnouncements)
+            ->sortByDesc('created_at')
+            ->values()
+            ->map(function ($announcement) {
+                // Get trainer name
+                $trainer = DB::table('users')->where('id', $announcement->trainer_id)->first();
+                $trainerName = $trainer ? $trainer->first_name . ' ' . $trainer->last_name : 'Unknown';
+                
+                return [
+                    'id' => $announcement->id,
+                    'title' => $announcement->title,
+                    'content' => $announcement->content,
+                    'priority' => $announcement->priority,
+                    'target_type' => $announcement->target_type,
+                    'trainer_name' => $trainerName,
+                    'created_at' => $announcement->created_at,
+                    'updated_at' => $announcement->updated_at,
+                ];
+            });
+        
+        return response()->json([
+            'success' => true,
+            'announcements' => $announcements
+        ]);
     });
     
     // Get pending assessments for student (quizzes they haven't answered yet)

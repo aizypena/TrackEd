@@ -14,6 +14,7 @@ import {
   MdPerson,
   MdLogout,
   MdBook,
+  MdCampaign,
 } from 'react-icons/md';
 
 const TrainerSidebar = ({ isOpen, onClose, isCollapsed, setIsCollapsed }) => {
@@ -31,6 +32,11 @@ const TrainerSidebar = ({ isOpen, onClose, isCollapsed, setIsCollapsed }) => {
       name: 'Dashboard',
       path: '/trainer-lms/dashboard',
       icon: <MdDashboard className="h-5 w-5" />
+    },
+    {
+      name: 'Announcements',
+      path: '/trainer-lms/announcements',
+      icon: <MdCampaign className="h-5 w-5" />
     },
     {
       name: 'Course Materials',
