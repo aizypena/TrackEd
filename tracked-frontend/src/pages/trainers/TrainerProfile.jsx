@@ -248,7 +248,7 @@ const TrainerProfile = () => {
 
         {/* Content */}
         <div className="p-6">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-7xl mx-auto">
             {/* Success Message */}
             {successMessage && (
               <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center">
