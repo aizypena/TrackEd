@@ -27,6 +27,7 @@ const TrainerAttendance = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [isWeekend, setIsWeekend] = useState(false);
 
   useEffect(() => {
     fetchBatches();
@@ -34,10 +35,19 @@ const TrainerAttendance = () => {
   }, []);
 
   useEffect(() => {
+    // Check if selected date is a weekend
     if (selectedDate) {
+      const date = new Date(selectedDate + 'T00:00:00');
+      const dayOfWeek = date.getDay();
+      setIsWeekend(dayOfWeek === 0 || dayOfWeek === 6); // 0 = Sunday, 6 = Saturday
+    }
+  }, [selectedDate]);
+
+  useEffect(() => {
+    if (selectedDate && !isWeekend) {
       fetchStudents();
     }
-  }, [selectedDate, selectedBatch, selectedProgram]);
+  }, [selectedDate, selectedBatch, selectedProgram, isWeekend]);
 
   const fetchBatches = async () => {
     try {
@@ -261,7 +271,21 @@ const TrainerAttendance = () => {
 
         {/* Content */}
         <div className="p-6">
-          {loading && (
+          {/* Weekend Notice */}
+          {isWeekend && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+              <div className="flex items-start">
+                <MdInfo className="h-5 w-5 text-yellow-600 mt-0.5 mr-2" />
+                <div className="text-sm text-yellow-700">
+                  <strong>No Classes on Weekends</strong>
+                  <br />
+                  Attendance cannot be marked on Saturdays and Sundays. Please select a weekday.
+                </div>
+              </div>
+            </div>
+          )}
+
+          {loading && !isWeekend && (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
                 <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
@@ -277,7 +301,7 @@ const TrainerAttendance = () => {
           )}
 
           {/* Batch Date Info */}
-          {!loading && selectedBatch !== 'all' && batches.length > 0 && (
+          {!loading && !isWeekend && selectedBatch !== 'all' && batches.length > 0 && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
               <div className="flex items-start">
                 <MdInfo className="h-5 w-5 text-blue-600 mt-0.5 mr-2" />
@@ -306,7 +330,7 @@ const TrainerAttendance = () => {
             </div>
           )}
 
-          {!loading && !error && (
+          {!loading && !error && !isWeekend && (
             <div className="bg-white rounded-lg shadow">
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
