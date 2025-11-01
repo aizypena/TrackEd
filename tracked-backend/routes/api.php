@@ -2883,6 +2883,96 @@ Route::middleware(['auth:sanctum'])->group(function () {
         }
     });
     
+    // Staff Applicant Documents Endpoint
+    Route::get('/staff/applicant-documents', function (Request $request) {
+        try {
+            // Get all applicants (users with application_status or role='applicant')
+            $applicants = \App\Models\User::where(function($query) {
+                $query->whereNotNull('application_status')
+                      ->orWhere('role', 'applicant');
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
+            
+            $documents = [];
+            
+            foreach ($applicants as $applicant) {
+                $applicantName = trim($applicant->first_name . ' ' . ($applicant->middle_name ? $applicant->middle_name . ' ' : '') . $applicant->last_name);
+                
+                // Define document categories and their paths - only 4 required documents
+                $documentTypes = [
+                    'Valid ID' => 'valid_id_path',
+                    'Transcript of Records' => 'transcript_path',
+                    'Diploma' => 'diploma_path',
+                    'Passport Photo' => 'passport_photo_path'
+                ];
+                
+                foreach ($documentTypes as $docType => $pathField) {
+                    if ($applicant->$pathField) {
+                        // Get file info
+                        $filePath = $applicant->$pathField;
+                        $fileName = basename($filePath);
+                        $fileSize = 'N/A';
+                        
+                        // Try to get actual file size if file exists
+                        $fullPath = storage_path('app/public/' . $filePath);
+                        if (file_exists($fullPath)) {
+                            $bytes = filesize($fullPath);
+                            if ($bytes >= 1048576) {
+                                $fileSize = number_format($bytes / 1048576, 2) . ' MB';
+                            } else if ($bytes >= 1024) {
+                                $fileSize = number_format($bytes / 1024, 2) . ' KB';
+                            } else {
+                                $fileSize = $bytes . ' B';
+                            }
+                        }
+                        
+                        $documents[] = [
+                            'id' => $applicant->id . '-' . $pathField,
+                            'applicant_id' => $applicant->id,
+                            'applicant_name' => $applicantName,
+                            'student_id' => $applicant->student_id ?? 'N/A',
+                            'email' => $applicant->email,
+                            'document_type' => $docType,
+                            'file_name' => $fileName,
+                            'file_path' => $filePath,
+                            'file_size' => $fileSize,
+                            'upload_date' => $applicant->created_at ? $applicant->created_at->format('Y-m-d') : null,
+                            'application_status' => $applicant->application_status ?? 'pending',
+                            'status' => $applicant->status ?? 'pending'
+                        ];
+                    }
+                }
+            }
+            
+            // Group documents by category - only 4 required documents
+            $categorizedDocuments = [
+                'Valid ID' => array_filter($documents, fn($doc) => $doc['document_type'] === 'Valid ID'),
+                'Transcript of Records' => array_filter($documents, fn($doc) => $doc['document_type'] === 'Transcript of Records'),
+                'Diploma' => array_filter($documents, fn($doc) => $doc['document_type'] === 'Diploma'),
+                'Passport Photo' => array_filter($documents, fn($doc) => $doc['document_type'] === 'Passport Photo')
+            ];
+            
+            // Convert to indexed arrays
+            foreach ($categorizedDocuments as $key => $value) {
+                $categorizedDocuments[$key] = array_values($value);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'documents' => $documents,
+                'categorized' => $categorizedDocuments,
+                'total' => count($documents)
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch applicant documents',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
+    
     // Program Routes
     Route::apiResource('programs', ProgramController::class);
     
