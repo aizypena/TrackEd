@@ -30,30 +30,42 @@ class ApplicationController extends Controller
             'address' => 'required|string',
             'placeOfBirth' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8',
             'gender' => 'required|in:male,female,other,prefer-not-to-say',
             'maritalStatus' => 'required|in:single,married,widowed,separated,divorced',
             'mobileNumber' => 'required|string|regex:/^9\d{9}$/|unique:users,phone_number',
-            'education' => 'required|in:elementary,high-school,vocational,college-undergraduate,college-graduate,masters,doctorate',
+            'education' => 'required|string|max:255',
             'school' => 'required|string|max:255',
-            'courseProgram' => 'required|in:automotive-technology,electrical-installation,welding-fabrication,plumbing-technology,electronics-technology,hvac-technology,computer-programming,digital-marketing,culinary-arts,hospitality-management,healthcare-assistant,caregiving',
+            'courseProgram' => 'required|string|max:255',
             'employmentStatus' => 'required|in:employed,unemployed,student,self-employed,retired,ofw',
             'occupation' => 'required|string|max:255',
             'emergencyContact' => 'required|string|max:255',
             'emergencyRelationship' => 'required|in:parent,sibling,spouse,child,relative,friend,guardian,other',
-            'emergencyPhone' => 'required|string',
-            'tesdaVoucherEligibility' => 'required|in:4ps-beneficiary,pwd,senior-citizen,solo-parent,ofw-dependent,displaced-worker,rebel-returnee,student,unemployed-graduate,currently-employed,not-eligible',
+            'emergencyPhone' => 'required|string|regex:/^9\d{9}$/',
             'validId' => 'required|file|mimes:pdf,jpg,jpeg,png|max:25600', // 25MB
             'transcript' => 'required|file|mimes:pdf,jpg,jpeg,png|max:25600', // 25MB
-            'resume' => 'nullable|file|mimes:pdf,doc,docx|max:25600', // 25MB
-            'medicalCertificate' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:25600', // 25MB
+            'diploma' => 'required|file|mimes:pdf,jpg,jpeg,png|max:25600', // 25MB
+            'passportPhoto' => 'required|file|mimes:jpg,jpeg,png|max:25600', // 25MB
         ], [
             'mobileNumber.regex' => 'Mobile number must be a valid Philippine mobile number (10 digits starting with 9)',
+            'emergencyPhone.regex' => 'Emergency phone must be a valid Philippine mobile number (10 digits starting with 9)',
             'email.unique' => 'This email address is already registered',
             'mobileNumber.unique' => 'This mobile number is already registered',
             '*.max' => 'File size must not exceed 25MB',
         ]);
 
         if ($validator->fails()) {
+            // Log validation failure
+            DB::table('system_logs')->insert([
+                'user_id' => null,
+                'action' => 'application_validation_failed',
+                'description' => 'Application submission failed validation for email: ' . $request->email,
+                'log_level' => 'warning',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'created_at' => now(),
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
@@ -62,21 +74,6 @@ class ApplicationController extends Controller
         }
 
         try {
-            // Determine potential voucher eligibility based on category
-            // Will be finalized at approval time when checking voucher availability
-            $tesdaCategory = $request->tesdaVoucherEligibility;
-            
-            $eligibleCategories = [
-                '4ps-beneficiary', 'pwd', 'senior-citizen', 'solo-parent', 
-                'ofw-dependent', 'displaced-worker', 'rebel-returnee', 
-                'student', 'unemployed-graduate'
-            ];
-            
-            // Set initial eligibility status - will be confirmed at approval
-            $initialVoucherStatus = in_array($tesdaCategory, $eligibleCategories) 
-                ? 'pending'  // Potentially eligible, pending approval and voucher availability
-                : 'not_eligible';  // Not in eligible category
-            
             // Create user account first
             $user = User::create([
                 'first_name' => $request->firstName,
@@ -84,20 +81,18 @@ class ApplicationController extends Controller
                 'email' => $request->email,
                 'phone_number' => $request->mobileNumber,
                 'marital_status' => $request->maritalStatus,
-                'password' => Hash::make('password123'), // Default password
+                'password' => Hash::make($request->password),
                 'role' => 'applicant',
                 'status' => 'active',
                 'application_status' => 'pending',
                 'course_program' => $request->courseProgram,
-                'voucher_eligibility' => $initialVoucherStatus,
-                'voucher_id' => null,  // Will be assigned at approval if available
             ]);
 
             // Handle file uploads
             $validIdPath = null;
             $transcriptPath = null;
-            $resumePath = null;
-            $medicalCertificatePath = null;
+            $diplomaPath = null;
+            $passportPhotoPath = null;
 
             if ($request->hasFile('validId')) {
                 $validIdPath = $request->file('validId')->store('applications/valid-ids', 'public');
@@ -107,12 +102,12 @@ class ApplicationController extends Controller
                 $transcriptPath = $request->file('transcript')->store('applications/transcripts', 'public');
             }
 
-            if ($request->hasFile('resume')) {
-                $resumePath = $request->file('resume')->store('applications/resumes', 'public');
+            if ($request->hasFile('diploma')) {
+                $diplomaPath = $request->file('diploma')->store('applications/diplomas', 'public');
             }
 
-            if ($request->hasFile('medicalCertificate')) {
-                $medicalCertificatePath = $request->file('medicalCertificate')->store('applications/medical-certificates', 'public');
+            if ($request->hasFile('passportPhoto')) {
+                $passportPhotoPath = $request->file('passportPhoto')->store('applications/passport-photos', 'public');
             }
 
             // Create application
@@ -136,12 +131,22 @@ class ApplicationController extends Controller
                 'emergency_contact' => $request->emergencyContact,
                 'emergency_relationship' => $request->emergencyRelationship,
                 'emergency_phone' => $request->emergencyPhone,
-                'tesda_voucher_eligibility' => $request->tesdaVoucherEligibility,
                 'valid_id_path' => $validIdPath,
                 'transcript_path' => $transcriptPath,
-                'resume_path' => $resumePath,
-                'medical_certificate_path' => $medicalCertificatePath,
+                'diploma_path' => $diplomaPath,
+                'passport_photo_path' => $passportPhotoPath,
                 'status' => 'pending',
+            ]);
+
+            // Log successful application submission
+            DB::table('system_logs')->insert([
+                'user_id' => $user->id,
+                'action' => 'application_submitted',
+                'description' => 'New application submitted by: ' . $user->email . ' for program: ' . $request->courseProgram,
+                'log_level' => 'info',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'created_at' => now(),
             ]);
 
             return response()->json([
@@ -152,6 +157,17 @@ class ApplicationController extends Controller
             ], 201);
 
         } catch (\Exception $e) {
+            // Log application submission error
+            DB::table('system_logs')->insert([
+                'user_id' => null,
+                'action' => 'application_submission_error',
+                'description' => 'Application submission error for email: ' . $request->email . ' - Error: ' . $e->getMessage(),
+                'log_level' => 'error',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'created_at' => now(),
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Application submission failed. Please try again.',

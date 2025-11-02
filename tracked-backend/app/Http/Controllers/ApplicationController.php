@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use App\Models\User;
 
 class ApplicationController extends Controller
@@ -103,6 +104,17 @@ class ApplicationController extends Controller
                 'application_submitted_at' => now(),
             ]);
 
+            // Log successful application submission
+            DB::table('system_logs')->insert([
+                'user_id' => $user->id,
+                'action' => 'application_submitted',
+                'description' => 'New application submitted by: ' . $user->email . ' for program: ' . $validated['courseProgram'],
+                'log_level' => 'info',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'created_at' => now(),
+            ]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Application submitted successfully!',
@@ -116,12 +128,34 @@ class ApplicationController extends Controller
             ], 201);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
+            // Log validation failure
+            DB::table('system_logs')->insert([
+                'user_id' => null,
+                'action' => 'application_validation_failed',
+                'description' => 'Application submission failed validation for email: ' . ($request->email ?? 'unknown'),
+                'log_level' => 'warning',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'created_at' => now(),
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
+            // Log application submission error
+            DB::table('system_logs')->insert([
+                'user_id' => null,
+                'action' => 'application_submission_error',
+                'description' => 'Application submission error for email: ' . ($request->email ?? 'unknown') . ' - Error: ' . $e->getMessage(),
+                'log_level' => 'error',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'created_at' => now(),
+            ]);
+            
             // Clean up uploaded files if user creation failed
             if (isset($documentPaths)) {
                 foreach ($documentPaths as $path) {
