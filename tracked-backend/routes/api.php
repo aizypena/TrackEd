@@ -2428,6 +2428,32 @@ Route::middleware(['auth:sanctum'])->group(function () {
         ]);
     });
 
+    // Verify Admin Password (for sensitive operations)
+    Route::post('/admin/verify-password', function (Request $request) {
+        $user = $request->user();
+        
+        if ($user->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $request->validate([
+            'password' => 'required|string',
+        ]);
+
+        // Verify password
+        if (!Hash::check($request->password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Incorrect password'
+            ], 401);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password verified successfully'
+        ]);
+    });
+
     // Update Admin Profile
     Route::put('/admin/profile', function (Request $request) {
         $user = $request->user();

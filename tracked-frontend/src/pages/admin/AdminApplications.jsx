@@ -13,6 +13,7 @@ export default function AdminApplications() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [applicantToDelete, setApplicantToDelete] = useState(null);
+  const [deletePassword, setDeletePassword] = useState('');
 
   // Fetch applications from API
   useEffect(() => {
@@ -116,9 +117,36 @@ export default function AdminApplications() {
   };
 
   const confirmDelete = async () => {
+    // Validate password is entered
+    if (!deletePassword) {
+      alert('Please enter your password to confirm deletion');
+      return;
+    }
+
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(`http://localhost:8000/api/admin/applicants/${applicantToDelete.id}`, {
+      
+      // First verify the admin password
+      const verifyResponse = await fetch('http://localhost:8000/api/admin/verify-password', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          password: deletePassword
+        })
+      });
+
+      if (!verifyResponse.ok) {
+        const errorData = await verifyResponse.json();
+        alert(errorData.message || 'Incorrect password');
+        return;
+      }
+
+      // If password is correct, proceed with deletion
+      const deleteResponse = await fetch(`http://localhost:8000/api/admin/applicants/${applicantToDelete.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -126,12 +154,13 @@ export default function AdminApplications() {
         }
       });
       
-      if (!response.ok) throw new Error('Failed to delete applicant');
+      if (!deleteResponse.ok) throw new Error('Failed to delete applicant');
       
       // Remove from local state
       setApplications(applications.filter(app => app.id !== applicantToDelete.id));
       setShowDeleteConfirm(false);
       setApplicantToDelete(null);
+      setDeletePassword('');
       alert('Applicant deleted successfully');
     } catch (err) {
       alert('Error deleting applicant: ' + err.message);
@@ -251,30 +280,27 @@ export default function AdminApplications() {
                           {app.created_at ? new Date(app.created_at).toLocaleDateString() : 'N/A'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex items-center space-x-2">
+                          <div className="flex items-center space-x-3">
                             <button
                               onClick={() => handleViewDocuments(app.id)}
-                              className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                              className="text-blue-600 hover:text-blue-800 transition-colors"
                               title="View Documents"
                             >
-                              <MdVisibility className="w-4 h-4 mr-1" />
-                              View
+                              <MdVisibility className="w-5 h-5" />
                             </button>
                             <button
                               onClick={() => handleEditApplicant(app.id)}
-                              className="inline-flex items-center px-3 py-1.5 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+                              className="text-yellow-600 hover:text-yellow-800 transition-colors"
                               title="Edit Applicant"
                             >
-                              <MdEdit className="w-4 h-4 mr-1" />
-                              Edit
+                              <MdEdit className="w-5 h-5" />
                             </button>
                             <button
                               onClick={() => handleDeleteApplicant(app)}
-                              className="inline-flex items-center px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                              className="text-red-600 hover:text-red-800 transition-colors"
                               title="Delete Applicant"
                             >
-                              <MdDelete className="w-4 h-4 mr-1" />
-                              Delete
+                              <MdDelete className="w-5 h-5" />
                             </button>
                           </div>
                         </td>
@@ -606,9 +632,24 @@ export default function AdminApplications() {
                     {capitalizeName(applicantToDelete.first_name)} {capitalizeName(applicantToDelete.last_name)}
                   </span>?
                 </p>
-                <p className="text-sm text-red-600">
+                <p className="text-sm text-red-600 mb-4">
                   This action cannot be undone. All applicant data and documents will be permanently deleted.
                 </p>
+                
+                {/* Password Input */}
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Enter your password to confirm:
+                  </label>
+                  <input
+                    type="password"
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    placeholder="Your admin password"
+                    autoFocus
+                  />
+                </div>
               </div>
 
               {/* Modal Footer */}
@@ -617,6 +658,7 @@ export default function AdminApplications() {
                   onClick={() => {
                     setShowDeleteConfirm(false);
                     setApplicantToDelete(null);
+                    setDeletePassword('');
                   }}
                   className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
                 >
