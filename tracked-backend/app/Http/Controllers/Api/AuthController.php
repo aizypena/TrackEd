@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rules\Password;
 
 class AuthController extends Controller
@@ -100,6 +101,17 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
+            // Log failed login attempt
+            DB::table('system_logs')->insert([
+                'user_id' => $user ? $user->id : null,
+                'action' => 'login_failed',
+                'description' => 'Failed login attempt for email: ' . $request->email,
+                'log_level' => 'warning',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'created_at' => now(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid email or password'
@@ -108,6 +120,17 @@ class AuthController extends Controller
 
         // Check if user is active
         if ($user->status !== 'active') {
+            // Log inactive account login attempt
+            DB::table('system_logs')->insert([
+                'user_id' => $user->id,
+                'action' => 'login_blocked',
+                'description' => 'Login attempt blocked for inactive account: ' . $user->email,
+                'log_level' => 'warning',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'created_at' => now(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Your account is not active. Please contact support.'
@@ -116,6 +139,17 @@ class AuthController extends Controller
 
         // Create token (you might want to use Laravel Sanctum for better token management)
         $token = $user->createToken('auth_token')->plainTextToken;
+
+        // Log successful login
+        DB::table('system_logs')->insert([
+            'user_id' => $user->id,
+            'action' => 'login_success',
+            'description' => 'User logged in successfully: ' . $user->email . ' (' . $user->role . ')',
+            'log_level' => 'info',
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'created_at' => now(),
+        ]);
 
         return response()->json([
             'success' => true,
@@ -142,6 +176,19 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
+        $user = $request->user();
+        
+        // Log logout
+        DB::table('system_logs')->insert([
+            'user_id' => $user->id,
+            'action' => 'logout',
+            'description' => 'User logged out: ' . $user->email . ' (' . $user->role . ')',
+            'log_level' => 'info',
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'created_at' => now(),
+        ]);
+
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([

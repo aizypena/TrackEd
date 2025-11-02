@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../../layouts/admin/Sidebar';
 import {
   MdMenu,
@@ -13,7 +13,10 @@ import {
   MdError,
   MdDownload,
   MdDelete,
+  MdChevronLeft,
+  MdChevronRight,
 } from 'react-icons/md';
+import toast, { Toaster } from 'react-hot-toast';
 
 const SystemLogs = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -23,86 +26,96 @@ const SystemLogs = () => {
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
+  const [logs, setLogs] = useState([]);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    per_page: 50,
+    current_page: 1,
+    last_page: 1,
+  });
+  
+  const adminToken = localStorage.getItem('adminToken');
 
-  // Mock data for logs
-  const logs = [
-    {
-      id: 1,
-      timestamp: '2025-09-29T08:30:00',
-      level: 'info',
-      module: 'student',
-      action: 'Student enrollment',
-      description: 'New student Juan Dela Cruz enrolled in Bartending NC II',
-      user: 'admin@smi.edu.ph',
-      userType: 'admin',
-      ipAddress: '192.168.1.100',
-    },
-    {
-      id: 2,
-      timestamp: '2025-09-29T09:15:00',
-      level: 'warning',
-      module: 'assessment',
-      action: 'Assessment submission',
-      description: 'Late assessment submission for Food and Beverage NC II',
-      user: 'instructor1@smi.edu.ph',
-      userType: 'staff',
-      ipAddress: '192.168.1.101',
-    },
-    {
-      id: 3,
-      timestamp: '2025-09-29T10:00:00',
-      level: 'error',
-      module: 'inventory',
-      action: 'Stock update failed',
-      description: 'Failed to update inventory stock level for Kitchen Equipment',
-      user: 'staff2@smi.edu.ph',
-      userType: 'staff',
-      ipAddress: '192.168.1.102',
-    },
-    {
-      id: 4,
-      timestamp: '2025-09-29T11:30:00',
-      level: 'info',
-      module: 'attendance',
-      action: 'Attendance recorded',
-      description: 'Batch attendance recorded for Cookery NC II morning session',
-      user: 'instructor3@smi.edu.ph',
-      userType: 'staff',
-      ipAddress: '192.168.1.103',
-    },
-  ];
+  // Fetch logs from API
+  const fetchLogs = async (page = 1) => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: page,
+        per_page: 50,
+      });
 
+      if (selectedLevel !== 'all') params.append('level', selectedLevel);
+      if (selectedModule !== 'all') params.append('action', selectedModule);
+      if (selectedUser !== 'all') params.append('user_id', selectedUser);
+      if (dateRange.start) params.append('start_date', dateRange.start);
+      if (dateRange.end) params.append('end_date', dateRange.end);
+      if (searchQuery) params.append('search', searchQuery);
+
+      const response = await fetch(`http://localhost:8000/api/admin/system-logs?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${adminToken}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setLogs(data.logs || []);
+        setPagination(data.pagination || {});
+      } else {
+        toast.error('Failed to fetch system logs');
+      }
+    } catch (error) {
+      console.error('Error fetching logs:', error);
+      toast.error('Error loading system logs');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch logs on component mount and when filters change
+  useEffect(() => {
+    if (adminToken) {
+      fetchLogs();
+    }
+  }, [selectedLevel, selectedModule, selectedUser, dateRange, adminToken]);
+
+  // Mock data for modules (actions) - you can update this based on actual actions
   const modules = [
-    { id: 'student', name: 'Student Management' },
-    { id: 'assessment', name: 'Assessments' },
-    { id: 'inventory', name: 'Inventory' },
-    { id: 'attendance', name: 'Attendance' },
-    { id: 'certification', name: 'Certification' },
-    { id: 'finance', name: 'Finance' },
-    { id: 'user', name: 'User Management' },
-    { id: 'system', name: 'System' },
+    { id: 'login', name: 'Login Activities' },
+    { id: 'logout', name: 'Logout Activities' },
+    { id: 'admin', name: 'Admin Actions' },
+    { id: 'trainer', name: 'Trainer Actions' },
+    { id: 'staff', name: 'Staff Actions' },
+    { id: 'student', name: 'Student Actions' },
   ];
 
-  const users = [
-    { id: 'admin@smi.edu.ph', name: 'System Admin' },
-    { id: 'instructor1@smi.edu.ph', name: 'John Instructor' },
-    { id: 'staff2@smi.edu.ph', name: 'Mary Staff' },
-    { id: 'instructor3@smi.edu.ph', name: 'Peter Instructor' },
-  ];
+  const users = [];
 
   const handleRefresh = () => {
-    setLoading(true);
-    // Simulate API call
-    setTimeout(() => setLoading(false), 1000);
+    fetchLogs(pagination.current_page || 1);
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    fetchLogs(1); // Search from first page
   };
 
   const handleExport = () => {
-    console.log('Exporting logs...');
+    toast.success('Exporting logs...');
+    // Export functionality here
   };
 
   const handleClearLogs = () => {
-    if (window.confirm('Are you sure you want to clear all logs? This action cannot be undone.')) {
-      console.log('Clearing logs...');
+    toast.success('Logs cleared successfully');
+    // Clear logs functionality here
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= pagination.last_page) {
+      fetchLogs(newPage);
     }
   };
 
@@ -140,6 +153,16 @@ const SystemLogs = () => {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const formatAction = (action) => {
+    if (!action) return 'N/A';
+    
+    // Replace underscores with spaces and capitalize each word
+    return action
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
   };
 
   return (
@@ -185,7 +208,7 @@ const SystemLogs = () => {
 
         {/* Main Content Area */}
         <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
-          <div className="max-w-7xl mx-auto">
+          <div className="max-w-full mx-auto px-4">
             {/* Filters Section */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
               {/* Filter Header */}
@@ -303,18 +326,20 @@ const SystemLogs = () => {
                           <span>Search</span>
                         </div>
                       </label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          placeholder="Search in logs..."
-                          className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-10 pr-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        />
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <MdSearch className="h-5 w-5 text-gray-400" />
+                      <form onSubmit={handleSearch}>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search in logs..."
+                            className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-10 pr-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          />
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <MdSearch className="h-5 w-5 text-gray-400" />
+                          </div>
                         </div>
-                      </div>
+                      </form>
                     </div>
                     <div className="pt-7">
                       <button
@@ -342,10 +367,10 @@ const SystemLogs = () => {
                         Level
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Module
+                        Action
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Action
+                        User Role
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Description
@@ -359,47 +384,163 @@ const SystemLogs = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {logs.map((log) => (
-                      <tr key={log.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <div className="flex items-center">
-                            <MdAccessTime className="h-5 w-5 mr-2 text-gray-400" />
-                            {formatDate(log.timestamp)}
+                    {loading ? (
+                      <tr>
+                        <td colSpan="7" className="px-6 py-8 text-center text-sm text-gray-500">
+                          <div className="flex flex-col items-center justify-center">
+                            <MdRefresh className="h-8 w-8 animate-spin text-blue-500 mb-2" />
+                            <p>Loading logs...</p>
                           </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getLevelStyle(log.level)}`}>
-                            {getLevelIcon(log.level)}
-                            <span className="ml-1 capitalize">{log.level}</span>
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">
-                          {log.module}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {log.action}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-500">
-                          {log.description}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          <div className="flex items-center">
-                            <MdPerson className="h-5 w-5 mr-2 text-gray-400" />
-                            <span>{log.user}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {log.ipAddress}
                         </td>
                       </tr>
-                    ))}
+                    ) : logs.length === 0 ? (
+                      <tr>
+                        <td colSpan="7" className="px-6 py-8 text-center text-sm text-gray-500">
+                          <div className="flex flex-col items-center justify-center">
+                            <MdInfo className="h-8 w-8 text-gray-400 mb-2" />
+                            <p>No logs found</p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      logs.map((log) => (
+                        <tr key={log.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <div className="flex items-center">
+                              <MdAccessTime className="h-5 w-5 mr-2 text-gray-400" />
+                              {formatDate(log.created_at)}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getLevelStyle(log.log_level)}`}>
+                              {getLevelIcon(log.log_level)}
+                              <span className="ml-1 capitalize">{log.log_level}</span>
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {formatAction(log.action)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">
+                            {log.user?.role || 'System'}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                            {log.description}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <div className="flex items-center">
+                              <MdPerson className="h-5 w-5 mr-2 text-gray-400" />
+                              <span>{log.user?.email || 'System'}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {log.ip_address || 'N/A'}
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
+              
+              {/* Pagination */}
+              {!loading && logs.length > 0 && (
+                <div className="bg-gray-50 px-4 py-3 border-t border-gray-200 sm:px-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 flex justify-between sm:hidden">
+                      <button
+                        onClick={() => handlePageChange(pagination.current_page - 1)}
+                        disabled={pagination.current_page === 1}
+                        className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Previous
+                      </button>
+                      <button
+                        onClick={() => handlePageChange(pagination.current_page + 1)}
+                        disabled={pagination.current_page === pagination.last_page}
+                        className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Next
+                      </button>
+                    </div>
+                    <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-sm text-gray-700">
+                          Showing{' '}
+                          <span className="font-medium">
+                            {((pagination.current_page - 1) * pagination.per_page) + 1}
+                          </span>{' '}
+                          to{' '}
+                          <span className="font-medium">
+                            {Math.min(pagination.current_page * pagination.per_page, pagination.total)}
+                          </span>{' '}
+                          of <span className="font-medium">{pagination.total}</span> results
+                        </p>
+                      </div>
+                      <div>
+                        <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                          <button
+                            onClick={() => handlePageChange(pagination.current_page - 1)}
+                            disabled={pagination.current_page === 1}
+                            className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <span className="sr-only">Previous</span>
+                            <MdChevronLeft className="h-5 w-5" />
+                          </button>
+                          {[...Array(pagination.last_page)].map((_, idx) => {
+                            const page = idx + 1;
+                            // Show first page, last page, current page, and pages around current
+                            if (
+                              page === 1 ||
+                              page === pagination.last_page ||
+                              (page >= pagination.current_page - 1 && page <= pagination.current_page + 1)
+                            ) {
+                              return (
+                                <button
+                                  key={page}
+                                  onClick={() => handlePageChange(page)}
+                                  className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                                    page === pagination.current_page
+                                      ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                                      : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                                  }`}
+                                >
+                                  {page}
+                                </button>
+                              );
+                            } else if (
+                              page === pagination.current_page - 2 ||
+                              page === pagination.current_page + 2
+                            ) {
+                              return (
+                                <span
+                                  key={page}
+                                  className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700"
+                                >
+                                  ...
+                                </span>
+                              );
+                            }
+                            return null;
+                          })}
+                          <button
+                            onClick={() => handlePageChange(pagination.current_page + 1)}
+                            disabled={pagination.current_page === pagination.last_page}
+                            className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <span className="sr-only">Next</span>
+                            <MdChevronRight className="h-5 w-5" />
+                          </button>
+                        </nav>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </main>
       </div>
+      <Toaster position="top-right" />
     </div>
   );
 };

@@ -44,6 +44,17 @@ Route::post('/admin/login', function (Request $request) {
                 ->first();
 
     if (!$user || !Hash::check($request->password, $user->password)) {
+        // Log failed admin login attempt
+        DB::table('system_logs')->insert([
+            'user_id' => $user ? $user->id : null,
+            'action' => 'admin_login_failed',
+            'description' => 'Failed admin login attempt for email: ' . $request->email,
+            'log_level' => 'warning',
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'created_at' => now(),
+        ]);
+
         return response()->json([
             'message' => 'Invalid credentials'
         ], 401);
@@ -52,6 +63,17 @@ Route::post('/admin/login', function (Request $request) {
     // Delete existing tokens and create new one
     $user->tokens()->delete();
     $token = $user->createToken('admin-token')->plainTextToken;
+
+    // Log successful admin login
+    DB::table('system_logs')->insert([
+        'user_id' => $user->id,
+        'action' => 'admin_login_success',
+        'description' => 'Admin logged in successfully: ' . $user->email,
+        'log_level' => 'info',
+        'ip_address' => $request->ip(),
+        'user_agent' => $request->userAgent(),
+        'created_at' => now(),
+    ]);
 
     return response()->json([
         'token' => $token,
@@ -140,6 +162,17 @@ Route::post('/trainer/login', function (Request $request) {
                 ->first();
 
     if (!$user || !Hash::check($request->password, $user->password)) {
+        // Log failed trainer login attempt
+        DB::table('system_logs')->insert([
+            'user_id' => $user ? $user->id : null,
+            'action' => 'trainer_login_failed',
+            'description' => 'Failed trainer login attempt for email: ' . $request->email,
+            'log_level' => 'warning',
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'created_at' => now(),
+        ]);
+
         return response()->json([
             'message' => 'Invalid credentials. Please check your email and password.'
         ], 401);
@@ -147,6 +180,17 @@ Route::post('/trainer/login', function (Request $request) {
 
     // Check if user account is active
     if ($user->status !== 'active') {
+        // Log inactive trainer account login attempt
+        DB::table('system_logs')->insert([
+            'user_id' => $user->id,
+            'action' => 'trainer_login_blocked',
+            'description' => 'Trainer login attempt blocked for inactive account: ' . $user->email,
+            'log_level' => 'warning',
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'created_at' => now(),
+        ]);
+
         return response()->json([
             'message' => 'Your account is not active. Please contact the administrator.'
         ], 403);
@@ -155,6 +199,17 @@ Route::post('/trainer/login', function (Request $request) {
     // Delete existing tokens and create new one
     $user->tokens()->delete();
     $token = $user->createToken('trainer-token')->plainTextToken;
+
+    // Log successful trainer login
+    DB::table('system_logs')->insert([
+        'user_id' => $user->id,
+        'action' => 'trainer_login_success',
+        'description' => 'Trainer logged in successfully: ' . $user->email,
+        'log_level' => 'info',
+        'ip_address' => $request->ip(),
+        'user_agent' => $request->userAgent(),
+        'created_at' => now(),
+    ]);
 
     return response()->json([
         'token' => $token,
@@ -190,6 +245,17 @@ Route::post('/staff/login', function (Request $request) {
                 ->first();
 
     if (!$user || !Hash::check($request->password, $user->password)) {
+        // Log failed staff login attempt
+        DB::table('system_logs')->insert([
+            'user_id' => $user ? $user->id : null,
+            'action' => 'staff_login_failed',
+            'description' => 'Failed staff login attempt for email: ' . $request->email,
+            'log_level' => 'warning',
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'created_at' => now(),
+        ]);
+
         return response()->json([
             'message' => 'Invalid credentials. Please check your email and password.'
         ], 401);
@@ -197,6 +263,17 @@ Route::post('/staff/login', function (Request $request) {
 
     // Check if user account is active
     if ($user->status !== 'active') {
+        // Log inactive staff account login attempt
+        DB::table('system_logs')->insert([
+            'user_id' => $user->id,
+            'action' => 'staff_login_blocked',
+            'description' => 'Staff login attempt blocked for inactive account: ' . $user->email,
+            'log_level' => 'warning',
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'created_at' => now(),
+        ]);
+
         return response()->json([
             'message' => 'Your account is not active. Please contact the administrator.'
         ], 403);
@@ -205,6 +282,17 @@ Route::post('/staff/login', function (Request $request) {
     // Delete existing tokens and create new one
     $user->tokens()->delete();
     $token = $user->createToken('staff-token')->plainTextToken;
+
+    // Log successful staff login
+    DB::table('system_logs')->insert([
+        'user_id' => $user->id,
+        'action' => 'staff_login_success',
+        'description' => 'Staff logged in successfully: ' . $user->email . ' (' . $user->role . ')',
+        'log_level' => 'info',
+        'ip_address' => $request->ip(),
+        'user_agent' => $request->userAgent(),
+        'created_at' => now(),
+    ]);
 
     return response()->json([
         'token' => $token,
@@ -234,6 +322,17 @@ Route::post('/student/login', function (Request $request) {
                 ->first();
 
     if (!$user || !Hash::check($request->password, $user->password)) {
+        // Log failed student login attempt
+        DB::table('system_logs')->insert([
+            'user_id' => $user ? $user->id : null,
+            'action' => 'student_login_failed',
+            'description' => 'Failed student login attempt for email: ' . $request->email,
+            'log_level' => 'warning',
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'created_at' => now(),
+        ]);
+
         return response()->json([
             'message' => 'Invalid credentials. Please check your email and password.'
         ], 401);
@@ -241,6 +340,17 @@ Route::post('/student/login', function (Request $request) {
 
     // Check if user account is active
     if ($user->status !== 'active') {
+        // Log inactive student account login attempt
+        DB::table('system_logs')->insert([
+            'user_id' => $user->id,
+            'action' => 'student_login_blocked',
+            'description' => 'Student login attempt blocked for inactive account: ' . $user->email,
+            'log_level' => 'warning',
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'created_at' => now(),
+        ]);
+
         return response()->json([
             'message' => 'Your account is not active. Please contact the administrator.'
         ], 403);
@@ -249,6 +359,17 @@ Route::post('/student/login', function (Request $request) {
     // Delete existing tokens and create new one
     $user->tokens()->delete();
     $token = $user->createToken('student-token')->plainTextToken;
+
+    // Log successful student login
+    DB::table('system_logs')->insert([
+        'user_id' => $user->id,
+        'action' => 'student_login_success',
+        'description' => 'Student logged in successfully: ' . $user->email,
+        'log_level' => 'info',
+        'ip_address' => $request->ip(),
+        'user_agent' => $request->userAgent(),
+        'created_at' => now(),
+    ]);
 
     return response()->json([
         'token' => $token,
@@ -319,15 +440,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
             : 0;
         
         // Get TESDA voucher statistics
-        $totalVouchers = \DB::table('vouchers')->sum('quantity');
-        $usedVouchers = \DB::table('vouchers')->sum('used_count');
+        $totalVouchers = DB::table('vouchers')->sum('quantity');
+        $usedVouchers = DB::table('vouchers')->sum('used_count');
         $availableVouchers = $totalVouchers - $usedVouchers;
         $eligibleApplicants = \App\Models\User::where('role', 'applicant')
             ->where('voucher_eligibility', 'eligible')
             ->count();
         
         // Get active batches count
-        $activeBatches = \DB::table('batches')
+        $activeBatches = DB::table('batches')
             ->where('status', 'active')
             ->count();
         
@@ -375,6 +496,84 @@ Route::middleware(['auth:sanctum'])->group(function () {
             'activeBatches' => $activeBatches,
             'avgProcessingTime' => $avgProcessingTime,
             'recentActivities' => $recentActivities
+        ]);
+    });
+
+    // Admin System Logs Route
+    Route::get('/admin/system-logs', function (Request $request) {
+        $query = DB::table('system_logs')
+            ->leftJoin('users', 'system_logs.user_id', '=', 'users.id')
+            ->select(
+                'system_logs.*',
+                'users.email as user_email',
+                'users.first_name',
+                'users.last_name',
+                'users.role as user_role'
+            );
+        
+        // Apply filters
+        if ($request->has('level') && $request->level !== 'all') {
+            $query->where('system_logs.log_level', $request->level);
+        }
+        
+        if ($request->has('action') && $request->action !== 'all') {
+            $query->where('system_logs.action', 'like', '%' . $request->action . '%');
+        }
+        
+        if ($request->has('user_id') && $request->user_id !== 'all') {
+            $query->where('system_logs.user_id', $request->user_id);
+        }
+        
+        if ($request->has('start_date') && $request->start_date) {
+            $query->where('system_logs.created_at', '>=', $request->start_date . ' 00:00:00');
+        }
+        
+        if ($request->has('end_date') && $request->end_date) {
+            $query->where('system_logs.created_at', '<=', $request->end_date . ' 23:59:59');
+        }
+        
+        if ($request->has('search') && $request->search) {
+            $query->where(function($q) use ($request) {
+                $q->where('system_logs.description', 'like', '%' . $request->search . '%')
+                  ->orWhere('system_logs.action', 'like', '%' . $request->search . '%')
+                  ->orWhere('users.email', 'like', '%' . $request->search . '%');
+            });
+        }
+        
+        // Order by most recent first
+        $logs = $query->orderBy('system_logs.created_at', 'desc')
+            ->paginate($request->input('per_page', 50));
+        
+        // Format the logs
+        $formattedLogs = $logs->getCollection()->map(function($log) {
+            return [
+                'id' => $log->id,
+                'user_id' => $log->user_id,
+                'action' => $log->action,
+                'description' => $log->description,
+                'log_level' => $log->log_level,
+                'ip_address' => $log->ip_address,
+                'user_agent' => $log->user_agent,
+                'created_at' => $log->created_at,
+                'user' => $log->user_email ? [
+                    'email' => $log->user_email,
+                    'name' => trim(($log->first_name ?? '') . ' ' . ($log->last_name ?? '')),
+                    'role' => $log->user_role,
+                ] : null,
+            ];
+        });
+        
+        return response()->json([
+            'success' => true,
+            'logs' => $formattedLogs,
+            'pagination' => [
+                'total' => $logs->total(),
+                'per_page' => $logs->perPage(),
+                'current_page' => $logs->currentPage(),
+                'last_page' => $logs->lastPage(),
+                'from' => $logs->firstItem(),
+                'to' => $logs->lastItem(),
+            ]
         ]);
     });
 

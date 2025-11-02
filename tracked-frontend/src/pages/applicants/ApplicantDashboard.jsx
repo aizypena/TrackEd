@@ -24,12 +24,31 @@ const ApplicantDashboard = () => {
   const [user, setUser] = useState(null);
   const [applicationStatus, setApplicationStatus] = useState('pending');
 
-  const handleLogout = () => {
-    localStorage.removeItem('userToken');
-    localStorage.removeItem('userData');
-    sessionStorage.removeItem('userToken');
-    sessionStorage.removeItem('userData');
-    navigate('/');
+  const handleLogout = async () => {
+    try {
+      const token = localStorage.getItem('userToken') || sessionStorage.getItem('userToken');
+      
+      if (token) {
+        // Call backend logout endpoint to log the action
+        await fetch('http://localhost:8000/api/logout', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // Clear local storage and redirect regardless of API call result
+      localStorage.removeItem('userToken');
+      localStorage.removeItem('userData');
+      sessionStorage.removeItem('userToken');
+      sessionStorage.removeItem('userData');
+      navigate('/');
+    }
   };
 
   useEffect(() => {
