@@ -29,13 +29,11 @@ const AdminDashboard = () => {
   });
 
   const [forecastingData, setForecastingData] = useState({
-    nextMonthPrediction: 145,
-    quarterPrediction: 420,
-    yearPrediction: 1680,
-    confidence: 87,
-    accuracy: 94.2,
-    trendDirection: 'upward',
-    seasonality: 'High during Q1-Q2'
+    nextMonthPrediction: 0,
+    quarterPrediction: 0,
+    yearPrediction: 0,
+    confidence: 0,
+    accuracy: 0
   });
 
   const [recentActivities, setRecentActivities] = useState([
@@ -90,8 +88,6 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchDashboardStats = async () => {
       try {
-        console.log('Fetching dashboard stats with token:', adminToken ? 'Token exists' : 'No token');
-        
         const response = await fetch('http://localhost:8000/api/admin/dashboard-stats', {
           headers: {
             'Authorization': `Bearer ${adminToken}`,
@@ -100,22 +96,29 @@ const AdminDashboard = () => {
           }
         });
 
-        console.log('Response status:', response.status);
-
         if (response.ok) {
           const data = await response.json();
-          console.log('Dashboard stats received:', data);
           
-          setDashboardStats(prev => ({
-            ...prev,
-            totalApplicants: data.totalApplicants,
-            activeApplications: data.activeApplications,
-            pendingApplications: data.pendingApplications,
-            rejectedApplications: data.rejectedApplications,
-            waitlistedApplicants: data.waitlistedApplicants
-          }));
+          setDashboardStats({
+            totalApplicants: data.totalApplicants || 0,
+            activeApplications: data.activeApplications || 0,
+            pendingApplications: data.pendingApplications || 0,
+            rejectedApplications: data.rejectedApplications || 0,
+            waitlistedApplicants: data.waitlistedApplicants || 0,
+            tesdaVouchers: data.tesdaVouchers || 0,
+            eligibleApplicants: data.eligibleApplicants || 0,
+            conversionRate: data.conversionRate || 0,
+            enrollmentGrowth: data.enrollmentGrowth || 0,
+            avgProcessingTime: data.avgProcessingTime || 0,
+            activeBatches: data.activeBatches || 0
+          });
+
+          // Update recent activities if available
+          if (data.recentActivities && data.recentActivities.length > 0) {
+            setRecentActivities(data.recentActivities);
+          }
         } else {
-          console.error('Failed to fetch dashboard stats:', response.status, response.statusText);
+          console.error('Failed to fetch dashboard stats:', response.status);
         }
       } catch (error) {
         console.error('Error fetching dashboard stats:', error);
@@ -124,8 +127,69 @@ const AdminDashboard = () => {
 
     if (adminToken) {
       fetchDashboardStats();
-    } else {
-      console.log('No admin token found');
+    }
+  }, [adminToken]);
+
+  // Fetch ARIMA forecast data from API
+  useEffect(() => {
+    const fetchArimaForecast = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/api/admin/arima-forecast', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${adminToken}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            program: 'all',
+            periods: 12  // Fetch 12 quarters (3 years) for different predictions
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          
+          // Calculate predictions based on forecast data
+          if (data.forecast && data.forecast.length > 0) {
+            // Next quarter (first forecast point)
+            const nextQuarter = data.forecast[0]?.enrollment || 0;
+            
+            // Next 4 quarters average (1 year)
+            const yearForecast = data.forecast.slice(0, 4);
+            const yearPrediction = yearForecast.length > 0
+              ? Math.round(yearForecast.reduce((sum, f) => sum + (f.enrollment || 0), 0))
+              : 0;
+            
+            // All 12 quarters total (3 years)
+            const allForecast = data.forecast.slice(0, 12);
+            const threeYearTotal = allForecast.length > 0
+              ? Math.round(allForecast.reduce((sum, f) => sum + (f.enrollment || 0), 0))
+              : 0;
+            
+            // Calculate average confidence from forecast
+            const avgConfidence = data.forecast.length > 0
+              ? Math.round(data.forecast.reduce((sum, f) => sum + (f.confidence || 0), 0) / data.forecast.length)
+              : 0;
+            
+            setForecastingData({
+              nextMonthPrediction: nextQuarter,
+              quarterPrediction: yearPrediction,
+              yearPrediction: threeYearTotal,
+              confidence: avgConfidence,
+              accuracy: 94.2  // Keep static accuracy for now
+            });
+          }
+        } else {
+          console.error('Failed to fetch ARIMA forecast:', response.status);
+        }
+      } catch (error) {
+        console.error('Error fetching ARIMA forecast:', error);
+      }
+    };
+
+    if (adminToken) {
+      fetchArimaForecast();
     }
   }, [adminToken]);
 
@@ -214,23 +278,13 @@ const AdminDashboard = () => {
               </div>
             </div>
             
-            <div className="flex items-center space-x-4">
-              <div className="relative">
-                <MdSearch className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Search applications..."
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                <MdSupervisorAccount className="h-5 w-5 text-white" />
               </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                  <MdSupervisorAccount className="h-5 w-5 text-white" />
-                </div>
-                <span className="text-sm font-medium text-gray-700">
-                  {adminUser.name || 'Administrator'}
-                </span>
-              </div>
+              <span className="text-sm font-medium text-gray-700">
+                {adminUser.name || 'Administrator'}
+              </span>
             </div>
           </div>
         </header>
@@ -297,7 +351,7 @@ const AdminDashboard = () => {
                   <MdShowChart className="h-8 w-8 text-blue-600" />
                 </div>
                 <p className="text-2xl font-bold text-blue-600">{forecastingData.nextMonthPrediction}</p>
-                <p className="text-sm text-blue-800 font-medium">Next Month</p>
+                <p className="text-sm text-blue-800 font-medium">Next Quarter</p>
                 <p className="text-xs text-blue-600 mt-1">Predicted Enrollments</p>
               </div>
               
@@ -306,8 +360,8 @@ const AdminDashboard = () => {
                   <MdBarChart className="h-8 w-8 text-purple-600" />
                 </div>
                 <p className="text-2xl font-bold text-purple-600">{forecastingData.quarterPrediction}</p>
-                <p className="text-sm text-purple-800 font-medium">Next Quarter</p>
-                <p className="text-xs text-purple-600 mt-1">Quarterly Forecast</p>
+                <p className="text-sm text-purple-800 font-medium">Next Year Total</p>
+                <p className="text-xs text-purple-600 mt-1">4 Quarters Forecast</p>
               </div>
               
               <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
@@ -315,23 +369,8 @@ const AdminDashboard = () => {
                   <MdAnalytics className="h-8 w-8 text-green-600" />
                 </div>
                 <p className="text-2xl font-bold text-green-600">{forecastingData.yearPrediction}</p>
-                <p className="text-sm text-green-800 font-medium">Annual Forecast</p>
+                <p className="text-sm text-green-800 font-medium">3-Year Projection</p>
                 <p className="text-xs text-green-600 mt-1">Strategic Planning</p>
-              </div>
-            </div>
-            
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center space-x-4">
-                  <span className="text-gray-600">Trend Direction:</span>
-                  <span className={`font-medium ${forecastingData.trendDirection === 'upward' ? 'text-green-600' : 'text-red-600'}`}>
-                    {forecastingData.trendDirection.charAt(0).toUpperCase() + forecastingData.trendDirection.slice(1)}
-                  </span>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <span className="text-gray-600">Seasonality:</span>
-                  <span className="font-medium text-blue-600">{forecastingData.seasonality}</span>
-                </div>
               </div>
             </div>
           </div>

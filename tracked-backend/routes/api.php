@@ -283,10 +283,80 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/admin/dashboard-stats', function (Request $request) {
         // Query users with role 'applicant'
         $totalApplicants = \App\Models\User::where('role', 'applicant')->count();
-        $activeApplications = \App\Models\User::where('role', 'applicant')->where('status', 'active')->count();
-        $approvedApplications = \App\Models\User::where('role', 'applicant')->where('application_status', 'approved')->count();
-        $pendingApplications = \App\Models\User::where('role', 'applicant')->where('application_status', 'pending')->count();
-        $rejectedApplications = \App\Models\User::where('role', 'applicant')->where('application_status', 'rejected')->count();
+        $activeApplications = \App\Models\User::where('role', 'applicant')
+            ->whereIn('application_status', ['pending', 'under_review'])
+            ->count();
+        $approvedApplications = \App\Models\User::where('role', 'applicant')
+            ->where('application_status', 'approved')
+            ->count();
+        $pendingApplications = \App\Models\User::where('role', 'applicant')
+            ->where('application_status', 'pending')
+            ->count();
+        $rejectedApplications = \App\Models\User::where('role', 'applicant')
+            ->where('application_status', 'rejected')
+            ->count();
+        $underReviewApplications = \App\Models\User::where('role', 'applicant')
+            ->where('application_status', 'under_review')
+            ->count();
+        
+        // Calculate growth rate (current month vs previous month)
+        $currentMonthApplicants = \App\Models\User::where('role', 'applicant')
+            ->whereYear('created_at', now()->year)
+            ->whereMonth('created_at', now()->month)
+            ->count();
+        $previousMonthApplicants = \App\Models\User::where('role', 'applicant')
+            ->whereYear('created_at', now()->subMonth()->year)
+            ->whereMonth('created_at', now()->subMonth()->month)
+            ->count();
+        
+        $enrollmentGrowth = $previousMonthApplicants > 0 
+            ? round((($currentMonthApplicants - $previousMonthApplicants) / $previousMonthApplicants) * 100, 1)
+            : 0;
+        
+        // Calculate conversion rate (approved / total * 100)
+        $conversionRate = $totalApplicants > 0 
+            ? round(($approvedApplications / $totalApplicants) * 100, 1)
+            : 0;
+        
+        // Get TESDA voucher statistics
+        $totalVouchers = \DB::table('vouchers')->sum('quantity');
+        $usedVouchers = \DB::table('vouchers')->sum('used_count');
+        $availableVouchers = $totalVouchers - $usedVouchers;
+        $eligibleApplicants = \App\Models\User::where('role', 'applicant')
+            ->where('voucher_eligibility', 'eligible')
+            ->count();
+        
+        // Get active batches count
+        $activeBatches = \DB::table('batches')
+            ->where('status', 'active')
+            ->count();
+        
+        // Calculate average processing time for approved applications
+        $avgProcessingDays = \App\Models\User::where('role', 'applicant')
+            ->where('application_status', 'approved')
+            ->whereNotNull('updated_at')
+            ->selectRaw('AVG(DATEDIFF(updated_at, created_at)) as avg_days')
+            ->value('avg_days');
+        $avgProcessingTime = $avgProcessingDays ? round($avgProcessingDays, 1) : 0;
+        
+        // Get recent activities (last 10)
+        $recentActivities = \App\Models\User::where('role', 'applicant')
+            ->orderBy('created_at', 'desc')
+            ->take(10)
+            ->get()
+            ->map(function($applicant) {
+                $timestamp = \Carbon\Carbon::parse($applicant->created_at)->diffForHumans();
+                return [
+                    'id' => $applicant->id,
+                    'type' => 'application',
+                    'status' => $applicant->application_status === 'approved' ? 'success' : 
+                               ($applicant->application_status === 'rejected' ? 'error' : 'info'),
+                    'priority' => $applicant->application_status === 'pending' ? 'high' : 'medium',
+                    'message' => "New application submitted for " . ($applicant->course_program ?? 'Unknown Program'),
+                    'user' => $applicant->first_name . ' ' . $applicant->last_name,
+                    'timestamp' => $timestamp
+                ];
+            });
         
         return response()->json([
             'totalApplicants' => $totalApplicants,
@@ -294,7 +364,17 @@ Route::middleware(['auth:sanctum'])->group(function () {
             'approvedApplications' => $approvedApplications,
             'pendingApplications' => $pendingApplications,
             'rejectedApplications' => $rejectedApplications,
-            'waitlistedApplicants' => 0, // Add logic if you have waitlisted status
+            'underReviewApplications' => $underReviewApplications,
+            'waitlistedApplicants' => 0,
+            'enrollmentGrowth' => $enrollmentGrowth,
+            'conversionRate' => $conversionRate,
+            'tesdaVouchers' => $availableVouchers,
+            'totalVouchers' => $totalVouchers,
+            'usedVouchers' => $usedVouchers,
+            'eligibleApplicants' => $eligibleApplicants,
+            'activeBatches' => $activeBatches,
+            'avgProcessingTime' => $avgProcessingTime,
+            'recentActivities' => $recentActivities
         ]);
     });
 
