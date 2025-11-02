@@ -1,16 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../../layouts/admin/Sidebar';
 import {
   MdMenu,
   MdCalendarToday,
   MdTrendingUp,
-  MdPeople,
-  MdSchool,
   MdRefresh,
   MdDownload,
-  MdSettings,
-  MdAttachMoney,
-  MdGroup,
   MdSchedule,
   MdWarning,
 } from 'react-icons/md';
@@ -26,6 +21,7 @@ import {
   Filler
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
+import toast, { Toaster } from 'react-hot-toast';
 
 // Register ChartJS components
 ChartJS.register(
@@ -41,69 +37,139 @@ ChartJS.register(
 
 const ArimaForecasting = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [forecastPeriod, setForecastPeriod] = useState('6');
+  const [forecastPeriods, setForecastPeriods] = useState(6);
   const [selectedProgram, setSelectedProgram] = useState('all');
   const [loading, setLoading] = useState(false);
-  const [arimaParams, setArimaParams] = useState({
-    p: 1, // AR parameter
-    d: 1, // Difference order
-    q: 1, // MA parameter
-    confidence: 0.95, // Confidence interval
-    seasonality: true // Include seasonality
+  
+  const [forecastData, setForecastData] = useState({
+    historical: [],
+    forecast: [],
+    stats: {
+      totalHistorical: 0,
+      avgGrowthRate: 0,
+      predictedNext: 0,
+      trend: 'stable'
+    }
   });
-  const [quarterlyView, setQuarterlyView] = useState(true);
 
-  // Mock data for forecasting
-  const forecastData = {
-    labels: ['Oct 2025', 'Nov 2025', 'Dec 2025', 'Jan 2026', 'Feb 2026', 'Mar 2026'],
+  const programs = [
+    { id: 'all', name: 'All Programs' },
+    { id: 'Bartending NC II', name: 'Bartending NC II' },
+    { id: 'Barista Training NC II', name: 'Barista Training NC II' },
+    { id: 'Housekeeping NC II', name: 'Housekeeping NC II' },
+    { id: 'Food and Beverage Services NC II', name: 'Food and Beverage Services NC II' },
+    { id: 'Bread and Pastry Production NC II', name: 'Bread and Pastry Production NC II' },
+    { id: 'Events Management NC III', name: 'Events Management NC III' },
+    { id: "Chef's Catering Services NC II", name: "Chef's Catering Services NC II" },
+    { id: 'Cookery NC II', name: 'Cookery NC II' }
+  ];
+
+  const fetchForecast = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('adminToken');
+      const response = await fetch('http://localhost:8000/api/admin/arima-forecast', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          program: selectedProgram,
+          periods: forecastPeriods
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setForecastData(data);
+      } else {
+        toast.error('Failed to generate forecast');
+      }
+    } catch (error) {
+      console.error('Error fetching forecast:', error);
+      toast.error('Error generating forecast');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchForecast();
+  }, [selectedProgram, forecastPeriods]);
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const month = date.toLocaleString('default', { month: 'short' });
+    const year = date.getFullYear();
+    return `${month} ${year}`;
+  };
+
+  // Prepare chart data from API (with safety checks)
+  const historicalLength = forecastData.historical?.length || 0;
+  const forecastLength = forecastData.forecast?.length || 0;
+
+  const chartData = {
+    labels: [
+      ...(forecastData.historical || []).map(d => formatDate(d.date)),
+      ...(forecastData.forecast || []).map(d => formatDate(d.date))
+    ],
     datasets: [
       {
         label: 'Historical Enrollments',
-        data: [120, 135, 125, 145, 160, 175],
+        data: [
+          ...(forecastData.historical || []).map(d => d.enrollment),
+          ...Array(forecastLength).fill(null)
+        ],
         borderColor: 'rgb(75, 192, 192)',
         backgroundColor: 'rgba(75, 192, 192, 0.1)',
         tension: 0.4,
-        fill: false
+        fill: false,
+        pointRadius: 3
       },
       {
         label: 'Forecasted Enrollments',
-        data: [175, 190, 205, 220, 235, 250],
+        data: [
+          ...Array(Math.max(0, historicalLength - 1)).fill(null),
+          forecastData.historical?.[historicalLength - 1]?.enrollment || null,
+          ...(forecastData.forecast || []).map(d => d.enrollment)
+        ],
         borderColor: 'rgb(54, 162, 235)',
         backgroundColor: 'rgba(54, 162, 235, 0.1)',
         borderDash: [5, 5],
         tension: 0.4,
-        fill: false
+        fill: false,
+        pointRadius: 3
       },
       {
-        label: 'Upper Confidence Bound',
-        data: [185, 205, 225, 240, 255, 270],
-        borderColor: 'rgba(54, 162, 235, 0.2)',
-        backgroundColor: 'rgba(54, 162, 235, 0.1)',
+        label: 'Upper Confidence Bound (85%)',
+        data: [
+          ...Array(historicalLength).fill(null),
+          ...(forecastData.forecast || []).map(d => d.upper_bound)
+        ],
+        borderColor: 'rgba(54, 162, 235, 0.3)',
+        backgroundColor: 'rgba(54, 162, 235, 0.05)',
         tension: 0.4,
-        fill: '+1'
+        fill: '+1',
+        pointRadius: 0,
+        borderWidth: 1
       },
       {
-        label: 'Lower Confidence Bound',
-        data: [165, 175, 185, 200, 215, 230],
-        borderColor: 'rgba(54, 162, 235, 0.2)',
-        backgroundColor: 'rgba(54, 162, 235, 0.1)',
+        label: 'Lower Confidence Bound (85%)',
+        data: [
+          ...Array(historicalLength).fill(null),
+          ...(forecastData.forecast || []).map(d => d.lower_bound)
+        ],
+        borderColor: 'rgba(54, 162, 235, 0.3)',
+        backgroundColor: 'rgba(54, 162, 235, 0.05)',
         tension: 0.4,
-        fill: false
+        fill: false,
+        pointRadius: 0,
+        borderWidth: 1
       }
     ]
   };
-
-  const programs = [
-    { id: 'all', name: 'All Programs' },
-    { id: 'bartending-nc-ii', name: 'Bartending NC II' },
-    { id: 'barista-training-nc-ii', name: 'Barista Training NC II' },
-    { id: 'housekeeping-nc-ii', name: 'Housekeeping NC II' },
-    { id: 'food-beverage-nc-ii', name: 'Food and Beverage Services NC II' },
-    { id: 'bread-pastry-nc-ii', name: 'Bread and Pastry Production NC II' },
-    { id: 'events-management-nc-iii', name: 'Events Management NC III' },
-    { id: 'chefs-catering-nc-ii', name: "Chef's Catering Services NC II" },
-    { id: 'cookery-nc-ii', name: 'Cookery NC II' }
-  ];
 
   const chartOptions = {
     responsive: true,
@@ -114,7 +180,7 @@ const ArimaForecasting = () => {
       },
       title: {
         display: true,
-        text: 'ARIMA Enrollment Forecast'
+        text: `ARIMA Enrollment Forecast - ${selectedProgram === 'all' ? 'All Programs' : selectedProgram}`
       },
       tooltip: {
         mode: 'index',
@@ -123,7 +189,7 @@ const ArimaForecasting = () => {
     },
     scales: {
       y: {
-        beginAtZero: false,
+        beginAtZero: true,
         title: {
           display: true,
           text: 'Number of Enrollments'
@@ -132,25 +198,31 @@ const ArimaForecasting = () => {
       x: {
         title: {
           display: true,
-          text: 'Month'
+          text: 'Period'
         }
       }
-    },
-    interaction: {
-      intersect: false,
-      mode: 'index'
     }
   };
 
   const handleRefresh = () => {
-    setLoading(true);
-    // Implement refresh logic here
-    setTimeout(() => setLoading(false), 1000);
+    fetchForecast();
   };
 
   const handleExport = () => {
-    // Implement export logic here
-    console.log('Exporting forecast data...');
+    const csvContent = "data:text/csv;charset=utf-8," + 
+      "Type,Date,Enrollments,Upper Bound,Lower Bound,Confidence\n" +
+      forecastData.historical.map(d => `Historical,${d.date},${d.enrollment},,,`).join("\n") + "\n" +
+      forecastData.forecast.map(d => `Forecast,${d.date},${d.enrollment},${d.upper_bound},${d.lower_bound},${d.confidence}%`).join("\n");
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `arima_forecast_${selectedProgram.replace(/\s+/g, '_')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success('Forecast exported successfully');
   };
 
   return (
@@ -172,53 +244,42 @@ const ArimaForecasting = () => {
               </button>
               <div>
                 <h1 className="text-2xl font-semibold text-gray-900">ARIMA Forecasting</h1>
-                <p className="text-sm text-gray-500">Enrollment projections and resource planning</p>
+                <p className="text-sm text-gray-500">Enrollment projections based on historical data</p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              <div className="flex items-center space-x-2">
-                <select
-                  value={forecastPeriod}
-                  onChange={(e) => setForecastPeriod(e.target.value)}
-                  className="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="4">4 Quarters</option>
-                  <option value="8">8 Quarters</option>
-                  <option value="12">12 Quarters</option>
-                </select>
-                <select
-                  value={selectedProgram}
-                  onChange={(e) => setSelectedProgram(e.target.value)}
-                  className="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                >
-                  {programs.map(program => (
-                    <option key={program.id} value={program.id}>{program.name}</option>
-                  ))}
-                </select>
-                <button
-                  onClick={() => setQuarterlyView(!quarterlyView)}
-                  className={`px-3 py-2 rounded-md text-sm font-medium ${
-                    quarterlyView ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
-                  }`}
-                >
-                  Quarterly View
-                </button>
-              </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={handleRefresh}
-                  className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
-                  disabled={loading}
-                >
-                  <MdRefresh className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
-                </button>
-                <button
-                  onClick={handleExport}
-                  className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
-                >
-                  <MdDownload className="h-5 w-5" />
-                </button>
-              </div>
+              <select
+                value={forecastPeriods}
+                onChange={(e) => setForecastPeriods(parseInt(e.target.value))}
+                className="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="4">4 Quarters</option>
+                <option value="6">6 Quarters</option>
+                <option value="8">8 Quarters</option>
+                <option value="12">12 Quarters</option>
+              </select>
+              <select
+                value={selectedProgram}
+                onChange={(e) => setSelectedProgram(e.target.value)}
+                className="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              >
+                {programs.map(program => (
+                  <option key={program.id} value={program.id}>{program.name}</option>
+                ))}
+              </select>
+              <button
+                onClick={handleRefresh}
+                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
+                disabled={loading}
+              >
+                <MdRefresh className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
+              </button>
+              <button
+                onClick={handleExport}
+                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
+              >
+                <MdDownload className="h-5 w-5" />
+              </button>
             </div>
           </div>
         </header>
@@ -226,49 +287,44 @@ const ArimaForecasting = () => {
         {/* Main Content Area */}
         <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
           {/* Forecast Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Projected Peak Enrollment</p>
-                  <p className="text-2xl font-semibold text-blue-600">250</p>
-                  <p className="text-xs text-gray-500 mt-1">March 2026</p>
+                  <p className="text-sm font-medium text-gray-600">Current Average</p>
+                  <p className="text-2xl font-semibold text-blue-600">
+                    {forecastData.historical?.length > 0
+                      ? Math.round(
+                          forecastData.historical.reduce((sum, d) => sum + (d.enrollment || 0), 0) /
+                          forecastData.historical.length
+                        )
+                      : 0}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">Historical avg per quarter</p>
                 </div>
                 <div className="p-3 bg-blue-50 rounded-full">
-                  <MdTrendingUp className="h-6 w-6 text-blue-600" />
+                  <MdCalendarToday className="h-6 w-6 text-blue-600" />
                 </div>
               </div>
             </div>
+
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Required Instructors</p>
-                  <p className="text-2xl font-semibold text-green-600">12</p>
-                  <p className="text-xs text-gray-500 mt-1">Based on 1:25 ratio</p>
-                </div>
-                <div className="p-3 bg-green-50 rounded-full">
-                  <MdGroup className="h-6 w-6 text-green-600" />
-                </div>
-              </div>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Est. TESDA Fund Required</p>
-                  <p className="text-2xl font-semibold text-yellow-600">₱750K</p>
-                  <p className="text-xs text-gray-500 mt-1">Next 6 months</p>
-                </div>
-                <div className="p-3 bg-yellow-50 rounded-full">
-                  <MdAttachMoney className="h-6 w-6 text-yellow-600" />
-                </div>
-              </div>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Recommended Classes</p>
-                  <p className="text-2xl font-semibold text-purple-600">10</p>
-                  <p className="text-xs text-gray-500 mt-1">Per program</p>
+                  <p className="text-sm font-medium text-gray-600">Next Quarter Forecast</p>
+                  <p className="text-2xl font-semibold text-purple-600">
+                    {forecastData.forecast?.[0]?.enrollment || 0}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {forecastData.historical?.length > 0 && forecastData.forecast?.[0]?.enrollment
+                      ? (() => {
+                          const avg = forecastData.historical.reduce((sum, d) => sum + (d.enrollment || 0), 0) / forecastData.historical.length;
+                          const diff = forecastData.forecast[0].enrollment - avg;
+                          const percentChange = (diff / avg) * 100;
+                          return `${diff >= 0 ? '+' : ''}${Math.round(diff)} (${percentChange >= 0 ? '+' : ''}${percentChange.toFixed(1)}%)`;
+                        })()
+                      : 'vs historical avg'}
+                  </p>
                 </div>
                 <div className="p-3 bg-purple-50 rounded-full">
                   <MdSchedule className="h-6 w-6 text-purple-600" />
@@ -277,161 +333,106 @@ const ArimaForecasting = () => {
             </div>
           </div>
 
-          {/* ARIMA Configuration Panel */}
-          {/* <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">ARIMA Model Configuration</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">AR Parameter (p)</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="5"
-                  value={arimaParams.p}
-                  onChange={(e) => setArimaParams({...arimaParams, p: parseInt(e.target.value)})}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Difference Order (d)</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="2"
-                  value={arimaParams.d}
-                  onChange={(e) => setArimaParams({...arimaParams, d: parseInt(e.target.value)})}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">MA Parameter (q)</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="5"
-                  value={arimaParams.q}
-                  onChange={(e) => setArimaParams({...arimaParams, q: parseInt(e.target.value)})}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Confidence Interval</label>
-                <select
-                  value={arimaParams.confidence}
-                  onChange={(e) => setArimaParams({...arimaParams, confidence: parseFloat(e.target.value)})}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="0.90">90%</option>
-                  <option value="0.95">95%</option>
-                  <option value="0.99">99%</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Seasonality</label>
-                <div className="flex items-center mt-2">
-                  <input
-                    type="checkbox"
-                    checked={arimaParams.seasonality}
-                    onChange={(e) => setArimaParams({...arimaParams, seasonality: e.target.checked})}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label className="ml-2 block text-sm text-gray-900">
-                    Include seasonal components
-                  </label>
-                </div>
-              </div>
-            </div>
-          </div> */}
-
           {/* Main Chart */}
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-6">
-            <div style={{ height: '400px' }}>
-              <Line data={forecastData} options={chartOptions} />
-            </div>
+            {loading ? (
+              <div className="flex items-center justify-center h-96">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              </div>
+            ) : (
+              <div style={{ height: '400px' }}>
+                <Line data={chartData} options={chartOptions} />
+              </div>
+            )}
           </div>
 
-          {/* Planning Recommendations */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Resource Planning Insights</h3>
-              <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0">
-                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                      <MdPeople className="h-5 w-5 text-blue-600" />
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-900">Staffing Requirements</h4>
-                    <p className="text-sm text-gray-500">Plan to hire 2 additional instructors by January 2026 to maintain optimal class sizes</p>
-                  </div>
+          {/* Forecast Table and Insights */}
+          {!loading && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Forecast Details</h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Period</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Predicted</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Range</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Confidence</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {(forecastData.forecast || []).map((data, index) => (
+                        <tr key={index}>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            {formatDate(data.date)}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-blue-600">
+                            {data.enrollment || 0}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                            {data.lower_bound || 0} - {data.upper_bound || 0}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                            {data.confidence || 0}%
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0">
-                    <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                      <MdSchool className="h-5 w-5 text-green-600" />
+              </div>
+
+              <div className="space-y-6">
+                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Key Insights</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-start space-x-3">
+                      <MdTrendingUp className={`h-5 w-5 mt-0.5 ${
+                        forecastData.stats?.trend === 'increasing' ? 'text-green-600' :
+                        forecastData.stats?.trend === 'decreasing' ? 'text-red-600' :
+                        'text-gray-600'
+                      }`} />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Trend Analysis</p>
+                        <p className="text-sm text-gray-600">
+                          {forecastData.stats?.trend === 'increasing' 
+                            ? 'Enrollment is projected to increase' 
+                            : forecastData.stats?.trend === 'decreasing'
+                            ? 'Enrollment is projected to decrease'
+                            : 'Enrollment is expected to remain stable'}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-900">Class Scheduling</h4>
-                    <p className="text-sm text-gray-500">Increase morning sessions for Bartending and F&B courses due to projected demand</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0">
-                    <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">
-                      <MdSettings className="h-5 w-5 text-yellow-600" />
+                    {(forecastData.stats?.avgGrowthRate || 0) > 10 && (
+                      <div className="flex items-start space-x-3">
+                        <MdWarning className="h-5 w-5 text-yellow-600 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">High Growth Alert</p>
+                          <p className="text-sm text-gray-600">
+                            Consider expanding capacity to meet demand
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex items-start space-x-3">
+                      <MdCalendarToday className="h-5 w-5 text-indigo-600 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Data Source</p>
+                        <p className="text-sm text-gray-600">
+                          Based on {forecastData.historical?.length || 0} quarters of historical data
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-900">Equipment Planning</h4>
-                    <p className="text-sm text-gray-500">Order additional training equipment by December to accommodate growth</p>
                   </div>
                 </div>
               </div>
             </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">TESDA Fund Allocation</h3>
-              <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0">
-                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
-                      <MdAttachMoney className="h-5 w-5 text-purple-600" />
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-900">Voucher Distribution</h4>
-                    <p className="text-sm text-gray-500">Allocate 40% of vouchers to high-demand programs (Bartending, F&B Services)</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0">
-                    <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
-                      <MdWarning className="h-5 w-5 text-red-600" />
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-900">Budget Alerts</h4>
-                    <p className="text-sm text-gray-500">Request additional funding by January to support projected enrollment increase</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0">
-                    <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
-                      <MdCalendarToday className="h-5 w-5 text-indigo-600" />
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-900">Planning Timeline</h4>
-                    <p className="text-sm text-gray-500">Submit fund utilization report by December for Q1 2026 allocation</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          )}
         </main>
       </div>
+
+      <Toaster position="top-right" />
     </div>
   );
 };

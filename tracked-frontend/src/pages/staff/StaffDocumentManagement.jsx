@@ -74,16 +74,43 @@ const StaffDocumentManagement = () => {
     window.open(fileUrl, '_blank');
   };
 
-  const handleDownloadDocument = (doc) => {
-    // Construct the full URL to the document
-    const fileUrl = `http://localhost:8000/storage/${doc.file_path}`;
-    // Create a temporary link and trigger download
-    const link = document.createElement('a');
-    link.href = fileUrl;
-    link.download = doc.file_name;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleDownloadDocument = async (doc) => {
+    try {
+      const token = getStaffToken();
+      const downloadUrl = `http://localhost:8000/api/staff/document/download?path=${encodeURIComponent(doc.file_path)}`;
+      
+      // Create a temporary link and trigger download
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = doc.file_name || 'download';
+      
+      // Set authorization header by adding it to the URL won't work, so we'll open in iframe
+      // Alternative: Use fetch to get the file with auth, then download
+      const response = await fetch(downloadUrl, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      });
+      
+      if (!response.ok) {
+        toast.error('Failed to download document');
+        return;
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      link.href = url;
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Download started');
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Error downloading document');
+    }
   };
 
   const documentTypes = [
@@ -286,7 +313,7 @@ const StaffDocumentManagement = () => {
                         </div>
 
                         <div className="pt-2 border-t border-gray-100">
-                          <p className="text-xs text-gray-400">Uploaded: {doc.upload_date}</p>
+                          <p className="text-xs text-gray-400">Size: {doc.file_size}</p>
                         </div>
                       </div>
 

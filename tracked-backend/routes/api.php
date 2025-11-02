@@ -2973,6 +2973,42 @@ Route::middleware(['auth:sanctum'])->group(function () {
         }
     });
     
+    // Staff Document Download Endpoint
+    Route::get('/staff/document/download', function (Request $request) {
+        try {
+            $filePath = $request->query('path');
+            
+            if (!$filePath) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File path is required'
+                ], 400);
+            }
+            
+            $fullPath = storage_path('app/public/' . $filePath);
+            
+            if (!file_exists($fullPath)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File not found'
+                ], 404);
+            }
+            
+            $fileName = basename($fullPath);
+            
+            return response()->download($fullPath, $fileName, [
+                'Content-Type' => mime_content_type($fullPath),
+                'Content-Disposition' => 'attachment; filename="' . $fileName . '"'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to download file',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
+    
     // Program Routes
     Route::apiResource('programs', ProgramController::class);
     
@@ -3650,6 +3686,227 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 'program_name' => $program ? $program->title : 'N/A',
                 'start_date' => $batch->start_date,
                 'end_date' => $batch->end_date
+            ]
+        ]);
+    });
+
+    // Enrollment Trends Analytics
+    Route::get('/admin/enrollment-trends', function () {
+        $csvPath = public_path('enrollment-data');
+        $programs = [
+            'BARTENDING_NC_II',
+            'BARISTA_TRAINING_NC_II',
+            'HOUSEKEEPING_NC_II',
+            'FOOD_AND_BEVERAGE_SERVICES_NC_II',
+            'BREAD_AND_PASTRY_PRODUCTION_NC_II',
+            'EVENTS_MANAGEMENT_NC_III',
+            'CHEFS_CATERING_SERVICES_NC_II',
+            'COOKERY_NC_II'
+        ];
+
+        $allData = [];
+        $programTotals = [];
+
+        foreach ($programs as $program) {
+            $filename = $csvPath . '/' . $program . '_HISTORICAL.csv';
+            
+            if (file_exists($filename)) {
+                $file = fopen($filename, 'r');
+                $headers = fgetcsv($file); // Skip header row
+                
+                $programData = [];
+                $total = 0;
+                $programName = '';
+                
+                while (($row = fgetcsv($file)) !== false) {
+                    $data = [
+                        'date' => $row[0],
+                        'enrollment' => (int)$row[1],
+                        'program' => $row[2]
+                    ];
+                    $programData[] = $data;
+                    $allData[] = $data;
+                    $total += (int)$row[1];
+                    $programName = $row[2];
+                }
+                
+                fclose($file);
+                
+                if ($programName) {
+                    $programTotals[$programName] = $total;
+                }
+            }
+        }
+
+        // Calculate quarterly aggregates
+        $quarterlyData = [];
+        foreach ($allData as $record) {
+            $date = new \DateTime($record['date']);
+            $year = $date->format('Y');
+            $month = (int)$date->format('m');
+            $quarter = ceil($month / 3);
+            $key = "Q{$quarter} {$year}";
+            
+            if (!isset($quarterlyData[$key])) {
+                $quarterlyData[$key] = 0;
+            }
+            $quarterlyData[$key] += $record['enrollment'];
+        }
+
+        // Sort quarterly data by date
+        uksort($quarterlyData, function($a, $b) {
+            preg_match('/Q(\d) (\d+)/', $a, $matchA);
+            preg_match('/Q(\d) (\d+)/', $b, $matchB);
+            $yearA = (int)$matchA[2];
+            $yearB = (int)$matchB[2];
+            $quarterA = (int)$matchA[1];
+            $quarterB = (int)$matchB[1];
+            
+            if ($yearA != $yearB) {
+                return $yearA - $yearB;
+            }
+            return $quarterA - $quarterB;
+        });
+
+        // Sort program totals
+        arsort($programTotals);
+
+        return response()->json([
+            'success' => true,
+            'quarterlyData' => $quarterlyData,
+            'programTotals' => $programTotals,
+            'allData' => $allData,
+            'stats' => [
+                'totalPrograms' => count($programTotals),
+                'totalEnrollments' => array_sum($programTotals),
+                'avgPerProgram' => count($programTotals) > 0 ? round(array_sum($programTotals) / count($programTotals)) : 0,
+            ]
+        ]);
+    });
+
+    // ARIMA Forecast
+    Route::post('/admin/arima-forecast', function (Request $request) {
+        $program = $request->input('program', 'all');
+        $periods = $request->input('periods', 6);
+        
+        $csvPath = public_path('enrollment-data');
+        $historicalData = [];
+        
+        if ($program === 'all') {
+            // Aggregate all programs
+            $programs = [
+                'BARTENDING_NC_II',
+                'BARISTA_TRAINING_NC_II',
+                'HOUSEKEEPING_NC_II',
+                'FOOD_AND_BEVERAGE_SERVICES_NC_II',
+                'BREAD_AND_PASTRY_PRODUCTION_NC_II',
+                'EVENTS_MANAGEMENT_NC_III',
+                'CHEFS_CATERING_SERVICES_NC_II',
+                'COOKERY_NC_II'
+            ];
+            
+            $aggregated = [];
+            foreach ($programs as $prog) {
+                $filename = $csvPath . '/' . $prog . '_HISTORICAL.csv';
+                if (file_exists($filename)) {
+                    $file = fopen($filename, 'r');
+                    fgetcsv($file); // Skip header
+                    
+                    while (($row = fgetcsv($file)) !== false) {
+                        $date = $row[0];
+                        if (!isset($aggregated[$date])) {
+                            $aggregated[$date] = 0;
+                        }
+                        $aggregated[$date] += (int)$row[1];
+                    }
+                    fclose($file);
+                }
+            }
+            
+            foreach ($aggregated as $date => $enrollment) {
+                $historicalData[] = [
+                    'date' => $date,
+                    'enrollment' => $enrollment
+                ];
+            }
+        } else {
+            // Single program
+            $programFile = str_replace(' ', '_', strtoupper($program));
+            $programFile = str_replace("'", '', $programFile);
+            $filename = $csvPath . '/' . $programFile . '_HISTORICAL.csv';
+            
+            if (file_exists($filename)) {
+                $file = fopen($filename, 'r');
+                fgetcsv($file); // Skip header
+                
+                while (($row = fgetcsv($file)) !== false) {
+                    $historicalData[] = [
+                        'date' => $row[0],
+                        'enrollment' => (int)$row[1]
+                    ];
+                }
+                fclose($file);
+            }
+        }
+        
+        // Sort by date
+        usort($historicalData, function($a, $b) {
+            return strtotime($a['date']) - strtotime($b['date']);
+        });
+        
+        // Simple moving average forecast (replace with ARIMA library if available)
+        $lastValues = array_slice($historicalData, -6);
+        $avg = count($lastValues) > 0 ? array_sum(array_column($lastValues, 'enrollment')) / count($lastValues) : 0;
+        
+        // Calculate trend
+        if (count($historicalData) >= 6) {
+            $recentAvg = array_sum(array_column(array_slice($historicalData, -3), 'enrollment')) / 3;
+            $olderAvg = array_sum(array_column(array_slice($historicalData, -6, 3), 'enrollment')) / 3;
+            $trend = ($recentAvg - $olderAvg) / 3;
+        } else {
+            $trend = 0;
+        }
+        
+        // Generate forecast
+        $forecast = [];
+        $lastDate = count($historicalData) > 0 ? end($historicalData)['date'] : date('Y-m-d');
+        $currentValue = count($historicalData) > 0 ? end($historicalData)['enrollment'] : 0;
+        
+        for ($i = 1; $i <= $periods; $i++) {
+            $nextDate = date('Y-m-d', strtotime($lastDate . " +3 months"));
+            $predictedValue = round($currentValue + ($trend * $i));
+            
+            $forecast[] = [
+                'date' => $nextDate,
+                'enrollment' => max(0, $predictedValue),
+                'upper_bound' => max(0, round($predictedValue * 1.15)),
+                'lower_bound' => max(0, round($predictedValue * 0.85)),
+                'confidence' => round(95 - ($i * 3)) // Decreasing confidence
+            ];
+            
+            $lastDate = $nextDate;
+        }
+        
+        // Calculate growth rate
+        $growthRates = [];
+        for ($i = 1; $i < count($historicalData); $i++) {
+            $prev = $historicalData[$i - 1]['enrollment'];
+            $curr = $historicalData[$i]['enrollment'];
+            if ($prev > 0) {
+                $growthRates[] = (($curr - $prev) / $prev) * 100;
+            }
+        }
+        $avgGrowth = count($growthRates) > 0 ? array_sum($growthRates) / count($growthRates) : 0;
+        
+        return response()->json([
+            'success' => true,
+            'historical' => $historicalData,
+            'forecast' => $forecast,
+            'stats' => [
+                'totalHistorical' => array_sum(array_column($historicalData, 'enrollment')),
+                'avgGrowthRate' => round($avgGrowth, 2),
+                'predictedNext' => count($forecast) > 0 ? $forecast[0]['enrollment'] : 0,
+                'trend' => $avgGrowth > 0 ? 'increasing' : ($avgGrowth < 0 ? 'decreasing' : 'stable')
             ]
         ]);
     });

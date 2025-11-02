@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { MdArrowBack, MdAssignment, MdAccessTime, MdCheckCircle, MdPeople, MdCheck, MdClose, MdEdit } from 'react-icons/md';
 import axios from 'axios';
+import { toast } from 'react-hot-toast';
 import TrainerSidebar from '../../layouts/trainer/TrainerSidebar';
 import { quizService } from '../../services/quizService';
+import EditExamModal from '../../components/trainer/EditExamModal';
 
 const TrainerExamDetails = () => {
   const { examId } = useParams();
@@ -15,6 +17,7 @@ const TrainerExamDetails = () => {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingStudents, setLoadingStudents] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   useEffect(() => {
     fetchExamDetails();
@@ -67,6 +70,45 @@ const TrainerExamDetails = () => {
       setStudents([]);
     } finally {
       setLoadingStudents(false);
+    }
+  };
+
+  const handleEditExam = () => {
+    setShowEditModal(true);
+  };
+
+  const handleUpdateExam = async (updatedQuizData) => {
+    try {
+      const response = await quizService.updateQuiz(examId, updatedQuizData);
+      if (response.success) {
+        // Refresh the exam details
+        await fetchExamDetails();
+        toast.success('Exam updated successfully!', {
+          duration: 4000,
+          position: 'top-right',
+        });
+        setShowEditModal(false);
+      }
+    } catch (err) {
+      console.error('Error updating exam:', err);
+      
+      // Show specific validation errors if available
+      if (err.errors && typeof err.errors === 'object') {
+        Object.keys(err.errors).forEach(field => {
+          const errorMessages = Array.isArray(err.errors[field]) 
+            ? err.errors[field].join(', ') 
+            : err.errors[field];
+          toast.error(`${field}: ${errorMessages}`, {
+            duration: 5000,
+            position: 'top-right',
+          });
+        });
+      } else {
+        toast.error(err.message || 'Failed to update exam', {
+          duration: 4000,
+          position: 'top-right',
+        });
+      }
     }
   };
 
@@ -161,13 +203,13 @@ const TrainerExamDetails = () => {
                 <MdArrowBack className="h-5 w-5 mr-2" />
                 Back to Exams
               </Link>
-              <Link
-                to={`/trainer-lms/exams/edit/${examId}`}
+              <button
+                onClick={handleEditExam}
                 className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
               >
                 <MdEdit className="h-5 w-5 mr-2" />
                 Edit Exam
-              </Link>
+              </button>
             </div>
 
             <div className="mb-4">
@@ -418,6 +460,16 @@ const TrainerExamDetails = () => {
           )}
         </div>
       </div>
+
+      {/* Edit Exam Modal */}
+      {showEditModal && examData && (
+        <EditExamModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          onSubmit={handleUpdateExam}
+          examData={examData}
+        />
+      )}
     </div>
   );
 };
