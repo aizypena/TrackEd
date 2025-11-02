@@ -23,6 +23,7 @@ function AllUsers() {
   const [loading, setLoading] = useState(true);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [programs, setPrograms] = useState([]);
@@ -154,9 +155,32 @@ function AllUsers() {
   };
 
   // Handle viewing a user
-  const handleViewUser = (user) => {
-    setSelectedUser(user);
-    setIsViewModalOpen(true);
+  const handleViewUser = async (user) => {
+    try {
+      setSelectedUser(user);
+      setIsViewModalOpen(true);
+      
+      // Log user view action
+      const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
+      if (token) {
+        await fetch('http://localhost:8000/api/log-action', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'user_viewed',
+            description: `Admin viewed user details: ${user.first_name} ${user.last_name} (${user.email})`,
+            log_level: 'info'
+          })
+        });
+      }
+    } catch (error) {
+      console.error('Error logging user view:', error);
+      // Still show the modal even if logging fails
+    }
   };
 
   // Handle closing the view modal
@@ -234,13 +258,36 @@ function AllUsers() {
 
   const handleExport = () => {
     // Simulate export functionality
-    toast.info('Export functionality coming soon!');
+    toast('Export functionality coming soon!', {
+      icon: 'ℹ️',
+    });
   };
 
   const handleAddUser = async (userData) => {
     try {
       const response = await userAPI.createUser(userData);
       if (response.success) {
+        // Get the created user from the response
+        const createdUser = response.user || response.data;
+        
+        // Log user creation
+        const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
+        if (token) {
+          await fetch('http://localhost:8000/api/log-action', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+              action: 'user_created',
+              description: `Admin created new user: ${createdUser.first_name} ${createdUser.last_name} (${createdUser.email}) with role: ${createdUser.role}`,
+              log_level: 'info'
+            })
+          });
+        }
+        
         // Refresh the users list
         fetchUsers();
         fetchStats();
@@ -253,7 +300,186 @@ function AllUsers() {
     } catch (error) {
       console.error('Error adding user:', error);
       toast.error(error.message || 'Failed to add user');
+      
+      // Log failed creation attempt
+      try {
+        const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
+        if (token) {
+          await fetch('http://localhost:8000/api/log-action', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+              action: 'user_creation_failed',
+              description: `Admin failed to create user: ${userData.email || 'unknown'} - Error: ${error.message}`,
+              log_level: 'error'
+            })
+          });
+        }
+      } catch (logError) {
+        console.error('Error logging failed user creation:', logError);
+      }
+      
       return false;
+    }
+  };
+
+  // Handle editing a user
+  const handleEditUser = async (user) => {
+    setSelectedUser(user);
+    setIsEditModalOpen(true);
+    
+    // Log user edit intent
+    try {
+      const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
+      if (token) {
+        await fetch('http://localhost:8000/api/log-action', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'user_edit_initiated',
+            description: `Admin initiated edit for user: ${user.first_name} ${user.last_name} (${user.email})`,
+            log_level: 'info'
+          })
+        });
+      }
+    } catch (error) {
+      console.error('Error logging user edit:', error);
+    }
+  };
+
+  // Handle updating a user
+  const handleUpdateUser = async (userId, userData) => {
+    try {
+      const response = await userAPI.updateUser(userId, userData);
+      if (response.success) {
+        // Get the updated user from the response
+        const updatedUser = response.data;
+        
+        // Log user update
+        const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
+        if (token) {
+          await fetch('http://localhost:8000/api/log-action', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+              action: 'user_updated',
+              description: `Admin updated user: ${updatedUser.first_name} ${updatedUser.last_name} (${updatedUser.email})`,
+              log_level: 'info'
+            })
+          });
+        }
+        
+        // Refresh the users list
+        fetchUsers();
+        fetchStats();
+        toast.success('User updated successfully!');
+        return true;
+      } else {
+        toast.error(response.message || 'Failed to update user');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error updating user:', error);
+      toast.error(error.message || 'Failed to update user');
+      
+      // Log failed update attempt
+      try {
+        const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
+        if (token) {
+          await fetch('http://localhost:8000/api/log-action', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+              action: 'user_update_failed',
+              description: `Admin failed to update user ID: ${userId} - Error: ${error.message}`,
+              log_level: 'error'
+            })
+          });
+        }
+      } catch (logError) {
+        console.error('Error logging failed user update:', logError);
+      }
+      
+      return false;
+    }
+  };
+
+  // Handle deleting a user
+  const handleDeleteUser = async (user) => {
+    // Show confirmation dialog
+    if (!window.confirm(`Are you sure you want to delete ${user.first_name} ${user.last_name}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await userAPI.deleteUser(user.id);
+      if (response.success) {
+        // Log user deletion
+        const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
+        if (token) {
+          await fetch('http://localhost:8000/api/log-action', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+              action: 'user_deleted',
+              description: `Admin deleted user: ${user.first_name} ${user.last_name} (${user.email}) - Role: ${user.role}`,
+              log_level: 'warning'
+            })
+          });
+        }
+        
+        // Refresh the users list
+        fetchUsers();
+        fetchStats();
+        toast.success('User deleted successfully!');
+      } else {
+        toast.error(response.message || 'Failed to delete user');
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast.error(error.message || 'Failed to delete user');
+      
+      // Log failed deletion attempt
+      try {
+        const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
+        if (token) {
+          await fetch('http://localhost:8000/api/log-action', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+              action: 'user_deletion_failed',
+              description: `Admin failed to delete user: ${user.first_name} ${user.last_name} (${user.email}) - Error: ${error.message}`,
+              log_level: 'error'
+            })
+          });
+        }
+      } catch (logError) {
+        console.error('Error logging failed user deletion:', logError);
+      }
     }
   };
 
@@ -566,10 +792,16 @@ function AllUsers() {
                         title="View">
                         <MdVisibility className="h-5 w-5" />
                       </button>
-                      <button className="text-green-600 hover:cursor-pointer hover:text-green-900" title="Edit">
+                      <button 
+                        onClick={() => handleEditUser(user)}
+                        className="text-green-600 hover:cursor-pointer hover:text-green-900" 
+                        title="Edit">
                         <MdEdit className="h-5 w-5" />
                       </button>
-                      <button className="text-red-600 hover:cursor-pointer hover:text-red-900" title="Delete">
+                      <button 
+                        onClick={() => handleDeleteUser(user)}
+                        className="text-red-600 hover:cursor-pointer hover:text-red-900" 
+                        title="Delete">
                         <MdDelete className="h-5 w-5" />
                       </button>
                       <button className="text-gray-600 hover:cursor-pointer hover:text-gray-900" title="More">
@@ -683,6 +915,20 @@ function AllUsers() {
           onClose={() => setIsAddModalOpen(false)}
           onAdd={handleAddUser}
         />
+
+        {/* Edit User Modal */}
+        {isEditModalOpen && selectedUser && (
+          <AddUserModal
+            isOpen={isEditModalOpen}
+            onClose={() => {
+              setIsEditModalOpen(false);
+              setSelectedUser(null);
+            }}
+            onAdd={(userData) => handleUpdateUser(selectedUser.id, userData)}
+            editMode={true}
+            initialData={selectedUser}
+          />
+        )}
       </div>
     </div>
   );

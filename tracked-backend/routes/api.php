@@ -400,6 +400,32 @@ Route::middleware(['auth:sanctum'])->group(function () {
     
     Route::post('/logout', [AuthController::class, 'logout']);
     
+    // Log Action Route - For logging user actions to system_logs table
+    Route::post('/log-action', function (Request $request) {
+        $request->validate([
+            'action' => 'required|string|max:255',
+            'description' => 'required|string',
+            'log_level' => 'required|in:info,warning,error,critical,debug',
+        ]);
+
+        $user = $request->user();
+
+        DB::table('system_logs')->insert([
+            'user_id' => $user ? $user->id : null,
+            'action' => $request->action,
+            'description' => $request->description,
+            'log_level' => $request->log_level,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'created_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Action logged successfully'
+        ]);
+    });
+    
     // Admin Routes
     Route::get('/admin/dashboard-stats', function (Request $request) {
         // Query users with role 'applicant'

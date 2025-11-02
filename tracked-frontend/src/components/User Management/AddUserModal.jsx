@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   MdClose,
   MdPerson,
@@ -13,7 +13,7 @@ import { nationalities } from '../../utils/nationalities';
 import { userAPI } from '../../services/userAPI';
 import toast from 'react-hot-toast';
 
-const AddUserModal = ({ isOpen, onClose, onAdd }) => {
+const AddUserModal = ({ isOpen, onClose, onAdd, editMode = false, initialData = null }) => {
   const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     // Basic Information
@@ -59,6 +59,84 @@ const AddUserModal = ({ isOpen, onClose, onAdd }) => {
     }
   });
 
+  // Update form data when initialData changes (for edit mode)
+  useEffect(() => {
+    if (editMode && initialData) {
+      setFormData({
+        first_name: initialData.first_name || '',
+        last_name: initialData.last_name || '',
+        email: initialData.email || '',
+        phone_number: initialData.phone_number || '',
+        password: '',
+        confirm_password: '',
+        role: initialData.role || 'student',
+        status: initialData.status || 'active',
+        address: initialData.address || '',
+        date_of_birth: initialData.date_of_birth || '',
+        place_of_birth: initialData.place_of_birth || '',
+        gender: initialData.gender || '',
+        nationality: initialData.nationality || '',
+        marital_status: initialData.marital_status || '',
+        education_level: initialData.education_level || '',
+        field_of_study: initialData.field_of_study || '',
+        institution_name: initialData.institution_name || '',
+        graduation_year: initialData.graduation_year || '',
+        gpa: initialData.gpa || '',
+        employment_status: initialData.employment_status || '',
+        occupation: initialData.occupation || '',
+        work_experience: initialData.work_experience || '',
+        course_program: initialData.course_program || '',
+        emergency_contact: initialData.emergency_contact || '',
+        emergency_phone: initialData.emergency_phone || '',
+        emergency_relationship: initialData.emergency_relationship || '',
+        profile_picture: null,
+        documents: {
+          validId: null,
+          transcript: null,
+          diploma: null,
+          passportPhoto: null
+        }
+      });
+    } else if (!editMode) {
+      // Reset form for create mode
+      setFormData({
+        first_name: '',
+        last_name: '',
+        email: '',
+        phone_number: '',
+        password: '',
+        confirm_password: '',
+        role: 'student',
+        status: 'active',
+        address: '',
+        date_of_birth: '',
+        place_of_birth: '',
+        gender: '',
+        nationality: '',
+        marital_status: '',
+        education_level: '',
+        field_of_study: '',
+        institution_name: '',
+        graduation_year: '',
+        gpa: '',
+        employment_status: '',
+        occupation: '',
+        work_experience: '',
+        course_program: '',
+        emergency_contact: '',
+        emergency_phone: '',
+        emergency_relationship: '',
+        profile_picture: null,
+        documents: {
+          validId: null,
+          transcript: null,
+          diploma: null,
+          passportPhoto: null
+        }
+      });
+    }
+  }, [editMode, initialData]);
+
   const programOptions = [
     { value: 'bartending-nc-ii', label: 'Bartending NC II' },
     { value: 'barista-training-nc-ii', label: 'Barista Training NC II' },
@@ -85,13 +163,21 @@ const AddUserModal = ({ isOpen, onClose, onAdd }) => {
       newErrors.phone_number = 'Phone number must be 10 digits starting with 9';
     }
     
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+    // Password validation - required for new users, optional for editing
+    if (!editMode) {
+      if (!formData.password) {
+        newErrors.password = 'Password is required';
+      } else if (formData.password.length < 6) {
+        newErrors.password = 'Password must be at least 6 characters';
+      }
+    } else {
+      // In edit mode, only validate if password is provided
+      if (formData.password && formData.password.length < 6) {
+        newErrors.password = 'Password must be at least 6 characters';
+      }
     }
     
-    if (formData.password !== formData.confirm_password) {
+    if (formData.password && formData.password !== formData.confirm_password) {
       newErrors.confirm_password = 'Passwords do not match';
     }
 
@@ -305,7 +391,9 @@ const AddUserModal = ({ isOpen, onClose, onAdd }) => {
           <form onSubmit={handleSubmit} className="p-6">
             {/* Header */}
             <div className="mb-6 flex items-center justify-between border-b border-gray-200 pb-4">
-              <h3 className="text-2xl font-bold text-gray-900">Add New User</h3>
+              <h3 className="text-2xl font-bold text-gray-900">
+                {editMode ? 'Edit User' : 'Add New User'}
+              </h3>
               <button
                 type="button"
                 onClick={onClose}
@@ -449,7 +537,7 @@ const AddUserModal = ({ isOpen, onClose, onAdd }) => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="password">
-                    Password*
+                    Password{!editMode && '*'} {editMode && <span className="text-gray-500 text-xs">(leave blank to keep current)</span>}
                   </label>
                   <div className="relative rounded-md">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -464,7 +552,7 @@ const AddUserModal = ({ isOpen, onClose, onAdd }) => {
                       className={`block w-full pl-10 pr-3 py-2 text-gray-900 border ${
                         errors.password ? 'border-red-500' : 'border-gray-300'
                       } outline-none rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500`}
-                      required
+                      required={!editMode}
                     />
                   </div>
                   {errors.password && (
@@ -474,7 +562,7 @@ const AddUserModal = ({ isOpen, onClose, onAdd }) => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="confirm_password">
-                    Confirm Password*
+                    Confirm Password{!editMode && '*'}
                   </label>
                   <div className="relative rounded-md">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -1150,7 +1238,7 @@ const AddUserModal = ({ isOpen, onClose, onAdd }) => {
                 type="submit"
                 className="px-4 py-2 hover:cursor-pointer bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
               >
-                Create User
+                {editMode ? 'Update User' : 'Create User'}
               </button>
             </div>
           </form>
