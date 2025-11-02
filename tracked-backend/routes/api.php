@@ -306,14 +306,16 @@ Route::middleware(['auth:sanctum'])->group(function () {
             ->select('id', 'first_name', 'last_name', 'email', 'phone_number', 'course_program', 'application_status', 'status', 'created_at', 'valid_id_path', 'transcript_path', 'diploma_path', 'passport_photo_path')
             ->get();
         
-        // Format program names
-        $applications = $applications->map(function($app) {
+        // Format program names and convert to array
+        $formatted_applications = $applications->map(function($app) {
+            $program_title = 'Not specified';
+            
             if ($app->course_program) {
                 // Check if course_program is a numeric ID
                 if (is_numeric($app->course_program)) {
                     // Fetch the program title from the programs table
                     $program = \App\Models\Program::find($app->course_program);
-                    $app->course_program_formatted = $program ? $program->title : 'Not specified';
+                    $program_title = $program ? $program->title : 'Not specified';
                 } else {
                     // Convert slug to readable name
                     $formatted = str_replace('-', ' ', $app->course_program);
@@ -322,18 +324,29 @@ Route::middleware(['auth:sanctum'])->group(function () {
                     $formatted = preg_replace('/\bIi\b/', 'II', $formatted);
                     $formatted = preg_replace('/\bIii\b/', 'III', $formatted);
                     $formatted = preg_replace('/\bIv\b/', 'IV', $formatted);
-                    $app->course_program_formatted = $formatted;
+                    $program_title = $formatted;
                 }
-            } else {
-                $app->course_program_formatted = 'Not specified';
             }
-            $app->course_program = $app->course_program_formatted;
-            $app->phone = $app->phone_number;
-            return $app;
+            
+            return [
+                'id' => $app->id,
+                'first_name' => $app->first_name,
+                'last_name' => $app->last_name,
+                'email' => $app->email,
+                'phone' => $app->phone_number,
+                'course_program' => $program_title,
+                'application_status' => $app->application_status,
+                'status' => $app->status,
+                'created_at' => $app->created_at,
+                'valid_id' => $app->valid_id_path,
+                'transcript' => $app->transcript_path,
+                'diploma' => $app->diploma_path,
+                'passport_photo' => $app->passport_photo_path,
+            ];
         });
         
         return response()->json([
-            'applications' => $applications
+            'applications' => $formatted_applications
         ]);
     });
 

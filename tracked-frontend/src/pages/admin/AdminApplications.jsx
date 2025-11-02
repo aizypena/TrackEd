@@ -37,6 +37,7 @@ export default function AdminApplications() {
         setLoading(false);
       }
     };
+    
     fetchApplications();
   }, []);
 
@@ -297,7 +298,7 @@ export default function AdminApplications() {
                     {capitalizeName(selectedApplicant.first_name)} {capitalizeName(selectedApplicant.last_name)}'s Documents
                   </h3>
                   <p className="text-sm text-gray-600 mt-1">
-                    Program: {selectedApplicant.course_program}
+                    Program: {selectedApplicant.course_program || 'N/A'}
                   </p>
                 </div>
                 <button
