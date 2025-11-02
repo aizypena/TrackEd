@@ -50,11 +50,90 @@ function AdminProfileSettings() {
   };
 
   // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Add your form submission logic here
-    console.log('Form submitted:', formData);
-    setIsEditing(false);
+    
+    // Validation
+    if (!formData.firstName || !formData.lastName) {
+      toast.error('First name and last name are required');
+      return;
+    }
+
+    // Validate phone number if provided
+    if (formData.phone) {
+      // Remove all spaces, dashes, and parentheses
+      const cleanedPhone = formData.phone.replace(/[\s\-\(\)]/g, '');
+      
+      // Check if it's a valid Philippine mobile number
+      // Accepts formats: 9XXXXXXXXX (10 digits starting with 9)
+      const phoneRegex = /^9\d{9}$/;
+      
+      if (!phoneRegex.test(cleanedPhone)) {
+        toast.error('Please enter a valid mobile number starting with 9 (e.g., 9123456789)');
+        return;
+      }
+    }
+
+    const loadingToast = toast.loading('Updating profile...');
+
+    try {
+      const token = localStorage.getItem('adminToken');
+      
+      const response = await fetch('http://localhost:8000/api/admin/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          phone_number: formData.phone
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Update localStorage with new data
+        const updatedUser = {
+          ...adminUser,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          phone_number: formData.phone
+        };
+        localStorage.setItem('adminUser', JSON.stringify(updatedUser));
+        
+        toast.success('Profile updated successfully!', {
+          id: loadingToast,
+        });
+        
+        setIsEditing(false);
+        
+        // Reload page after a short delay to refresh all components with new data
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } else {
+        // Handle validation errors
+        if (data.errors) {
+          const errorMessages = Object.values(data.errors).flat().join(', ');
+          toast.error(errorMessages, {
+            id: loadingToast,
+          });
+        } else {
+          toast.error(data.message || 'Failed to update profile', {
+            id: loadingToast,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error('An error occurred while updating profile', {
+        id: loadingToast,
+      });
+    }
   };
 
   // Handle password change submission
@@ -74,6 +153,36 @@ function AdminProfileSettings() {
 
     if (formData.newPassword.length < 8) {
       toast.error('New password must be at least 8 characters long');
+      return;
+    }
+
+    // Check if password contains at least one uppercase letter
+    if (!/[A-Z]/.test(formData.newPassword)) {
+      toast.error('Password must contain at least one uppercase letter');
+      return;
+    }
+
+    // Check if password contains at least one lowercase letter
+    if (!/[a-z]/.test(formData.newPassword)) {
+      toast.error('Password must contain at least one lowercase letter');
+      return;
+    }
+
+    // Check if password contains at least one number
+    if (!/[0-9]/.test(formData.newPassword)) {
+      toast.error('Password must contain at least one number');
+      return;
+    }
+
+    // Check if password contains at least one special character
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(formData.newPassword)) {
+      toast.error('Password must contain at least one special character (!@#$%^&*(),.?":{}|<>)');
+      return;
+    }
+
+    // Check if new password is same as current password
+    if (formData.currentPassword === formData.newPassword) {
+      toast.error('New password must be different from current password');
       return;
     }
 
@@ -224,11 +333,12 @@ function AdminProfileSettings() {
                     type="email"
                     name="email"
                     value={formData.email}
-                    onChange={handleChange}
-                    disabled={!isEditing}
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                    disabled={true}
+                    readOnly
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500 cursor-not-allowed"
                   />
                 </div>
+                <p className="mt-1 text-xs text-gray-500">Email address cannot be changed</p>
               </div>
 
               <div>
@@ -243,9 +353,12 @@ function AdminProfileSettings() {
                     value={formData.phone}
                     onChange={handleChange}
                     disabled={!isEditing}
+                    placeholder="9123456789"
+                    maxLength="10"
                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
                   />
                 </div>
+                <p className="mt-1 text-xs text-gray-500">10 digits starting with 9 (e.g., 9123456789)</p>
               </div>
             </div>
           </div>
@@ -337,6 +450,9 @@ function AdminProfileSettings() {
                     )}
                   </button>
                 </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  Must be 8+ characters with uppercase, lowercase, number & special character
+                </p>
               </div>
 
               <div>

@@ -2415,6 +2415,40 @@ Route::middleware(['auth:sanctum'])->group(function () {
         ]);
     });
 
+    // Update Admin Profile
+    Route::put('/admin/profile', function (Request $request) {
+        $user = $request->user();
+        
+        if ($user->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $request->validate([
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'phone_number' => 'nullable|string|max:20',
+        ]);
+
+        // Update profile
+        $user->first_name = $request->first_name;
+        $user->last_name = $request->last_name;
+        $user->phone_number = $request->phone_number;
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profile updated successfully',
+            'user' => [
+                'id' => $user->id,
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
+                'email' => $user->email,
+                'phone_number' => $user->phone_number,
+                'role' => $user->role,
+            ]
+        ]);
+    });
+
     Route::get('/staff/recent-applications', function (Request $request) {
         // Get recent applicants (users with role 'applicant')
         $applications = \App\Models\User::where('role', 'applicant')
