@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import StaffSidebar from '../../layouts/staff/StaffSidebar';
 import PaymentDetailModal from '../../components/staff/PaymentDetailModal';
 import { getStaffToken } from '../../utils/staffAuth';
-import toast from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
+import * as XLSX from 'xlsx';
 import { 
   MdMenu,
   MdSearch,
@@ -34,6 +35,32 @@ const StaffPaymentRecords = () => {
   useEffect(() => {
     fetchPaymentRecords();
   }, []);
+
+  // Function to log system action
+  const logSystemAction = async (action, description, logLevel = 'info') => {
+    try {
+      const token = getStaffToken();
+      const response = await fetch('http://localhost:8000/api/log-action', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          action,
+          description,
+          log_level: logLevel,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to log system action');
+      }
+    } catch (error) {
+      console.error('Error logging system action:', error);
+    }
+  };
 
   const fetchPaymentRecords = async () => {
     try {
@@ -144,6 +171,86 @@ const StaffPaymentRecords = () => {
     }).format(amount);
   };
 
+  // Export to Excel function
+  const handleExportToExcel = async () => {
+    const loadingToast = toast.loading('Generating Excel file...');
+
+    try {
+      // Get staff user info for logging
+      const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
+      const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
+
+      // Prepare data for export
+      const exportData = filteredRecords.map((record, index) => ({
+        'No.': index + 1,
+        'Student ID': record.studentId || 'N/A',
+        'Student Name': record.studentName || 'N/A',
+        'Program': record.program || 'N/A',
+        'Batch': record.batch || 'N/A',
+        'Total Fee': record.totalFee || 0,
+        'Amount Paid': record.amountPaid || 0,
+        'Balance': record.balance || 0,
+        'Payment Status': record.paymentStatus ? record.paymentStatus.charAt(0).toUpperCase() + record.paymentStatus.slice(1) : 'N/A',
+        'Last Payment Date': record.lastPaymentDate || 'N/A',
+        'Payment Method': record.paymentMethod || 'N/A',
+        'Reference Code': record.referenceCode || 'N/A',
+        'PayMongo Payment ID': record.paymongoPaymentId || 'N/A',
+        'Description': record.description || 'N/A',
+      }));
+
+      // Create workbook and worksheet
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+      // Set column widths
+      const columnWidths = [
+        { wch: 5 },  // No.
+        { wch: 15 }, // Student ID
+        { wch: 25 }, // Student Name
+        { wch: 30 }, // Program
+        { wch: 15 }, // Batch
+        { wch: 15 }, // Total Fee
+        { wch: 15 }, // Amount Paid
+        { wch: 15 }, // Balance
+        { wch: 15 }, // Payment Status
+        { wch: 18 }, // Last Payment Date
+        { wch: 15 }, // Payment Method
+        { wch: 25 }, // Reference Code
+        { wch: 30 }, // PayMongo Payment ID
+        { wch: 30 }, // Description
+      ];
+      worksheet['!cols'] = columnWidths;
+
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Payment Records');
+
+      // Generate filename with current date and time
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0];
+      const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+      const filename = `Payment_Records_Export_${dateStr}_${timeStr}.xlsx`;
+
+      // Write file
+      XLSX.writeFile(workbook, filename);
+
+      // Log the export action
+      await logSystemAction(
+        'payment_records_exported',
+        `${staffName} exported ${filteredRecords.length} payment record(s) to Excel (${filename}) - Total Revenue: ${formatCurrency(stats.totalRevenue)}`,
+        'info'
+      );
+
+      toast.success(`Successfully exported ${filteredRecords.length} payment record(s) to Excel!`, {
+        id: loadingToast,
+      });
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      toast.error('Failed to export to Excel', {
+        id: loadingToast,
+      });
+    }
+  };
+
   const filteredRecords = paymentRecords
     .filter(record => {
       const matchesSearch = record.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -198,17 +305,13 @@ const StaffPaymentRecords = () => {
                 <p className="text-sm text-blue-100">Track student payments and transactions</p>
               </div>
             </div>
-            <button className="flex items-center gap-2 px-4 py-2 bg-tracked-secondary hover:bg-opacity-90 rounded-md transition-colors">
-              <MdAdd className="h-5 w-5" />
-              <span className="hidden sm:inline">Record Payment</span>
-            </button>
           </div>
         </nav>
         
         {/* Dashboard Content */}
         <div className="container mx-auto p-6">
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-white rounded-lg shadow-md p-4">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-green-100 rounded-full">
@@ -217,17 +320,6 @@ const StaffPaymentRecords = () => {
                 <div>
                   <p className="text-sm text-gray-500 font-medium">Total Revenue</p>
                   <p className="text-xl font-bold text-green-600">{formatCurrency(stats.totalRevenue)}</p>
-                </div>
-              </div>
-            </div>
-            <div className="bg-white rounded-lg shadow-md p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-red-100 rounded-full">
-                  <MdWarning className="h-6 w-6 text-red-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 font-medium">Outstanding</p>
-                  <p className="text-xl font-bold text-red-600">{formatCurrency(stats.totalOutstanding)}</p>
                 </div>
               </div>
             </div>
@@ -330,13 +422,13 @@ const StaffPaymentRecords = () => {
                 <MdRefresh className="h-5 w-5" />
                 Refresh
               </button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
+              <button 
+                onClick={handleExportToExcel}
+                disabled={filteredRecords.length === 0}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 <MdDownload className="h-5 w-5" />
                 Export
-              </button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors">
-                <MdPrint className="h-5 w-5" />
-                Print
               </button>
             </div>
           </div>
@@ -477,6 +569,32 @@ const StaffPaymentRecords = () => {
       <PaymentDetailModal 
         student={selectedStudent}
         onClose={() => setSelectedStudent(null)}
+      />
+
+      {/* Toast Notifications */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: '#4ade80',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            duration: 4000,
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
       />
     </div>
   );
