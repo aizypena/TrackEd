@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast, { Toaster } from 'react-hot-toast';
 import {
   MdPerson,
   MdLock,
@@ -15,6 +16,7 @@ import {
 function ProfileSettings() {
   // Get admin user info from localStorage
   const [adminUser, setAdminUser] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem('adminUser') || '{}');
@@ -68,12 +70,113 @@ function ProfileSettings() {
     }));
   };
 
+  // Function to log system action
+  const logSystemAction = async (action, description, logLevel = 'info') => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      const response = await fetch('http://localhost:8000/api/log-action', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          action,
+          description,
+          log_level: logLevel,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to log system action');
+      }
+    } catch (error) {
+      console.error('Error logging system action:', error);
+    }
+  };
+
   // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Add your form submission logic here
-    console.log('Form submitted:', formData);
-    setIsEditing(false);
+    
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
+    
+    try {
+      // Validate passwords if changed
+      if (formData.newPassword || formData.confirmPassword) {
+        if (formData.newPassword !== formData.confirmPassword) {
+          toast.error('New passwords do not match!');
+          setIsSubmitting(false);
+          return;
+        }
+        if (!formData.currentPassword) {
+          toast.error('Please enter your current password to change it');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      // Prepare the changes made
+      const changes = [];
+      if (formData.firstName !== adminUser?.first_name) changes.push(`First Name: ${formData.firstName}`);
+      if (formData.lastName !== adminUser?.last_name) changes.push(`Last Name: ${formData.lastName}`);
+      if (formData.email !== adminUser?.email) changes.push(`Email: ${formData.email}`);
+      if (formData.phone !== (adminUser?.phone_number || adminUser?.phone)) changes.push(`Phone: ${formData.phone}`);
+      if (formData.address !== adminUser?.address) changes.push(`Address updated`);
+      if (formData.newPassword) changes.push('Password changed');
+      
+      // Log profile update action
+      const changeDescription = changes.length > 0 
+        ? `Profile settings updated: ${changes.join(', ')}` 
+        : 'Profile settings viewed/saved with no changes';
+      
+      await logSystemAction(
+        'profile_updated',
+        changeDescription,
+        'info'
+      );
+
+      // If password was changed, log that separately
+      if (formData.newPassword) {
+        await logSystemAction(
+          'password_changed',
+          `User ${adminUser?.first_name} ${adminUser?.last_name} (${adminUser?.email}) successfully changed their password`,
+          'info'
+        );
+      }
+
+      // Update localStorage with new data
+      const updatedUser = {
+        ...adminUser,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        email: formData.email,
+        phone_number: formData.phone,
+        address: formData.address,
+      };
+      localStorage.setItem('adminUser', JSON.stringify(updatedUser));
+      setAdminUser(updatedUser);
+
+      toast.success('Profile updated successfully!');
+      setIsEditing(false);
+      
+      // Clear password fields
+      setFormData(prev => ({
+        ...prev,
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      }));
+      
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error('Failed to update profile. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Toggle password visibility
@@ -380,14 +483,32 @@ function ProfileSettings() {
             <div className="flex justify-end">
               <button
                 type="submit"
-                className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                disabled={isSubmitting}
+                className={`flex items-center px-6 py-3 ${
+                  isSubmitting
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700'
+                } text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200`}
               >
-                <MdSave className="h-5 w-5 mr-2" />
-                Save Changes
+                {isSubmitting ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <MdSave className="h-5 w-5 mr-2" />
+                    Save Changes
+                  </>
+                )}
               </button>
             </div>
           )}
         </form>
+        <Toaster position="top-right" />
       </div>
     </div>
   );

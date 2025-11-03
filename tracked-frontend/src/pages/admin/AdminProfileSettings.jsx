@@ -40,6 +40,32 @@ function AdminProfileSettings() {
   const [isEditing, setIsEditing] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
+  // Function to log system action
+  const logSystemAction = async (action, description, logLevel = 'info') => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      const response = await fetch('http://localhost:8000/api/log-action', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          action,
+          description,
+          log_level: logLevel,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to log system action');
+      }
+    } catch (error) {
+      console.error('Error logging system action:', error);
+    }
+  };
+
   // Handle form input changes
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -96,6 +122,23 @@ function AdminProfileSettings() {
       const data = await response.json();
 
       if (response.ok) {
+        // Prepare the changes made
+        const changes = [];
+        if (formData.firstName !== adminUser.first_name) changes.push(`First Name: ${adminUser.first_name} → ${formData.firstName}`);
+        if (formData.lastName !== adminUser.last_name) changes.push(`Last Name: ${adminUser.last_name} → ${formData.lastName}`);
+        if (formData.phone !== (adminUser.phone_number || adminUser.phone)) changes.push(`Phone: ${formData.phone}`);
+        
+        // Log profile update action
+        const changeDescription = changes.length > 0 
+          ? `Admin profile updated by ${adminUser.first_name} ${adminUser.last_name} (${adminUser.email}). Changes: ${changes.join(', ')}` 
+          : `Admin ${adminUser.first_name} ${adminUser.last_name} (${adminUser.email}) saved profile with no changes`;
+        
+        await logSystemAction(
+          'admin_profile_updated',
+          changeDescription,
+          'info'
+        );
+
         // Update localStorage with new data
         const updatedUser = {
           ...adminUser,
@@ -208,6 +251,13 @@ function AdminProfileSettings() {
       const data = await response.json();
 
       if (response.ok) {
+        // Log password change action
+        await logSystemAction(
+          'admin_password_changed',
+          `Admin ${adminUser.first_name} ${adminUser.last_name} (${adminUser.email}) successfully changed their password`,
+          'info'
+        );
+
         toast.success('Password updated successfully!', {
           id: loadingToast,
         });
