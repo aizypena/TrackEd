@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import Sidebar from '../../layouts/admin/Sidebar';
 import { MdMenu, MdVisibility, MdDescription, MdImage, MdPictureAsPdf, MdEdit, MdDelete } from 'react-icons/md';
+import toast from 'react-hot-toast';
 
 export default function AdminApplications() {
   const [applications, setApplications] = useState([]);
@@ -42,6 +43,28 @@ export default function AdminApplications() {
     fetchApplications();
   }, []);
 
+  // Log action helper
+  const logAction = async (action, description, level = 'info') => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      await fetch('http://localhost:8000/api/log-action', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          action,
+          description,
+          log_level: level
+        })
+      });
+    } catch (err) {
+      console.error('Failed to log action:', err);
+    }
+  };
+
   // Handle view documents
   const handleViewDocuments = async (applicantId) => {
     try {
@@ -56,8 +79,20 @@ export default function AdminApplications() {
       const data = await response.json();
       setSelectedApplicant(data.applicant);
       setShowDocumentModal(true);
+      
+      // Log the action
+      await logAction(
+        'applicant_documents_viewed',
+        `Viewed documents for applicant: ${data.applicant.first_name} ${data.applicant.last_name}`,
+        'info'
+      );
     } catch (err) {
-      alert('Error loading applicant details: ' + err.message);
+      toast.error('Error loading applicant details: ' + err.message);
+      await logAction(
+        'applicant_documents_view_failed',
+        `Failed to view documents for applicant ID: ${applicantId}`,
+        'error'
+      );
     }
   };
 
@@ -105,8 +140,20 @@ export default function AdminApplications() {
       const data = await response.json();
       setSelectedApplicant(data.applicant);
       setShowEditModal(true);
+      
+      // Log the action
+      await logAction(
+        'applicant_edit_initiated',
+        `Opened edit form for applicant: ${data.applicant.first_name} ${data.applicant.last_name}`,
+        'info'
+      );
     } catch (err) {
-      alert('Error loading applicant details: ' + err.message);
+      toast.error('Error loading applicant details: ' + err.message);
+      await logAction(
+        'applicant_edit_failed',
+        `Failed to load applicant for editing, ID: ${applicantId}`,
+        'error'
+      );
     }
   };
 
@@ -141,7 +188,12 @@ export default function AdminApplications() {
 
       if (!verifyResponse.ok) {
         const errorData = await verifyResponse.json();
-        alert(errorData.message || 'Incorrect password');
+        toast.error(errorData.message || 'Incorrect password');
+        await logAction(
+          'applicant_deletion_password_failed',
+          `Failed password verification for deleting applicant: ${applicantToDelete.first_name} ${applicantToDelete.last_name}`,
+          'warning'
+        );
         return;
       }
 
@@ -158,12 +210,25 @@ export default function AdminApplications() {
       
       // Remove from local state
       setApplications(applications.filter(app => app.id !== applicantToDelete.id));
+      
+      // Log successful deletion
+      await logAction(
+        'applicant_deleted',
+        `Deleted applicant: ${applicantToDelete.first_name} ${applicantToDelete.last_name}`,
+        'warning'
+      );
+      
       setShowDeleteConfirm(false);
       setApplicantToDelete(null);
       setDeletePassword('');
-      alert('Applicant deleted successfully');
+      toast.success('Applicant deleted successfully');
     } catch (err) {
-      alert('Error deleting applicant: ' + err.message);
+      toast.error('Error deleting applicant: ' + err.message);
+      await logAction(
+        'applicant_deletion_failed',
+        `Failed to delete applicant: ${applicantToDelete.first_name} ${applicantToDelete.last_name}`,
+        'error'
+      );
     }
   };
 
@@ -195,11 +260,23 @@ export default function AdminApplications() {
         app.id === selectedApplicant.id ? { ...app, ...selectedApplicant } : app
       ));
       
+      // Log successful update
+      await logAction(
+        'applicant_updated',
+        `Updated applicant: ${selectedApplicant.first_name} ${selectedApplicant.last_name}`,
+        'info'
+      );
+      
       setShowEditModal(false);
       setSelectedApplicant(null);
-      alert('Applicant updated successfully');
+      toast.success('Applicant updated successfully');
     } catch (err) {
-      alert('Error updating applicant: ' + err.message);
+      toast.error('Error updating applicant: ' + err.message);
+      await logAction(
+        'applicant_update_failed',
+        `Failed to update applicant: ${selectedApplicant.first_name} ${selectedApplicant.last_name}`,
+        'error'
+      );
     }
   };
 
