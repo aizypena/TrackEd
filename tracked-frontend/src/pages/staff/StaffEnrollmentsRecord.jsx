@@ -4,6 +4,7 @@ import StaffSidebar from '../../layouts/staff/StaffSidebar';
 import StudentDetailModal from '../../components/staff/StudentDetailModal';
 import { getStaffToken } from '../../utils/staffAuth';
 import toast, { Toaster } from 'react-hot-toast';
+import * as XLSX from 'xlsx';
 import { 
   MdMenu,
   MdSearch,
@@ -40,6 +41,32 @@ const StaffEnrollmentsRecord = () => {
     fetchPrograms();
     fetchBatches();
   }, []);
+
+  // Function to log system action
+  const logSystemAction = async (action, description, logLevel = 'info') => {
+    try {
+      const token = getStaffToken();
+      const response = await fetch('http://localhost:8000/api/log-action', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          action,
+          description,
+          log_level: logLevel,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to log system action');
+      }
+    } catch (error) {
+      console.error('Error logging system action:', error);
+    }
+  };
 
   // Transform enrollment data to match StudentDetailModal props
   const transformEnrollmentForModal = (enrollment) => {
@@ -214,6 +241,86 @@ const StaffEnrollmentsRecord = () => {
     return 'text-red-600';
   };
 
+  // Export to Excel function
+  const handleExportToExcel = async () => {
+    const loadingToast = toast.loading('Generating Excel file...');
+
+    try {
+      // Get staff user info for logging
+      const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
+      const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
+
+      // Prepare data for export
+      const exportData = filteredEnrollments.map((enrollment, index) => ({
+        'No.': index + 1,
+        'Enrollment ID': enrollment.enrollment_id || 'N/A',
+        'Student ID': enrollment.student_id || 'N/A',
+        'Student Name': enrollment.student_name || 'N/A',
+        'Email': enrollment.email || 'N/A',
+        'Phone': enrollment.phone || 'N/A',
+        'Program': enrollment.program || 'N/A',
+        'Batch': enrollment.batch || 'N/A',
+        'Enrollment Date': enrollment.enrollment_date || 'N/A',
+        'Start Date': enrollment.start_date || 'TBA',
+        'Expected End Date': enrollment.expected_end_date || 'TBA',
+        'Enrollment Status': enrollment.status ? enrollment.status.charAt(0).toUpperCase() + enrollment.status.slice(1) : 'N/A',
+        'Payment Status': enrollment.payment_status ? enrollment.payment_status.charAt(0).toUpperCase() + enrollment.payment_status.slice(1) : 'N/A',
+        'Attendance': enrollment.attendance ? `${enrollment.attendance}%` : '0%',
+      }));
+
+      // Create workbook and worksheet
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+      // Set column widths
+      const columnWidths = [
+        { wch: 5 },  // No.
+        { wch: 15 }, // Enrollment ID
+        { wch: 15 }, // Student ID
+        { wch: 25 }, // Student Name
+        { wch: 30 }, // Email
+        { wch: 15 }, // Phone
+        { wch: 30 }, // Program
+        { wch: 20 }, // Batch
+        { wch: 15 }, // Enrollment Date
+        { wch: 15 }, // Start Date
+        { wch: 15 }, // Expected End Date
+        { wch: 15 }, // Enrollment Status
+        { wch: 15 }, // Payment Status
+        { wch: 12 }, // Attendance
+      ];
+      worksheet['!cols'] = columnWidths;
+
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Enrollments');
+
+      // Generate filename with current date and time
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0];
+      const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+      const filename = `Enrollments_Export_${dateStr}_${timeStr}.xlsx`;
+
+      // Write file
+      XLSX.writeFile(workbook, filename);
+
+      // Log the export action
+      await logSystemAction(
+        'enrollments_exported',
+        `${staffName} exported ${filteredEnrollments.length} enrollment record(s) to Excel (${filename})`,
+        'info'
+      );
+
+      toast.success(`Successfully exported ${filteredEnrollments.length} enrollment record(s) to Excel!`, {
+        id: loadingToast,
+      });
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      toast.error('Failed to export to Excel', {
+        id: loadingToast,
+      });
+    }
+  };
+
   const filteredEnrollments = enrollments
     .filter(enrollment => {
       const matchesSearch = enrollment.student_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -382,13 +489,13 @@ const StaffEnrollmentsRecord = () => {
                 <MdRefresh className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
                 Refresh
               </button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
+              <button 
+                onClick={handleExportToExcel}
+                disabled={filteredEnrollments.length === 0}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 <MdDownload className="h-5 w-5" />
                 Export
-              </button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors">
-                <MdPrint className="h-5 w-5" />
-                Print
               </button>
             </div>
           </div>
