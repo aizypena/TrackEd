@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from '../../layouts/admin/Sidebar';
 import ViewUser from '../../layouts/admin/ViewUser';
 import AddUserModal from '../../components/User Management/AddUserModal';
+import EditUserModal from '../../components/User Management/EditUserModal';
 import { userAPI } from '../../services/userAPI';
 import { programAPI } from '../../services/programAPI';
 import toast from 'react-hot-toast';
@@ -356,9 +357,9 @@ function AllUsers() {
   };
 
   // Handle updating a user
-  const handleUpdateUser = async (userId, userData) => {
+  const handleUpdateUser = async (userData) => {
     try {
-      const response = await userAPI.updateUser(userId, userData);
+      const response = await userAPI.updateUser(selectedUser.id, userData);
       if (response.success) {
         // Get the updated user from the response
         const updatedUser = response.data;
@@ -385,6 +386,10 @@ function AllUsers() {
         fetchUsers();
         fetchStats();
         toast.success('User updated successfully!');
+        
+        // Close modal and clear selected user
+        setIsEditModalOpen(false);
+        setSelectedUser(null);
         return true;
       } else {
         toast.error(response.message || 'Failed to update user');
@@ -407,7 +412,7 @@ function AllUsers() {
             },
             body: JSON.stringify({
               action: 'user_update_failed',
-              description: `Admin failed to update user ID: ${userId} - Error: ${error.message}`,
+              description: `Admin failed to update user ID: ${selectedUser.id} - Error: ${error.message}`,
               log_level: 'error'
             })
           });
@@ -422,65 +427,165 @@ function AllUsers() {
 
   // Handle deleting a user
   const handleDeleteUser = async (user) => {
-    // Show confirmation dialog
-    if (!window.confirm(`Are you sure you want to delete ${user.first_name} ${user.last_name}? This action cannot be undone.`)) {
-      return;
-    }
-
-    try {
-      const response = await userAPI.deleteUser(user.id);
-      if (response.success) {
-        // Log user deletion
-        const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
-        if (token) {
-          await fetch('http://localhost:8000/api/log-action', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: JSON.stringify({
-              action: 'user_deleted',
-              description: `Admin deleted user: ${user.first_name} ${user.last_name} (${user.email}) - Role: ${user.role}`,
-              log_level: 'warning'
-            })
-          });
-        }
-        
-        // Refresh the users list
-        fetchUsers();
-        fetchStats();
-        toast.success('User deleted successfully!');
-      } else {
-        toast.error(response.message || 'Failed to delete user');
-      }
-    } catch (error) {
-      console.error('Error deleting user:', error);
-      toast.error(error.message || 'Failed to delete user');
+    // Show confirmation toast with password input
+    toast((t) => {
+      let passwordInput = '';
       
-      // Log failed deletion attempt
-      try {
-        const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
-        if (token) {
-          await fetch('http://localhost:8000/api/log-action', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: JSON.stringify({
-              action: 'user_deletion_failed',
-              description: `Admin failed to delete user: ${user.first_name} ${user.last_name} (${user.email}) - Error: ${error.message}`,
-              log_level: 'error'
-            })
-          });
-        }
-      } catch (logError) {
-        console.error('Error logging failed user deletion:', logError);
-      }
-    }
+      return (
+        <div className="bg-white p-6 rounded-lg shadow-xl w-96">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Confirm Deletion</h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Delete {user.first_name} {user.last_name}?
+          </p>
+          
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Enter your password:
+          </label>
+          <input
+            type="password"
+            placeholder="Password"
+            onChange={(e) => { passwordInput = e.target.value; }}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 mb-4 text-gray-900 bg-white"
+            autoFocus
+          />
+          
+          <div className="flex gap-3 justify-end">
+            <button
+              onClick={() => toast.dismiss(t.id)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={async () => {
+                if (!passwordInput) {
+                  toast.error('Please enter your password');
+                  return;
+                }
+                
+                toast.dismiss(t.id);
+                const loadingToast = toast.loading('Verifying password...');
+                
+                try {
+                  // First verify the admin password
+                  const verifyResponse = await fetch('http://localhost:8000/api/admin/verify-password', {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+                      'Content-Type': 'application/json',
+                      'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ password: passwordInput })
+                  });
+                  
+                  const verifyData = await verifyResponse.json();
+                  
+                  if (!verifyResponse.ok || !verifyData.success) {
+                    toast.dismiss(loadingToast);
+                    toast.error('Incorrect password. Deletion cancelled.');
+                    
+                    // Log failed password verification
+                    try {
+                      const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
+                      if (token) {
+                        await fetch('http://localhost:8000/api/log-action', {
+                          method: 'POST',
+                          headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                          },
+                          body: JSON.stringify({
+                            action: 'user_deletion_password_failed',
+                            description: `Admin entered incorrect password when attempting to delete user: ${user.first_name} ${user.last_name} (${user.email})`,
+                            log_level: 'warning'
+                          })
+                        });
+                      }
+                    } catch (logError) {
+                      console.error('Error logging failed password verification:', logError);
+                    }
+                    
+                    return;
+                  }
+                  
+                  // Password verified, proceed with deletion
+                  toast.dismiss(loadingToast);
+                  const deleteToast = toast.loading('Deleting user...');
+                  
+                  const response = await userAPI.deleteUser(user.id);
+                  toast.dismiss(deleteToast);
+                  
+                  if (response.success) {
+                    // Log user deletion
+                    const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
+                    if (token) {
+                      await fetch('http://localhost:8000/api/log-action', {
+                        method: 'POST',
+                        headers: {
+                          'Authorization': `Bearer ${token}`,
+                          'Content-Type': 'application/json',
+                          'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          action: 'user_deleted',
+                          description: `Admin deleted user: ${user.first_name} ${user.last_name} (${user.email}) - Role: ${user.role}`,
+                          log_level: 'warning'
+                        })
+                      });
+                    }
+                    
+                    // Refresh the users list
+                    fetchUsers();
+                    fetchStats();
+                    toast.success('User deleted successfully!');
+                  } else {
+                    toast.error(response.message || 'Failed to delete user');
+                  }
+                } catch (error) {
+                  toast.dismiss(loadingToast);
+                  console.error('Error deleting user:', error);
+                  toast.error(error.message || 'Failed to delete user');
+                  
+                  // Log failed deletion attempt
+                  try {
+                    const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
+                    if (token) {
+                      await fetch('http://localhost:8000/api/log-action', {
+                        method: 'POST',
+                        headers: {
+                          'Authorization': `Bearer ${token}`,
+                          'Content-Type': 'application/json',
+                          'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          action: 'user_deletion_failed',
+                          description: `Admin failed to delete user: ${user.first_name} ${user.last_name} (${user.email}) - Error: ${error.message}`,
+                          log_level: 'error'
+                        })
+                      });
+                    }
+                  } catch (logError) {
+                    console.error('Error logging failed user deletion:', logError);
+                  }
+                }
+              }}
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      );
+    }, {
+      duration: Infinity,
+      position: 'top-center',
+      style: {
+        background: 'transparent',
+        boxShadow: 'none',
+        padding: '0',
+      },
+    });
   };
 
   if (loading) {
@@ -918,15 +1023,14 @@ function AllUsers() {
 
         {/* Edit User Modal */}
         {isEditModalOpen && selectedUser && (
-          <AddUserModal
+          <EditUserModal
             isOpen={isEditModalOpen}
             onClose={() => {
               setIsEditModalOpen(false);
               setSelectedUser(null);
             }}
-            onAdd={(userData) => handleUpdateUser(selectedUser.id, userData)}
-            editMode={true}
-            initialData={selectedUser}
+            onUpdate={handleUpdateUser}
+            userData={selectedUser}
           />
         )}
       </div>

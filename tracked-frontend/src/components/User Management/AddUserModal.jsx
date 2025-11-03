@@ -62,6 +62,12 @@ const AddUserModal = ({ isOpen, onClose, onAdd, editMode = false, initialData = 
   // Update form data when initialData changes (for edit mode)
   useEffect(() => {
     if (editMode && initialData) {
+      // Normalize gender value to lowercase
+      const normalizedGender = initialData.gender ? initialData.gender.toLowerCase() : '';
+      
+      // Convert course_program ID to string if it's a number
+      const normalizedCourseProgram = initialData.course_program ? String(initialData.course_program) : '';
+      
       setFormData({
         first_name: initialData.first_name || '',
         last_name: initialData.last_name || '',
@@ -74,7 +80,7 @@ const AddUserModal = ({ isOpen, onClose, onAdd, editMode = false, initialData = 
         address: initialData.address || '',
         date_of_birth: initialData.date_of_birth || '',
         place_of_birth: initialData.place_of_birth || '',
-        gender: initialData.gender || '',
+        gender: normalizedGender,
         nationality: initialData.nationality || '',
         marital_status: initialData.marital_status || '',
         education_level: initialData.education_level || '',
@@ -85,7 +91,7 @@ const AddUserModal = ({ isOpen, onClose, onAdd, editMode = false, initialData = 
         employment_status: initialData.employment_status || '',
         occupation: initialData.occupation || '',
         work_experience: initialData.work_experience || '',
-        course_program: initialData.course_program || '',
+        course_program: normalizedCourseProgram,
         emergency_contact: initialData.emergency_contact || '',
         emergency_phone: initialData.emergency_phone || '',
         emergency_relationship: initialData.emergency_relationship || '',
@@ -151,8 +157,6 @@ const AddUserModal = ({ isOpen, onClose, onAdd, editMode = false, initialData = 
   const validateForm = () => {
     const newErrors = {};
 
-    console.log('Validating form data:', formData);
-
     // Basic Information Validation
     if (!formData.first_name) newErrors.first_name = 'First name is required';
     if (!formData.last_name) newErrors.last_name = 'Last name is required';
@@ -170,15 +174,20 @@ const AddUserModal = ({ isOpen, onClose, onAdd, editMode = false, initialData = 
       } else if (formData.password.length < 6) {
         newErrors.password = 'Password must be at least 6 characters';
       }
+      
+      if (formData.password && formData.password !== formData.confirm_password) {
+        newErrors.confirm_password = 'Passwords do not match';
+      }
     } else {
       // In edit mode, only validate if password is provided
       if (formData.password && formData.password.length < 6) {
         newErrors.password = 'Password must be at least 6 characters';
       }
-    }
-    
-    if (formData.password && formData.password !== formData.confirm_password) {
-      newErrors.confirm_password = 'Passwords do not match';
+      
+      // Only check password match if user is trying to change password
+      if (formData.password && formData.password !== formData.confirm_password) {
+        newErrors.confirm_password = 'Passwords do not match';
+      }
     }
 
     // Student and applicant validation
@@ -198,7 +207,6 @@ const AddUserModal = ({ isOpen, onClose, onAdd, editMode = false, initialData = 
       newErrors.emergency_phone = 'Emergency phone must be 10 digits starting with 9';
     }
 
-    console.log('Validation errors:', newErrors);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
