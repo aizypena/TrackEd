@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MdClose } from 'react-icons/md';
 import { batchAPI } from '../../services/batchAPI';
 import { userAPI } from '../../services/userAPI';
+import { getStaffToken } from '../../utils/staffAuth';
 import toast from 'react-hot-toast';
 
 const AddBatch = ({ isOpen, onClose, batch, programs, onSuccess }) => {
@@ -129,12 +130,20 @@ const AddBatch = ({ isOpen, onClose, batch, programs, onSuccess }) => {
       // console.log('API Response:', response);
 
       if (response.success) {
+        // Get staff user info for logging
+        const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
+        const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
+        
+        // Get program name for better logging
+        const programName = programs.find(p => p.id == submitData.program_id)?.title || 'Unknown Program';
+        const batchId = response.data?.batch_id || batch?.batch_id || 'New Batch';
+        
         // Log successful action
         await logAction(
           batch ? 'batch_updated' : 'batch_created',
           batch 
-            ? `Updated batch: ${batch.batch_id}` 
-            : `Created new batch for program ID: ${submitData.program_id}`,
+            ? `${staffName} updated batch ${batchId} (${programName}) - Status: ${submitData.status}, Max Students: ${submitData.max_students}` 
+            : `${staffName} created new batch for ${programName} - Days: ${submitData.schedule_days.join(', ')}, Time: ${submitData.schedule_time_start}-${submitData.schedule_time_end}`,
           'info'
         );
         
@@ -189,7 +198,12 @@ const AddBatch = ({ isOpen, onClose, batch, programs, onSuccess }) => {
   // Log action helper
   const logAction = async (action, description, level = 'info') => {
     try {
-      const token = localStorage.getItem('adminToken');
+      // Try to get staff token first, fallback to admin token
+      let token = getStaffToken();
+      if (!token) {
+        token = localStorage.getItem('adminToken');
+      }
+      
       await fetch('http://localhost:8000/api/log-action', {
         method: 'POST',
         headers: {

@@ -5,6 +5,8 @@ import AddBatch from '../../components/admin/AddBatch';
 import ViewBatchStudents from '../../components/admin/ViewBatchStudents';
 import { batchAPI } from '../../services/batchAPI';
 import { programAPI } from '../../services/programAPI';
+import { getStaffToken } from '../../utils/staffAuth';
+import toast, { Toaster } from 'react-hot-toast';
 import { 
   MdMenu,
   MdSearch,
@@ -54,6 +56,32 @@ const StaffBatchManagement = () => {
     fetchBatches();
     fetchPrograms();
   }, []);
+
+  // Function to log system action
+  const logSystemAction = async (action, description, logLevel = 'info') => {
+    try {
+      const token = getStaffToken();
+      const response = await fetch('http://localhost:8000/api/log-action', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          action,
+          description,
+          log_level: logLevel,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to log system action');
+      }
+    } catch (error) {
+      console.error('Error logging system action:', error);
+    }
+  };
 
   const fetchBatches = async () => {
     try {
@@ -106,14 +134,27 @@ const StaffBatchManagement = () => {
     }
 
     try {
+      // Get batch info before deletion for logging
+      const batch = batches.find(b => b.id === batchId);
       const response = await batchAPI.delete(batchId);
       if (response.success) {
-        alert('Batch deleted successfully');
+        // Get staff user info for logging
+        const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
+        const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
+
+        // Log the deletion
+        await logSystemAction(
+          'batch_deleted',
+          `${staffName} deleted batch ${batch?.batch_id || batchId} (${batch?.program?.title || 'Unknown Program'})`,
+          'warning'
+        );
+
+        toast.success('Batch deleted successfully');
         fetchBatches();
       }
     } catch (error) {
       console.error('Error deleting batch:', error);
-      alert('Failed to delete batch: ' + error.message);
+      toast.error('Failed to delete batch: ' + error.message);
     }
   };
 
@@ -124,10 +165,21 @@ const StaffBatchManagement = () => {
       if (response.success) {
         setEnrolledStudents(response.data.students);
         setShowStudentsModal(true);
+
+        // Get staff user info for logging
+        const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
+        const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
+
+        // Log the view action
+        await logSystemAction(
+          'batch_students_viewed',
+          `${staffName} viewed students for batch ${batch.batch_id} (${batch.program?.title || 'Unknown Program'}) - ${response.data.students.length} students enrolled`,
+          'info'
+        );
       }
     } catch (error) {
       console.error('Error fetching enrolled students:', error);
-      alert('Failed to fetch enrolled students: ' + error.message);
+      toast.error('Failed to fetch enrolled students: ' + error.message);
     }
   };
 
@@ -468,6 +520,32 @@ const StaffBatchManagement = () => {
         }}
         batch={selectedBatch}
         students={enrolledStudents}
+      />
+
+      {/* Toast Notifications */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: '#4ade80',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            duration: 4000,
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
       />
     </div>
   );
