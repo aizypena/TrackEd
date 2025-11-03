@@ -220,7 +220,6 @@ const StaffTrainingSched = () => {
   const fetchPrograms = async () => {
     try {
       const response = await programAPI.getAll();
-      console.log('Fetched programs:', response.data);
       if (response.success) {
         setPrograms(response.data);
       }
@@ -233,7 +232,6 @@ const StaffTrainingSched = () => {
     try {
       setLoading(true);
       const response = await batchAPI.getAll({ status: 'all' });
-      console.log('Fetched batches:', response.data);
       if (response.success) {
         setBatches(response.data);
         generateScheduleFromBatches(response.data);
@@ -248,13 +246,9 @@ const StaffTrainingSched = () => {
 
   // Generate training sessions from batches
   const generateScheduleFromBatches = (batchesData) => {
-    console.log('Generating schedules from batches:', batchesData);
     const sessions = [];
     
     batchesData.forEach((batch) => {
-      console.log('Processing batch:', batch.batch_id, 'Schedule days:', batch.schedule_days);
-      console.log('Batch start date:', batch.start_date, 'Batch end date:', batch.end_date);
-      
       if (batch.schedule_days && batch.schedule_days.length > 0 && batch.start_date && batch.end_date) {
         // Use batch's actual start and end dates
         const batchStartDate = new Date(batch.start_date);
@@ -265,8 +259,6 @@ const StaffTrainingSched = () => {
         rangeStartDate.setDate(rangeStartDate.getDate() - 7); // Show 1 week before
         const rangeEndDate = new Date(batchEndDate);
         rangeEndDate.setDate(rangeEndDate.getDate() + 7); // Show 1 week after
-        
-        console.log('Generating sessions from:', rangeStartDate.toISOString().split('T')[0], 'to:', rangeEndDate.toISOString().split('T')[0]);
         
         // Generate sessions for each scheduled day within the batch period
         for (let d = new Date(rangeStartDate); d <= rangeEndDate; d.setDate(d.getDate() + 1)) {
@@ -295,16 +287,12 @@ const StaffTrainingSched = () => {
               description: `${batch.program?.title || 'Training'} session for ${batch.batch_id}`
             };
             
-            console.log('Created session:', session);
             sessions.push(session);
           }
         }
-      } else {
-        console.log('Skipping batch:', batch.batch_id, '- Missing schedule days or dates');
       }
     });
     
-    console.log('Total sessions generated:', sessions.length);
     setTrainingSessions(sessions);
   };
 
@@ -613,10 +601,6 @@ const StaffTrainingSched = () => {
                 <p className="text-sm text-blue-100">Manage training sessions and schedules</p>
               </div>
             </div>
-            <button className="flex items-center gap-2 px-4 py-2 bg-tracked-secondary hover:bg-opacity-90 rounded-md transition-colors">
-              <MdAdd className="h-5 w-5" />
-              <span className="hidden sm:inline">Add Session</span>
-            </button>
           </div>
         </nav>
         
