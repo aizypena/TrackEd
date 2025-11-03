@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import StaffSidebar from '../../layouts/staff/StaffSidebar';
+import { getStaffToken } from '../../utils/staffAuth';
+import toast, { Toaster } from 'react-hot-toast';
 import { 
   MdMenu,
   MdSearch,
@@ -25,113 +27,63 @@ const StaffEnrollmentTrends = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [yearFilter, setYearFilter] = useState('2025');
   const [programFilter, setProgramFilter] = useState('all');
-  const [viewMode, setViewMode] = useState('overview'); // overview, monthly, program, comparison
+  const [viewMode, setViewMode] = useState('overview');
   const [selectedProgram, setSelectedProgram] = useState(null);
-
-  // Mock data - replace with actual API calls
-  const enrollmentData = {
-    yearly: {
-      2023: { total: 450, growth: 0 },
-      2024: { total: 580, growth: 28.9 },
-      2025: { total: 720, growth: 24.1 }
-    },
-    monthly2025: [
-      { month: 'Jan', enrollments: 85, applications: 110 },
-      { month: 'Feb', enrollments: 72, applications: 95 },
-      { month: 'Mar', enrollments: 68, applications: 88 },
-      { month: 'Apr', enrollments: 78, applications: 102 },
-      { month: 'May', enrollments: 82, applications: 108 },
-      { month: 'Jun', enrollments: 95, applications: 120 },
-      { month: 'Jul', enrollments: 88, applications: 115 },
-      { month: 'Aug', enrollments: 76, applications: 98 },
-      { month: 'Sep', enrollments: 90, applications: 118 },
-      { month: 'Oct', enrollments: 86, applications: 0 }
-    ],
-    programBreakdown: [
-      { 
-        program: 'Welding NCII', 
-        enrollments: 185, 
-        percentage: 25.7,
-        trend: 'up',
-        growthRate: 15.2,
-        batches: 6,
-        avgBatchSize: 31
-      },
-      { 
-        program: 'Automotive Servicing NCII', 
-        enrollments: 165, 
-        percentage: 22.9,
-        trend: 'up',
-        growthRate: 22.5,
-        batches: 5,
-        avgBatchSize: 33
-      },
-      { 
-        program: 'Electronics NCII', 
-        enrollments: 128, 
-        percentage: 17.8,
-        trend: 'up',
-        growthRate: 18.9,
-        batches: 4,
-        avgBatchSize: 32
-      },
-      { 
-        program: 'Food Processing NCII', 
-        enrollments: 95, 
-        percentage: 13.2,
-        trend: 'down',
-        growthRate: -5.3,
-        batches: 3,
-        avgBatchSize: 32
-      },
-      { 
-        program: 'Plumbing NCII', 
-        enrollments: 82, 
-        percentage: 11.4,
-        trend: 'up',
-        growthRate: 28.6,
-        batches: 3,
-        avgBatchSize: 27
-      },
-      { 
-        program: 'Carpentry NCII', 
-        enrollments: 65, 
-        percentage: 9.0,
-        trend: 'stable',
-        growthRate: 2.1,
-        batches: 2,
-        avgBatchSize: 33
-      }
-    ],
+  const [loading, setLoading] = useState(false);
+  const [enrollmentData, setEnrollmentData] = useState({
+    yearly: {},
+    monthly: [],
+    programBreakdown: [],
     demographics: {
-      gender: [
-        { category: 'Male', count: 542, percentage: 75.3 },
-        { category: 'Female', count: 178, percentage: 24.7 }
-      ],
-      ageGroups: [
-        { group: '18-24', count: 285, percentage: 39.6 },
-        { group: '25-34', count: 312, percentage: 43.3 },
-        { group: '35-44', count: 95, percentage: 13.2 },
-        { group: '45+', count: 28, percentage: 3.9 }
-      ]
+      gender: [],
+      ageGroups: []
     },
     conversionRate: {
-      applications: 940,
-      enrolled: 720,
-      rate: 76.6,
-      withdrawn: 85,
-      rejected: 135
+      applications: 0,
+      enrolled: 0,
+      rate: 0,
+      withdrawn: 0,
+      rejected: 0
+    }
+  });
+  const [programs, setPrograms] = useState([]);
+
+  // Fetch enrollment trends on mount and when year changes
+  useEffect(() => {
+    fetchEnrollmentTrends();
+  }, [yearFilter]);
+
+  const fetchEnrollmentTrends = async () => {
+    try {
+      setLoading(true);
+      const token = getStaffToken();
+      
+      const response = await fetch(`http://localhost:8000/api/staff/enrollment-trends?year=${yearFilter}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setEnrollmentData(result.data);
+        // Extract unique programs
+        const uniquePrograms = result.data.programBreakdown.map(p => p.program);
+        setPrograms(uniquePrograms);
+      } else {
+        toast.error('Failed to load enrollment trends');
+      }
+    } catch (error) {
+      console.error('Error fetching enrollment trends:', error);
+      toast.error('Failed to load enrollment trends: ' + error.message);
+    } finally {
+      setLoading(false);
     }
   };
-
-  const programs = [
-    'Welding NCII',
-    'Automotive Servicing NCII',
-    'Electronics NCII',
-    'Food Processing NCII',
-    'Plumbing NCII',
-    'Carpentry NCII'
-  ];
 
   const getTrendIcon = (trend) => {
     if (trend === 'up') {
@@ -198,9 +150,9 @@ const StaffEnrollmentTrends = () => {
                 onChange={(e) => setYearFilter(e.target.value)}
                 className="px-4 py-2 border border-gray-300 rounded-md focus:ring-tracked-primary focus:border-tracked-primary"
               >
-                <option value="2023">2023</option>
-                <option value="2024">2024</option>
-                <option value="2025">2025</option>
+                {Object.keys(enrollmentData.yearly).map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
               </select>
               <select
                 value={programFilter}
@@ -213,8 +165,12 @@ const StaffEnrollmentTrends = () => {
                 ))}
               </select>
               <div className="ml-auto flex gap-2">
-                <button className="flex items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors">
-                  <MdRefresh className="h-5 w-5" />
+                <button 
+                  onClick={fetchEnrollmentTrends}
+                  disabled={loading}
+                  className="flex items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors disabled:opacity-50"
+                >
+                  <MdRefresh className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
                   Refresh
                 </button>
                 <button className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors">
@@ -289,8 +245,14 @@ const StaffEnrollmentTrends = () => {
               </h2>
             </div>
             <div className="space-y-4">
-              {enrollmentData.monthly2025.map((month, index) => {
-                const maxValue = Math.max(...enrollmentData.monthly2025.map(m => m.applications));
+              {loading ? (
+                <div className="text-center py-8 text-gray-500">
+                  <MdRefresh className="h-8 w-8 animate-spin mx-auto mb-2" />
+                  Loading trend data...
+                </div>
+              ) : enrollmentData.monthly && enrollmentData.monthly.length > 0 ? (
+                enrollmentData.monthly.map((month, index) => {
+                const maxValue = Math.max(...enrollmentData.monthly.map(m => m.applications || 1));
                 const enrollmentPercentage = (month.enrollments / maxValue) * 100;
                 const applicationPercentage = (month.applications / maxValue) * 100;
                 
@@ -334,7 +296,12 @@ const StaffEnrollmentTrends = () => {
                     </div>
                   </div>
                 );
-              })}
+              })
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  No enrollment data available for {yearFilter}
+                </div>
+              )}
             </div>
             <div className="flex items-center justify-center gap-6 mt-6 pt-4 border-t border-gray-200">
               <div className="flex items-center gap-2">
@@ -543,6 +510,32 @@ const StaffEnrollmentTrends = () => {
           </div>
         </div>
       </div>
+      
+      {/* Toast Notifications */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: '#4ade80',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            duration: 4000,
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
     </div>
   );
 };

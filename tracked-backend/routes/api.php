@@ -3292,6 +3292,185 @@ Route::middleware(['auth:sanctum'])->group(function () {
         }
     });
     
+    // Staff Enrollment Trends Analytics Endpoint
+    Route::get('/staff/enrollment-trends', function (Request $request) {
+        try {
+            $yearFilter = $request->get('year', date('Y'));
+            
+            // Get all students (enrolled users)
+            $students = \App\Models\User::where('role', 'student')
+                ->with(['batch.program'])
+                ->get();
+            
+            // Get all applications
+            $applications = \App\Models\Application::all();
+            
+            // Calculate yearly enrollment data
+            $yearlyData = [];
+            for ($year = 2023; $year <= date('Y'); $year++) {
+                $yearStudents = $students->filter(function ($student) use ($year) {
+                    return $student->created_at && $student->created_at->year == $year;
+                })->count();
+                
+                $previousYearStudents = $students->filter(function ($student) use ($year) {
+                    return $student->created_at && $student->created_at->year == ($year - 1);
+                })->count();
+                
+                $growth = $previousYearStudents > 0 
+                    ? (($yearStudents - $previousYearStudents) / $previousYearStudents) * 100 
+                    : 0;
+                
+                $yearlyData[$year] = [
+                    'total' => $yearStudents,
+                    'growth' => round($growth, 1)
+                ];
+            }
+            
+            // Calculate monthly data for selected year
+            $monthlyData = [];
+            for ($month = 1; $month <= 12; $month++) {
+                $monthEnrollments = $students->filter(function ($student) use ($yearFilter, $month) {
+                    return $student->created_at 
+                        && $student->created_at->year == $yearFilter 
+                        && $student->created_at->month == $month;
+                })->count();
+                
+                $monthApplications = $applications->filter(function ($app) use ($yearFilter, $month) {
+                    return $app->created_at 
+                        && $app->created_at->year == $yearFilter 
+                        && $app->created_at->month == $month;
+                })->count();
+                
+                $monthlyData[] = [
+                    'month' => date('M', mktime(0, 0, 0, $month, 1)),
+                    'enrollments' => $monthEnrollments,
+                    'applications' => $monthApplications
+                ];
+            }
+            
+            // Get program breakdown
+            $programs = \App\Models\Program::all();
+            $programBreakdown = $programs->map(function ($program) use ($students) {
+                $programStudents = $students->filter(function ($student) use ($program) {
+                    return $student->batch && $student->batch->program_id == $program->id;
+                });
+                
+                $enrollmentCount = $programStudents->count();
+                $totalStudents = $students->count();
+                $percentage = $totalStudents > 0 ? ($enrollmentCount / $totalStudents) * 100 : 0;
+                
+                // Calculate growth (comparing to previous year)
+                $currentYearStudents = $programStudents->filter(function ($student) {
+                    return $student->created_at && $student->created_at->year == date('Y');
+                })->count();
+                
+                $previousYearStudents = $programStudents->filter(function ($student) {
+                    return $student->created_at && $student->created_at->year == (date('Y') - 1);
+                })->count();
+                
+                $growthRate = $previousYearStudents > 0 
+                    ? (($currentYearStudents - $previousYearStudents) / $previousYearStudents) * 100 
+                    : 0;
+                
+                // Determine trend
+                $trend = 'stable';
+                if ($growthRate > 5) $trend = 'up';
+                elseif ($growthRate < -5) $trend = 'down';
+                
+                // Get batch count
+                $batches = \App\Models\Batch::where('program_id', $program->id)->count();
+                $avgBatchSize = $batches > 0 ? round($enrollmentCount / $batches) : 0;
+                
+                return [
+                    'program' => $program->title,
+                    'enrollments' => $enrollmentCount,
+                    'percentage' => round($percentage, 1),
+                    'trend' => $trend,
+                    'growthRate' => round($growthRate, 1),
+                    'batches' => $batches,
+                    'avgBatchSize' => $avgBatchSize
+                ];
+            })->sortByDesc('enrollments')->values();
+            
+            // Demographics
+            $genderStats = [
+                [
+                    'category' => 'Male',
+                    'count' => $students->where('gender', 'male')->count(),
+                    'percentage' => $students->count() > 0 ? round(($students->where('gender', 'male')->count() / $students->count()) * 100, 1) : 0
+                ],
+                [
+                    'category' => 'Female',
+                    'count' => $students->where('gender', 'female')->count(),
+                    'percentage' => $students->count() > 0 ? round(($students->where('gender', 'female')->count() / $students->count()) * 100, 1) : 0
+                ]
+            ];
+            
+            // Age groups
+            $ageGroups = [
+                ['group' => '18-24', 'count' => 0, 'percentage' => 0],
+                ['group' => '25-34', 'count' => 0, 'percentage' => 0],
+                ['group' => '35-44', 'count' => 0, 'percentage' => 0],
+                ['group' => '45+', 'count' => 0, 'percentage' => 0]
+            ];
+            
+            foreach ($students as $student) {
+                if ($student->date_of_birth) {
+                    $dob = is_string($student->date_of_birth) 
+                        ? \Carbon\Carbon::parse($student->date_of_birth) 
+                        : $student->date_of_birth;
+                    $age = $dob->age;
+                    
+                    if ($age >= 18 && $age <= 24) $ageGroups[0]['count']++;
+                    elseif ($age >= 25 && $age <= 34) $ageGroups[1]['count']++;
+                    elseif ($age >= 35 && $age <= 44) $ageGroups[2]['count']++;
+                    elseif ($age >= 45) $ageGroups[3]['count']++;
+                }
+            }
+            
+            foreach ($ageGroups as $key => $group) {
+                $ageGroups[$key]['percentage'] = $students->count() > 0 
+                    ? round(($group['count'] / $students->count()) * 100, 1) 
+                    : 0;
+            }
+            
+            // Conversion rate
+            $totalApplications = $applications->count();
+            $enrolledCount = $students->count();
+            $approvedApplications = $applications->where('application_status', 'approved')->count();
+            $rejectedApplications = $applications->where('application_status', 'rejected')->count();
+            $withdrawnApplications = $applications->where('application_status', 'withdrawn')->count();
+            
+            $conversionRate = [
+                'applications' => $totalApplications,
+                'enrolled' => $enrolledCount,
+                'rate' => $totalApplications > 0 ? round(($enrolledCount / $totalApplications) * 100, 1) : 0,
+                'withdrawn' => $withdrawnApplications,
+                'rejected' => $rejectedApplications
+            ];
+            
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'yearly' => $yearlyData,
+                    'monthly' => $monthlyData,
+                    'programBreakdown' => $programBreakdown,
+                    'demographics' => [
+                        'gender' => $genderStats,
+                        'ageGroups' => $ageGroups
+                    ],
+                    'conversionRate' => $conversionRate
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch enrollment trends',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
+    
     // Staff Applicant Documents Endpoint
     Route::get('/staff/applicant-documents', function (Request $request) {
         try {
@@ -3413,6 +3592,126 @@ Route::middleware(['auth:sanctum'])->group(function () {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to download file',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
+    
+    // Staff Assessment Results Endpoint
+    Route::get('/staff/assessment-results', function (Request $request) {
+        try {
+            // Get all grades with relationships
+            $gradesQuery = \App\Models\Grade::with(['student', 'batch.program', 'gradedBy'])
+                ->orderBy('graded_at', 'desc')
+                ->orderBy('created_at', 'desc');
+            
+            // Apply filters if provided
+            if ($request->has('program_id') && $request->program_id !== 'all') {
+                $gradesQuery->where('program_id', $request->program_id);
+            }
+            
+            if ($request->has('batch_id') && $request->batch_id !== 'all') {
+                $gradesQuery->where('batch_id', $request->batch_id);
+            }
+            
+            if ($request->has('assessment_type') && $request->assessment_type !== 'all') {
+                $gradesQuery->where('assessment_type', $request->assessment_type);
+            }
+            
+            if ($request->has('status') && $request->status !== 'all') {
+                $gradesQuery->where('status', $request->status);
+            }
+            
+            $grades = $gradesQuery->get();
+            
+            // Group grades by assessment (assessment_title + assessment_type + batch_id)
+            $assessmentGroups = $grades->groupBy(function ($grade) {
+                return $grade->assessment_title . '|' . $grade->assessment_type . '|' . $grade->batch_id;
+            });
+            
+            // Format assessment results
+            $assessments = $assessmentGroups->map(function ($gradeGroup, $key) {
+                $firstGrade = $gradeGroup->first();
+                $batch = $firstGrade->batch;
+                $program = $batch ? $batch->program : null;
+                
+                // Calculate statistics
+                $totalStudents = $gradeGroup->count();
+                $gradedStudents = $gradeGroup->where('status', '!=', 'pending')->count();
+                $passedStudents = $gradeGroup->where('status', 'passed')->count();
+                $averageScore = $gradedStudents > 0 ? $gradeGroup->where('status', '!=', 'pending')->avg('percentage') : 0;
+                $passRate = $gradedStudents > 0 ? ($passedStudents / $gradedStudents) * 100 : 0;
+                $highestScore = $gradedStudents > 0 ? $gradeGroup->where('status', '!=', 'pending')->max('percentage') : 0;
+                $lowestScore = $gradedStudents > 0 ? $gradeGroup->where('status', '!=', 'pending')->min('percentage') : 0;
+                
+                // Determine overall status
+                $pendingCount = $gradeGroup->where('status', 'pending')->count();
+                if ($pendingCount === $totalStudents) {
+                    $status = 'scheduled';
+                } elseif ($pendingCount > 0) {
+                    $status = 'ongoing';
+                } else {
+                    $status = 'completed';
+                }
+                
+                // Format individual student results
+                $results = $gradeGroup->map(function ($grade) use ($firstGrade) {
+                    $student = $grade->student;
+                    return [
+                        'id' => $grade->id,
+                        'studentId' => $student->student_id ?? $student->id,
+                        'studentName' => trim(($student->first_name ?? '') . ' ' . ($student->last_name ?? '')),
+                        'score' => round($grade->percentage, 2),
+                        'rawScore' => $grade->score,
+                        'totalPoints' => $grade->total_points,
+                        'result' => $grade->status === 'passed' ? 'Passed' : ($grade->status === 'failed' ? 'Failed' : 'Pending'),
+                        'remarks' => $grade->feedback ?? ($grade->status === 'pending' ? 'Not yet assessed' : ($grade->isPassed() ? 'Satisfactory performance' : 'Needs improvement')),
+                        'gradedAt' => $grade->graded_at ? $grade->graded_at->format('Y-m-d H:i:s') : null,
+                        'attemptNumber' => $grade->attempt_number ?? 1,
+                    ];
+                })->values();
+                
+                // Generate assessment code (use first grade ID as base)
+                $assessmentCode = 'ASM-' . date('Y') . '-' . str_pad($firstGrade->id, 4, '0', STR_PAD_LEFT);
+                
+                return [
+                    'id' => $firstGrade->id,
+                    'assessmentCode' => $assessmentCode,
+                    'title' => $firstGrade->assessment_title,
+                    'program' => $program ? $program->title : 'N/A',
+                    'programId' => $program ? $program->id : null,
+                    'batch' => $batch ? $batch->batch_id : 'N/A',
+                    'batchId' => $firstGrade->batch_id,
+                    'assessmentType' => ucfirst($firstGrade->assessment_type),
+                    'assessor' => $firstGrade->gradedBy ? trim(($firstGrade->gradedBy->first_name ?? '') . ' ' . ($firstGrade->gradedBy->last_name ?? '')) : 'System',
+                    'date' => $firstGrade->graded_at ? $firstGrade->graded_at->format('Y-m-d') : $firstGrade->created_at->format('Y-m-d'),
+                    'totalStudents' => $totalStudents,
+                    'assessed' => $gradedStudents,
+                    'pending' => $pendingCount,
+                    'passingScore' => $firstGrade->passing_score,
+                    'averageScore' => round($averageScore, 2),
+                    'passRate' => round($passRate, 2),
+                    'highestScore' => round($highestScore, 2),
+                    'lowestScore' => $gradedStudents > 0 ? round($lowestScore, 2) : 0,
+                    'status' => $status,
+                    'results' => $results,
+                ];
+            })->values();
+            
+            // Get unique programs and batches for filters
+            $programs = \App\Models\Program::select('id', 'title')->get();
+            $batches = \App\Models\Batch::select('id', 'batch_id')->orderBy('batch_id', 'desc')->get();
+            
+            return response()->json([
+                'success' => true,
+                'data' => $assessments,
+                'programs' => $programs,
+                'batches' => $batches,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch assessment results',
                 'error' => $e->getMessage()
             ], 500);
         }

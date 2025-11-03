@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import StaffSidebar from '../../layouts/staff/StaffSidebar';
+import { getStaffToken } from '../../utils/staffAuth';
+import toast, { Toaster } from 'react-hot-toast';
 import { 
   MdMenu,
   MdSearch,
@@ -38,158 +40,52 @@ const StaffAssessmentResults = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
   const [selectedAssessment, setSelectedAssessment] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [assessments, setAssessments] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [batches, setBatches] = useState([]);
 
-  // Mock data - replace with actual API calls
-  const [assessments, setAssessments] = useState([
-    {
-      id: 1,
-      assessmentCode: 'ASM-2025-001',
-      title: 'Welding NCII - Shielded Metal Arc Welding (SMAW) Practical',
-      program: 'Welding NCII',
-      batch: 'Batch 01-2025',
-      assessmentType: 'Practical',
-      assessor: 'Engr. Ramon Cruz',
-      date: '2025-10-05',
-      totalStudents: 18,
-      assessed: 18,
-      pending: 0,
-      passingScore: 75,
-      averageScore: 87.5,
-      passRate: 94.4,
-      highestScore: 98,
-      lowestScore: 72,
-      status: 'completed',
-      results: [
-        { id: 1, studentId: 'STU-2025-001', studentName: 'Juan Dela Cruz', score: 95, result: 'Passed', remarks: 'Excellent welding technique' },
-        { id: 2, studentId: 'STU-2025-002', studentName: 'Maria Santos', score: 88, result: 'Passed', remarks: 'Good performance' },
-        { id: 3, studentId: 'STU-2025-003', studentName: 'Pedro Reyes', score: 72, result: 'Failed', remarks: 'Needs improvement in joint preparation' },
-        { id: 4, studentId: 'STU-2025-004', studentName: 'Ana Garcia', score: 92, result: 'Passed', remarks: 'Very good technique' },
-        { id: 5, studentId: 'STU-2025-005', studentName: 'Roberto Cruz', score: 85, result: 'Passed', remarks: 'Satisfactory performance' }
-      ]
-    },
-    {
-      id: 2,
-      assessmentCode: 'ASM-2025-002',
-      title: 'Automotive NCII - Engine Systems Theory Exam',
-      program: 'Automotive Servicing NCII',
-      batch: 'Batch 02-2025',
-      assessmentType: 'Written',
-      assessor: 'Mr. Jose Santos',
-      date: '2025-10-04',
-      totalStudents: 18,
-      assessed: 18,
-      pending: 0,
-      passingScore: 75,
-      averageScore: 82.3,
-      passRate: 88.9,
-      highestScore: 96,
-      lowestScore: 68,
-      status: 'completed',
-      results: [
-        { id: 6, studentId: 'STU-2025-006', studentName: 'Carmen Lopez', score: 96, result: 'Passed', remarks: 'Outstanding knowledge' },
-        { id: 7, studentId: 'STU-2025-007', studentName: 'Luis Martinez', score: 78, result: 'Passed', remarks: 'Satisfactory' },
-        { id: 8, studentId: 'STU-2025-008', studentName: 'Sofia Ramos', score: 68, result: 'Failed', remarks: 'Study technical specifications' }
-      ]
-    },
-    {
-      id: 3,
-      assessmentCode: 'ASM-2025-003',
-      title: 'Electronics NCII - Circuit Assembly Practical',
-      program: 'Electronics NCII',
-      batch: 'Batch 01-2025',
-      assessmentType: 'Practical',
-      assessor: 'Engr. Maria Garcia',
-      date: '2025-10-06',
-      totalStudents: 12,
-      assessed: 8,
-      pending: 4,
-      passingScore: 75,
-      averageScore: 85.8,
-      passRate: 87.5,
-      highestScore: 94,
-      lowestScore: 71,
-      status: 'ongoing',
-      results: [
-        { id: 9, studentId: 'STU-2025-009', studentName: 'Diego Torres', score: 94, result: 'Passed', remarks: 'Excellent work' },
-        { id: 10, studentId: 'STU-2025-010', studentName: 'Isabella Cruz', score: 88, result: 'Passed', remarks: 'Good technique' },
-        { id: 11, studentId: 'STU-2025-011', studentName: 'Miguel Santos', score: 71, result: 'Failed', remarks: 'Review soldering techniques' }
-      ]
-    },
-    {
-      id: 4,
-      assessmentCode: 'ASM-2025-004',
-      title: 'Food Processing NCII - Safety & Sanitation Assessment',
-      program: 'Food Processing NCII',
-      batch: 'Batch 03-2025',
-      assessmentType: 'Written',
-      assessor: 'Ms. Ana Lopez',
-      date: '2025-10-08',
-      totalStudents: 14,
-      assessed: 0,
-      pending: 14,
-      passingScore: 75,
-      averageScore: 0,
-      passRate: 0,
-      highestScore: 0,
-      lowestScore: 0,
-      status: 'scheduled',
-      results: []
-    },
-    {
-      id: 5,
-      assessmentCode: 'ASM-2025-005',
-      title: 'Plumbing NCII - Pipe Installation Practical',
-      program: 'Plumbing NCII',
-      batch: 'Batch 02-2025',
-      assessmentType: 'Practical',
-      assessor: 'Mr. Pedro Reyes',
-      date: '2025-10-03',
-      totalStudents: 10,
-      assessed: 10,
-      pending: 0,
-      passingScore: 75,
-      averageScore: 91.2,
-      passRate: 100,
-      highestScore: 97,
-      lowestScore: 84,
-      status: 'completed',
-      results: [
-        { id: 12, studentId: 'STU-2025-012', studentName: 'Gabriel Reyes', score: 97, result: 'Passed', remarks: 'Exceptional skills' },
-        { id: 13, studentId: 'STU-2025-013', studentName: 'Valentina Lopez', score: 89, result: 'Passed', remarks: 'Very good' }
-      ]
-    },
-    {
-      id: 6,
-      assessmentCode: 'ASM-2025-006',
-      title: 'Welding NCII - Gas Tungsten Arc Welding (GTAW) Practical',
-      program: 'Welding NCII',
-      batch: 'Batch 01-2025',
-      assessmentType: 'Practical',
-      assessor: 'Engr. Ramon Cruz',
-      date: '2025-10-07',
-      totalStudents: 18,
-      assessed: 0,
-      pending: 18,
-      passingScore: 75,
-      averageScore: 0,
-      passRate: 0,
-      highestScore: 0,
-      lowestScore: 0,
-      status: 'scheduled',
-      results: []
+  // Fetch assessment results on mount and when filters change
+  useEffect(() => {
+    fetchAssessmentResults();
+  }, []);
+
+  const fetchAssessmentResults = async () => {
+    try {
+      setLoading(true);
+      const token = getStaffToken();
+      const params = new URLSearchParams();
+      
+      if (programFilter !== 'all') params.append('program_id', programFilter);
+      if (batchFilter !== 'all') params.append('batch_id', batchFilter);
+      if (assessmentTypeFilter !== 'all') params.append('assessment_type', assessmentTypeFilter.toLowerCase());
+      if (statusFilter !== 'all') params.append('status', statusFilter);
+      
+      const response = await fetch(`http://localhost:8000/api/staff/assessment-results?${params}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setAssessments(data.data || []);
+        setPrograms(data.programs || []);
+        setBatches(data.batches || []);
+      } else {
+        toast.error('Failed to load assessment results');
+      }
+    } catch (error) {
+      console.error('Error fetching assessment results:', error);
+      toast.error('Failed to load assessment results: ' + error.message);
+    } finally {
+      setLoading(false);
     }
-  ]);
-
-  const programs = [
-    'Welding NCII',
-    'Automotive Servicing NCII',
-    'Electronics NCII',
-    'Food Processing NCII',
-    'Plumbing NCII',
-    'Carpentry NCII'
-  ];
-
-  const batches = ['Batch 01-2025', 'Batch 02-2025', 'Batch 03-2025', 'Batch 04-2025'];
+  };
 
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -402,7 +298,7 @@ const StaffAssessmentResults = () => {
                 >
                   <option value="all">All Programs</option>
                   {programs.map((program) => (
-                    <option key={program} value={program}>{program}</option>
+                    <option key={program.id} value={program.id}>{program.title}</option>
                   ))}
                 </select>
               </div>
@@ -417,7 +313,7 @@ const StaffAssessmentResults = () => {
                 >
                   <option value="all">All Batches</option>
                   {batches.map((batch) => (
-                    <option key={batch} value={batch}>{batch}</option>
+                    <option key={batch.id} value={batch.batch_id}>{batch.batch_id}</option>
                   ))}
                 </select>
               </div>
@@ -455,17 +351,17 @@ const StaffAssessmentResults = () => {
 
             <div className="flex items-center justify-between">
               <div className="flex gap-2">
-                <button className="flex items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors">
-                  <MdRefresh className="h-5 w-5" />
+                <button 
+                  onClick={fetchAssessmentResults}
+                  disabled={loading}
+                  className="flex items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors disabled:opacity-50"
+                >
+                  <MdRefresh className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
                   Refresh
                 </button>
                 <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
                   <MdDownload className="h-5 w-5" />
                   Export
-                </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors">
-                  <MdPrint className="h-5 w-5" />
-                  Print
                 </button>
               </div>
               <div className="flex items-center gap-2">
@@ -517,7 +413,16 @@ const StaffAssessmentResults = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredAssessments.length > 0 ? (
+                  {loading ? (
+                    <tr>
+                      <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
+                        <div className="flex items-center justify-center">
+                          <MdRefresh className="h-6 w-6 animate-spin mr-2" />
+                          Loading assessment results...
+                        </div>
+                      </td>
+                    </tr>
+                  ) : filteredAssessments.length > 0 ? (
                     filteredAssessments.map((assessment) => (
                       <tr key={assessment.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4">
@@ -803,6 +708,32 @@ const StaffAssessmentResults = () => {
           </div>
         </div>
       )}
+      
+      {/* Toast Notifications */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: '#4ade80',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            duration: 4000,
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
     </div>
   );
 };
