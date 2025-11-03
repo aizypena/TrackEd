@@ -29,6 +29,32 @@ const StaffDocumentManagement = () => {
     fetchDocuments();
   }, []);
 
+  // Function to log system action
+  const logSystemAction = async (action, description, logLevel = 'info') => {
+    try {
+      const token = getStaffToken();
+      const response = await fetch('http://localhost:8000/api/log-action', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          action,
+          description,
+          log_level: logLevel,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to log system action');
+      }
+    } catch (error) {
+      console.error('Error logging system action:', error);
+    }
+  };
+
   const fetchDocuments = async () => {
     try {
       setLoading(true);
@@ -76,6 +102,10 @@ const StaffDocumentManagement = () => {
 
   const handleDownloadDocument = async (doc) => {
     try {
+      // Get staff user info for logging
+      const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
+      const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
+
       const token = getStaffToken();
       const downloadUrl = `http://localhost:8000/api/staff/document/download?path=${encodeURIComponent(doc.file_path)}`;
       
@@ -106,6 +136,13 @@ const StaffDocumentManagement = () => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
       
+      // Log the download action
+      await logSystemAction(
+        'document_downloaded',
+        `${staffName} downloaded ${doc.document_type} for ${doc.applicant_name} (Student ID: ${doc.student_id})`,
+        'info'
+      );
+
       toast.success('Download started');
     } catch (error) {
       console.error('Download error:', error);
