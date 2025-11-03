@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import StaffSidebar from '../../layouts/staff/StaffSidebar';
 import StudentDetailModal from '../../components/staff/StudentDetailModal';
 import { getStaffToken } from '../../utils/staffAuth';
-import toast from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
+import * as XLSX from 'xlsx';
 import { 
   MdMenu,
   MdSearch,
@@ -41,6 +42,32 @@ const StaffStudentProfile = () => {
   useEffect(() => {
     fetchStudents();
   }, []);
+
+  // Function to log system action
+  const logSystemAction = async (action, description, logLevel = 'info') => {
+    try {
+      const token = getStaffToken();
+      const response = await fetch('http://localhost:8000/api/log-action', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          action,
+          description,
+          log_level: logLevel,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to log system action');
+      }
+    } catch (error) {
+      console.error('Error logging system action:', error);
+    }
+  };
 
   const fetchStudents = async () => {
     try {
@@ -162,6 +189,96 @@ const StaffStudentProfile = () => {
 
   // Get unique programs from students
   const programs = [...new Set(students.map(s => s.program))].filter(p => p !== 'N/A');
+
+  // Export to Excel function
+  const handleExportToExcel = async () => {
+    const loadingToast = toast.loading('Generating Excel file...');
+
+    try {
+      // Get staff user info for logging
+      const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
+      const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
+
+      // Prepare data for export
+      const exportData = filteredStudents.map((student, index) => ({
+        'No.': index + 1,
+        'Student ID': student.studentId || 'N/A',
+        'First Name': student.firstName || 'N/A',
+        'Middle Name': student.middleName || '',
+        'Last Name': student.lastName || 'N/A',
+        'Email': student.email || 'N/A',
+        'Phone': student.phone || 'N/A',
+        'Date of Birth': student.dateOfBirth || 'N/A',
+        'Gender': student.gender || 'N/A',
+        'Address': student.address || 'N/A',
+        'Program': student.program || 'N/A',
+        'Batch': student.batch || 'N/A',
+        'Enrollment Date': student.enrollmentDate || 'N/A',
+        'Expected Graduation': student.expectedGraduation || 'N/A',
+        'Enrollment Status': student.enrollmentStatus ? student.enrollmentStatus.charAt(0).toUpperCase() + student.enrollmentStatus.slice(1) : 'N/A',
+        'Payment Status': student.paymentStatus ? student.paymentStatus.charAt(0).toUpperCase() + student.paymentStatus.slice(1) : 'N/A',
+        'Emergency Contact Name': student.emergencyContact?.name || 'N/A',
+        'Emergency Contact Relationship': student.emergencyContact?.relationship || 'N/A',
+        'Emergency Contact Phone': student.emergencyContact?.phone || 'N/A',
+      }));
+
+      // Create workbook and worksheet
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+      // Set column widths
+      const columnWidths = [
+        { wch: 5 },  // No.
+        { wch: 15 }, // Student ID
+        { wch: 15 }, // First Name
+        { wch: 15 }, // Middle Name
+        { wch: 15 }, // Last Name
+        { wch: 30 }, // Email
+        { wch: 15 }, // Phone
+        { wch: 15 }, // Date of Birth
+        { wch: 10 }, // Gender
+        { wch: 35 }, // Address
+        { wch: 30 }, // Program
+        { wch: 15 }, // Batch
+        { wch: 15 }, // Enrollment Date
+        { wch: 18 }, // Expected Graduation
+        { wch: 18 }, // Enrollment Status
+        { wch: 15 }, // Payment Status
+        { wch: 25 }, // Emergency Contact Name
+        { wch: 25 }, // Emergency Contact Relationship
+        { wch: 20 }, // Emergency Contact Phone
+      ];
+      worksheet['!cols'] = columnWidths;
+
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Students');
+
+      // Generate filename with current date and time
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0];
+      const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+      const filename = `Students_Export_${dateStr}_${timeStr}.xlsx`;
+
+      // Write file
+      XLSX.writeFile(workbook, filename);
+
+      // Log the export action
+      await logSystemAction(
+        'students_exported',
+        `${staffName} exported ${filteredStudents.length} student profile(s) to Excel (${filename})`,
+        'info'
+      );
+
+      toast.success(`Successfully exported ${filteredStudents.length} student profile(s) to Excel!`, {
+        id: loadingToast,
+      });
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      toast.error('Failed to export to Excel', {
+        id: loadingToast,
+      });
+    }
+  };
 
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -372,13 +489,13 @@ const StaffStudentProfile = () => {
                 <MdRefresh className="h-5 w-5" />
                 Refresh
               </button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
+              <button 
+                onClick={handleExportToExcel}
+                disabled={filteredStudents.length === 0}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 <MdDownload className="h-5 w-5" />
                 Export
-              </button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors">
-                <MdPrint className="h-5 w-5" />
-                Print
               </button>
             </div>
           </div>
@@ -473,6 +590,32 @@ const StaffStudentProfile = () => {
         onClose={() => setSelectedStudent(null)}
         getStatusBadge={getStatusBadge}
         getPaymentBadge={getPaymentBadge}
+      />
+
+      {/* Toast Notifications */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: '#4ade80',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            duration: 4000,
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
       />
     </div>
   );
