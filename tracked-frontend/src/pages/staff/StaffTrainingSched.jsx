@@ -3,6 +3,10 @@ import { Link } from 'react-router-dom';
 import StaffSidebar from '../../layouts/staff/StaffSidebar';
 import { batchAPI } from '../../services/batchAPI';
 import { programAPI } from '../../services/programAPI';
+import { getStaffToken } from '../../utils/staffAuth';
+import toast, { Toaster } from 'react-hot-toast';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { 
   MdMenu,
   MdSearch,
@@ -187,6 +191,32 @@ const StaffTrainingSched = () => {
     fetchPrograms();
   }, []);
 
+  // Function to log system action
+  const logSystemAction = async (action, description, logLevel = 'info') => {
+    try {
+      const token = getStaffToken();
+      const response = await fetch('http://localhost:8000/api/log-action', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          action,
+          description,
+          log_level: logLevel,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to log system action');
+      }
+    } catch (error) {
+      console.error('Error logging system action:', error);
+    }
+  };
+
   const fetchPrograms = async () => {
     try {
       const response = await programAPI.getAll();
@@ -354,6 +384,154 @@ const StaffTrainingSched = () => {
     const ampm = hour >= 12 ? 'PM' : 'AM';
     const formattedHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
     return `${formattedHour}:${minutes} ${ampm}`;
+  };
+
+  // Export to PDF function - Calendar style schedule
+  const handleExportToPDF = async () => {
+    const loadingToast = toast.loading('Generating PDF schedule...');
+
+    try {
+      // Get staff user info for logging
+      const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
+      const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
+
+      const doc = new jsPDF({ orientation: 'l', unit: 'mm', format: 'a4' }); // Landscape orientation
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+
+      // Title
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Training Schedule', pageWidth / 2, 15, { align: 'center' });
+
+      // Get week dates for the calendar
+      const weekDates = getWeekDates();
+      const startDate = weekDates[0].toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      const endDate = weekDates[6].toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Week of ${startDate} to ${endDate}`, pageWidth / 2, 22, { align: 'center' });
+
+      // Prepare calendar data
+      const headers = weekDates.map(date => ({
+        content: `${date.toLocaleDateString('en-US', { weekday: 'short' })}\n${date.getDate()}`,
+        styles: { halign: 'center', fillColor: [41, 98, 255], textColor: [255, 255, 255], fontStyle: 'bold' }
+      }));
+
+      // Find all unique time slots
+      const timeSlots = new Set();
+      weekDates.forEach(date => {
+        const sessions = getSessionsForDate(date);
+        sessions.forEach(session => {
+          timeSlots.add(session.startTime);
+        });
+      });
+
+      // Sort time slots
+      const sortedTimeSlots = Array.from(timeSlots).sort();
+
+      // Build table body
+      const body = [];
+      
+      if (sortedTimeSlots.length === 0) {
+        // No sessions
+        body.push([
+          { content: 'No training sessions scheduled for this week', colSpan: 7, styles: { halign: 'center', textColor: [150, 150, 150] } }
+        ]);
+      } else {
+        // Group sessions by time slot
+        sortedTimeSlots.forEach(timeSlot => {
+          const row = [];
+          weekDates.forEach(date => {
+            const sessions = getSessionsForDate(date).filter(s => s.startTime === timeSlot);
+            if (sessions.length > 0) {
+              const sessionTexts = sessions.map(s => 
+                `${formatTime(s.startTime)}\n${s.title}\n${s.room}\n${s.instructor}`
+              ).join('\n\n');
+              row.push({
+                content: sessionTexts,
+                styles: { 
+                  fontSize: 7, 
+                  cellPadding: 2,
+                  fillColor: sessions[0].status === 'completed' ? [240, 240, 240] : 
+                             sessions[0].status === 'ongoing' ? [220, 252, 231] : [219, 234, 254]
+                }
+              });
+            } else {
+              row.push({ content: '', styles: { fillColor: [250, 250, 250] } });
+            }
+          });
+          body.push(row);
+        });
+      }
+
+      // Generate table using autoTable
+      autoTable(doc, {
+        head: [headers],
+        body: body,
+        startY: 28,
+        theme: 'grid',
+        styles: {
+          fontSize: 8,
+          cellPadding: 3,
+          overflow: 'linebreak',
+          halign: 'center',
+          valign: 'top'
+        },
+        columnStyles: {
+          0: { cellWidth: (pageWidth - 20) / 7 },
+          1: { cellWidth: (pageWidth - 20) / 7 },
+          2: { cellWidth: (pageWidth - 20) / 7 },
+          3: { cellWidth: (pageWidth - 20) / 7 },
+          4: { cellWidth: (pageWidth - 20) / 7 },
+          5: { cellWidth: (pageWidth - 20) / 7 },
+          6: { cellWidth: (pageWidth - 20) / 7 }
+        },
+        margin: { left: 10, right: 10 },
+        didDrawPage: function (data) {
+          // Footer
+          doc.setFontSize(8);
+          doc.setTextColor(128);
+          doc.text(
+            `Generated on ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`,
+            pageWidth / 2,
+            pageHeight - 10,
+            { align: 'center' }
+          );
+        }
+      });
+
+      // Generate filename
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0];
+      const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+      const filename = `Training_Schedule_${dateStr}_${timeStr}.pdf`;
+
+      // Save PDF
+      doc.save(filename);
+
+      // Count total sessions in the week
+      const totalSessions = weekDates.reduce((count, date) => {
+        return count + getSessionsForDate(date).length;
+      }, 0);
+
+      // Log the export action
+      await logSystemAction(
+        'training_schedule_exported',
+        `${staffName} exported training schedule to PDF (${filename}) - Week of ${startDate}`,
+        'info'
+      );
+
+      toast.success(`Successfully exported training schedule to PDF!`, {
+        id: loadingToast,
+      });
+    } catch (error) {
+      console.error('Error exporting to PDF:', error);
+      toast.error('Failed to export to PDF', {
+        id: loadingToast,
+      });
+    }
   };
 
   const filteredSessions = trainingSessions
@@ -589,9 +767,14 @@ const StaffTrainingSched = () => {
                 <MdRefresh className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
                 Refresh
               </button>
-              <button className="flex hover:cursor-pointer items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
+              <button 
+                onClick={handleExportToPDF}
+                disabled={viewMode !== 'week'}
+                className="flex hover:cursor-pointer items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title={viewMode !== 'week' ? 'Switch to Week view to export schedule' : 'Export weekly schedule to PDF'}
+              >
                 <MdDownload className="h-5 w-5" />
-                Export
+                Export Schedule
               </button>
             </div>
           </div>
@@ -983,6 +1166,32 @@ const StaffTrainingSched = () => {
           </div>
         </div>
       )}
+
+      {/* Toast Notifications */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: '#4ade80',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            duration: 4000,
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
     </div>
   );
 };
