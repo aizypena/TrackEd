@@ -4,6 +4,7 @@ import AddBatch from '../../components/admin/AddBatch';
 import ViewBatchStudents from '../../components/admin/ViewBatchStudents';
 import { batchAPI } from '../../services/batchAPI';
 import { programAPI } from '../../services/programAPI';
+import toast, { Toaster } from 'react-hot-toast';
 import {
   MdMenu,
   MdAdd,
@@ -45,6 +46,28 @@ const BatchManagement = () => {
   const [batchToDelete, setBatchToDelete] = useState(null);
   const [modalError, setModalError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+
+  // Log action helper
+  const logAction = async (action, description, level = 'info') => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      await fetch('http://localhost:8000/api/log-action', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          action,
+          description,
+          log_level: level
+        })
+      });
+    } catch (err) {
+      console.error('Failed to log action:', err);
+    }
+  };
 
   // Fetch batches and programs on mount
   useEffect(() => {
@@ -139,15 +162,33 @@ const BatchManagement = () => {
       const verifyData = await verifyResponse.json();
 
       if (!verifyData.success) {
+        const batch = batches.find(b => b.id === batchToDelete);
+        // Log password verification failure
+        await logAction(
+          'batch_deletion_password_failed',
+          `Failed password verification for deleting batch: ${batch?.batch_id || 'Unknown'}`,
+          'warning'
+        );
+        
         setModalError('Incorrect password. Please try again.');
         setPasswordInput('');
+        toast.error('Incorrect password');
         return;
       }
 
       // Password verified, proceed with deletion
+      const batch = batches.find(b => b.id === batchToDelete);
       const response = await batchAPI.delete(batchToDelete);
       if (response.success) {
+        // Log successful deletion
+        await logAction(
+          'batch_deleted',
+          `Deleted batch: ${batch?.batch_id || 'Unknown'}`,
+          'warning'
+        );
+        
         setSuccessMessage('Batch deleted successfully');
+        toast.success('Batch deleted successfully');
         fetchBatches();
         setShowPasswordModal(false);
         setPasswordInput('');
@@ -156,7 +197,17 @@ const BatchManagement = () => {
       }
     } catch (error) {
       console.error('Error deleting batch:', error);
+      const batch = batches.find(b => b.id === batchToDelete);
+      
+      // Log deletion failure
+      await logAction(
+        'batch_deletion_failed',
+        `Failed to delete batch: ${batch?.batch_id || 'Unknown'}`,
+        'error'
+      );
+      
       setModalError('Failed to delete batch. Please try again.');
+      toast.error('Failed to delete batch');
     }
   };
 
@@ -174,9 +225,24 @@ const BatchManagement = () => {
       if (response.success) {
         setEnrolledStudents(response.data.students);
         setShowStudentsModal(true);
+        
+        // Log viewing students
+        await logAction(
+          'batch_students_viewed',
+          `Viewed enrolled students for batch: ${batch.batch_id}`,
+          'info'
+        );
       }
     } catch (error) {
       console.error('Error fetching enrolled students:', error);
+      toast.error('Failed to load enrolled students');
+      
+      // Log viewing failure
+      await logAction(
+        'batch_students_view_failed',
+        `Failed to view students for batch: ${batch.batch_id}`,
+        'error'
+      );
     }
   };
 
@@ -567,6 +633,9 @@ const BatchManagement = () => {
           </div>
         </div>
       )}
+
+      {/* Toast Container */}
+      <Toaster position="top-right" />
     </div>
   );
 };

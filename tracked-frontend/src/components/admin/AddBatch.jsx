@@ -129,10 +129,28 @@ const AddBatch = ({ isOpen, onClose, batch, programs, onSuccess }) => {
       // console.log('API Response:', response);
 
       if (response.success) {
+        // Log successful action
+        await logAction(
+          batch ? 'batch_updated' : 'batch_created',
+          batch 
+            ? `Updated batch: ${batch.batch_id}` 
+            : `Created new batch for program ID: ${submitData.program_id}`,
+          'info'
+        );
+        
         toast.success(batch ? 'Batch updated successfully!' : 'Batch created successfully!');
         onClose();
         if (onSuccess) onSuccess();
       } else {
+        // Log failure
+        await logAction(
+          batch ? 'batch_update_failed' : 'batch_creation_failed',
+          batch 
+            ? `Failed to update batch: ${batch.batch_id}` 
+            : `Failed to create batch for program ID: ${submitData.program_id}`,
+          'error'
+        );
+        
         // Handle case where response comes back but success is false
         const errorMsg = response.message || 'Failed to save batch';
         if (response.errors) {
@@ -146,6 +164,15 @@ const AddBatch = ({ isOpen, onClose, batch, programs, onSuccess }) => {
     } catch (error) {
       console.error('Error saving batch:', error);
       
+      // Log failure
+      await logAction(
+        batch ? 'batch_update_failed' : 'batch_creation_failed',
+        batch 
+          ? `Failed to update batch: ${batch.batch_id}` 
+          : `Failed to create batch`,
+        'error'
+      );
+      
       // If the error has additional details, show them
       if (error.errors) {
         Object.keys(error.errors).forEach(key => {
@@ -156,6 +183,28 @@ const AddBatch = ({ isOpen, onClose, batch, programs, onSuccess }) => {
       }
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // Log action helper
+  const logAction = async (action, description, level = 'info') => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      await fetch('http://localhost:8000/api/log-action', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          action,
+          description,
+          log_level: level
+        })
+      });
+    } catch (err) {
+      console.error('Failed to log action:', err);
     }
   };
 
