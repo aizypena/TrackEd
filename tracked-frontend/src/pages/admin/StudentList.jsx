@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../../layouts/admin/Sidebar';
+import toast, { Toaster } from 'react-hot-toast';
 import {
   MdMenu,
   MdSearch,
@@ -24,67 +25,65 @@ const StudentList = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Mock data for programs
-  const programs = [
-    { id: 'bartending-nc-ii', name: 'Bartending NC II' },
-    { id: 'barista-training-nc-ii', name: 'Barista Training NC II' },
-    { id: 'housekeeping-nc-ii', name: 'Housekeeping NC II' },
-    { id: 'food-beverage-nc-ii', name: 'Food and Beverage Services NC II' },
-    { id: 'bread-pastry-nc-ii', name: 'Bread and Pastry Production NC II' },
-    { id: 'events-management-nc-iii', name: 'Events Management NC III' },
-    { id: 'chefs-catering-nc-ii', name: 'Chef\'s Catering Services NC II' },
-    { id: 'cookery-nc-ii', name: 'Cookery NC II' },
-  ];
+  // State for actual data
+  const [students, setStudents] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [batches, setBatches] = useState([]);
 
-  // Mock data for batches
-  const batches = [
-    { id: '2025-a', name: 'Batch 2025-A' },
-    { id: '2025-b', name: 'Batch 2025-B' },
-    { id: '2025-c', name: 'Batch 2025-C' },
-  ];
+  // Fetch students data from backend
+  const fetchStudents = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('adminToken');
+      
+      if (!token) {
+        toast.error('Authentication required');
+        return;
+      }
 
-  // Mock data for students
-  const students = [
-    {
-      id: 'STU-2025-001',
-      name: 'Juan Dela Cruz',
-      program: 'Bartending NC II',
-      batch: 'Batch 2025-A',
-      email: 'juan.delacruz@email.com',
-      phone: '+63 912 345 6789',
-      address: 'Makati City, Metro Manila',
-      enrollmentDate: '2025-08-15',
-      status: 'Active',
-      progress: 75,
-      attendance: 95,
-    },
-    {
-      id: 'STU-2025-002',
-      name: 'Maria Santos',
-      program: 'Cookery NC II',
-      batch: 'Batch 2025-A',
-      email: 'maria.santos@email.com',
-      phone: '+63 923 456 7890',
-      address: 'Quezon City, Metro Manila',
-      enrollmentDate: '2025-08-15',
-      status: 'Active',
-      progress: 82,
-      attendance: 98,
-    },
-    {
-      id: 'STU-2025-003',
-      name: 'Antonio Reyes',
-      program: 'Barista Training NC II',
-      batch: 'Batch 2025-B',
-      email: 'antonio.reyes@email.com',
-      phone: '+63 934 567 8901',
-      address: 'Pasig City, Metro Manila',
-      enrollmentDate: '2025-09-01',
-      status: 'Dropped',
-      progress: 60,
-      attendance: 85,
-    },
-  ];
+      const response = await fetch('http://localhost:8000/api/admin/students', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setStudents(data.students || []);
+          setPrograms(data.programs || []);
+          setBatches(data.batches || []);
+        } else {
+          toast.error('Failed to load students');
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(errorData.message || `Failed to load data (${response.status})`);
+      }
+    } catch (error) {
+      console.error('Error fetching students:', error);
+      toast.error('Error loading data: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStudents();
+  }, []);
+
+  // Filter students based on selected filters
+  const filteredStudents = students.filter(student => {
+    const matchesProgram = selectedProgram === 'all' || student.program_id === parseInt(selectedProgram);
+    const matchesBatch = selectedBatch === 'all' || student.batch_id === selectedBatch;
+    const matchesStatus = selectedStatus === 'all' || student.status.toLowerCase() === selectedStatus.toLowerCase();
+    const matchesSearch = searchQuery === '' || 
+      student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      student.id.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    return matchesProgram && matchesBatch && matchesStatus && matchesSearch;
+  });
 
   const handleExport = (format) => {
     console.log('Exporting in format:', format);
@@ -95,8 +94,7 @@ const StudentList = () => {
   };
 
   const handleRefresh = () => {
-    setLoading(true);
-    setTimeout(() => setLoading(false), 1000);
+    fetchStudents();
   };
 
   const getStatusColor = (status) => {
@@ -155,7 +153,7 @@ const StudentList = () => {
 
         {/* Main Content Area */}
         <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
-          <div className="max-w-7xl mx-auto">
+          <div className="max-w-[1600px] mx-auto">
             {/* Filters Section */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 md:space-x-4">
@@ -220,94 +218,114 @@ const StudentList = () => {
 
             {/* Students List */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                        Student Info
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                        Program & Batch
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                        Contact Details
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                        Progress
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {students.map((student) => (
-                      <tr key={student.id} className="hover:bg-gray-50 transition-colors duration-200">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
-                              <span className="text-sm font-medium text-blue-600">
-                                {student.name.split(' ').map(n => n[0]).join('')}
-                              </span>
-                            </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">{student.name}</div>
-                              <div className="text-sm text-gray-500">{student.id}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{student.program}</div>
-                          <div className="text-sm text-gray-500">{student.batch}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{student.email}</div>
-                          <div className="text-sm text-gray-500">{student.phone}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex flex-col space-y-1">
-                            <div className="text-sm text-gray-900">Progress: {student.progress}%</div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div
-                                className="bg-blue-600 h-2 rounded-full"
-                                style={{ width: `${student.progress}%` }}
-                              ></div>
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              Attendance: {student.attendance}%
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-3 py-1 text-xs font-medium rounded-full ${getStatusColor(student.status)}`}>
-                            {student.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center">
-                          <button className="text-gray-400 hover:text-gray-600">
-                            <MdMoreVert className="h-5 w-5" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="px-6 py-3 border-t border-gray-200 bg-gray-50">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-gray-500">
-                    Showing {students.length} students
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="mt-4 text-gray-600">Loading students...</p>
                   </div>
                 </div>
-              </div>
+              ) : filteredStudents.length === 0 ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <MdPerson className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">No students found</p>
+                    <p className="text-sm text-gray-500 mt-2">Try adjusting your filters</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                            Student Info
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                            Program & Batch
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                            Contact Details
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                            Progress
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                            Status
+                          </th>
+                          <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {filteredStudents.map((student) => (
+                          <tr key={student.user_id} className="hover:bg-gray-50 transition-colors duration-200">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                  <span className="text-sm font-medium text-blue-600">
+                                    {student.first_name?.[0]}{student.last_name?.[0]}
+                                  </span>
+                                </div>
+                                <div className="ml-4">
+                                  <div className="text-sm font-medium text-gray-900">{student.name}</div>
+                                  <div className="text-sm text-gray-500">{student.id}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900">{student.program}</div>
+                              <div className="text-sm text-gray-500">{student.batch}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900">{student.email}</div>
+                              <div className="text-sm text-gray-500">{student.phone || 'N/A'}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex flex-col space-y-1">
+                                <div className="text-sm text-gray-900">Progress: {student.progress}%</div>
+                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                  <div
+                                    className="bg-blue-600 h-2 rounded-full"
+                                    style={{ width: `${student.progress}%` }}
+                                  ></div>
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  Attendance: {student.attendance}%
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`px-3 py-1 text-xs font-medium rounded-full ${getStatusColor(student.status)}`}>
+                                {student.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                              <button className="text-gray-400 hover:text-gray-600">
+                                <MdMoreVert className="h-5 w-5" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="px-6 py-3 border-t border-gray-200 bg-gray-50">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm text-gray-500">
+                        Showing {filteredStudents.length} of {students.length} students
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </main>
       </div>
+      <Toaster position="top-right" />
     </div>
   );
 };

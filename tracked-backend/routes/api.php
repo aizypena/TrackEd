@@ -4182,6 +4182,172 @@ Route::middleware(['auth:sanctum'])->group(function () {
         ]);
     });
 
+    // Admin Assessment Results
+    Route::get('/admin/assessment-results', function (Request $request) {
+        $user = $request->user();
+        
+        if ($user->role !== 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Only admins can access this endpoint.'
+            ], 403);
+        }
+        
+        // Get all grades with relationships
+        $grades = \App\Models\Grade::with(['student', 'batch.program', 'quiz'])
+            ->orderBy('graded_at', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        // Format the results
+        $results = $grades->map(function ($grade) {
+            $student = $grade->student;
+            $batch = $grade->batch;
+            $program = $batch ? $batch->program : ($grade->program ?? null);
+            
+            return [
+                'id' => $grade->id,
+                'student_id' => $student->student_id ?? $student->id,
+                'student_name' => $student->first_name . ' ' . $student->last_name,
+                'program_name' => $program ? $program->title : 'N/A',
+                'program_id' => $program ? $program->id : null,
+                'batch_id' => $grade->batch_id,
+                'batch_name' => $batch ? $batch->batch_id : 'N/A',
+                'assessment_type' => $grade->assessment_type,
+                'assessment_title' => $grade->assessment_title,
+                'score' => $grade->score,
+                'total_points' => $grade->total_points,
+                'percentage' => $grade->percentage,
+                'passing_score' => $grade->passing_score,
+                'status' => $grade->status,
+                'competency_status' => $grade->percentage >= 85 ? 'Competent' : 'Not Competent',
+                'graded_at' => $grade->graded_at,
+                'feedback' => $grade->feedback,
+                'attempt_number' => $grade->attempt_number,
+            ];
+        });
+        
+        // Calculate statistics
+        $totalAssessments = $results->count();
+        $passedAssessments = $results->where('status', 'passed')->count();
+        $passRate = $totalAssessments > 0 ? round(($passedAssessments / $totalAssessments) * 100, 1) : 0;
+        $averageScore = $results->avg('percentage') ?? 0;
+        $pendingAssessments = $results->where('status', 'pending')->count();
+        
+        // Score distribution
+        $scoreRanges = [
+            '90-100' => $results->filter(fn($r) => $r['percentage'] >= 90 && $r['percentage'] <= 100)->count(),
+            '80-89' => $results->filter(fn($r) => $r['percentage'] >= 80 && $r['percentage'] < 90)->count(),
+            '70-79' => $results->filter(fn($r) => $r['percentage'] >= 70 && $r['percentage'] < 80)->count(),
+            '60-69' => $results->filter(fn($r) => $r['percentage'] >= 60 && $r['percentage'] < 70)->count(),
+            'Below 60' => $results->filter(fn($r) => $r['percentage'] < 60)->count(),
+        ];
+        
+        // Program performance
+        $programPerformance = $results->groupBy('program_name')->map(function ($programGrades, $programName) {
+            return [
+                'program' => $programName,
+                'average_score' => round($programGrades->avg('percentage'), 1)
+            ];
+        })->values();
+        
+        // Get unique programs and batches for filtering
+        $programs = $results->unique('program_id')->map(function ($item) {
+            return [
+                'id' => $item['program_id'],
+                'name' => $item['program_name']
+            ];
+        })->values();
+        
+        $batches = $results->unique('batch_id')->map(function ($item) {
+            return [
+                'id' => $item['batch_id'],
+                'name' => $item['batch_name']
+            ];
+        })->values();
+        
+        return response()->json([
+            'success' => true,
+            'data' => $results,
+            'statistics' => [
+                'totalAssessments' => $totalAssessments,
+                'passRate' => $passRate,
+                'averageScore' => round($averageScore, 1),
+                'pendingAssessments' => $pendingAssessments,
+            ],
+            'scoreDistribution' => $scoreRanges,
+            'programPerformance' => $programPerformance,
+            'programs' => $programs,
+            'batches' => $batches,
+        ]);
+    });
+
+    // Get all students with their details
+    Route::get('/admin/students', function (Request $request) {
+        $user = $request->user();
+        
+        if ($user->role !== 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Only admins can access this endpoint.'
+            ], 403);
+        }
+
+        // Fetch all users with role 'student' along with their batch and program
+        $students = \App\Models\User::with(['batch.program', 'grades'])
+            ->where('role', 'student')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Get all programs for filter dropdown
+        $programs = \App\Models\Program::select('id', 'title')->get();
+        
+        // Get all batches for filter dropdown
+        $batches = \App\Models\Batch::select('batch_id')->get();
+
+        // Format student data
+        $formattedStudents = $students->map(function ($student) {
+            // Calculate progress from grades
+            $totalGrades = $student->grades->count();
+            $completedGrades = $student->grades->where('status', 'passed')->count();
+            $progress = $totalGrades > 0 ? round(($completedGrades / $totalGrades) * 100) : 0;
+
+            // Calculate attendance percentage
+            $totalAttendance = $student->attendances()->count();
+            $presentCount = $student->attendances()->where('status', 'present')->count();
+            $attendance = $totalAttendance > 0 ? round(($presentCount / $totalAttendance) * 100) : 0;
+
+            return [
+                'id' => $student->student_id ?? 'STU-' . str_pad($student->id, 4, '0', STR_PAD_LEFT),
+                'user_id' => $student->id,
+                'name' => $student->full_name,
+                'first_name' => $student->first_name,
+                'last_name' => $student->last_name,
+                'email' => $student->email,
+                'phone' => $student->phone_number,
+                'address' => $student->address,
+                'program' => $student->batch && $student->batch->program ? $student->batch->program->title : 'N/A',
+                'program_id' => $student->batch && $student->batch->program ? $student->batch->program->id : null,
+                'batch' => $student->batch ? $student->batch->batch_id : 'N/A',
+                'batch_id' => $student->batch_id,
+                'enrollment_date' => $student->created_at ? $student->created_at->format('Y-m-d') : null,
+                'status' => ucfirst($student->status ?? 'active'),
+                'progress' => $progress,
+                'attendance' => $attendance,
+                'date_of_birth' => $student->date_of_birth ? $student->date_of_birth->format('Y-m-d') : null,
+                'gender' => $student->gender,
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'students' => $formattedStudents,
+            'programs' => $programs->map(fn($p) => ['id' => $p->id, 'name' => $p->title]),
+            'batches' => $batches->map(fn($b) => ['id' => $b->batch_id, 'name' => $b->batch_id]),
+            'total' => $formattedStudents->count(),
+        ]);
+    });
+
     // ARIMA Forecast
     Route::post('/admin/arima-forecast', function (Request $request) {
         $program = $request->input('program', 'all');

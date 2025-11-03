@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../../layouts/admin/Sidebar';
 import {
   MdMenu,
@@ -17,41 +17,87 @@ import {
 } from 'react-icons/md';
 import { Chart as ChartJS } from 'chart.js/auto';
 import { Bar, Doughnut } from 'react-chartjs-2';
+import toast, { Toaster } from 'react-hot-toast';
 
 const AdminAssessmentResults = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedProgram, setSelectedProgram] = useState('all');
   const [selectedBatch, setSelectedBatch] = useState('all');
-  const [dateRange, setDateRange] = useState('this-month');
+  const [dateRange, setDateRange] = useState('all-time');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [sortBy, setSortBy] = useState('date');
 
-  // Mock data for programs
-  const programs = [
-    { id: 'bartending-nc-ii', name: 'Bartending NC II' },
-    { id: 'barista-training-nc-ii', name: 'Barista Training NC II' },
-    { id: 'housekeeping-nc-ii', name: 'Housekeeping NC II' },
-    { id: 'food-beverage-nc-ii', name: 'Food and Beverage Services NC II' },
-    { id: 'bread-pastry-nc-ii', name: 'Bread and Pastry Production NC II' },
-    { id: 'events-management-nc-iii', name: 'Events Management NC III' },
-    { id: 'chefs-catering-nc-ii', name: 'Chef\'s Catering Services NC II' },
-    { id: 'cookery-nc-ii', name: 'Cookery NC II' },
-  ];
+  // State for actual data
+  const [assessmentResults, setAssessmentResults] = useState([]);
+  const [statistics, setStatistics] = useState({
+    totalAssessments: 0,
+    passRate: 0,
+    averageScore: 0,
+    pendingAssessments: 0,
+  });
+  const [scoreDistribution, setScoreDistribution] = useState({});
+  const [programPerformance, setProgramPerformance] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [batches, setBatches] = useState([]);
 
-  // Mock data for assessment summary
-  const assessmentSummary = {
-    totalAssessments: 245,
-    passRate: 88,
-    averageScore: 85,
-    pendingAssessments: 12,
+  // Fetch assessment results from backend
+  const fetchAssessmentResults = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('adminToken');
+      
+      if (!token) {
+        toast.error('Authentication required');
+        return;
+      }
+
+      const response = await fetch('http://localhost:8000/api/admin/assessment-results', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setAssessmentResults(data.data || []);
+          setStatistics(data.statistics || {});
+          setScoreDistribution(data.scoreDistribution || {});
+          setProgramPerformance(data.programPerformance || []);
+          setPrograms(data.programs || []);
+          setBatches(data.batches || []);
+        } else {
+          toast.error('Failed to load assessment results');
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(errorData.message || `Failed to load data (${response.status})`);
+      }
+    } catch (error) {
+      console.error('Error fetching assessment results:', error);
+      toast.error('Error loading data: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Mock data for score distribution
-  const scoreDistribution = {
+  useEffect(() => {
+    fetchAssessmentResults();
+  }, []);
+
+  // Prepare chart data for score distribution
+  const scoreDistributionData = {
     labels: ['90-100', '80-89', '70-79', '60-69', 'Below 60'],
     datasets: [{
-      data: [30, 45, 15, 8, 2],
+      data: [
+        scoreDistribution['90-100'] || 0,
+        scoreDistribution['80-89'] || 0,
+        scoreDistribution['70-79'] || 0,
+        scoreDistribution['60-69'] || 0,
+        scoreDistribution['Below 60'] || 0,
+      ],
       backgroundColor: [
         'rgba(59, 130, 246, 0.8)', // Blue
         'rgba(16, 185, 129, 0.8)', // Green
@@ -62,12 +108,12 @@ const AdminAssessmentResults = () => {
     }]
   };
 
-  // Mock data for program performance
-  const programPerformance = {
-    labels: programs.map(p => p.name),
+  // Prepare chart data for program performance
+  const programPerformanceData = {
+    labels: programPerformance.map(p => p.program),
     datasets: [{
       label: 'Average Score',
-      data: [88, 85, 82, 86, 89, 83, 87, 84], // Scores for all 8 programs
+      data: programPerformance.map(p => p.average_score),
       backgroundColor: 'rgba(59, 130, 246, 0.2)',
       borderColor: 'rgba(59, 130, 246, 1)',
       borderWidth: 1,
@@ -83,8 +129,7 @@ const AdminAssessmentResults = () => {
   };
 
   const handleRefresh = () => {
-    setLoading(true);
-    setTimeout(() => setLoading(false), 1000);
+    fetchAssessmentResults();
   };
 
   return (
@@ -140,7 +185,9 @@ const AdminAssessmentResults = () => {
                       <MdAssessment className="h-6 w-6 text-blue-600" />
                     </div>
                     <div className="ml-4">
-                      <p className="text-2xl font-semibold text-gray-900">{assessmentSummary.totalAssessments}</p>
+                      <p className="text-2xl font-semibold text-gray-900">
+                        {loading ? '...' : statistics.totalAssessments}
+                      </p>
                       <p className="text-sm font-medium text-blue-600">Total Assessments</p>
                     </div>
                   </div>
@@ -152,7 +199,9 @@ const AdminAssessmentResults = () => {
                       <MdCheckCircle className="h-6 w-6 text-green-600" />
                     </div>
                     <div className="ml-4">
-                      <p className="text-2xl font-semibold text-gray-900">{assessmentSummary.passRate}%</p>
+                      <p className="text-2xl font-semibold text-gray-900">
+                        {loading ? '...' : `${statistics.passRate.toFixed(1)}%`}
+                      </p>
                       <p className="text-sm font-medium text-green-600">Pass Rate</p>
                     </div>
                   </div>
@@ -164,7 +213,9 @@ const AdminAssessmentResults = () => {
                       <MdTrendingUp className="h-6 w-6 text-amber-600" />
                     </div>
                     <div className="ml-4">
-                      <p className="text-2xl font-semibold text-gray-900">{assessmentSummary.averageScore}</p>
+                      <p className="text-2xl font-semibold text-gray-900">
+                        {loading ? '...' : `${statistics.averageScore.toFixed(1)}%`}
+                      </p>
                       <p className="text-sm font-medium text-amber-600">Average Score</p>
                     </div>
                   </div>
@@ -176,7 +227,9 @@ const AdminAssessmentResults = () => {
                       <MdPeople className="h-6 w-6 text-indigo-600" />
                     </div>
                     <div className="ml-4">
-                      <p className="text-2xl font-semibold text-gray-900">{assessmentSummary.pendingAssessments}</p>
+                      <p className="text-2xl font-semibold text-gray-900">
+                        {loading ? '...' : statistics.pendingAssessments}
+                      </p>
                       <p className="text-sm font-medium text-indigo-600">Pending</p>
                     </div>
                   </div>
@@ -187,7 +240,7 @@ const AdminAssessmentResults = () => {
             {/* Filters Section */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 md:space-x-4">
-                <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <select
                     value={selectedProgram}
                     onChange={(e) => setSelectedProgram(e.target.value)}
@@ -200,14 +253,25 @@ const AdminAssessmentResults = () => {
                   </select>
 
                   <select
+                    value={selectedBatch}
+                    onChange={(e) => setSelectedBatch(e.target.value)}
+                    className="block w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-gray-500 focus:border-gray-500"
+                  >
+                    <option value="all">All Batches</option>
+                    {batches.map(batch => (
+                      <option key={batch.id} value={batch.id}>{batch.name}</option>
+                    ))}
+                  </select>
+
+                  <select
                     value={dateRange}
                     onChange={(e) => setDateRange(e.target.value)}
                     className="block w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-gray-500 focus:border-gray-500"
                   >
+                    <option value="all-time">All Time</option>
                     <option value="this-month">This Month</option>
                     <option value="last-month">Last Month</option>
                     <option value="last-3-months">Last 3 Months</option>
-                    <option value="all-time">All Time</option>
                   </select>
 
                   <select
@@ -250,61 +314,69 @@ const AdminAssessmentResults = () => {
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Score Distribution</h3>
                 <div className="h-[300px] flex items-center justify-center">
-                  <div className="w-[300px]">
-                    <Doughnut
-                      data={scoreDistribution}
-                      options={{
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                          legend: {
-                            position: 'bottom'
+                  {loading ? (
+                    <div className="text-gray-500">Loading chart...</div>
+                  ) : (
+                    <div className="w-[300px]">
+                      <Doughnut
+                        data={scoreDistributionData}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: {
+                            legend: {
+                              position: 'bottom'
+                            }
                           }
-                        }
-                      }}
-                    />
-                  </div>
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Program Performance</h3>
                 <div className="h-[300px]">
-                  <Bar
-                    data={programPerformance}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: {
-                        legend: {
-                          display: false
-                        }
-                      },
-                      scales: {
-                        y: {
-                          beginAtZero: true,
-                          max: 100,
-                          grid: {
-                            color: 'rgba(0,0,0,0.05)'
-                          },
-                          ticks: {
-                            callback: function(value) {
-                              return value + '%';
-                            }
+                  {loading ? (
+                    <div className="flex items-center justify-center h-full text-gray-500">Loading chart...</div>
+                  ) : (
+                    <Bar
+                      data={programPerformanceData}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: {
+                            display: false
                           }
                         },
-                        x: {
-                          grid: {
-                            display: false
+                        scales: {
+                          y: {
+                            beginAtZero: true,
+                            max: 100,
+                            grid: {
+                              color: 'rgba(0,0,0,0.05)'
+                            },
+                            ticks: {
+                              callback: function(value) {
+                                return value + '%';
+                              }
+                            }
                           },
-                          ticks: {
-                            maxRotation: 45,
-                            minRotation: 45
+                          x: {
+                            grid: {
+                              display: false
+                            },
+                            ticks: {
+                              maxRotation: 45,
+                              minRotation: 45
+                            }
                           }
                         }
-                      }
-                    }}
-                  />
+                      }}
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -399,6 +471,7 @@ const AdminAssessmentResults = () => {
           </div>
         </main>
       </div>
+      <Toaster position="top-right" />
     </div>
   );
 };
