@@ -3,6 +3,7 @@ import Sidebar from '../../layouts/admin/Sidebar';
 import ProgramModal from '../../components/admin/ProgramModal';
 import Toast from '../../components/Toast';
 import { programAPI } from '../../services/programAPI';
+import toast from 'react-hot-toast';
 import {
   MdMenu,
   MdAdd,
@@ -28,14 +29,39 @@ const CoursePrograms = () => {
   const [loading, setLoading] = useState(false);
   const [programs, setPrograms] = useState([]);
   const [error, setError] = useState(null);
-  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  const [toastState, setToastState] = useState({ show: false, message: '', type: 'success' });
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [programToDelete, setProgramToDelete] = useState(null);
+  const [deletePassword, setDeletePassword] = useState('');
 
-  const showToast = (message, type = 'success') => {
-    setToast({ show: true, message, type });
+  const showToastMessage = (message, type = 'success') => {
+    setToastState({ show: true, message, type });
   };
 
   const hideToast = () => {
-    setToast({ ...toast, show: false });
+    setToastState({ ...toastState, show: false });
+  };
+
+  // Log action helper
+  const logAction = async (action, description, level = 'info') => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      await fetch('http://localhost:8000/api/log-action', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          action,
+          description,
+          log_level: level
+        })
+      });
+    } catch (err) {
+      console.error('Failed to log action:', err);
+    }
   };
 
   // Fetch programs on component mount
@@ -69,20 +95,69 @@ const CoursePrograms = () => {
     setShowAddModal(true);
   };
 
-  const handleDeleteProgram = async (programId) => {
-    if (!window.confirm('Are you sure you want to delete this program?')) {
+  const handleDeleteProgram = (program) => {
+    setProgramToDelete(program);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletePassword) {
+      toast.error('Please enter your password to confirm deletion');
       return;
     }
-    
+
     try {
-      const response = await programAPI.delete(programId);
+      const token = localStorage.getItem('adminToken');
+      
+      // First verify the admin password
+      const verifyResponse = await fetch('http://localhost:8000/api/admin/verify-password', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          password: deletePassword
+        })
+      });
+
+      if (!verifyResponse.ok) {
+        const errorData = await verifyResponse.json();
+        toast.error(errorData.message || 'Incorrect password');
+        await logAction(
+          'program_deletion_password_failed',
+          `Failed password verification for deleting program: ${programToDelete.title}`,
+          'warning'
+        );
+        return;
+      }
+
+      // If password is correct, proceed with deletion
+      const response = await programAPI.delete(programToDelete.id);
       if (response.success) {
+        // Log successful deletion
+        await logAction(
+          'program_deleted',
+          `Deleted program: ${programToDelete.title}`,
+          'warning'
+        );
+        
         // Refresh programs list
         fetchPrograms();
-        showToast('Program deleted successfully!', 'success');
+        toast.success('Program deleted successfully!');
+        setShowDeleteConfirm(false);
+        setProgramToDelete(null);
+        setDeletePassword('');
       }
     } catch (err) {
-      showToast('Error deleting program: ' + err.message, 'error');
+      // Log deletion failure
+      await logAction(
+        'program_deletion_failed',
+        `Failed to delete program: ${programToDelete?.title || 'Unknown'}`,
+        'error'
+      );
+      toast.error('Error deleting program: ' + err.message);
       console.error('Error deleting program:', err);
     }
   };
@@ -92,14 +167,32 @@ const CoursePrograms = () => {
       let response;
       if (editingProgram) {
         response = await programAPI.update(editingProgram.id, programData);
+        
+        if (response.success) {
+          // Log successful update
+          await logAction(
+            'program_updated',
+            `Updated program: ${programData.title}`,
+            'info'
+          );
+        }
       } else {
         response = await programAPI.create(programData);
+        
+        if (response.success) {
+          // Log successful creation
+          await logAction(
+            'program_created',
+            `Created new program: ${programData.title}`,
+            'info'
+          );
+        }
       }
 
       if (response.success) {
         setShowAddModal(false);
         setEditingProgram(null);
-        showToast(response.message, 'success');
+        showToastMessage(response.message, 'success');
         
         // Refresh the page after successful edit
         if (editingProgram) {
@@ -111,7 +204,13 @@ const CoursePrograms = () => {
         }
       }
     } catch (err) {
-      showToast('Error saving program: ' + err.message, 'error');
+      // Log save failure
+      await logAction(
+        editingProgram ? 'program_update_failed' : 'program_creation_failed',
+        `Failed to ${editingProgram ? 'update' : 'create'} program: ${programData.title}`,
+        'error'
+      );
+      showToastMessage('Error saving program: ' + err.message, 'error');
       console.error('Error saving program:', err);
     }
   };
@@ -312,7 +411,7 @@ const CoursePrograms = () => {
                         Edit
                       </button>
                       <button
-                        onClick={() => handleDeleteProgram(program.id)}
+                        onClick={() => handleDeleteProgram(program)}
                         className="flex items-center justify-center px-4 py-2 h-10 border border-red-300 rounded-md text-sm font-medium text-red-700 bg-white hover:bg-red-50"
                       >
                         <MdDelete className="h-4 w-4 mr-1.5" />
@@ -338,11 +437,80 @@ const CoursePrograms = () => {
         onSave={handleSaveProgram}
       />
 
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && programToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="fixed inset-0 backdrop-blur-sm transition-opacity" 
+            style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
+            onClick={() => {
+              setShowDeleteConfirm(false);
+              setProgramToDelete(null);
+              setDeletePassword('');
+            }}
+          />
+          
+          <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="bg-red-50 border-b border-red-200 px-6 py-4 rounded-t-lg">
+              <h3 className="text-xl font-semibold text-red-900">Confirm Delete</h3>
+            </div>
+
+            <div className="p-6">
+              <p className="text-gray-700 mb-4">
+                Are you sure you want to delete the program{' '}
+                <span className="font-semibold">"{programToDelete.title}"</span>?
+              </p>
+              <p className="text-sm text-red-600 mb-4">
+                This action cannot be undone. All program data will be permanently deleted.
+              </p>
+              
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Enter your password to confirm:
+                </label>
+                <input
+                  type="password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-gray-900 bg-white"
+                  placeholder="Your admin password"
+                  autoFocus
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      confirmDelete();
+                    }
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-end space-x-3 rounded-b-lg">
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setProgramToDelete(null);
+                  setDeletePassword('');
+                }}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Delete Program
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Toast Notification */}
       <Toast
-        message={toast.message}
-        type={toast.type}
-        isVisible={toast.show}
+        message={toastState.message}
+        type={toastState.type}
+        isVisible={toastState.show}
         onClose={hideToast}
       />
     </div>
