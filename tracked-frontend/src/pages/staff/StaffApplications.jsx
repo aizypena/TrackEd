@@ -318,7 +318,9 @@ const StaffApplications = () => {
                           <div className="text-sm text-gray-500">{app.phone_number || 'N/A'}</div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900">{app.course_program_formatted}</div>
+                          <div className="text-sm text-gray-900">
+                            {app.course_program_formatted || app.course_program || 'Not specified'}
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">{formatDate(app.created_at)}</div>

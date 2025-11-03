@@ -2862,12 +2862,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
         
         // Format program names
         $applications = $applications->map(function($app) {
+            $appData = $app->toArray();
+            
             if ($app->course_program) {
                 // Check if course_program is a numeric ID
                 if (is_numeric($app->course_program)) {
                     // Fetch the program title from the programs table
                     $program = \App\Models\Program::find($app->course_program);
-                    $app->course_program_formatted = $program ? $program->title : 'Not specified';
+                    $appData['course_program_formatted'] = $program ? $program->title : 'Not specified';
                 } else {
                     // Convert slug to readable name
                     $formatted = str_replace('-', ' ', $app->course_program);
@@ -2878,12 +2880,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
                     $formatted = preg_replace('/\bIi\b/', 'II', $formatted);
                     $formatted = preg_replace('/\bIii\b/', 'III', $formatted);
                     $formatted = preg_replace('/\bIv\b/', 'IV', $formatted);
-                    $app->course_program_formatted = $formatted;
+                    $appData['course_program_formatted'] = $formatted;
                 }
             } else {
-                $app->course_program_formatted = 'Not specified';
+                $appData['course_program_formatted'] = 'Not specified';
             }
-            return $app;
+            
+            return $appData;
         });
         
         return response()->json([
@@ -2934,16 +2937,21 @@ Route::middleware(['auth:sanctum'])->group(function () {
             ->where('id', $id)
             ->first();
         
+        // Also check if user is already a student (for rejected status)
         if (!$applicant) {
-            return response()->json(['error' => 'Applicant not found'], 404);
+            $applicant = \App\Models\User::where('id', $id)->first();
+            if (!$applicant) {
+                return response()->json(['error' => 'Applicant not found'], 404);
+            }
         }
         
         // Handle rejection - free up voucher slot if applicant was eligible
         if ($request->application_status === 'rejected') {
             // Check if applicant had a voucher assigned (only for approved applicants who were converted to students)
             if ($applicant->role === 'student' && 
+                !empty($applicant->voucher_eligibility) &&
                 $applicant->voucher_eligibility === 'eligible' && 
-                $applicant->voucher_id) {
+                !empty($applicant->voucher_id)) {
                 
                 // Find the voucher and decrement used_count
                 $voucher = \App\Models\Voucher::where('voucher_id', $applicant->voucher_id)->first();

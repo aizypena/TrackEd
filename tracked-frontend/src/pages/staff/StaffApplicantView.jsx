@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import StaffSidebar from '../../layouts/staff/StaffSidebar';
 import ApproveApplicantModal from '../../components/staff/ApproveApplicantModal';
+import ConfirmationModal from '../../components/staff/ConfirmationModal';
 import { getStaffToken } from '../../utils/staffAuth';
+import toast, { Toaster } from 'react-hot-toast';
 import { 
   MdMenu,
   MdArrowBack,
@@ -28,10 +30,38 @@ const StaffApplicantView = () => {
   const [applicant, setApplicant] = useState(null);
   const [updating, setUpdating] = useState(false);
   const [showApproveModal, setShowApproveModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingStatusChange, setPendingStatusChange] = useState(null);
 
   useEffect(() => {
     fetchApplicantDetails();
   }, [id]);
+
+  // Function to log system action
+  const logSystemAction = async (action, description, logLevel = 'info') => {
+    try {
+      const token = getStaffToken();
+      const response = await fetch('http://localhost:8000/api/log-action', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          action,
+          description,
+          log_level: logLevel,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to log system action');
+      }
+    } catch (error) {
+      console.error('Error logging system action:', error);
+    }
+  };
 
   const fetchApplicantDetails = async () => {
     try {
@@ -58,10 +88,43 @@ const StaffApplicantView = () => {
     }
   };
 
-  const updateApplicationStatus = async (status) => {
-    if (!confirm(`Are you sure you want to ${status} this application?`)) {
-      return;
-    }
+  const handleStatusChangeClick = (status) => {
+    setPendingStatusChange(status);
+    setShowConfirmModal(true);
+  };
+
+  const getConfirmationDetails = (status) => {
+    const details = {
+      under_review: {
+        title: 'Mark as Under Review',
+        message: `Are you sure you want to mark this application as under review? This will indicate that the application is currently being reviewed by staff.`,
+        confirmText: 'Mark as Under Review',
+        color: 'blue'
+      },
+      rejected: {
+        title: 'Reject Application',
+        message: `Are you sure you want to reject this application? This action will notify the applicant that their application has been rejected.`,
+        confirmText: 'Reject Application',
+        color: 'red'
+      },
+      pending: {
+        title: 'Mark as Pending',
+        message: `Are you sure you want to mark this application as pending? This will move the application back to the pending queue.`,
+        confirmText: 'Mark as Pending',
+        color: 'orange'
+      }
+    };
+    return details[status] || details.pending;
+  };
+
+  const confirmStatusChange = async () => {
+    if (!pendingStatusChange) return;
+
+    setShowConfirmModal(false);
+    const status = pendingStatusChange;
+    setPendingStatusChange(null);
+
+    const loadingToast = toast.loading('Updating application status...');
 
     try {
       setUpdating(true);
@@ -77,14 +140,34 @@ const StaffApplicantView = () => {
       });
 
       if (response.ok) {
-        alert(`Application ${status} successfully!`);
+        // Get staff user info
+        const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
+        const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
+        
+        // Format status for display
+        const statusLabel = status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+        
+        // Log the status change
+        await logSystemAction(
+          'application_status_updated',
+          `${staffName} updated application status for ${capitalizeName(applicant.first_name)} ${capitalizeName(applicant.last_name)} (APP-${applicant.id}) to: ${statusLabel}`,
+          'info'
+        );
+
+        toast.success(`Application ${status.replace('_', ' ')} successfully!`, {
+          id: loadingToast,
+        });
         fetchApplicantDetails();
       } else {
-        alert('Failed to update application status');
+        toast.error('Failed to update application status', {
+          id: loadingToast,
+        });
       }
     } catch (error) {
       console.error('Error updating status:', error);
-      alert('Error updating application status');
+      toast.error('Error updating application status', {
+        id: loadingToast,
+      });
     } finally {
       setUpdating(false);
     }
@@ -243,7 +326,7 @@ const StaffApplicantView = () => {
                   </div>
                   <div>
                     <label className="text-sm text-gray-500">Place of Birth</label>
-                    <p className="text-gray-800 font-medium">{applicant.place_of_birth || 'N/A'}</p>
+                    <p className="text-gray-800 font-medium">{applicant.place_of_birth || applicant.birth_place || 'N/A'}</p>
                   </div>
                   <div>
                     <label className="text-sm text-gray-500">Gender</label>
@@ -404,7 +487,7 @@ const StaffApplicantView = () => {
                 <h3 className="text-lg font-bold text-gray-800 mb-4">Update Status</h3>
                 <div className="space-y-3">
                   <button
-                    onClick={() => updateApplicationStatus('under_review')}
+                    onClick={() => handleStatusChangeClick('under_review')}
                     disabled={updating || applicant.application_status === 'under_review'}
                     className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -420,7 +503,7 @@ const StaffApplicantView = () => {
                     {applicant.role === 'student' ? 'Already a Student' : 'Approve & Enroll as Student'}
                   </button>
                   <button
-                    onClick={() => updateApplicationStatus('rejected')}
+                    onClick={() => handleStatusChangeClick('rejected')}
                     disabled={updating || applicant.application_status === 'rejected'}
                     className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -428,7 +511,7 @@ const StaffApplicantView = () => {
                     Reject Application
                   </button>
                   <button
-                    onClick={() => updateApplicationStatus('pending')}
+                    onClick={() => handleStatusChangeClick('pending')}
                     disabled={updating || applicant.application_status === 'pending'}
                     className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -442,14 +525,67 @@ const StaffApplicantView = () => {
         </div>
       </div>
       
+      {/* Confirmation Modal */}
+      {pendingStatusChange && (
+        <ConfirmationModal
+          isOpen={showConfirmModal}
+          onClose={() => {
+            setShowConfirmModal(false);
+            setPendingStatusChange(null);
+          }}
+          onConfirm={confirmStatusChange}
+          title={getConfirmationDetails(pendingStatusChange).title}
+          message={getConfirmationDetails(pendingStatusChange).message}
+          confirmText={getConfirmationDetails(pendingStatusChange).confirmText}
+          confirmColor={getConfirmationDetails(pendingStatusChange).color}
+        />
+      )}
+
       {/* Approve Applicant Modal */}
       <ApproveApplicantModal
         isOpen={showApproveModal}
         onClose={() => setShowApproveModal(false)}
         applicant={applicant}
-        onSuccess={(updatedStudent) => {
+        onSuccess={async (updatedStudent) => {
+          // Get staff user info
+          const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
+          const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
+          
+          // Log the approval and enrollment
+          await logSystemAction(
+            'applicant_approved_enrolled',
+            `${staffName} approved and enrolled ${capitalizeName(applicant.first_name)} ${capitalizeName(applicant.last_name)} (APP-${applicant.id}) as a student in ${applicant.course_program_formatted}`,
+            'info'
+          );
+          
           fetchApplicantDetails();
           setShowApproveModal(false);
+        }}
+      />
+      
+      {/* Toast Notifications */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: '#4ade80',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            duration: 4000,
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
         }}
       />
     </div>
