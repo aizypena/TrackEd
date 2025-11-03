@@ -2904,11 +2904,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
             return response()->json(['error' => 'Applicant not found'], 404);
         }
         
+        // Convert to array to add custom field
+        $applicantData = $applicant->toArray();
+        
         // Format program name
         if ($applicant->course_program) {
             if (is_numeric($applicant->course_program)) {
                 $program = \App\Models\Program::find($applicant->course_program);
-                $applicant->course_program_formatted = $program ? $program->title : 'Not specified';
+                $applicantData['course_program_formatted'] = $program ? $program->title : 'Not specified';
             } else {
                 $formatted = str_replace('-', ' ', $applicant->course_program);
                 $formatted = ucwords($formatted);
@@ -2916,14 +2919,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 $formatted = preg_replace('/\bIi\b/', 'II', $formatted);
                 $formatted = preg_replace('/\bIii\b/', 'III', $formatted);
                 $formatted = preg_replace('/\bIv\b/', 'IV', $formatted);
-                $applicant->course_program_formatted = $formatted;
+                $applicantData['course_program_formatted'] = $formatted;
             }
         } else {
-            $applicant->course_program_formatted = 'Not specified';
+            $applicantData['course_program_formatted'] = 'Not specified';
         }
         
         return response()->json([
-            'applicant' => $applicant
+            'applicant' => $applicantData
         ]);
     });
 
