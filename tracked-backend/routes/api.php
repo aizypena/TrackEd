@@ -1956,40 +1956,54 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Course Materials Routes
     // Get course materials for trainer's assigned programs
     Route::get('/trainer/course-materials', function (Request $request) {
-        $trainer = $request->user();
+        $user = $request->user();
         
-        if ($trainer->role !== 'trainer') {
+        if ($user->role !== 'trainer' && $user->role !== 'admin') {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized'
             ], 403);
         }
         
-        // Get programs assigned to this trainer
-        $programIds = DB::table('batches')
-            ->where('trainer_id', $trainer->id)
-            ->distinct()
-            ->pluck('program_id');
+        // If admin, get all materials. If trainer, get only assigned program materials
+        if ($user->role === 'admin') {
+            $materials = \App\Models\CourseMaterial::with(['program', 'uploader'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+        } else {
+            // Get programs assigned to this trainer
+            $programIds = DB::table('batches')
+                ->where('trainer_id', $user->id)
+                ->distinct()
+                ->pluck('program_id');
+            
+            $materials = \App\Models\CourseMaterial::whereIn('program_id', $programIds)
+                ->with(['program', 'uploader'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+        }
         
-        // Get materials for these programs
-        $materials = \App\Models\CourseMaterial::whereIn('program_id', $programIds)
-            ->with(['program', 'uploader'])
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function ($material) {
+        // Transform materials
+        $materials = $materials->map(function ($material) {
                 return [
                     'id' => $material->id,
                     'title' => $material->title,
                     'description' => $material->description,
                     'program_id' => $material->program_id,
-                    'program_title' => $material->program->title,
+                    'program' => [
+                        'id' => $material->program->id,
+                        'title' => $material->program->title
+                    ],
                     'type' => $material->type,
-                    'format' => $material->file_format,
-                    'size' => $material->file_size,
+                    'file_type' => strtoupper($material->file_format),
+                    'file_format' => $material->file_format,
+                    'file_size' => $material->file_size,
                     'file_name' => $material->file_name,
-                    'downloads' => $material->downloads,
+                    'download_count' => $material->downloads ?? 0,
+                    'downloads' => $material->downloads ?? 0,
                     'uploaded_by' => $material->uploader->first_name . ' ' . $material->uploader->last_name,
                     'uploaded_at' => $material->created_at->toDateString(),
+                    'created_at' => $material->created_at->toIso8601String(),
                 ];
             });
         
@@ -2001,9 +2015,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     
     // Upload course material
     Route::post('/trainer/course-materials/upload', function (Request $request) {
-        $trainer = $request->user();
+        $user = $request->user();
         
-        if ($trainer->role !== 'trainer') {
+        if ($user->role !== 'trainer' && $user->role !== 'admin') {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized'
@@ -2018,18 +2032,21 @@ Route::middleware(['auth:sanctum'])->group(function () {
             'file' => 'required|file|max:512000', // 500MB max
         ]);
         
-        // Verify trainer has access to this program
-        $hasAccess = DB::table('batches')
-            ->where('trainer_id', $trainer->id)
-            ->where('program_id', $request->program_id)
-            ->exists();
-        
-        if (!$hasAccess) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You do not have access to upload materials for this program'
-            ], 403);
+        // If trainer, verify trainer has access to this program
+        if ($user->role === 'trainer') {
+            $hasAccess = DB::table('batches')
+                ->where('trainer_id', $user->id)
+                ->where('program_id', $request->program_id)
+                ->exists();
+            
+            if (!$hasAccess) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have access to this program'
+                ], 403);
+            }
         }
+        // Admin has access to all programs
         
         // Handle file upload
         $file = $request->file('file');
@@ -2046,7 +2063,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Create database record
         $material = \App\Models\CourseMaterial::create([
             'program_id' => $request->program_id,
-            'uploaded_by' => $trainer->id,
+            'uploaded_by' => $user->id,
             'title' => $request->title,
             'description' => $request->description,
             'type' => $request->type,
@@ -2069,9 +2086,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     
     // Download course material
     Route::get('/trainer/course-materials/{id}/download', function (Request $request, $id) {
-        $trainer = $request->user();
+        $user = $request->user();
         
-        if ($trainer->role !== 'trainer') {
+        if ($user->role !== 'trainer' && $user->role !== 'admin') {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized'
@@ -2087,18 +2104,21 @@ Route::middleware(['auth:sanctum'])->group(function () {
             ], 404);
         }
         
-        // Verify trainer has access to this program
-        $hasAccess = DB::table('batches')
-            ->where('trainer_id', $trainer->id)
-            ->where('program_id', $material->program_id)
-            ->exists();
-        
-        if (!$hasAccess) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You do not have access to this material'
-            ], 403);
+        // If trainer, verify trainer has access to this program
+        if ($user->role === 'trainer') {
+            $hasAccess = DB::table('batches')
+                ->where('trainer_id', $user->id)
+                ->where('program_id', $material->program_id)
+                ->exists();
+            
+            if (!$hasAccess) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have access to this material'
+                ], 403);
+            }
         }
+        // Admin has access to all materials
         
         // Increment download count
         $material->increment('downloads');
@@ -2118,9 +2138,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     
     // Delete course material
     Route::delete('/trainer/course-materials/{id}', function (Request $request, $id) {
-        $trainer = $request->user();
+        $user = $request->user();
         
-        if ($trainer->role !== 'trainer') {
+        if ($user->role !== 'trainer' && $user->role !== 'admin') {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized'
@@ -2136,8 +2156,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
             ], 404);
         }
         
-        // Verify trainer uploaded this material
-        if ($material->uploaded_by !== $trainer->id) {
+        // If trainer, verify trainer uploaded this material. Admin can delete any material.
+        if ($user->role === 'trainer' && $material->uploaded_by !== $user->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'You can only delete materials you uploaded'
@@ -2161,9 +2181,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     
     // Update course material
     Route::put('/trainer/course-materials/{id}', function (Request $request, $id) {
-        $trainer = $request->user();
+        $user = $request->user();
         
-        if ($trainer->role !== 'trainer') {
+        if ($user->role !== 'trainer' && $user->role !== 'admin') {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized'
@@ -2179,8 +2199,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
             ], 404);
         }
         
-        // Verify trainer uploaded this material
-        if ($material->uploaded_by !== $trainer->id) {
+        // If trainer, verify trainer uploaded this material. Admin can edit any material.
+        if ($user->role === 'trainer' && $material->uploaded_by !== $user->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'You can only edit materials you uploaded'

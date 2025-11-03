@@ -40,14 +40,16 @@ ChartJS.register(
 
 const EnrollmentTrends = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [timeRange, setTimeRange] = useState('3years');
+  const [timeRange, setTimeRange] = useState('all');
   const [loading, setLoading] = useState(false);
   const [viewType, setViewType] = useState('quarterly');
-  const [comparisonYear, setComparisonYear] = useState('2025');
+  const [selectedYear, setSelectedYear] = useState('all');
+  const [selectedProgram, setSelectedProgram] = useState('all');
   
   const [trendsData, setTrendsData] = useState({
     quarterlyData: {},
     programTotals: {},
+    allData: [],
     stats: {
       totalPrograms: 0,
       totalEnrollments: 0,
@@ -60,6 +62,12 @@ const EnrollmentTrends = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('adminToken');
+      
+      if (!token) {
+        toast.error('Authentication required');
+        return;
+      }
+      
       const response = await fetch('http://localhost:8000/api/admin/enrollment-trends', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -69,13 +77,18 @@ const EnrollmentTrends = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setTrendsData(data);
+        if (data.success) {
+          setTrendsData(data);
+        } else {
+          toast.error('Failed to load enrollment data');
+        }
       } else {
-        toast.error('Failed to load enrollment data');
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(errorData.message || `Failed to load data (${response.status})`);
       }
     } catch (error) {
       console.error('Error fetching trends:', error);
-      toast.error('Error loading data');
+      toast.error('Error loading data: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -90,6 +103,9 @@ const EnrollmentTrends = () => {
     const quarters = Object.keys(trendsData.quarterlyData || {}).sort((a, b) => {
       const matchA = a.match(/Q(\d) (\d+)/);
       const matchB = b.match(/Q(\d) (\d+)/);
+      
+      if (!matchA || !matchB) return 0;
+      
       const yearA = parseInt(matchA[2]);
       const yearB = parseInt(matchB[2]);
       const quarterA = parseInt(matchA[1]);
@@ -99,12 +115,21 @@ const EnrollmentTrends = () => {
       return quarterA - quarterB;
     });
     
-    if (timeRange === '3years') {
-      return quarters.slice(-12); // Last 12 quarters = 3 years
-    } else if (timeRange === '5years') {
-      return quarters.slice(-20); // Last 20 quarters = 5 years
+    // Filter by selected year first
+    let filtered = quarters;
+    if (selectedYear !== 'all') {
+      filtered = quarters.filter(q => q.includes(selectedYear));
     }
-    return quarters; // All time
+    
+    // Then apply time range filter
+    if (timeRange === '1year') {
+      return filtered.slice(-4); // Last 4 quarters = 1 year
+    } else if (timeRange === '3years') {
+      return filtered.slice(-12); // Last 12 quarters = 3 years
+    } else if (timeRange === '5years') {
+      return filtered.slice(-20); // Last 20 quarters = 5 years
+    }
+    return filtered; // All time or selected year
   };
 
   // Calculate growth rate
@@ -119,22 +144,36 @@ const EnrollmentTrends = () => {
     return (((recent - previous) / previous) * 100).toFixed(1);
   };
 
-  // Calculate NC II vs NC III distribution
-  const nc2Programs = Object.keys(trendsData.programTotals || {}).filter(p => p.includes('NC II'));
-  const nc3Programs = Object.keys(trendsData.programTotals || {}).filter(p => p.includes('NC III'));
-  
-  const nc2Total = nc2Programs.reduce((sum, prog) => sum + (trendsData.programTotals[prog] || 0), 0);
-  const nc3Total = nc3Programs.reduce((sum, prog) => sum + (trendsData.programTotals[prog] || 0), 0);
-
   const filteredQuarters = getFilteredQuarterlyData();
+
+  // Get filtered program data based on selected program
+  const getFilteredProgramTotals = () => {
+    if (selectedProgram === 'all') {
+      return trendsData.programTotals || {};
+    }
+    const filtered = {};
+    if (trendsData.programTotals && trendsData.programTotals[selectedProgram]) {
+      filtered[selectedProgram] = trendsData.programTotals[selectedProgram];
+    }
+    return filtered;
+  };
+
+  const filteredProgramTotals = getFilteredProgramTotals();
+
+  // Calculate NC II vs NC III distribution
+  const nc2Programs = Object.keys(filteredProgramTotals).filter(p => p.includes('NC II'));
+  const nc3Programs = Object.keys(filteredProgramTotals).filter(p => p.includes('NC III'));
+  
+  const nc2Total = nc2Programs.reduce((sum, prog) => sum + (filteredProgramTotals[prog] || 0), 0);
+  const nc3Total = nc3Programs.reduce((sum, prog) => sum + (filteredProgramTotals[prog] || 0), 0);
 
   // Prepare chart data from CSV
   const popularPrograms = {
-    labels: Object.keys(trendsData.programTotals || {}),
+    labels: Object.keys(filteredProgramTotals),
     datasets: [
       {
         label: 'Total Enrollments',
-        data: Object.values(trendsData.programTotals || {}),
+        data: Object.values(filteredProgramTotals),
         backgroundColor: [
           'rgba(54, 162, 235, 0.8)',
           'rgba(75, 192, 192, 0.8)',
@@ -157,9 +196,19 @@ const EnrollmentTrends = () => {
       {
         label: 'Quarterly Enrollments',
         data: filteredQuarters.map(q => trendsData.quarterlyData[q] || 0),
-        borderColor: 'rgb(75, 192, 192)',
-        backgroundColor: 'rgba(75, 192, 192, 0.5)',
-        tension: 0.4
+        borderColor: 'rgb(59, 130, 246)',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        borderWidth: 3,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        pointBackgroundColor: 'rgb(59, 130, 246)',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointHoverBackgroundColor: 'rgb(37, 99, 235)',
+        pointHoverBorderColor: '#fff',
+        pointHoverBorderWidth: 3
       }
     ]
   };
@@ -186,10 +235,84 @@ const EnrollmentTrends = () => {
     plugins: {
       legend: {
         position: 'top',
+        labels: {
+          usePointStyle: true,
+          padding: 15,
+          font: {
+            size: 12,
+            weight: 'bold'
+          }
+        }
       },
       title: {
         display: true,
-        text: 'Most Popular Training Programs'
+        text: 'Most Popular Training Programs',
+        font: {
+          size: 16,
+          weight: 'bold'
+        },
+        padding: {
+          bottom: 20
+        }
+      },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        padding: 12,
+        titleFont: {
+          size: 14,
+          weight: 'bold'
+        },
+        bodyFont: {
+          size: 13
+        },
+        callbacks: {
+          label: function(context) {
+            let label = context.dataset.label || '';
+            if (label) {
+              label += ': ';
+            }
+            if (context.parsed.y !== null) {
+              label += context.parsed.y.toLocaleString() + ' enrollments';
+            }
+            return label;
+          }
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: function(value) {
+            return value.toLocaleString();
+          },
+          font: {
+            size: 11
+          }
+        },
+        grid: {
+          color: 'rgba(0, 0, 0, 0.05)',
+        },
+        title: {
+          display: true,
+          text: 'Total Enrollments',
+          font: {
+            size: 12,
+            weight: 'bold'
+          }
+        }
+      },
+      x: {
+        ticks: {
+          font: {
+            size: 11
+          },
+          maxRotation: 45,
+          minRotation: 45
+        },
+        grid: {
+          display: false
+        }
       }
     }
   };
@@ -197,13 +320,99 @@ const EnrollmentTrends = () => {
   const lineOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    interaction: {
+      mode: 'index',
+      intersect: false,
+    },
     plugins: {
       legend: {
         position: 'top',
+        labels: {
+          usePointStyle: true,
+          padding: 15,
+          font: {
+            size: 12,
+            weight: 'bold'
+          }
+        }
       },
       title: {
         display: true,
-        text: 'Enrollment Trends Over Time'
+        text: 'Enrollment Trends Over Time',
+        font: {
+          size: 16,
+          weight: 'bold'
+        },
+        padding: {
+          bottom: 20
+        }
+      },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        padding: 12,
+        titleFont: {
+          size: 14,
+          weight: 'bold'
+        },
+        bodyFont: {
+          size: 13
+        },
+        callbacks: {
+          label: function(context) {
+            let label = context.dataset.label || '';
+            if (label) {
+              label += ': ';
+            }
+            if (context.parsed.y !== null) {
+              label += context.parsed.y.toLocaleString() + ' enrollments';
+            }
+            return label;
+          }
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: function(value) {
+            return value.toLocaleString();
+          },
+          font: {
+            size: 11
+          }
+        },
+        grid: {
+          color: 'rgba(0, 0, 0, 0.05)',
+        },
+        title: {
+          display: true,
+          text: 'Number of Enrollments',
+          font: {
+            size: 12,
+            weight: 'bold'
+          }
+        }
+      },
+      x: {
+        ticks: {
+          font: {
+            size: 11
+          },
+          maxRotation: 45,
+          minRotation: 45
+        },
+        grid: {
+          display: false
+        },
+        title: {
+          display: true,
+          text: 'Quarter',
+          font: {
+            size: 12,
+            weight: 'bold'
+          }
+        }
       }
     }
   };
@@ -214,10 +423,45 @@ const EnrollmentTrends = () => {
     plugins: {
       legend: {
         position: 'top',
+        labels: {
+          usePointStyle: true,
+          padding: 15,
+          font: {
+            size: 12,
+            weight: 'bold'
+          }
+        }
       },
       title: {
         display: true,
-        text: 'Qualification Level Distribution'
+        text: 'Qualification Level Distribution',
+        font: {
+          size: 16,
+          weight: 'bold'
+        },
+        padding: {
+          bottom: 20
+        }
+      },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        padding: 12,
+        titleFont: {
+          size: 14,
+          weight: 'bold'
+        },
+        bodyFont: {
+          size: 13
+        },
+        callbacks: {
+          label: function(context) {
+            const label = context.label || '';
+            const value = context.parsed || 0;
+            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+            return label + ': ' + value.toLocaleString() + ' (' + percentage + '%)';
+          }
+        }
       }
     }
   };
@@ -227,14 +471,19 @@ const EnrollmentTrends = () => {
   };
 
   const handleExport = () => {
+    if (filteredQuarters.length === 0) {
+      toast.error('No data to export');
+      return;
+    }
+    
     const csvContent = "data:text/csv;charset=utf-8," + 
       "Quarter,Enrollments\n" +
-      filteredQuarters.map(q => `${q},${trendsData.quarterlyData[q]}`).join("\n");
+      filteredQuarters.map(q => `${q},${trendsData.quarterlyData[q] || 0}`).join("\n");
     
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "enrollment_trends.csv");
+    link.setAttribute("download", `enrollment_trends_${timeRange}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -267,31 +516,37 @@ const EnrollmentTrends = () => {
             <div className="flex items-center space-x-3">
               <div className="flex items-center space-x-2">
                 <select
-                  value={viewType}
-                  onChange={(e) => setViewType(e.target.value)}
+                  value={selectedProgram}
+                  onChange={(e) => setSelectedProgram(e.target.value)}
                   className="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value="quarterly">Quarterly View</option>
-                  <option value="yearly">Yearly View</option>
-                  <option value="program">By Program</option>
+                  <option value="all">All Programs</option>
+                  {Object.keys(trendsData.programTotals || {}).map((program) => (
+                    <option key={program} value={program}>{program}</option>
+                  ))}
                 </select>
                 <select
-                  value={comparisonYear}
-                  onChange={(e) => setComparisonYear(e.target.value)}
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(e.target.value)}
                   className="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 >
+                  <option value="all">All Years</option>
                   <option value="2025">2025</option>
                   <option value="2024">2024</option>
                   <option value="2023">2023</option>
+                  <option value="2022">2022</option>
+                  <option value="2021">2021</option>
+                  <option value="2020">2020</option>
                 </select>
                 <select
                   value={timeRange}
                   onChange={(e) => setTimeRange(e.target.value)}
                   className="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value="3years">Last 3 Years</option>
+                  <option value="all">All Time (2020-2025)</option>
                   <option value="5years">Last 5 Years</option>
-                  <option value="all">All Time</option>
+                  <option value="3years">Last 3 Years</option>
+                  <option value="1year">Last Year</option>
                 </select>
               </div>
               <div className="flex items-center space-x-2">
@@ -322,7 +577,9 @@ const EnrollmentTrends = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Total Programs</p>
-                  <p className="text-2xl font-semibold text-gray-900">15</p>
+                  <p className="text-2xl font-semibold text-gray-900">
+                    {loading ? '...' : trendsData.stats?.totalPrograms || 0}
+                  </p>
                 </div>
                 <div className="p-3 bg-blue-50 rounded-full">
                   <MdSchool className="h-6 w-6 text-blue-600" />
@@ -332,8 +589,10 @@ const EnrollmentTrends = () => {
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Active Students</p>
-                  <p className="text-2xl font-semibold text-gray-900">520</p>
+                  <p className="text-sm font-medium text-gray-600">Total Enrollments</p>
+                  <p className="text-2xl font-semibold text-gray-900">
+                    {loading ? '...' : trendsData.stats?.totalEnrollments?.toLocaleString() || 0}
+                  </p>
                 </div>
                 <div className="p-3 bg-green-50 rounded-full">
                   <MdPeople className="h-6 w-6 text-green-600" />
@@ -344,7 +603,9 @@ const EnrollmentTrends = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Growth Rate</p>
-                  <p className="text-2xl font-semibold text-green-600">+15%</p>
+                  <p className={`text-2xl font-semibold ${parseFloat(calculateGrowthRate()) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {loading ? '...' : `${calculateGrowthRate() > 0 ? '+' : ''}${calculateGrowthRate()}%`}
+                  </p>
                 </div>
                 <div className="p-3 bg-green-50 rounded-full">
                   <MdTrendingUp className="h-6 w-6 text-green-600" />
@@ -354,8 +615,10 @@ const EnrollmentTrends = () => {
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Avg. Completion Rate</p>
-                  <p className="text-2xl font-semibold text-blue-600">85%</p>
+                  <p className="text-sm font-medium text-gray-600">Avg. Per Program</p>
+                  <p className="text-2xl font-semibold text-blue-600">
+                    {loading ? '...' : trendsData.stats?.avgPerProgram?.toLocaleString() || 0}
+                  </p>
                 </div>
                 <div className="p-3 bg-blue-50 rounded-full">
                   <MdCalendarToday className="h-6 w-6 text-blue-600" />
@@ -368,23 +631,62 @@ const EnrollmentTrends = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Popular Programs Chart */}
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <div style={{ height: '400px' }}>
-                <Bar data={popularPrograms} options={barOptions} />
-              </div>
+              {loading ? (
+                <div className="flex items-center justify-center h-[400px]">
+                  <div className="text-center">
+                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                    <p className="text-gray-600">Loading chart data...</p>
+                  </div>
+                </div>
+              ) : Object.keys(trendsData.programTotals || {}).length === 0 ? (
+                <div className="flex items-center justify-center h-[400px]">
+                  <p className="text-gray-500">No program data available</p>
+                </div>
+              ) : (
+                <div style={{ height: '400px' }}>
+                  <Bar data={popularPrograms} options={barOptions} />
+                </div>
+              )}
             </div>
 
             {/* Enrollment Trends Chart */}
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <div style={{ height: '400px' }}>
-                <Line data={enrollmentTrends} options={lineOptions} />
-              </div>
+              {loading ? (
+                <div className="flex items-center justify-center h-[400px]">
+                  <div className="text-center">
+                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                    <p className="text-gray-600">Loading chart data...</p>
+                  </div>
+                </div>
+              ) : filteredQuarters.length === 0 ? (
+                <div className="flex items-center justify-center h-[400px]">
+                  <p className="text-gray-500">No enrollment data available</p>
+                </div>
+              ) : (
+                <div style={{ height: '400px' }}>
+                  <Line data={enrollmentTrends} options={lineOptions} />
+                </div>
+              )}
             </div>
 
             {/* Qualification Distribution Chart */}
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <div style={{ height: '400px' }}>
-                <Doughnut data={qualificationDistribution} options={doughnutOptions} />
-              </div>
+              {loading ? (
+                <div className="flex items-center justify-center h-[400px]">
+                  <div className="text-center">
+                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                    <p className="text-gray-600">Loading chart data...</p>
+                  </div>
+                </div>
+              ) : (nc2Total === 0 && nc3Total === 0) ? (
+                <div className="flex items-center justify-center h-[400px]">
+                  <p className="text-gray-500">No qualification data available</p>
+                </div>
+              ) : (
+                <div style={{ height: '400px' }}>
+                  <Doughnut data={qualificationDistribution} options={doughnutOptions} />
+                </div>
+              )}
             </div>
 
             {/* Key Insights Panel */}
@@ -398,8 +700,12 @@ const EnrollmentTrends = () => {
                     </div>
                   </div>
                   <div>
-                    <h4 className="text-sm font-medium text-gray-900">Most Popular Programs</h4>
-                    <p className="text-sm text-gray-500">Hospitality courses (Bartending, F&B, Barista) are the most enrolled</p>
+                    <h4 className="text-sm font-medium text-gray-900">Most Popular Program</h4>
+                    <p className="text-sm text-gray-500">
+                      {loading ? 'Loading...' : Object.keys(trendsData.programTotals || {}).length > 0 
+                        ? `${Object.keys(trendsData.programTotals)[0]} leads with ${Object.values(trendsData.programTotals)[0].toLocaleString()} total enrollments`
+                        : 'No data available'}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
@@ -411,21 +717,63 @@ const EnrollmentTrends = () => {
                   <div>
                     <h4 className="text-sm font-medium text-gray-900">Qualification Distribution</h4>
                     <p className="text-sm text-gray-500">
-                      NC II: {((nc2Total / (nc2Total + nc3Total || 1)) * 100).toFixed(1)}%,{' '}
-                      NC III: {((nc3Total / (nc2Total + nc3Total || 1)) * 100).toFixed(1)}%
+                      {loading ? 'Loading...' : (nc2Total + nc3Total) > 0
+                        ? `NC II programs: ${((nc2Total / (nc2Total + nc3Total)) * 100).toFixed(1)}% (${nc2Total.toLocaleString()} enrollments), NC III: ${((nc3Total / (nc2Total + nc3Total)) * 100).toFixed(1)}% (${nc3Total.toLocaleString()} enrollments)`
+                        : 'No data available'}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
                   <div className="flex-shrink-0">
                     <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">
-                      <MdPeople className="h-5 w-5 text-yellow-600" />
+                      <MdCalendarToday className="h-5 w-5 text-yellow-600" />
                     </div>
                   </div>
                   <div>
-                    <h4 className="text-sm font-medium text-gray-900">Data Source</h4>
+                    <h4 className="text-sm font-medium text-gray-900">Data Coverage</h4>
                     <p className="text-sm text-gray-500">
-                      Historical enrollment data from 2020 Q1 to 2025 Q3
+                      {loading ? 'Loading...' : filteredQuarters.length > 0 
+                        ? `Showing ${filteredQuarters.length} quarters from ${filteredQuarters[0]} to ${filteredQuarters[filteredQuarters.length - 1]}`
+                        : 'No data available'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                      <MdPeople className="h-5 w-5 text-purple-600" />
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900">Latest Quarter Performance</h4>
+                    <p className="text-sm text-gray-500">
+                      {loading ? 'Loading...' : filteredQuarters.length > 0 
+                        ? `${filteredQuarters[filteredQuarters.length - 1]} recorded ${(trendsData.quarterlyData[filteredQuarters[filteredQuarters.length - 1]] || 0).toLocaleString()} enrollments across all programs`
+                        : 'No data available'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+                      <MdTrendingUp className="h-5 w-5 text-red-600" />
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900">Growth Trend</h4>
+                    <p className="text-sm text-gray-500">
+                      {loading ? 'Loading...' : filteredQuarters.length >= 2
+                        ? (() => {
+                            const growthRate = parseFloat(calculateGrowthRate());
+                            if (growthRate > 0) {
+                              return `Enrollments increased by ${growthRate}% from the previous quarter`;
+                            } else if (growthRate < 0) {
+                              return `Enrollments decreased by ${Math.abs(growthRate)}% from the previous quarter`;
+                            } else {
+                              return 'No change from the previous quarter';
+                            }
+                          })()
+                        : 'Insufficient data for trend analysis'}
                     </p>
                   </div>
                 </div>
