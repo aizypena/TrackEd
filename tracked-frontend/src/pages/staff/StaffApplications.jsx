@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import StaffSidebar from '../../layouts/staff/StaffSidebar';
 import { getStaffToken } from '../../utils/staffAuth';
+import toast, { Toaster } from 'react-hot-toast';
+import * as XLSX from 'xlsx';
 import { 
   MdMenu,
   MdSearch,
@@ -31,6 +33,32 @@ const StaffApplications = () => {
   useEffect(() => {
     fetchApplications();
   }, []);
+
+  // Function to log system action
+  const logSystemAction = async (action, description, logLevel = 'info') => {
+    try {
+      const token = getStaffToken();
+      const response = await fetch('http://localhost:8000/api/log-action', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          action,
+          description,
+          log_level: logLevel,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to log system action');
+      }
+    } catch (error) {
+      console.error('Error logging system action:', error);
+    }
+  };
 
   const fetchApplications = async () => {
     try {
@@ -77,6 +105,92 @@ const StaffApplications = () => {
     return name.split(' ')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ');
+  };
+
+  // Export to Excel function
+  const handleExportToExcel = async () => {
+    const loadingToast = toast.loading('Generating Excel file...');
+
+    try {
+      // Get staff user info for logging
+      const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
+      const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
+
+      // Prepare data for export
+      const exportData = filteredApplications.map((app, index) => ({
+        'No.': index + 1,
+        'Application ID': `APP-${app.id}`,
+        'First Name': capitalizeName(app.first_name),
+        'Middle Name': capitalizeName(app.middle_name) || '',
+        'Last Name': capitalizeName(app.last_name),
+        'Email': app.email,
+        'Phone Number': app.phone_number || 'N/A',
+        'Address': app.address || 'N/A',
+        'Date of Birth': app.date_of_birth ? formatDate(app.date_of_birth) : 'N/A',
+        'Gender': app.gender || 'N/A',
+        'Program Applied': app.course_program_formatted || app.course_program || 'Not specified',
+        'Application Status': app.application_status ? app.application_status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'N/A',
+        'Date Applied': formatDate(app.created_at),
+        'Valid ID': app.valid_id_path ? 'Submitted' : 'Not Submitted',
+        'Transcript': app.transcript_path ? 'Submitted' : 'Not Submitted',
+        'Diploma': app.diploma_path ? 'Submitted' : 'Not Submitted',
+        'Passport Photo': app.passport_photo_path ? 'Submitted' : 'Not Submitted',
+      }));
+
+      // Create workbook and worksheet
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+      // Set column widths
+      const columnWidths = [
+        { wch: 5 },  // No.
+        { wch: 15 }, // Application ID
+        { wch: 15 }, // First Name
+        { wch: 15 }, // Middle Name
+        { wch: 15 }, // Last Name
+        { wch: 30 }, // Email
+        { wch: 15 }, // Phone Number
+        { wch: 30 }, // Address
+        { wch: 15 }, // Date of Birth
+        { wch: 10 }, // Gender
+        { wch: 30 }, // Program Applied
+        { wch: 15 }, // Application Status
+        { wch: 15 }, // Date Applied
+        { wch: 15 }, // Valid ID
+        { wch: 15 }, // Transcript
+        { wch: 15 }, // Diploma
+        { wch: 15 }, // Passport Photo
+      ];
+      worksheet['!cols'] = columnWidths;
+
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Applications');
+
+      // Generate filename with current date and time
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0];
+      const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+      const filename = `Applications_Export_${dateStr}_${timeStr}.xlsx`;
+
+      // Write file
+      XLSX.writeFile(workbook, filename);
+
+      // Log the export action
+      await logSystemAction(
+        'applications_exported',
+        `${staffName} exported ${filteredApplications.length} application(s) to Excel (${filename})`,
+        'info'
+      );
+
+      toast.success(`Successfully exported ${filteredApplications.length} application(s) to Excel!`, {
+        id: loadingToast,
+      });
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      toast.error('Failed to export to Excel', {
+        id: loadingToast,
+      });
+    }
   };
 
   const programs = allPrograms;
@@ -263,7 +377,11 @@ const StaffApplications = () => {
                 <MdRefresh className="h-5 w-5" />
                 Refresh
               </button>
-              <button className="flex hover:cursor-pointer items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
+              <button 
+                onClick={handleExportToExcel}
+                disabled={filteredApplications.length === 0}
+                className="flex hover:cursor-pointer items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 <MdDownload className="h-5 w-5" />
                 Export to Excel
               </button>
@@ -380,6 +498,32 @@ const StaffApplications = () => {
           </div>
         </div>
       </div>
+
+      {/* Toast Notifications */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: '#4ade80',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            duration: 4000,
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
     </div>
   );
 };
