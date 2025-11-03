@@ -67,8 +67,11 @@ const AdminLogin = () => {
         // Store auth data
         localStorage.setItem('adminToken', data.token);
         localStorage.setItem('adminUser', JSON.stringify(data.user));
+        
+        // Backend already logs the login, so we just navigate
         navigate('/admin/dashboard');
       } else {
+        // Backend already logs failed attempts
         setError(data.message || 'Invalid credentials. Please try again.');
       }
     } catch (err) {
