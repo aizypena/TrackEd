@@ -376,10 +376,6 @@ const StaffEnrollmentsRecord = () => {
                 <p className="text-sm text-blue-100">Track and manage student enrollments</p>
               </div>
             </div>
-            <button className="flex items-center gap-2 px-4 py-2 bg-tracked-secondary hover:bg-opacity-90 rounded-md transition-colors">
-              <MdPersonAdd className="h-5 w-5" />
-              <span className="hidden sm:inline">New Enrollment</span>
-            </button>
           </div>
         </nav>
         
