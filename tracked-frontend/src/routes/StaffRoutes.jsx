@@ -16,10 +16,9 @@ import StaffStockTransactions from '../pages/staff/StaffStockTransactions';
 import StaffEnrollmentTrends from '../pages/staff/StaffEnrollmentTrends';
 import StaffProfile from '../pages/staff/StaffProfile';
 import PaymentCallback from '../pages/staff/PaymentCallback';
-import StaffStudentReports from '../pages/staff/StaffStudentReports';
-
-// staff reports
 import StaffEnrollmentReports from '../pages/staff/StaffEnrollmentReports';
+import StaffStudentReports from '../pages/staff/StaffStudentReports';
+import StaffAssessmentReports from '../pages/staff/StaffAssessmentReports';
 
 const StaffRoutes = () => {
   return (
@@ -61,6 +60,9 @@ const StaffRoutes = () => {
 
       {/* Staff Student Reports */}
       <Route path='/reports/students' element={<ProtectedStaffRoute><StaffStudentReports /></ProtectedStaffRoute>} />
+
+      {/* Staff Assessment Reports */}
+      <Route path='/reports/assessments' element={<ProtectedStaffRoute><StaffAssessmentReports /></ProtectedStaffRoute>} />
     </Routes>
   );
 };

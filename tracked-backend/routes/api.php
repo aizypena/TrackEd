@@ -4056,6 +4056,199 @@ Route::middleware(['auth:sanctum'])->group(function () {
             ], 500);
         }
     });
+
+    // Staff Batches Endpoint
+    Route::get('/staff/batches', function (Request $request) {
+        try {
+            // Check authentication
+            $user = $request->user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated'
+                ], 401);
+            }
+            
+            $batches = \App\Models\Batch::orderBy('batch_id', 'desc')->get();
+            
+            \Log::info('Batches fetched: ' . $batches->count() . ' batches found');
+            
+            return response()->json([
+                'success' => true,
+                'data' => $batches
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Staff batches error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load batches',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
+
+    // Staff Assessment Reports Endpoint
+    Route::post('/staff/reports/assessments', function (Request $request) {
+        try {
+            $reportType = $request->input('report_type', 'assessment_results');
+            $dateFrom = $request->input('date_from');
+            $dateTo = $request->input('date_to');
+            $programId = $request->input('program_id');
+            $batchId = $request->input('batch_id');
+            
+            \Log::info('Assessment report request', [
+                'report_type' => $reportType,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+                'program_id' => $programId,
+                'batch_id' => $batchId
+            ]);
+            
+            // Base query for grades/assessments
+            $gradesQuery = \App\Models\Grade::whereBetween('created_at', [$dateFrom, $dateTo]);
+            
+            // Apply program filter if provided and is numeric
+            if ($programId && is_numeric($programId)) {
+                $gradesQuery->where('program_id', $programId);
+                \Log::info('Applied program filter: ' . $programId);
+            }
+            
+            // Apply batch filter if provided
+            // Note: batch_id can be either the numeric id or the string batch_id (e.g., "BATCH-2024-001")
+            if ($batchId) {
+                if (is_numeric($batchId)) {
+                    // If numeric ID is provided, get the batch_id string
+                    $batch = \App\Models\Batch::find($batchId);
+                    if ($batch) {
+                        $gradesQuery->where('batch_id', $batch->batch_id);
+                        \Log::info('Applied batch filter: ' . $batch->batch_id . ' (from numeric ID: ' . $batchId . ')');
+                    }
+                } else {
+                    // If batch_id string is provided directly
+                    $gradesQuery->where('batch_id', $batchId);
+                    \Log::info('Applied batch filter: ' . $batchId);
+                }
+            }
+            
+            $grades = $gradesQuery->with(['student', 'program', 'batch'])->get();
+            
+            \Log::info('Found ' . $grades->count() . ' grades matching criteria');
+            
+            // Calculate statistics
+            $totalAssessments = $grades->count();
+            $passedCount = $grades->where('status', 'passed')->count();
+            $failedCount = $grades->where('status', 'failed')->count();
+            $passRate = $totalAssessments > 0 ? round(($passedCount / $totalAssessments) * 100, 2) : 0;
+            
+            $statistics = [
+                'total' => $totalAssessments,
+                'passed' => $passedCount,
+                'failed' => $failedCount,
+                'pass_rate' => $passRate
+            ];
+            
+            $reportData = [];
+            
+            if ($reportType === 'assessment_results') {
+                // Individual assessment results
+                foreach ($grades as $grade) {
+                    $student = $grade->student;
+                    $program = $grade->program;
+                    $batch = $grade->batch;
+                    
+                    $reportData[] = [
+                        'student_name' => $student ? ($student->first_name . ' ' . $student->last_name) : 'N/A',
+                        'program' => $program ? $program->title : 'N/A',
+                        'batch' => $batch ? $batch->batch_id : 'N/A',
+                        'assessment_type' => ucfirst($grade->assessment_type),
+                        'score' => $grade->score . '/' . $grade->total_points,
+                        'result' => ucfirst($grade->status),
+                        'date_taken' => $grade->created_at ? $grade->created_at->format('Y-m-d') : 'N/A'
+                    ];
+                }
+                
+            } else if ($reportType === 'pass_rate') {
+                // Pass rate by program and batch
+                $groupedData = $grades->groupBy(function($grade) {
+                    return ($grade->program ? $grade->program->title : 'N/A') . '|' . ($grade->batch ? $grade->batch->batch_id : 'N/A');
+                });
+                
+                foreach ($groupedData as $key => $group) {
+                    [$program, $batch] = explode('|', $key);
+                    $total = $group->count();
+                    $passed = $group->where('status', 'passed')->count();
+                    $failed = $group->where('status', 'failed')->count();
+                    $passRate = $total > 0 ? round(($passed / $total) * 100, 2) : 0;
+                    
+                    $reportData[] = [
+                        'program' => $program,
+                        'batch' => $batch,
+                        'total' => $total,
+                        'passed' => $passed,
+                        'failed' => $failed,
+                        'pass_rate' => $passRate
+                    ];
+                }
+                
+            } else if ($reportType === 'competency_summary') {
+                // Get program competencies
+                $programs = \App\Models\Program::whereIn('id', $grades->pluck('program_id')->unique())->get();
+                $competencyData = [];
+                
+                foreach ($programs as $program) {
+                    if ($program->core_competencies) {
+                        $competencies = is_string($program->core_competencies) ? json_decode($program->core_competencies, true) : $program->core_competencies;
+                        
+                        if (is_array($competencies)) {
+                            foreach ($competencies as $competency) {
+                                if (!isset($competencyData[$competency])) {
+                                    $competencyData[$competency] = [
+                                        'total' => 0,
+                                        'competent' => 0,
+                                        'not_competent' => 0
+                                    ];
+                                }
+                                
+                                // Count assessments for this program
+                                $programGrades = $grades->where('program_id', $program->id);
+                                $competencyData[$competency]['total'] += $programGrades->count();
+                                $competencyData[$competency]['competent'] += $programGrades->where('status', 'passed')->count();
+                                $competencyData[$competency]['not_competent'] += $programGrades->where('status', 'failed')->count();
+                            }
+                        }
+                    }
+                }
+                
+                foreach ($competencyData as $competency => $data) {
+                    $percentage = $data['total'] > 0 ? round(($data['competent'] / $data['total']) * 100, 2) : 0;
+                    $reportData[] = [
+                        'competency' => $competency,
+                        'total' => $data['total'],
+                        'competent' => $data['competent'],
+                        'not_competent' => $data['not_competent'],
+                        'percentage' => $percentage
+                    ];
+                }
+            }
+            
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'statistics' => $statistics,
+                    'data' => $reportData
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Staff assessment reports error: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to generate assessment report',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
     
     // Staff Applicant Documents Endpoint
     Route::get('/staff/applicant-documents', function (Request $request) {
