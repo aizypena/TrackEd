@@ -5,10 +5,7 @@ import { getStaffToken } from '../../utils/staffAuth';
 import toast, { Toaster } from 'react-hot-toast';
 import { 
   MdMenu,
-  MdSearch,
-  MdDownload,
   MdRefresh,
-  MdPrint,
   MdTrendingUp,
   MdTrendingDown,
   MdPeople,
@@ -19,7 +16,7 @@ import {
   MdPieChart,
   MdTimeline,
   MdFilterList,
-  MdClose
+  MdDownload
 } from 'react-icons/md';
 
 const StaffEnrollmentTrends = () => {
@@ -101,6 +98,11 @@ const StaffEnrollmentTrends = () => {
   const currentYearData = enrollmentData.yearly[yearFilter] || enrollmentData.yearly['2025'] || { total: 0, growth: 0 };
   const totalEnrollments = enrollmentData.programBreakdown.reduce((sum, p) => sum + p.enrollments, 0);
 
+  // Generate year options from 2020 to current year
+  const availableYears = Object.keys(enrollmentData.yearly).length > 0 
+    ? Object.keys(enrollmentData.yearly).sort((a, b) => b - a)
+    : Array.from({ length: new Date().getFullYear() - 2019 }, (_, i) => (new Date().getFullYear() - i).toString());
+
   return (
     <div className="min-h-screen bg-gray-100">
       <StaffSidebar 
@@ -144,7 +146,7 @@ const StaffEnrollmentTrends = () => {
                 onChange={(e) => setYearFilter(e.target.value)}
                 className="px-4 py-2 border border-gray-300 rounded-md focus:ring-tracked-primary focus:border-tracked-primary"
               >
-                {Object.keys(enrollmentData.yearly).map(year => (
+                {availableYears.map(year => (
                   <option key={year} value={year}>{year}</option>
                 ))}
               </select>
@@ -311,13 +313,12 @@ const StaffEnrollmentTrends = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            {/* Program Performance */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                <MdBarChart className="h-6 w-6 text-tracked-primary" />
-                Program Performance
-              </h2>
+          {/* Program Performance */}
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+              <MdBarChart className="h-6 w-6 text-tracked-primary" />
+              Program Performance
+            </h2>
               <div className="space-y-6">
                 {filteredPrograms.length > 0 ? (
                   filteredPrograms.map((program, index) => (
@@ -347,9 +348,6 @@ const StaffEnrollmentTrends = () => {
                       <div className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-3">
                           <span className="text-gray-600">
-                            <span className="font-semibold text-gray-700">{program.batches || 0}</span> batches
-                          </span>
-                          <span className="text-gray-600">
                             Avg: <span className="font-semibold text-gray-700">{program.avgBatchSize || 0}</span> students
                           </span>
                         </div>
@@ -371,57 +369,6 @@ const StaffEnrollmentTrends = () => {
                 )}
               </div>
             </div>
-
-            {/* Demographics */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                <MdPieChart className="h-6 w-6 text-tracked-primary" />
-                Demographics Overview
-              </h2>
-              
-              {/* Gender Distribution */}
-              <div className="mb-6">
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">Gender Distribution</h3>
-                <div className="space-y-3">
-                  {enrollmentData.demographics.gender.map((item, index) => (
-                    <div key={index}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm text-gray-700">{item.category}</span>
-                        <span className="text-sm font-bold text-gray-800">{item.count} ({item.percentage}%)</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2.5">
-                        <div 
-                          className={`h-2.5 rounded-full ${index === 0 ? 'bg-blue-600' : 'bg-pink-600'}`}
-                          style={{ width: `${item.percentage}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Age Groups */}
-              <div>
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">Age Groups</h3>
-                <div className="space-y-3">
-                  {enrollmentData.demographics.ageGroups.map((item, index) => (
-                    <div key={index}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm text-gray-700">{item.group} years</span>
-                        <span className="text-sm font-bold text-gray-800">{item.count} ({item.percentage}%)</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2.5">
-                        <div 
-                          className="h-2.5 rounded-full bg-purple-600"
-                          style={{ width: `${item.percentage}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* Year-over-Year Comparison */}
           <div className="bg-white rounded-lg shadow-md p-6">

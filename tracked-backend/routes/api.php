@@ -3297,7 +3297,36 @@ Route::middleware(['auth:sanctum'])->group(function () {
         try {
             $yearFilter = $request->get('year', date('Y'));
             
-            // Get all students (enrolled users)
+            // Function to read and parse CSV files
+            $readCSVData = function() {
+                $csvPath = public_path('enrollment-data');
+                $csvData = [];
+                
+                if (is_dir($csvPath)) {
+                    $files = glob($csvPath . '/*.csv');
+                    foreach ($files as $file) {
+                        if (($handle = fopen($file, 'r')) !== false) {
+                            $headers = fgetcsv($handle);
+                            while (($row = fgetcsv($handle)) !== false) {
+                                if (count($row) >= 3) {
+                                    $csvData[] = [
+                                        'date' => $row[0],
+                                        'enrollment' => (int)$row[1],
+                                        'program' => $row[2]
+                                    ];
+                                }
+                            }
+                            fclose($handle);
+                        }
+                    }
+                }
+                return $csvData;
+            };
+            
+            // Get CSV data
+            $csvEnrollments = $readCSVData();
+            
+            // Get all students (enrolled users) from database
             $students = \App\Models\User::where('role', 'student')
                 ->with(['batch.program'])
                 ->get();
@@ -3305,23 +3334,39 @@ Route::middleware(['auth:sanctum'])->group(function () {
             // Get all applications
             $applications = \App\Models\Application::all();
             
-            // Calculate yearly enrollment data
+            // Calculate yearly enrollment data (2020 to current year)
             $yearlyData = [];
-            for ($year = 2023; $year <= date('Y'); $year++) {
-                $yearStudents = $students->filter(function ($student) use ($year) {
+            for ($year = 2020; $year <= date('Y'); $year++) {
+                // Count from CSV data
+                $csvYearTotal = collect($csvEnrollments)->filter(function ($item) use ($year) {
+                    return substr($item['date'], 0, 4) == $year;
+                })->sum('enrollment');
+                
+                // Count from database
+                $dbYearTotal = $students->filter(function ($student) use ($year) {
                     return $student->created_at && $student->created_at->year == $year;
                 })->count();
                 
-                $previousYearStudents = $students->filter(function ($student) use ($year) {
+                // Combine totals
+                $yearTotal = $csvYearTotal + $dbYearTotal;
+                
+                // Calculate previous year total
+                $csvPrevYearTotal = collect($csvEnrollments)->filter(function ($item) use ($year) {
+                    return substr($item['date'], 0, 4) == ($year - 1);
+                })->sum('enrollment');
+                
+                $dbPrevYearTotal = $students->filter(function ($student) use ($year) {
                     return $student->created_at && $student->created_at->year == ($year - 1);
                 })->count();
                 
-                $growth = $previousYearStudents > 0 
-                    ? (($yearStudents - $previousYearStudents) / $previousYearStudents) * 100 
+                $previousYearTotal = $csvPrevYearTotal + $dbPrevYearTotal;
+                
+                $growth = $previousYearTotal > 0 
+                    ? (($yearTotal - $previousYearTotal) / $previousYearTotal) * 100 
                     : 0;
                 
                 $yearlyData[$year] = [
-                    'total' => $yearStudents,
+                    'total' => $yearTotal,
                     'growth' => round($growth, 1)
                 ];
             }
@@ -3329,7 +3374,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
             // Calculate monthly data for selected year
             $monthlyData = [];
             for ($month = 1; $month <= 12; $month++) {
-                $monthEnrollments = $students->filter(function ($student) use ($yearFilter, $month) {
+                // CSV enrollments for this month
+                $csvMonthEnrollments = collect($csvEnrollments)->filter(function ($item) use ($yearFilter, $month) {
+                    $itemDate = strtotime($item['date']);
+                    return date('Y', $itemDate) == $yearFilter && date('n', $itemDate) == $month;
+                })->sum('enrollment');
+                
+                // Database enrollments for this month
+                $dbMonthEnrollments = $students->filter(function ($student) use ($yearFilter, $month) {
                     return $student->created_at 
                         && $student->created_at->year == $yearFilter 
                         && $student->created_at->month == $month;
@@ -3343,30 +3395,60 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 
                 $monthlyData[] = [
                     'month' => date('M', mktime(0, 0, 0, $month, 1)),
-                    'enrollments' => $monthEnrollments,
+                    'enrollments' => $csvMonthEnrollments + $dbMonthEnrollments,
                     'applications' => $monthApplications
                 ];
             }
             
             // Get program breakdown
             $programs = \App\Models\Program::all();
-            $programBreakdown = $programs->map(function ($program) use ($students) {
+            $programBreakdown = $programs->map(function ($program) use ($students, $csvEnrollments) {
+                // Database program students
                 $programStudents = $students->filter(function ($student) use ($program) {
                     return $student->batch && $student->batch->program_id == $program->id;
                 });
                 
-                $enrollmentCount = $programStudents->count();
-                $totalStudents = $students->count();
+                // CSV program enrollments (match by program title)
+                $csvProgramTotal = collect($csvEnrollments)->filter(function ($item) use ($program) {
+                    return stripos($item['program'], $program->title) !== false;
+                })->sum('enrollment');
+                
+                $dbEnrollmentCount = $programStudents->count();
+                $enrollmentCount = $csvProgramTotal + $dbEnrollmentCount;
+                
+                // Calculate total (CSV + DB)
+                $totalCsvEnrollments = collect($csvEnrollments)->sum('enrollment');
+                $totalDbStudents = $students->count();
+                $totalStudents = $totalCsvEnrollments + $totalDbStudents;
+                
                 $percentage = $totalStudents > 0 ? ($enrollmentCount / $totalStudents) * 100 : 0;
                 
-                // Calculate growth (comparing to previous year)
-                $currentYearStudents = $programStudents->filter(function ($student) {
+                // Calculate growth (comparing current year to previous year)
+                // CSV current year
+                $csvCurrentYear = collect($csvEnrollments)->filter(function ($item) use ($program) {
+                    return stripos($item['program'], $program->title) !== false 
+                        && substr($item['date'], 0, 4) == date('Y');
+                })->sum('enrollment');
+                
+                // DB current year
+                $dbCurrentYear = $programStudents->filter(function ($student) {
                     return $student->created_at && $student->created_at->year == date('Y');
                 })->count();
                 
-                $previousYearStudents = $programStudents->filter(function ($student) {
+                $currentYearStudents = $csvCurrentYear + $dbCurrentYear;
+                
+                // CSV previous year
+                $csvPreviousYear = collect($csvEnrollments)->filter(function ($item) use ($program) {
+                    return stripos($item['program'], $program->title) !== false 
+                        && substr($item['date'], 0, 4) == (date('Y') - 1);
+                })->sum('enrollment');
+                
+                // DB previous year
+                $dbPreviousYear = $programStudents->filter(function ($student) {
                     return $student->created_at && $student->created_at->year == (date('Y') - 1);
                 })->count();
+                
+                $previousYearStudents = $csvPreviousYear + $dbPreviousYear;
                 
                 $growthRate = $previousYearStudents > 0 
                     ? (($currentYearStudents - $previousYearStudents) / $previousYearStudents) * 100 
@@ -3379,7 +3461,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 
                 // Get batch count
                 $batches = \App\Models\Batch::where('program_id', $program->id)->count();
-                $avgBatchSize = $batches > 0 ? round($enrollmentCount / $batches) : 0;
+                $avgBatchSize = $batches > 0 ? round($enrollmentCount / $batches) : $enrollmentCount;
                 
                 return [
                     'program' => $program->title,
