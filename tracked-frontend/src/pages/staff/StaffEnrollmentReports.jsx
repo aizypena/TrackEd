@@ -3,6 +3,8 @@ import StaffSidebar from '../../layouts/staff/StaffSidebar';
 import { getStaffToken } from '../../utils/staffAuth';
 import toast, { Toaster } from 'react-hot-toast';
 import { MdMenu } from 'react-icons/md';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const StaffEnrollmentReports = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -80,6 +82,9 @@ const StaffEnrollmentReports = () => {
       if (result.success) {
         setReportData(result.data);
         toast.success('Report generated successfully');
+        
+        // Log action to system logs
+        await logAction('report_generated', `Generated ${reportType} enrollment report for period ${dateFrom} to ${dateTo}`);
       } else {
         toast.error('Failed to generate report');
       }
@@ -91,7 +96,27 @@ const StaffEnrollmentReports = () => {
     }
   };
 
-  const exportToCSV = () => {
+  const logAction = async (action, description) => {
+    try {
+      const token = getStaffToken();
+      await fetch('http://localhost:8000/api/log-action', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action,
+          description,
+          log_level: 'info'
+        })
+      });
+    } catch (error) {
+      console.error('Error logging action:', error);
+    }
+  };
+
+  const exportToCSV = async () => {
     if (!reportData) {
       toast.error('No report data to export');
       return;
@@ -119,6 +144,13 @@ const StaffEnrollmentReports = () => {
         reportData.data.forEach(item => {
           csvContent += `"${item.program}","${item.month}",${item.enrollments}\n`;
         });
+      } else if (reportType === 'by_status') {
+        filename = `enrollment_by_status_${dateFrom}_to_${dateTo}.csv`;
+        csvContent = 'Status,Count,Percentage\n';
+        reportData.data.forEach(item => {
+          const statusLabel = item.status === 'dropped_out' ? 'Dropped Out' : item.status;
+          csvContent += `"${statusLabel}",${item.count},${item.percentage}%\n`;
+        });
       }
 
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -132,14 +164,164 @@ const StaffEnrollmentReports = () => {
       document.body.removeChild(link);
       
       toast.success('Report exported successfully');
+      
+      // Log action to system logs
+      await logAction('report_exported_csv', `Exported ${reportType} enrollment report to CSV (${filename})`);
     } catch (error) {
       console.error('Error exporting report:', error);
       toast.error('Error exporting report');
     }
   };
 
-  const exportToPDF = () => {
-    toast.info('PDF export will be available soon');
+  const exportToPDF = async () => {
+    if (!reportData) {
+      toast.error('No report data to export');
+      return;
+    }
+
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      
+      // Add header
+      doc.setFontSize(18);
+      doc.setFont(undefined, 'bold');
+      doc.text('TrackEd Enrollment Report', pageWidth / 2, 15, { align: 'center' });
+      
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'normal');
+      doc.text(`Report Type: ${reportType.replace('_', ' ').toUpperCase()}`, 14, 25);
+      doc.text(`Period: ${dateFrom} to ${dateTo}`, 14, 30);
+      
+      if (programFilter !== 'all') {
+        const program = programs.find(p => p.id.toString() === programFilter);
+        doc.text(`Program: ${program ? program.title : programFilter}`, 14, 35);
+      }
+      
+      if (statusFilter !== 'all') {
+        doc.text(`Status: ${statusFilter}`, 14, programFilter !== 'all' ? 40 : 35);
+      }
+
+      let yPosition = programFilter !== 'all' && statusFilter !== 'all' ? 45 : 
+                      (programFilter !== 'all' || statusFilter !== 'all' ? 40 : 35);
+
+      // Generate PDF based on report type
+      if (reportType === 'summary') {
+        // Statistics summary
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.text('Overview Statistics', 14, yPosition + 5);
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(10);
+        
+        const stats = reportData.statistics;
+        doc.text(`Total Enrollments: ${stats.total}`, 14, yPosition + 12);
+        doc.text(`Active: ${stats.active}`, 14, yPosition + 17);
+        doc.text(`Completed: ${stats.completed}`, 14, yPosition + 22);
+        doc.text(`Withdrawn: ${stats.withdrawn}`, 14, yPosition + 27);
+        doc.text(`Dropped Out: ${stats.dropped_out}`, 14, yPosition + 32);
+
+        // Programs table
+        autoTable(doc, {
+          startY: yPosition + 40,
+          head: [['Program', 'Total', 'Active', 'Completed', 'Withdrawn', 'Dropped Out']],
+          body: reportData.programs.map(program => [
+            program.program,
+            program.total,
+            program.active,
+            program.completed,
+            program.withdrawn,
+            program.dropped_out || 0
+          ]),
+          theme: 'grid',
+          headStyles: { fillColor: [59, 130, 246], fontStyle: 'bold' },
+          styles: { fontSize: 9, cellPadding: 3 }
+        });
+
+      } else if (reportType === 'detailed') {
+        autoTable(doc, {
+          startY: yPosition + 5,
+          head: [['Student Name', 'Email', 'Program', 'Batch', 'Status', 'Enrollment Date']],
+          body: reportData.enrollments.map(enrollment => [
+            enrollment.student_name,
+            enrollment.email,
+            enrollment.program,
+            enrollment.batch,
+            enrollment.status,
+            enrollment.enrollment_date
+          ]),
+          theme: 'grid',
+          headStyles: { fillColor: [59, 130, 246], fontStyle: 'bold' },
+          styles: { fontSize: 8, cellPadding: 2 },
+          columnStyles: {
+            0: { cellWidth: 35 },
+            1: { cellWidth: 45 },
+            2: { cellWidth: 40 },
+            3: { cellWidth: 20 },
+            4: { cellWidth: 20 },
+            5: { cellWidth: 25 }
+          }
+        });
+
+      } else if (reportType === 'by_program') {
+        autoTable(doc, {
+          startY: yPosition + 5,
+          head: [['Program', 'Month', 'Enrollments']],
+          body: reportData.data.map(item => [
+            item.program,
+            item.month,
+            item.enrollments
+          ]),
+          theme: 'grid',
+          headStyles: { fillColor: [59, 130, 246], fontStyle: 'bold' },
+          styles: { fontSize: 9, cellPadding: 3 }
+        });
+
+      } else if (reportType === 'by_status') {
+        // Statistics summary
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.text('Enrollment Status Distribution', 14, yPosition + 5);
+        
+        autoTable(doc, {
+          startY: yPosition + 12,
+          head: [['Status', 'Count', 'Percentage']],
+          body: reportData.data.map(item => {
+            const statusLabel = item.status === 'dropped_out' ? 'Dropped Out' : 
+                              item.status.charAt(0).toUpperCase() + item.status.slice(1);
+            return [statusLabel, item.count, `${item.percentage}%`];
+          }),
+          theme: 'grid',
+          headStyles: { fillColor: [59, 130, 246], fontStyle: 'bold' },
+          styles: { fontSize: 10, cellPadding: 4 }
+        });
+      }
+
+      // Add footer with page numbers
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.text(
+          `Page ${i} of ${pageCount}`,
+          pageWidth / 2,
+          doc.internal.pageSize.getHeight() - 10,
+          { align: 'center' }
+        );
+      }
+
+      // Save the PDF
+      const filename = `enrollment_${reportType}_${dateFrom}_to_${dateTo}.pdf`;
+      doc.save(filename);
+      
+      toast.success('PDF exported successfully');
+      
+      // Log action to system logs
+      await logAction('report_exported_pdf', `Exported ${reportType} enrollment report to PDF (${filename})`);
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      toast.error('Error exporting PDF');
+    }
   };
 
   return (
