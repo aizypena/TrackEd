@@ -88,9 +88,10 @@ const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsColla
       icon: <MdDescription className="h-5 w-5" />,
       subItems: [
         { name: 'Enrollment Reports', path: '/staff/reports/enrollment' },
-        { name: 'Student Progress', path: '/staff/reports/progress' },
-        { name: 'Training Outcomes', path: '/staff/reports/outcomes' },
-        { name: 'Inventory Reports', path: '/staff/reports/inventory' }
+        { name: 'Student Reports', path: '/staff/reports/students' },
+        { name: 'Assessment Results', path: '/staff/reports/assessments' },
+        { name: 'Inventory Reports', path: '/staff/reports/inventory' },
+        { name: 'Payment Reports', path: '/staff/reports/payments' }
       ]
     }
   ];

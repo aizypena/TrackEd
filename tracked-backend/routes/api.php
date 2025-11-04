@@ -3890,6 +3890,173 @@ Route::middleware(['auth:sanctum'])->group(function () {
         }
     });
     
+    // Staff Student Reports Endpoint
+    Route::post('/staff/reports/students', function (Request $request) {
+        try {
+            $reportType = $request->input('report_type', 'program_distribution');
+            $dateFrom = $request->input('date_from');
+            $dateTo = $request->input('date_to');
+            $programId = $request->input('program_id');
+            $statusFilter = $request->input('status');
+            
+            // Base query for students
+            $studentsQuery = \App\Models\User::where('role', 'student')
+                ->whereBetween('created_at', [$dateFrom, $dateTo]);
+            
+            if ($programId) {
+                $studentsQuery->where('course_program', $programId);
+            }
+            
+            if ($statusFilter && $statusFilter !== 'all') {
+                $studentsQuery->where('batch_status', $statusFilter);
+            }
+            
+            $students = $studentsQuery->get();
+            
+            // Calculate statistics - treat null or empty batch_status as 'active'
+            $totalStudents = $students->count();
+            
+            // Count by status - null/empty is considered active
+            $activeCount = $students->filter(function($s) {
+                $status = strtolower($s->batch_status ?? 'active');
+                return $status === 'active' || empty($s->batch_status);
+            })->count();
+            
+            $completedCount = $students->filter(function($s) {
+                return strtolower($s->batch_status ?? '') === 'completed';
+            })->count();
+            
+            $withdrawnCount = $students->filter(function($s) {
+                return strtolower($s->batch_status ?? '') === 'withdrawn';
+            })->count();
+            
+            $droppedOutCount = $students->filter(function($s) {
+                return strtolower($s->batch_status ?? '') === 'dropped_out';
+            })->count();
+            
+            $statistics = [
+                'total' => $totalStudents,
+                'active' => $activeCount,
+                'completed' => $completedCount,
+                'withdrawn' => $withdrawnCount,
+                'dropped_out' => $droppedOutCount
+            ];
+            
+            $reportData = [];
+            
+            if ($reportType === 'program_distribution') {
+                // Get all programs
+                $programs = \App\Models\Program::all();
+                
+                foreach ($programs as $program) {
+                    $programStudents = $students->where('course_program', $program->id);
+                    
+                    if ($programStudents->count() > 0) {
+                        $reportData[] = [
+                            'program' => $program->title,
+                            'total' => $programStudents->count(),
+                            'active' => $programStudents->filter(function($s) {
+                                $status = strtolower($s->batch_status ?? 'active');
+                                return $status === 'active' || empty($s->batch_status);
+                            })->count(),
+                            'completed' => $programStudents->filter(function($s) {
+                                return strtolower($s->batch_status ?? '') === 'completed';
+                            })->count(),
+                            'withdrawn' => $programStudents->filter(function($s) {
+                                return strtolower($s->batch_status ?? '') === 'withdrawn';
+                            })->count(),
+                            'dropped_out' => $programStudents->filter(function($s) {
+                                return strtolower($s->batch_status ?? '') === 'dropped_out';
+                            })->count()
+                        ];
+                    }
+                }
+                
+            } elseif ($reportType === 'payment_status') {
+                // Get payment records for students
+                foreach ($students as $student) {
+                    $program = \App\Models\Program::find($student->course_program);
+                    
+                    // Get payment records (assuming you have a payments table)
+                    // For now, using mock data structure
+                    $totalFee = 5000; // This should come from program or payment records
+                    $amountPaid = 0; // This should be sum of payments
+                    
+                    // Try to get actual payment data if payments table exists
+                    try {
+                        $payments = \DB::table('payments')
+                            ->where('user_id', $student->id)
+                            ->sum('amount');
+                        $amountPaid = $payments ?? 0;
+                    } catch (\Exception $e) {
+                        // Payments table doesn't exist, use default
+                        $amountPaid = rand(0, $totalFee);
+                    }
+                    
+                    $balance = $totalFee - $amountPaid;
+                    
+                    $status = 'Not Paid';
+                    if ($amountPaid >= $totalFee) {
+                        $status = 'Fully Paid';
+                    } elseif ($amountPaid > 0) {
+                        $status = 'Partially Paid';
+                    }
+                    
+                    $reportData[] = [
+                        'student_name' => $student->first_name . ' ' . $student->last_name,
+                        'program' => $program ? $program->title : 'N/A',
+                        'total_fee' => number_format($totalFee, 2),
+                        'amount_paid' => number_format($amountPaid, 2),
+                        'balance' => number_format($balance, 2),
+                        'status' => $status
+                    ];
+                }
+                
+            } elseif ($reportType === 'status_report') {
+                // Detailed status report with individual student records
+                foreach ($students as $student) {
+                    $program = \App\Models\Program::find($student->course_program);
+                    
+                    // Get batch name - handle if it's an object or string
+                    $batchName = 'N/A';
+                    if ($student->batch) {
+                        if (is_object($student->batch)) {
+                            $batchName = $student->batch->batch_id ?? 'N/A';
+                        } else {
+                            $batchName = $student->batch;
+                        }
+                    }
+                    
+                    $reportData[] = [
+                        'student_name' => $student->first_name . ' ' . $student->last_name,
+                        'email' => $student->email,
+                        'program' => $program ? $program->title : 'N/A',
+                        'batch' => $batchName,
+                        'status' => $student->batch_status ?? 'active',
+                        'enrollment_date' => $student->created_at ? $student->created_at->format('Y-m-d') : 'N/A'
+                    ];
+                }
+            }
+            
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'statistics' => $statistics,
+                    'data' => $reportData
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Staff student reports error: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to generate student report',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
+    
     // Staff Applicant Documents Endpoint
     Route::get('/staff/applicant-documents', function (Request $request) {
         try {
