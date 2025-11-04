@@ -250,9 +250,8 @@ const StaffEnrollmentTrends = () => {
                 </div>
               ) : enrollmentData.monthly && enrollmentData.monthly.length > 0 ? (
                 enrollmentData.monthly.map((month, index) => {
-                const maxValue = Math.max(...enrollmentData.monthly.map(m => m.applications || 1));
+                const maxValue = Math.max(...enrollmentData.monthly.map(m => m.enrollments || 1));
                 const enrollmentPercentage = (month.enrollments / maxValue) * 100;
-                const applicationPercentage = (month.applications / maxValue) * 100;
                 
                 return (
                   <div key={index} className="space-y-2">
@@ -260,36 +259,21 @@ const StaffEnrollmentTrends = () => {
                       <span className="text-sm font-medium text-gray-700 w-12">{month.month}</span>
                       <div className="flex-1 mx-4">
                         <div className="relative h-8 bg-gray-100 rounded-lg overflow-hidden">
-                          {month.applications > 0 && (
-                            <div 
-                              className="absolute h-full bg-blue-200 rounded-lg transition-all duration-300"
-                              style={{ width: `${applicationPercentage}%` }}
-                            />
-                          )}
                           <div 
                             className="absolute h-full bg-tracked-primary rounded-lg transition-all duration-300"
                             style={{ width: `${enrollmentPercentage}%` }}
                           />
-                          <div className="absolute inset-0 flex items-center justify-between px-3">
+                          <div className="absolute inset-0 flex items-center px-3">
                             <span className="text-xs font-semibold text-white">
                               {month.enrollments} enrolled
                             </span>
-                            {month.applications > 0 && (
-                              <span className="text-xs font-medium text-gray-700">
-                                {month.applications} applied
-                              </span>
-                            )}
                           </div>
                         </div>
                       </div>
                       <div className="text-right w-20">
-                        {month.applications > 0 ? (
-                          <span className="text-sm font-bold text-tracked-primary">
-                            {((month.enrollments / month.applications) * 100).toFixed(0)}%
-                          </span>
-                        ) : (
-                          <span className="text-sm text-gray-400">Pending</span>
-                        )}
+                        <span className="text-sm font-bold text-tracked-primary">
+                          {month.enrollments}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -300,16 +284,6 @@ const StaffEnrollmentTrends = () => {
                   No enrollment data available for {yearFilter}
                 </div>
               )}
-            </div>
-            <div className="flex items-center justify-center gap-6 mt-6 pt-4 border-t border-gray-200">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-tracked-primary rounded"></div>
-                <span className="text-sm text-gray-600">Enrollments</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-blue-200 rounded"></div>
-                <span className="text-sm text-gray-600">Applications</span>
-              </div>
             </div>
           </div>
 
@@ -393,6 +367,12 @@ const StaffEnrollmentTrends = () => {
                       <div className="flex items-center justify-center gap-1 text-green-600">
                         <MdTrendingUp className="h-5 w-5" />
                         <span className="text-lg font-semibold">+{data.growth}%</span>
+                      </div>
+                    )}
+                    {data.growth < 0 && (
+                      <div className="flex items-center justify-center gap-1 text-red-600">
+                        <MdTrendingDown className="h-5 w-5" />
+                        <span className="text-lg font-semibold">{data.growth}%</span>
                       </div>
                     )}
                     {data.growth === 0 && (
