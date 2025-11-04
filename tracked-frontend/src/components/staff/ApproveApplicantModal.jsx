@@ -9,7 +9,7 @@ const ApproveApplicantModal = ({ isOpen, onClose, applicant, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [fetchingBatches, setFetchingBatches] = useState(false);
   const [paymentRequired, setPaymentRequired] = useState(false);
-  const [enrollmentFee, setEnrollmentFee] = useState(5000);
+  const [enrollmentFee, setEnrollmentFee] = useState(0);
   const [checkingPayment, setCheckingPayment] = useState(false);
   const [showPaymentSection, setShowPaymentSection] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('');

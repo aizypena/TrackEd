@@ -31,6 +31,15 @@ class PaymentController extends Controller
             'user_id' => 'required|exists:users,id'
         ]);
 
+        // Get the batch and its program
+        $batch = Batch::where('batch_id', $request->batch_id)->with('program')->first();
+        
+        // Get enrollment fee from the program's pricing
+        $enrollmentFee = 5000.00; // Default fallback
+        if ($batch && $batch->program && $batch->program->pricing) {
+            $enrollmentFee = floatval($batch->program->pricing);
+        }
+
         $voucher = Voucher::where('batch_id', $request->batch_id)
             ->whereRaw('used_count < quantity')
             ->whereIn('status', ['pending', 'issued', 'active'])
@@ -38,6 +47,9 @@ class PaymentController extends Controller
 
         Log::info('Payment check:', [
             'batch_id' => $request->batch_id,
+            'program_id' => $batch ? $batch->program_id : null,
+            'program_pricing' => $batch && $batch->program ? $batch->program->pricing : null,
+            'enrollment_fee' => $enrollmentFee,
             'voucher_found' => $voucher !== null,
             'voucher_details' => $voucher ? [
                 'id' => $voucher->id,
@@ -49,7 +61,6 @@ class PaymentController extends Controller
         ]);
 
         $voucherAvailable = $voucher !== null;
-        $enrollmentFee = config('paymongo.enrollment_fee', 5000.00);
 
         return response()->json([
             'success' => true,
@@ -73,8 +84,16 @@ class PaymentController extends Controller
         ]);
 
         $user = User::findOrFail($request->user_id);
-        $batch = Batch::where('batch_id', $request->batch_id)->first();
-        $amount = $request->amount ?? config('paymongo.enrollment_fee', 5000.00);
+        $batch = Batch::where('batch_id', $request->batch_id)->with('program')->first();
+        
+        // Get amount from request or from program pricing
+        $amount = $request->amount;
+        if (!$amount && $batch && $batch->program && $batch->program->pricing) {
+            $amount = floatval($batch->program->pricing);
+        }
+        if (!$amount) {
+            $amount = config('paymongo.enrollment_fee', 5000.00);
+        }
 
         // Create payment record
         $payment = Payment::create([
@@ -169,8 +188,16 @@ class PaymentController extends Controller
         ]);
 
         $user = User::findOrFail($request->user_id);
-        $batch = Batch::where('batch_id', $request->batch_id)->first();
-        $amount = $request->amount ?? config('paymongo.enrollment_fee', 5000.00);
+        $batch = Batch::where('batch_id', $request->batch_id)->with('program')->first();
+        
+        // Get amount from request or from program pricing
+        $amount = $request->amount;
+        if (!$amount && $batch && $batch->program && $batch->program->pricing) {
+            $amount = floatval($batch->program->pricing);
+        }
+        if (!$amount) {
+            $amount = config('paymongo.enrollment_fee', 5000.00);
+        }
 
         // Create payment record
         $payment = Payment::create([
