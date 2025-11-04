@@ -3553,6 +3553,343 @@ Route::middleware(['auth:sanctum'])->group(function () {
         }
     });
     
+    // Staff Enrollment Report Endpoint
+    Route::get('/staff/enrollment-report', function (Request $request) {
+        try {
+            $reportType = $request->get('report_type', 'summary');
+            $dateFrom = $request->get('date_from');
+            $dateTo = $request->get('date_to');
+            $programFilter = $request->get('program', 'all');
+            $statusFilter = $request->get('status', 'all');
+            
+            // Function to read CSV data
+            $readCSVData = function() use ($dateFrom, $dateTo, $programFilter, $statusFilter) {
+                $csvData = [];
+                $csvDir = public_path('enrollment-data');
+                
+                if (!is_dir($csvDir)) {
+                    return $csvData;
+                }
+                
+                $csvFiles = glob($csvDir . '/*.csv');
+                
+                foreach ($csvFiles as $file) {
+                    if (($handle = fopen($file, 'r')) !== false) {
+                        $headers = fgetcsv($handle);
+                        
+                        while (($row = fgetcsv($handle)) !== false) {
+                            if (count($row) >= 6) { // date, enrollment, program, completed, withdrawn, dropped_out
+                                $date = $row[0];
+                                $totalEnrollment = (int)$row[1];
+                                $program = $row[2];
+                                $completed = (int)$row[3];
+                                $withdrawn = (int)$row[4];
+                                $droppedOut = (int)$row[5];
+                                
+                                // Apply date filter
+                                if ($dateFrom && $date < $dateFrom) continue;
+                                if ($dateTo && $date > $dateTo) continue;
+                                
+                                // Apply program filter
+                                if ($programFilter !== 'all') {
+                                    $programModel = \App\Models\Program::find($programFilter);
+                                    if ($programModel && stripos($program, $programModel->title) === false) {
+                                        continue;
+                                    }
+                                }
+                                
+                                $csvData[] = [
+                                    'date' => $date,
+                                    'total_enrollment' => $totalEnrollment,
+                                    'program' => $program,
+                                    'completed' => $completed,
+                                    'withdrawn' => $withdrawn,
+                                    'dropped_out' => $droppedOut
+                                ];
+                            }
+                        }
+                        fclose($handle);
+                    }
+                }
+                
+                return $csvData;
+            };
+            
+            // Read CSV data
+            $csvEnrollments = $readCSVData();
+            
+            // Base query for students from database
+            $query = \App\Models\User::where('role', 'student')
+                ->with(['batch.program']);
+            
+            // Apply date filter
+            if ($dateFrom) {
+                $query->whereDate('created_at', '>=', $dateFrom);
+            }
+            if ($dateTo) {
+                $query->whereDate('created_at', '<=', $dateTo);
+            }
+            
+            $students = $query->get();
+            
+            // Apply program filter
+            if ($programFilter !== 'all') {
+                $students = $students->filter(function ($student) use ($programFilter) {
+                    return $student->batch && $student->batch->program_id == $programFilter;
+                });
+            }
+            
+            // Apply status filter (only for database students, CSV data doesn't have status)
+            if ($statusFilter !== 'all') {
+                $students = $students->filter(function ($student) use ($statusFilter) {
+                    return strtolower($student->batch_status ?? 'active') === $statusFilter;
+                });
+            }
+            
+            // Calculate statistics (database students only for status)
+            $dbStatistics = [
+                'total' => $students->count(),
+                'active' => $students->filter(function ($student) {
+                    return strtolower($student->batch_status ?? 'active') === 'active';
+                })->count(),
+                'completed' => $students->filter(function ($student) {
+                    return strtolower($student->batch_status ?? '') === 'completed';
+                })->count(),
+                'withdrawn' => $students->filter(function ($student) {
+                    return strtolower($student->batch_status ?? '') === 'withdrawn';
+                })->count()
+            ];
+            
+            // Calculate CSV statistics by status
+            $csvCompleted = 0;
+            $csvWithdrawn = 0;
+            $csvDroppedOut = 0;
+            $csvTotal = 0;
+            
+            foreach ($csvEnrollments as $csvEntry) {
+                $csvTotal += $csvEntry['total_enrollment'];
+                $csvCompleted += $csvEntry['completed'];
+                $csvWithdrawn += $csvEntry['withdrawn'];
+                $csvDroppedOut += $csvEntry['dropped_out'];
+            }
+            
+            // Apply status filter to CSV data
+            if ($statusFilter === 'completed') {
+                $csvFilteredTotal = $csvCompleted;
+            } elseif ($statusFilter === 'withdrawn') {
+                $csvFilteredTotal = $csvWithdrawn;
+            } elseif ($statusFilter === 'dropped_out') {
+                $csvFilteredTotal = $csvDroppedOut;
+            } elseif ($statusFilter === 'active') {
+                $csvFilteredTotal = 0; // CSV data is historical, no active students
+            } else {
+                $csvFilteredTotal = $csvTotal; // All statuses
+            }
+            
+            $statistics = [
+                'total' => $dbStatistics['total'] + ($statusFilter === 'all' ? $csvTotal : $csvFilteredTotal),
+                'active' => $dbStatistics['active'], // Only from database
+                'completed' => $dbStatistics['completed'] + $csvCompleted,
+                'withdrawn' => $dbStatistics['withdrawn'] + $csvWithdrawn,
+                'dropped_out' => $csvDroppedOut // Only from CSV
+            ];
+            
+            $reportData = ['statistics' => $statistics];
+            
+            // Generate report based on type
+            if ($reportType === 'summary') {
+                // Summary by program
+                $programs = \App\Models\Program::all();
+                $programData = $programs->map(function ($program) use ($students, $csvEnrollments) {
+                    // Database students
+                    $programStudents = $students->filter(function ($student) use ($program) {
+                        return $student->batch && $student->batch->program_id == $program->id;
+                    });
+                    
+                    // CSV enrollments for this program - aggregate by status
+                    $csvCompleted = 0;
+                    $csvWithdrawn = 0;
+                    $csvDroppedOut = 0;
+                    $csvTotal = 0;
+                    
+                    foreach ($csvEnrollments as $csvEntry) {
+                        if (stripos($csvEntry['program'], $program->title) !== false) {
+                            $csvTotal += $csvEntry['total_enrollment'];
+                            $csvCompleted += $csvEntry['completed'];
+                            $csvWithdrawn += $csvEntry['withdrawn'];
+                            $csvDroppedOut += $csvEntry['dropped_out'];
+                        }
+                    }
+                    
+                    $dbActive = $programStudents->filter(function ($s) {
+                        return strtolower($s->batch_status ?? 'active') === 'active';
+                    })->count();
+                    
+                    $dbCompleted = $programStudents->filter(function ($s) {
+                        return strtolower($s->batch_status ?? '') === 'completed';
+                    })->count();
+                    
+                    $dbWithdrawn = $programStudents->filter(function ($s) {
+                        return strtolower($s->batch_status ?? '') === 'withdrawn';
+                    })->count();
+                    
+                    return [
+                        'program' => $program->title,
+                        'total' => $programStudents->count() + $csvTotal,
+                        'active' => $dbActive, // Only from database
+                        'completed' => $dbCompleted + $csvCompleted,
+                        'withdrawn' => $dbWithdrawn + $csvWithdrawn,
+                        'dropped_out' => $csvDroppedOut // Only from CSV
+                    ];
+                })->filter(function ($item) {
+                    return $item['total'] > 0;
+                })->values();
+                
+                $reportData['programs'] = $programData;
+                
+            } elseif ($reportType === 'detailed') {
+                // Detailed enrollment list
+                $enrollments = $students->map(function ($student) {
+                    return [
+                        'student_name' => trim($student->first_name . ' ' . $student->last_name),
+                        'email' => $student->email,
+                        'program' => $student->batch && $student->batch->program ? $student->batch->program->title : 'N/A',
+                        'batch' => $student->batch ? $student->batch->batch_code : 'N/A',
+                        'status' => $student->batch_status ?? 'active',
+                        'enrollment_date' => $student->created_at->format('Y-m-d')
+                    ];
+                })->values();
+                
+                $reportData['enrollments'] = $enrollments;
+                
+            } elseif ($reportType === 'by_program') {
+                // Enrollment by program and month
+                $data = [];
+                $programs = \App\Models\Program::all();
+                
+                foreach ($programs as $program) {
+                    // Database students
+                    $programStudents = $students->filter(function ($student) use ($program) {
+                        return $student->batch && $student->batch->program_id == $program->id;
+                    });
+                    
+                    // Group database students by month
+                    $byMonth = $programStudents->groupBy(function ($student) {
+                        return $student->created_at->format('Y-m');
+                    });
+                    
+                    foreach ($byMonth as $month => $monthStudents) {
+                        $data[] = [
+                            'program' => $program->title,
+                            'month' => date('M Y', strtotime($month . '-01')),
+                            'enrollments' => $monthStudents->count()
+                        ];
+                    }
+                    
+                    // Add CSV data grouped by month - use total_enrollment
+                    $csvByMonth = [];
+                    foreach ($csvEnrollments as $csvEntry) {
+                        if (stripos($csvEntry['program'], $program->title) !== false) {
+                            $month = date('Y-m', strtotime($csvEntry['date']));
+                            if (!isset($csvByMonth[$month])) {
+                                $csvByMonth[$month] = 0;
+                            }
+                            $csvByMonth[$month] += $csvEntry['total_enrollment'];
+                        }
+                    }
+                    
+                    foreach ($csvByMonth as $month => $count) {
+                        $monthFormatted = date('M Y', strtotime($month . '-01'));
+                        
+                        // Check if this month already exists in data (from database)
+                        $existingIndex = array_search($monthFormatted, array_column($data, 'month'));
+                        if ($existingIndex !== false && $data[$existingIndex]['program'] === $program->title) {
+                            $data[$existingIndex]['enrollments'] += $count;
+                        } else {
+                            $data[] = [
+                                'program' => $program->title,
+                                'month' => $monthFormatted,
+                                'enrollments' => $count
+                            ];
+                        }
+                    }
+                }
+                
+                $reportData['data'] = collect($data)->sortBy('month')->values();
+                
+            } elseif ($reportType === 'by_status') {
+                // Enrollment by status - use statistics total for percentage calculation
+                $total = $statistics['total'];
+                $statusData = [
+                    [
+                        'status' => 'active',
+                        'count' => $statistics['active'],
+                        'percentage' => $total > 0 ? round(($statistics['active'] / $total) * 100, 1) : 0
+                    ],
+                    [
+                        'status' => 'completed',
+                        'count' => $statistics['completed'],
+                        'percentage' => $total > 0 ? round(($statistics['completed'] / $total) * 100, 1) : 0
+                    ],
+                    [
+                        'status' => 'withdrawn',
+                        'count' => $statistics['withdrawn'],
+                        'percentage' => $total > 0 ? round(($statistics['withdrawn'] / $total) * 100, 1) : 0
+                    ],
+                    [
+                        'status' => 'dropped_out',
+                        'count' => $statistics['dropped_out'],
+                        'percentage' => $total > 0 ? round(($statistics['dropped_out'] / $total) * 100, 1) : 0
+                    ]
+                ];
+                
+                $reportData['data'] = $statusData;
+            }
+            
+            return response()->json([
+                'success' => true,
+                'data' => $reportData
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to generate report',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
+    
+    // Staff Programs Endpoint
+    Route::get('/staff/programs', function (Request $request) {
+        try {
+            // Check authentication
+            $user = $request->user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated'
+                ], 401);
+            }
+            
+            $programs = \App\Models\Program::all();
+            
+            return response()->json([
+                'success' => true,
+                'data' => $programs
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Staff programs endpoint error: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch programs',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
+    
     // Staff Applicant Documents Endpoint
     Route::get('/staff/applicant-documents', function (Request $request) {
         try {
