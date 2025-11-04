@@ -20,6 +20,7 @@ import StaffEnrollmentReports from '../pages/staff/StaffEnrollmentReports';
 import StaffStudentReports from '../pages/staff/StaffStudentReports';
 import StaffAssessmentReports from '../pages/staff/StaffAssessmentReports';
 import StaffInventoryReports from '../pages/staff/StaffInventoryReports';
+import StaffPaymentReports from '../pages/staff/StaffPaymentReports';
 
 const StaffRoutes = () => {
   return (
@@ -67,6 +68,9 @@ const StaffRoutes = () => {
 
       {/* Staff Inventory Reports */}
       <Route path='/reports/inventory' element={<ProtectedStaffRoute><StaffInventoryReports /></ProtectedStaffRoute>} />
+
+      {/* Staff Payment Reports */}
+      <Route path='/reports/payments' element={<ProtectedStaffRoute><StaffPaymentReports /></ProtectedStaffRoute>} />
     </Routes>
   );
 };

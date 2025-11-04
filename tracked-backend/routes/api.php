@@ -4409,6 +4409,181 @@ Route::middleware(['auth:sanctum'])->group(function () {
             ], 500);
         }
     });
+
+    // Staff Payment Reports Endpoint
+    Route::post('/staff/reports/payments', function (Request $request) {
+        try {
+            $reportType = $request->input('report_type', 'revenue_summary');
+            $dateFrom = $request->input('date_from');
+            $dateTo = $request->input('date_to');
+            $status = $request->input('status');
+            $method = $request->input('method');
+            
+            \Log::info('Payment report request', [
+                'report_type' => $reportType,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+                'status' => $status,
+                'method' => $method
+            ]);
+            
+            // Base query for payments
+            $paymentsQuery = \App\Models\Payment::whereBetween('created_at', [$dateFrom, $dateTo]);
+            
+            // Apply status filter if provided
+            if ($status && $status !== 'all') {
+                $paymentsQuery->where('payment_status', $status);
+            }
+            
+            // Apply payment method filter if provided
+            if ($method && $method !== 'all') {
+                $paymentsQuery->where('payment_method', $method);
+            }
+            
+            $payments = $paymentsQuery->with(['user'])->get();
+            
+            // Calculate statistics
+            $totalRevenue = $payments->sum('amount');
+            $totalTransactions = $payments->count();
+            $paidAmount = $payments->where('payment_status', 'paid')->sum('amount');
+            $unpaidAmount = $payments->whereIn('payment_status', ['unpaid', 'processing'])->sum('amount');
+            
+            $statistics = [
+                'total_revenue' => number_format($totalRevenue, 2),
+                'total_transactions' => $totalTransactions,
+                'paid' => number_format($paidAmount, 2),
+                'unpaid' => number_format($unpaidAmount, 2)
+            ];
+            
+            $reportData = [];
+            
+            if ($reportType === 'revenue_summary') {
+                // Monthly revenue summary
+                $groupedData = $payments->groupBy(function($payment) {
+                    return \Carbon\Carbon::parse($payment->created_at)->format('Y-m');
+                });
+                
+                // Helper function to format payment method names
+                $formatPaymentMethod = function($method) {
+                    $formatted = [
+                        'gcash' => 'GCash',
+                        'paymaya' => 'PayMaya',
+                        'card' => 'Card',
+                        'grab_pay' => 'GrabPay',
+                        'bank_transfer' => 'Bank Transfer',
+                        'cash' => 'Cash',
+                        'other' => 'Other'
+                    ];
+                    return $formatted[strtolower($method)] ?? ucfirst(str_replace('_', ' ', $method));
+                };
+                
+                foreach ($groupedData as $period => $items) {
+                    $totalRev = $items->sum('amount');
+                    $count = $items->count();
+                    $avgTransaction = $count > 0 ? $totalRev / $count : 0;
+                    $methods = $items->pluck('payment_method')->unique()->filter()->map($formatPaymentMethod)->implode(', ');
+                    
+                    $reportData[] = [
+                        'period' => \Carbon\Carbon::parse($period . '-01')->format('F Y'),
+                        'total_revenue' => number_format($totalRev, 2),
+                        'transaction_count' => $count,
+                        'average_transaction' => number_format($avgTransaction, 2),
+                        'payment_methods' => $methods ?: 'N/A'
+                    ];
+                }
+                
+            } else if ($reportType === 'payment_method_breakdown') {
+                // Payment method breakdown
+                $groupedData = $payments->where('payment_status', 'paid')->groupBy('payment_method');
+                $totalPaid = $payments->where('payment_status', 'paid')->sum('amount');
+                
+                // Helper function to format payment method names
+                $formatPaymentMethod = function($method) {
+                    $formatted = [
+                        'gcash' => 'GCash',
+                        'paymaya' => 'PayMaya',
+                        'card' => 'Card',
+                        'grab_pay' => 'GrabPay',
+                        'bank_transfer' => 'Bank Transfer',
+                        'cash' => 'Cash',
+                        'other' => 'Other'
+                    ];
+                    return $formatted[strtolower($method ?? '')] ?? ucfirst(str_replace('_', ' ', $method ?? 'Not Specified'));
+                };
+                
+                foreach ($groupedData as $paymentMethod => $items) {
+                    $amount = $items->sum('amount');
+                    $count = $items->count();
+                    $percentage = $totalPaid > 0 ? round(($amount / $totalPaid) * 100, 2) : 0;
+                    
+                    $reportData[] = [
+                        'method' => $formatPaymentMethod($paymentMethod),
+                        'count' => $count,
+                        'amount' => number_format($amount, 2),
+                        'percentage' => $percentage
+                    ];
+                }
+                
+            } else if ($reportType === 'outstanding_payments') {
+                // Outstanding/unpaid payments
+                $outstandingPayments = \App\Models\Payment::whereIn('payment_status', ['unpaid', 'processing'])
+                    ->with(['user'])
+                    ->get();
+                
+                foreach ($outstandingPayments as $payment) {
+                    $user = $payment->user;
+                    $createdDate = \Carbon\Carbon::parse($payment->created_at);
+                    $daysOverdue = $createdDate->diffInDays(now());
+                    
+                    $reportData[] = [
+                        'student_name' => $user ? ($user->first_name . ' ' . $user->last_name) : 'N/A',
+                        'batch' => $payment->batch_id ?? 'N/A',
+                        'amount' => number_format($payment->amount, 2),
+                        'due_date' => $createdDate->format('Y-m-d'),
+                        'days_overdue' => $daysOverdue,
+                        'status' => $payment->payment_status
+                    ];
+                }
+                
+            } else if ($reportType === 'daily_collection') {
+                // Daily collection report
+                $groupedData = $payments->where('payment_status', 'paid')->groupBy(function($payment) {
+                    return \Carbon\Carbon::parse($payment->paid_at ?? $payment->created_at)->format('Y-m-d');
+                });
+                
+                foreach ($groupedData as $date => $items) {
+                    $total = $items->sum('amount');
+                    $cash = $items->where('payment_method', 'cash')->sum('amount');
+                    $online = $items->whereIn('payment_method', ['gcash', 'paymaya', 'card', 'grab_pay'])->sum('amount');
+                    
+                    $reportData[] = [
+                        'date' => \Carbon\Carbon::parse($date)->format('M d, Y'),
+                        'transactions' => $items->count(),
+                        'total' => number_format($total, 2),
+                        'cash' => number_format($cash, 2),
+                        'online' => number_format($online, 2)
+                    ];
+                }
+            }
+            
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'statistics' => $statistics,
+                    'data' => $reportData
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Staff payment reports error: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to generate payment report',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
     
     // Staff Applicant Documents Endpoint
     Route::get('/staff/applicant-documents', function (Request $request) {
