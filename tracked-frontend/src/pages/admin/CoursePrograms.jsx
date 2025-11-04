@@ -345,10 +345,17 @@ const CoursePrograms = () => {
                     <div className="flex items-start justify-between">
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900">{program.title}</h3>
-                        <p className="text-sm text-gray-500 flex items-center mt-1">
-                          <MdAccessTime className="h-4 w-4 mr-1" />
-                          {program.duration} hours
-                        </p>
+                        <div className="flex items-center gap-3 mt-1">
+                          <p className="text-sm text-gray-500 flex items-center">
+                            <MdAccessTime className="h-4 w-4 mr-1" />
+                            {program.duration} hours
+                          </p>
+                          {program.pricing && (
+                            <p className="text-sm font-medium text-blue-600">
+                              ₱{parseFloat(program.pricing).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </p>
+                          )}
+                        </div>
                       </div>
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${

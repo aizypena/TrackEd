@@ -17,6 +17,7 @@ class Program extends Model
         'career_opportunities',
         'core_competencies',
         'duration',
+        'pricing',
         'availability',
     ];
 

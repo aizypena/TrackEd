@@ -6,6 +6,7 @@ const ProgramModal = ({ isOpen, onClose, program, onSave }) => {
     title: '',
     description: '',
     duration: '',
+    pricing: '',
     availability: 'available',
     career_opportunities: [''],
     core_competencies: ['']
@@ -20,6 +21,7 @@ const ProgramModal = ({ isOpen, onClose, program, onSave }) => {
           title: program.title || '',
           description: program.description || '',
           duration: program.duration || '',
+          pricing: program.pricing || '',
           availability: program.availability || 'available',
           career_opportunities: program.career_opportunities || [''],
           core_competencies: program.core_competencies || ['']
@@ -30,6 +32,7 @@ const ProgramModal = ({ isOpen, onClose, program, onSave }) => {
           title: '',
           description: '',
           duration: '',
+          pricing: '',
           availability: 'available',
           career_opportunities: [''],
           core_competencies: ['']
@@ -78,6 +81,7 @@ const ProgramModal = ({ isOpen, onClose, program, onSave }) => {
     const cleanedData = {
       ...formData,
       duration: parseInt(formData.duration),
+      pricing: formData.pricing ? parseFloat(formData.pricing) : null,
       career_opportunities: formData.career_opportunities.filter(item => item.trim() !== ''),
       core_competencies: formData.core_competencies.filter(item => item.trim() !== '')
     };
@@ -140,6 +144,22 @@ const ProgramModal = ({ isOpen, onClose, program, onSave }) => {
                 min="1"
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
                 required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Pricing (₱)
+              </label>
+              <input
+                type="number"
+                name="pricing"
+                value={formData.pricing}
+                onChange={handleInputChange}
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 

@@ -49,6 +49,7 @@ class ProgramController extends Controller
             'core_competencies' => 'nullable|array|max:5',
             'core_competencies.*' => 'string',
             'duration' => 'required|integer|min:1',
+            'pricing' => 'nullable|numeric|min:0',
             'availability' => 'required|in:available,unavailable',
         ]);
 
@@ -119,6 +120,7 @@ class ProgramController extends Controller
             'core_competencies' => 'nullable|array|max:5',
             'core_competencies.*' => 'string',
             'duration' => 'sometimes|required|integer|min:1',
+            'pricing' => 'nullable|numeric|min:0',
             'availability' => 'sometimes|required|in:available,unavailable',
         ]);
 
