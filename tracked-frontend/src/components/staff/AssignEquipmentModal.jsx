@@ -125,7 +125,15 @@ const AssignEquipmentModal = ({ isOpen, onClose, equipment, onSuccess, onError }
       );
 
       if (response.data.success) {
-        onSuccess();
+        // Pass assignment details to onSuccess for logging
+        onSuccess({
+          equipmentCode: equipment.equipment_code,
+          equipmentName: equipment.name,
+          userId: selectedUser,
+          userName: users.find(u => u.id === parseInt(selectedUser))?.name || 'Unknown User',
+          quantity: assignQuantity,
+          purpose
+        });
         onClose();
       }
     } catch (error) {

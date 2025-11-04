@@ -7,6 +7,7 @@ import DeleteConfirmationModal from '../../components/staff/DeleteConfirmationMo
 import AssignEquipmentModal from '../../components/staff/AssignEquipmentModal';
 import ManageAssignmentsModal from '../../components/staff/ManageAssignmentsModal';
 import { equipmentAPI } from '../../services/equipmentAPI';
+import { getStaffToken } from '../../utils/staffAuth';
 import axios from 'axios';
 import { 
   MdMenu,
@@ -65,6 +66,32 @@ const StaffEquipment = () => {
     fetchEquipment();
   }, [searchTerm, categoryFilter, statusFilter, locationFilter, sortBy]);
 
+  // Function to log system action
+  const logSystemAction = async (action, description, logLevel = 'info') => {
+    try {
+      const token = getStaffToken();
+      const response = await fetch('http://localhost:8000/api/log-action', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          action,
+          description,
+          log_level: logLevel,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to log system action');
+      }
+    } catch (error) {
+      console.error('Error logging system action:', error);
+    }
+  };
+
   const fetchEquipment = async () => {
     try {
       setLoading(true);
@@ -91,10 +118,8 @@ const StaffEquipment = () => {
   const fetchCategories = async () => {
     try {
       const response = await equipmentAPI.getCategories();
-      console.log('Categories response:', response); // Debug log
       if (response.success) {
         setCategories(response.data);
-        console.log('Categories set:', response.data); // Debug log
       }
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -105,10 +130,8 @@ const StaffEquipment = () => {
   const fetchLocations = async () => {
     try {
       const response = await equipmentAPI.getLocations();
-      console.log('Locations response:', response); // Debug log
       if (response.success) {
         setLocations(response.data);
-        console.log('Locations set:', response.data); // Debug log
       }
     } catch (error) {
       console.error('Error fetching locations:', error);
@@ -208,6 +231,17 @@ const StaffEquipment = () => {
       // If password is valid, proceed with deletion
       const response = await equipmentAPI.delete(deletingEquipment.id);
       if (response.success) {
+        // Get staff user info for logging
+        const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
+        const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
+
+        // Log the deletion
+        await logSystemAction(
+          'equipment_deleted',
+          `${staffName} deleted equipment ${deletingEquipment.equipment_code} (${deletingEquipment.name}) - Category: ${deletingEquipment.category}, Quantity: ${deletingEquipment.quantity}`,
+          'warning'
+        );
+
         setSuccessMessage('Equipment deleted successfully');
         setDeletingEquipment(null);
         fetchEquipment();
@@ -318,10 +352,10 @@ const StaffEquipment = () => {
             </div>
             <button 
               onClick={handleAddEquipment}
-              className="flex items-center gap-2 px-4 py-2 bg-tracked-secondary hover:bg-opacity-90 rounded-md transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-tracked-secondary hover:bg-opacity-90 rounded-md transition-colors cursor-pointer"
             >
               <MdAdd className="h-5 w-5" />
-              <span className="hidden sm:inline hover:cursor-pointer">Add Equipment</span>
+              <span className="hidden sm:inline">Add Equipment</span>
             </button>
           </div>
         </nav>
@@ -606,11 +640,29 @@ const StaffEquipment = () => {
           equipment={editingEquipment}
           categories={categories}
           locations={locations}
-          onSuccess={() => {
+          onSuccess={async (actionType, equipmentData) => {
+            // Get staff user info for logging
+            const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
+            const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
+
+            if (actionType === 'created') {
+              await logSystemAction(
+                'equipment_added',
+                `${staffName} added new equipment ${equipmentData.equipment_code} (${equipmentData.name}) - Category: ${equipmentData.category}, Quantity: ${equipmentData.quantity}, Value: ₱${equipmentData.value}`,
+                'info'
+              );
+            } else if (actionType === 'updated') {
+              await logSystemAction(
+                'equipment_updated',
+                `${staffName} updated equipment ${equipmentData.equipment_code} (${equipmentData.name}) - Category: ${equipmentData.category}, Status: ${equipmentData.status}`,
+                'info'
+              );
+            }
+
             fetchEquipment();
             setShowAddModal(false);
             setEditingEquipment(null);
-            setSuccessMessage(editingEquipment ? 'Equipment updated successfully' : 'Equipment added successfully');
+            setSuccessMessage(actionType === 'updated' ? 'Equipment updated successfully' : 'Equipment added successfully');
           }}
           onError={(message) => setErrorMessage(message)}
         />
@@ -629,7 +681,17 @@ const StaffEquipment = () => {
         isOpen={!!assigningEquipment}
         onClose={() => setAssigningEquipment(null)}
         equipment={assigningEquipment}
-        onSuccess={() => {
+        onSuccess={async (assignmentData) => {
+          // Get staff user info for logging
+          const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
+          const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
+
+          await logSystemAction(
+            'equipment_assigned',
+            `${staffName} assigned ${assignmentData.quantity}x ${assignmentData.equipmentCode} (${assignmentData.equipmentName}) to ${assignmentData.userName} - Purpose: ${assignmentData.purpose}`,
+            'info'
+          );
+
           setSuccessMessage('Equipment assigned successfully');
           setAssigningEquipment(null);
           fetchEquipment();
@@ -642,7 +704,17 @@ const StaffEquipment = () => {
         isOpen={!!managingEquipment}
         onClose={() => setManagingEquipment(null)}
         equipment={managingEquipment}
-        onSuccess={() => {
+        onSuccess={async (returnData) => {
+          // Get staff user info for logging
+          const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
+          const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
+
+          await logSystemAction(
+            'equipment_returned',
+            `${staffName} processed return of ${returnData.quantity}x ${returnData.equipmentCode} (${returnData.equipmentName}) from ${returnData.userName} - Condition: ${returnData.returnCondition}${returnData.returnNotes ? `, Notes: ${returnData.returnNotes}` : ''}`,
+            'info'
+          );
+
           setSuccessMessage('Equipment returned successfully');
           setManagingEquipment(null);
           fetchEquipment();

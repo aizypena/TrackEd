@@ -84,7 +84,8 @@ const AddEditEquipmentModal = ({ isOpen, onClose, equipment, categories, locatio
       }
 
       if (response.success) {
-        onSuccess();
+        // Pass the action type and equipment data to onSuccess for logging
+        onSuccess(equipment ? 'updated' : 'created', response.data || formData);
       }
     } catch (error) {
       console.error('Error saving equipment:', error);

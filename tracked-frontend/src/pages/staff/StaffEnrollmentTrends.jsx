@@ -98,7 +98,7 @@ const StaffEnrollmentTrends = () => {
     ? enrollmentData.programBreakdown 
     : enrollmentData.programBreakdown.filter(p => p.program === programFilter);
 
-  const currentYearData = enrollmentData.yearly[yearFilter] || enrollmentData.yearly['2025'];
+  const currentYearData = enrollmentData.yearly[yearFilter] || enrollmentData.yearly['2025'] || { total: 0, growth: 0 };
   const totalEnrollments = enrollmentData.programBreakdown.reduce((sum, p) => sum + p.enrollments, 0);
 
   return (
@@ -126,12 +126,6 @@ const StaffEnrollmentTrends = () => {
                 <h1 className="text-xl font-bold">Enrollment Trends</h1>
                 <p className="text-sm text-blue-100">Analytics and insights on enrollment patterns</p>
               </div>
-            </div>
-            <div className="flex gap-2">
-              <button className="flex items-center gap-2 px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-md transition-colors">
-                <MdDownload className="h-5 w-5" />
-                <span className="hidden sm:inline">Export</span>
-              </button>
             </div>
           </div>
         </nav>
@@ -168,14 +162,14 @@ const StaffEnrollmentTrends = () => {
                 <button 
                   onClick={fetchEnrollmentTrends}
                   disabled={loading}
-                  className="flex items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   <MdRefresh className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
                   Refresh
                 </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors">
-                  <MdPrint className="h-5 w-5" />
-                  Print
+                <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors cursor-pointer">
+                  <MdDownload className="h-5 w-5" />
+                  Export
                 </button>
               </div>
             </div>
@@ -230,7 +224,9 @@ const StaffEnrollmentTrends = () => {
               </div>
               <p className="text-sm text-gray-500 font-medium">Avg. Batch Size</p>
               <p className="text-3xl font-bold text-orange-600 mt-2">
-                {Math.round(enrollmentData.programBreakdown.reduce((sum, p) => sum + p.avgBatchSize, 0) / enrollmentData.programBreakdown.length)}
+                {enrollmentData.programBreakdown.length > 0 
+                  ? Math.round(enrollmentData.programBreakdown.reduce((sum, p) => sum + p.avgBatchSize, 0) / enrollmentData.programBreakdown.length)
+                  : 0}
               </p>
               <p className="text-xs text-gray-500 mt-1">Students per batch</p>
             </div>
@@ -322,41 +318,57 @@ const StaffEnrollmentTrends = () => {
                 <MdBarChart className="h-6 w-6 text-tracked-primary" />
                 Program Performance
               </h2>
-              <div className="space-y-4">
-                {filteredPrograms.map((program, index) => (
-                  <div key={index} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-800">{program.program}</span>
-                        {getTrendIcon(program.trend)}
+              <div className="space-y-6">
+                {filteredPrograms.length > 0 ? (
+                  filteredPrograms.map((program, index) => (
+                    <div key={index} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-semibold text-gray-800">{program.program}</span>
+                          {getTrendIcon(program.trend)}
+                        </div>
+                        <div className="text-right flex items-center gap-3">
+                          <span className="text-lg font-bold text-tracked-primary">{program.enrollments}</span>
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                            {program.percentage ? program.percentage.toFixed(1) : '0.0'}%
+                          </span>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <span className="text-sm font-bold text-tracked-primary">{program.enrollments}</span>
-                        <span className="text-xs text-gray-500 ml-1">({program.percentage}%)</span>
+                      <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                        <div 
+                          className={`h-4 rounded-full transition-all duration-500 ${
+                            program.trend === 'up' ? 'bg-gradient-to-r from-green-500 to-green-600' :
+                            program.trend === 'down' ? 'bg-gradient-to-r from-red-500 to-red-600' :
+                            'bg-gradient-to-r from-blue-500 to-blue-600'
+                          }`}
+                          style={{ width: `${program.percentage || 0}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-3">
+                          <span className="text-gray-600">
+                            <span className="font-semibold text-gray-700">{program.batches || 0}</span> batches
+                          </span>
+                          <span className="text-gray-600">
+                            Avg: <span className="font-semibold text-gray-700">{program.avgBatchSize || 0}</span> students
+                          </span>
+                        </div>
+                        <span className={`font-semibold ${
+                          program.growthRate > 0 ? 'text-green-600' :
+                          program.growthRate < 0 ? 'text-red-600' :
+                          'text-gray-600'
+                        }`}>
+                          {program.growthRate > 0 ? '+' : ''}{program.growthRate || 0}% growth
+                        </span>
                       </div>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
-                      <div 
-                        className={`h-3 rounded-full transition-all duration-300 ${
-                          program.trend === 'up' ? 'bg-green-600' :
-                          program.trend === 'down' ? 'bg-red-600' :
-                          'bg-blue-600'
-                        }`}
-                        style={{ width: `${program.percentage * 3.89}%` }}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span>{program.batches} batches</span>
-                      <span className={`font-medium ${
-                        program.growthRate > 0 ? 'text-green-600' :
-                        program.growthRate < 0 ? 'text-red-600' :
-                        'text-gray-600'
-                      }`}>
-                        {program.growthRate > 0 ? '+' : ''}{program.growthRate}% growth
-                      </span>
-                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <MdBarChart className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                    <p>No program data available</p>
                   </div>
-                ))}
+                )}
               </div>
             </div>
 
@@ -406,70 +418,6 @@ const StaffEnrollmentTrends = () => {
                       </div>
                     </div>
                   ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Conversion Funnel */}
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-              <MdTimeline className="h-6 w-6 text-tracked-primary" />
-              Application to Enrollment Funnel
-            </h2>
-            <div className="space-y-4">
-              <div className="relative">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">Applications Received</span>
-                  <span className="text-lg font-bold text-blue-600">{enrollmentData.conversionRate.applications}</span>
-                </div>
-                <div className="w-full bg-blue-200 rounded-lg h-12 flex items-center justify-center">
-                  <span className="text-blue-800 font-semibold">100%</span>
-                </div>
-              </div>
-
-              <div className="relative">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">Successfully Enrolled</span>
-                  <span className="text-lg font-bold text-green-600">{enrollmentData.conversionRate.enrolled}</span>
-                </div>
-                <div 
-                  className="bg-green-500 rounded-lg h-12 flex items-center justify-center transition-all duration-300"
-                  style={{ width: `${enrollmentData.conversionRate.rate}%` }}
-                >
-                  <span className="text-white font-semibold">{enrollmentData.conversionRate.rate}%</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">Withdrawn</span>
-                    <span className="text-sm font-bold text-yellow-600">{enrollmentData.conversionRate.withdrawn}</span>
-                  </div>
-                  <div 
-                    className="bg-yellow-400 rounded-lg h-8 flex items-center justify-center"
-                    style={{ width: `${(enrollmentData.conversionRate.withdrawn / enrollmentData.conversionRate.applications) * 100}%` }}
-                  >
-                    <span className="text-yellow-900 text-sm font-semibold">
-                      {((enrollmentData.conversionRate.withdrawn / enrollmentData.conversionRate.applications) * 100).toFixed(1)}%
-                    </span>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">Rejected</span>
-                    <span className="text-sm font-bold text-red-600">{enrollmentData.conversionRate.rejected}</span>
-                  </div>
-                  <div 
-                    className="bg-red-400 rounded-lg h-8 flex items-center justify-center"
-                    style={{ width: `${(enrollmentData.conversionRate.rejected / enrollmentData.conversionRate.applications) * 100}%` }}
-                  >
-                    <span className="text-red-900 text-sm font-semibold">
-                      {((enrollmentData.conversionRate.rejected / enrollmentData.conversionRate.applications) * 100).toFixed(1)}%
-                    </span>
-                  </div>
                 </div>
               </div>
             </div>
