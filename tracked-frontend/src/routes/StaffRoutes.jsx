@@ -19,6 +19,7 @@ import PaymentCallback from '../pages/staff/PaymentCallback';
 import StaffEnrollmentReports from '../pages/staff/StaffEnrollmentReports';
 import StaffStudentReports from '../pages/staff/StaffStudentReports';
 import StaffAssessmentReports from '../pages/staff/StaffAssessmentReports';
+import StaffInventoryReports from '../pages/staff/StaffInventoryReports';
 
 const StaffRoutes = () => {
   return (
@@ -63,6 +64,9 @@ const StaffRoutes = () => {
 
       {/* Staff Assessment Reports */}
       <Route path='/reports/assessments' element={<ProtectedStaffRoute><StaffAssessmentReports /></ProtectedStaffRoute>} />
+
+      {/* Staff Inventory Reports */}
+      <Route path='/reports/inventory' element={<ProtectedStaffRoute><StaffInventoryReports /></ProtectedStaffRoute>} />
     </Routes>
   );
 };

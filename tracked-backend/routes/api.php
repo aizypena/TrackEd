@@ -4249,6 +4249,166 @@ Route::middleware(['auth:sanctum'])->group(function () {
             ], 500);
         }
     });
+
+    // Staff Equipment Categories Endpoint
+    Route::get('/staff/equipment/categories', function (Request $request) {
+        try {
+            $user = $request->user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated'
+                ], 401);
+            }
+            
+            $categories = \App\Models\Equipment::distinct()->pluck('category')->filter()->values();
+            
+            return response()->json([
+                'success' => true,
+                'data' => $categories
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Equipment categories error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load categories',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
+
+    // Staff Inventory Reports Endpoint
+    Route::post('/staff/reports/inventory', function (Request $request) {
+        try {
+            $reportType = $request->input('report_type', 'stock_summary');
+            $dateFrom = $request->input('date_from');
+            $dateTo = $request->input('date_to');
+            $category = $request->input('category');
+            $status = $request->input('status');
+            
+            \Log::info('Inventory report request', [
+                'report_type' => $reportType,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+                'category' => $category,
+                'status' => $status
+            ]);
+            
+            // Base query for equipment
+            $equipmentQuery = \App\Models\Equipment::query();
+            
+            // Apply category filter if provided
+            if ($category && $category !== 'all') {
+                $equipmentQuery->where('category', $category);
+            }
+            
+            // Apply status filter if provided
+            if ($status && $status !== 'all') {
+                $equipmentQuery->where('status', $status);
+            }
+            
+            $equipment = $equipmentQuery->get();
+            
+            // Calculate statistics
+            $totalEquipment = $equipment->sum('quantity');
+            $availableCount = $equipment->sum('available');
+            $inUseCount = $equipment->sum('in_use');
+            $maintenanceCount = $equipment->sum('maintenance');
+            
+            $statistics = [
+                'total' => $totalEquipment,
+                'available' => $availableCount,
+                'in_use' => $inUseCount,
+                'maintenance' => $maintenanceCount
+            ];
+            
+            $reportData = [];
+            
+            if ($reportType === 'stock_summary') {
+                // Stock summary report
+                foreach ($equipment as $item) {
+                    $reportData[] = [
+                        'name' => $item->name,
+                        'category' => $item->category,
+                        'quantity' => $item->quantity,
+                        'available' => $item->available,
+                        'in_use' => $item->in_use,
+                        'maintenance' => $item->maintenance,
+                        'damaged' => $item->damaged,
+                        'status' => $item->status
+                    ];
+                }
+                
+            } else if ($reportType === 'maintenance_schedule') {
+                // Maintenance schedule report
+                foreach ($equipment as $item) {
+                    $reportData[] = [
+                        'name' => $item->name,
+                        'category' => $item->category,
+                        'last_maintenance' => $item->last_maintenance ? $item->last_maintenance : 'N/A',
+                        'next_maintenance' => $item->next_maintenance ? $item->next_maintenance : 'N/A',
+                        'status' => $item->status,
+                        'condition' => $item->condition
+                    ];
+                }
+                
+            } else if ($reportType === 'utilization_report') {
+                // Utilization report by category
+                $groupedData = $equipment->groupBy('category');
+                
+                foreach ($groupedData as $cat => $items) {
+                    $total = $items->sum('quantity');
+                    $available = $items->sum('available');
+                    $inUse = $items->sum('in_use');
+                    $utilizationRate = $total > 0 ? round(($inUse / $total) * 100, 2) : 0;
+                    
+                    $reportData[] = [
+                        'category' => $cat,
+                        'total' => $total,
+                        'available' => $available,
+                        'in_use' => $inUse,
+                        'utilization_rate' => $utilizationRate
+                    ];
+                }
+                
+            } else if ($reportType === 'value_summary') {
+                // Value summary by category
+                $groupedData = $equipment->groupBy('category');
+                
+                foreach ($groupedData as $cat => $items) {
+                    $totalItems = $items->sum('quantity');
+                    $totalValue = $items->sum(function($item) {
+                        return $item->value * $item->quantity;
+                    });
+                    $averageValue = $totalItems > 0 ? round($totalValue / $totalItems, 2) : 0;
+                    
+                    $reportData[] = [
+                        'category' => $cat,
+                        'total_items' => $totalItems,
+                        'total_value' => number_format($totalValue, 2),
+                        'average_value' => number_format($averageValue, 2)
+                    ];
+                }
+            }
+            
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'statistics' => $statistics,
+                    'data' => $reportData
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Staff inventory reports error: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to generate inventory report',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
     
     // Staff Applicant Documents Endpoint
     Route::get('/staff/applicant-documents', function (Request $request) {
