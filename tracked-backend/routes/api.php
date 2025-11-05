@@ -312,12 +312,12 @@ Route::post('/staff/login', function (Request $request) {
 
 Route::post('/student/login', function (Request $request) {
     $request->validate([
-        'email' => 'required|string|email',
+        'student_id' => 'required|string',
         'password' => 'required|string',
     ]);
 
-    // Find student user
-    $user = User::where('email', $request->email)
+    // Find student user by student_id
+    $user = User::where('student_id', $request->student_id)
                 ->where('role', 'student')
                 ->first();
 
@@ -326,7 +326,7 @@ Route::post('/student/login', function (Request $request) {
         DB::table('system_logs')->insert([
             'user_id' => $user ? $user->id : null,
             'action' => 'student_login_failed',
-            'description' => 'Failed student login attempt for email: ' . $request->email,
+            'description' => 'Failed student login attempt for Student ID: ' . $request->student_id,
             'log_level' => 'warning',
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
@@ -334,7 +334,7 @@ Route::post('/student/login', function (Request $request) {
         ]);
 
         return response()->json([
-            'message' => 'Invalid credentials. Please check your email and password.'
+            'message' => 'Invalid credentials. Please check your Student ID and password.'
         ], 401);
     }
 
@@ -344,7 +344,7 @@ Route::post('/student/login', function (Request $request) {
         DB::table('system_logs')->insert([
             'user_id' => $user->id,
             'action' => 'student_login_blocked',
-            'description' => 'Student login attempt blocked for inactive account: ' . $user->email,
+            'description' => 'Student login attempt blocked for inactive account: ' . $user->student_id,
             'log_level' => 'warning',
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
@@ -364,7 +364,7 @@ Route::post('/student/login', function (Request $request) {
     DB::table('system_logs')->insert([
         'user_id' => $user->id,
         'action' => 'student_login_success',
-        'description' => 'Student logged in successfully: ' . $user->email,
+        'description' => 'Student logged in successfully: ' . $user->student_id . ' (' . $user->email . ')',
         'log_level' => 'info',
         'ip_address' => $request->ip(),
         'user_agent' => $request->userAgent(),
@@ -3449,6 +3449,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
             // Generate temporary LMS password (student can change later)
             $tempPassword = 'SMI' . date('Y') . substr(str_shuffle('0123456789'), 0, 4);
             
+            // Update user password in database
+            $applicant->password = \Illuminate\Support\Facades\Hash::make($tempPassword);
+            $applicant->save();
+            
             // Get batch details for schedule information
             $batch = null;
             $scheduleInfo = 'Your class schedule will be sent separately via email once finalized.';
@@ -3730,6 +3734,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
             // Generate temporary LMS password
             $tempPassword = 'SMI' . date('Y') . substr(str_shuffle('0123456789'), 0, 4);
+            
+            // Update user password in database
+            $applicant->password = \Illuminate\Support\Facades\Hash::make($tempPassword);
+            $applicant->save();
 
             $emailContent = "
                 <!DOCTYPE html>
@@ -3961,6 +3969,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
             // Generate temporary LMS password
             $tempPassword = 'SMI' . date('Y') . substr(str_shuffle('0123456789'), 0, 4);
+            
+            // Update user password in database
+            $applicant->password = \Illuminate\Support\Facades\Hash::make($tempPassword);
+            $applicant->save();
 
             $emailContent = "
                 <!DOCTYPE html>

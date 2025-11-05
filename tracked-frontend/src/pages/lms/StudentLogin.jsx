@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  MdEmail,
   MdLock,
   MdPerson,
   MdWarning
@@ -11,7 +10,7 @@ import { AiOutlineEye, AiOutlineEyeInvisible } from 'react-icons/ai';
 const StudentLogin = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    email: '',
+    student_id: '',
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -42,7 +41,7 @@ const StudentLogin = () => {
     setIsLoading(true);
     setError('');
 
-    if (!formData.email || !formData.password) {
+    if (!formData.student_id || !formData.password) {
       setError('Please fill in all required fields');
       setIsLoading(false);
       return;
@@ -98,20 +97,20 @@ const StudentLogin = () => {
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div className="relative">
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email Address
+              <label htmlFor="student_id" className="block text-sm font-medium text-gray-700 mb-1">
+                Student ID
               </label>
               <div className="relative">
-                <MdEmail className="absolute left-3 top-3 text-gray-400 z-10 pointer-events-none" />
+                <MdPerson className="absolute left-3 top-3 text-gray-400 z-10 pointer-events-none" />
                 <input
-                  id="email"
-                  name="email"
-                  type="email"
+                  id="student_id"
+                  name="student_id"
+                  type="text"
                   required
-                  value={formData.email}
+                  value={formData.student_id}
                   onChange={handleInputChange}
                   className="appearance-none relative block w-full px-10 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="Enter your email"
+                  placeholder="e.g., STU-2025-0001"
                 />
               </div>
             </div>
