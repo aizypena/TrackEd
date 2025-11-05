@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import StaffSidebar from '../../layouts/staff/StaffSidebar';
 import { getStaffToken } from '../../utils/staffAuth';
 import toast, { Toaster } from 'react-hot-toast';
+import { API_URL, STORAGE_URL } from '../../config/api';
 import { 
   MdMenu,
   MdSearch,
@@ -33,7 +34,7 @@ const StaffDocumentManagement = () => {
   const logSystemAction = async (action, description, logLevel = 'info') => {
     try {
       const token = getStaffToken();
-      const response = await fetch('http://localhost:8000/api/log-action', {
+      const response = await fetch(`${API_URL}/log-action`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -60,7 +61,7 @@ const StaffDocumentManagement = () => {
       setLoading(true);
       const token = getStaffToken();
       
-      const response = await fetch('http://localhost:8000/api/staff/applicant-documents', {
+      const response = await fetch(`${API_URL}/staff/applicant-documents`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -95,7 +96,7 @@ const StaffDocumentManagement = () => {
 
   const handleViewDocument = (doc) => {
     // Construct the full URL to the document
-    const fileUrl = `http://localhost:8000/storage/${doc.file_path}`;
+    const fileUrl = `${STORAGE_URL}/${doc.file_path}`;
     // Open in new tab
     window.open(fileUrl, '_blank');
   };
@@ -107,7 +108,7 @@ const StaffDocumentManagement = () => {
       const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
 
       const token = getStaffToken();
-      const downloadUrl = `http://localhost:8000/api/staff/document/download?path=${encodeURIComponent(doc.file_path)}`;
+      const downloadUrl = `${API_URL}/staff/document/download?path=${encodeURIComponent(doc.file_path)}`;
       
       // Create a temporary link and trigger download
       const link = document.createElement('a');

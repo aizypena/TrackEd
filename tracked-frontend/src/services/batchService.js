@@ -1,6 +1,5 @@
 import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:8000/api';
+import { API_URL as API_BASE_URL } from '../config/api';
 
 // Get authentication token (support multiple roles)
 const getAuthToken = () => {

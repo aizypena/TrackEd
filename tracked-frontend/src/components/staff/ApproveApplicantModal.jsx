@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MdClose, MdCheckCircle } from 'react-icons/md';
 import toast from 'react-hot-toast';
 import { getStaffToken } from '../../utils/staffAuth';
+import { API_URL } from '../../config/api';
 
 const ApproveApplicantModal = ({ isOpen, onClose, applicant, onSuccess }) => {
   const [programs, setPrograms] = useState([]);
@@ -43,7 +44,7 @@ const ApproveApplicantModal = ({ isOpen, onClose, applicant, onSuccess }) => {
     try {
       setFetchingData(true);
       const token = getStaffToken();
-      const response = await fetch('http://localhost:8000/api/programs', {
+      const response = await fetch(`${API_URL}/programs`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -73,7 +74,7 @@ const ApproveApplicantModal = ({ isOpen, onClose, applicant, onSuccess }) => {
     try {
       setFetchingData(true);
       const token = getStaffToken();
-      const response = await fetch('http://localhost:8000/api/batches', {
+      const response = await fetch(`${API_URL}/batches`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -127,7 +128,7 @@ const ApproveApplicantModal = ({ isOpen, onClose, applicant, onSuccess }) => {
     try {
       setLoading(true);
       const token = getStaffToken();
-      const response = await fetch(`http://localhost:8000/api/staff/applicants/${applicant.id}/approve`, {
+      const response = await fetch(`${API_URL}/staff/applicants/${applicant.id}/approve`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

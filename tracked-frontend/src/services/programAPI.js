@@ -1,5 +1,5 @@
 // Program related API endpoints
-const API_BASE_URL = 'http://127.0.0.1:8000/api';
+import { API_URL as API_BASE_URL } from '../config/api';
 
 // Get token from localStorage (check staff, admin, or general token)
 const getAuthToken = () => {

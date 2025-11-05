@@ -6450,13 +6450,19 @@ Route::middleware(['auth:sanctum'])->group(function () {
             
             if (file_exists($filename)) {
                 $file = fopen($filename, 'r');
-                $headers = fgetcsv($file); // Skip header row
+                fgetcsv($file); // Skip title row (first line)
+                fgetcsv($file); // Skip header row (second line)
                 
                 $programData = [];
                 $total = 0;
                 $programName = '';
                 
                 while (($row = fgetcsv($file)) !== false) {
+                    // Skip empty rows
+                    if (empty($row[0]) || empty($row[1]) || empty($row[2])) {
+                        continue;
+                    }
+                    
                     $data = [
                         'date' => $row[0],
                         'enrollment' => (int)$row[1],

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import StaffSidebar from '../../layouts/staff/StaffSidebar';
 import { getStaffToken } from '../../utils/staffAuth';
 import toast, { Toaster } from 'react-hot-toast';
+import { API_URL } from '../../config/api';
 import { 
   MdMenu,
   MdRefresh,
@@ -55,7 +56,7 @@ const StaffEnrollmentTrends = () => {
       setLoading(true);
       const token = getStaffToken();
       
-      const response = await fetch(`http://localhost:8000/api/staff/enrollment-trends?year=${yearFilter}`, {
+      const response = await fetch(`${API_URL}/staff/enrollment-trends?year=${yearFilter}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

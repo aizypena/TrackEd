@@ -87,7 +87,7 @@ function Sidebar({ isOpen, onClose }) {
       name: 'Reports Management',
       icon: MdAssessment,
       submenu: [
-        { id: 'enrollment-reports', name: 'Enrollment Reports', icon: MdSchool, path: '/admin/enrollment-reports' },
+        // { id: 'enrollment-reports', name: 'Enrollment Reports', icon: MdSchool, path: '/admin/enrollment-reports' },
         { id: 'enrollment-trends', name: 'Enrollment Trends', icon: MdTrendingUp, path: '/admin/enrollment-trends' },
         { id: 'arima-forecasting', name: 'ARIMA Forecasting', icon: MdShowChart, path: '/admin/arima-forecasting', badge: 'NEW' },
         { id: 'assessment-reports', name: 'Assessment Results', icon: MdVerified, path: '/admin/assessment-results' },

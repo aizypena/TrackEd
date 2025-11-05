@@ -6,6 +6,7 @@ import StatusChangeModal from '../../components/staff/StatusChangeModal';
 import ProcessPaymentModal from '../../components/staff/ProcessPaymentModal';
 import { getStaffToken } from '../../utils/staffAuth';
 import toast, { Toaster } from 'react-hot-toast';
+import { API_URL, STORAGE_URL } from '../../config/api';
 import { 
   MdMenu,
   MdArrowBack,
@@ -45,7 +46,7 @@ const StaffApplicantView = () => {
   const logSystemAction = async (action, description, logLevel = 'info') => {
     try {
       const token = getStaffToken();
-      const response = await fetch('http://localhost:8000/api/log-action', {
+      const response = await fetch(`${API_URL}/log-action`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -71,7 +72,7 @@ const StaffApplicantView = () => {
     try {
       setLoading(true);
       const token = getStaffToken();
-      const response = await fetch(`http://localhost:8000/api/staff/applicants/${id}`, {
+      const response = await fetch(`${API_URL}/staff/applicants/${id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -136,7 +137,7 @@ const StaffApplicantView = () => {
     try {
       setUpdating(true);
       const token = getStaffToken();
-      const response = await fetch(`http://localhost:8000/api/staff/applicants/${id}/status`, {
+      const response = await fetch(`${API_URL}/staff/applicants/${id}/status`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -195,7 +196,7 @@ const StaffApplicantView = () => {
     try {
       setEnrolling(true);
       const token = getStaffToken();
-      const response = await fetch(`http://localhost:8000/api/staff/applicants/${id}/enroll-student`, {
+      const response = await fetch(`${API_URL}/staff/applicants/${id}/enroll-student`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -542,7 +543,7 @@ const StaffApplicantView = () => {
                       </div>
                       {doc.path && (
                         <a
-                          href={`http://localhost:8000/storage/${doc.path}`}
+                          href={`${STORAGE_URL}/${doc.path}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-tracked-primary hover:text-tracked-secondary"

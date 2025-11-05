@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../layouts/admin/Sidebar';
+import { API_URL } from '../../config/api';
 import {
   MdMenu,
   MdCalendarToday,
@@ -68,7 +69,7 @@ const ArimaForecasting = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('adminToken');
-      const response = await fetch('http://localhost:8000/api/admin/arima-forecast', {
+      const response = await fetch(`${API_URL}/admin/arima-forecast`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -100,7 +101,44 @@ const ArimaForecasting = () => {
   }, [selectedProgram, forecastPeriods]);
 
   const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    
+    // Handle quarter format like "Q1 2024" or "2024-Q1"
+    if (typeof dateString === 'string') {
+      const quarterMatch = dateString.match(/Q(\d)\s*(\d{4})/i) || dateString.match(/(\d{4})-Q(\d)/i);
+      if (quarterMatch) {
+        const quarter = quarterMatch[1] || quarterMatch[2];
+        const year = quarterMatch[2] || quarterMatch[1];
+        return `Q${quarter} ${year}`;
+      }
+    }
+    
+    // Handle different date formats
     const date = new Date(dateString);
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      // Try parsing as YYYY-MM-DD
+      const parts = String(dateString).split(/[-\/]/);
+      if (parts.length >= 2) {
+        const year = parseInt(parts[0]);
+        const month = parseInt(parts[1]) - 1; // Month is 0-indexed
+        const day = parts[2] ? parseInt(parts[2]) : 1;
+        
+        if (!isNaN(year) && !isNaN(month)) {
+          const parsedDate = new Date(year, month, day);
+          
+          if (!isNaN(parsedDate.getTime())) {
+            const monthName = parsedDate.toLocaleString('default', { month: 'short' });
+            const yearValue = parsedDate.getFullYear();
+            return `${monthName} ${yearValue}`;
+          }
+        }
+      }
+      
+      return String(dateString); // Return as-is if can't parse
+    }
+    
     const month = date.toLocaleString('default', { month: 'short' });
     const year = date.getFullYear();
     return `${month} ${year}`;
@@ -119,7 +157,7 @@ const ArimaForecasting = () => {
       {
         label: 'Historical Enrollments',
         data: [
-          ...(forecastData.historical || []).map(d => d.enrollment),
+          ...(forecastData.historical || []).map(d => d.enrollment || 0),
           ...Array(forecastLength).fill(null)
         ],
         borderColor: 'rgb(75, 192, 192)',
@@ -133,7 +171,7 @@ const ArimaForecasting = () => {
         data: [
           ...Array(Math.max(0, historicalLength - 1)).fill(null),
           forecastData.historical?.[historicalLength - 1]?.enrollment || null,
-          ...(forecastData.forecast || []).map(d => d.enrollment)
+          ...(forecastData.forecast || []).map(d => d.enrollment || 0)
         ],
         borderColor: 'rgb(54, 162, 235)',
         backgroundColor: 'rgba(54, 162, 235, 0.1)',
@@ -146,7 +184,7 @@ const ArimaForecasting = () => {
         label: 'Upper Confidence Bound (85%)',
         data: [
           ...Array(historicalLength).fill(null),
-          ...(forecastData.forecast || []).map(d => d.upper_bound)
+          ...(forecastData.forecast || []).map(d => d.upper_bound || 0)
         ],
         borderColor: 'rgba(54, 162, 235, 0.3)',
         backgroundColor: 'rgba(54, 162, 235, 0.05)',
@@ -159,7 +197,7 @@ const ArimaForecasting = () => {
         label: 'Lower Confidence Bound (85%)',
         data: [
           ...Array(historicalLength).fill(null),
-          ...(forecastData.forecast || []).map(d => d.lower_bound)
+          ...(forecastData.forecast || []).map(d => d.lower_bound || 0)
         ],
         borderColor: 'rgba(54, 162, 235, 0.3)',
         backgroundColor: 'rgba(54, 162, 235, 0.05)',
@@ -199,6 +237,16 @@ const ArimaForecasting = () => {
         title: {
           display: true,
           text: 'Period'
+        },
+        ticks: {
+          callback: function(value, index, ticks) {
+            const label = this.getLabelForValue(value);
+            // Hide labels that show invalid dates or unwanted text before Mar 2020
+            if (label.includes('Invalid') || label === 'date' || label === 'N/A') {
+              return '';
+            }
+            return label;
+          }
         }
       }
     }

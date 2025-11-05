@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:8000/api';
+import { API_URL as API_BASE_URL } from '../config/api';
 
 // Get auth token from localStorage or sessionStorage
 const getAuthToken = () => {

@@ -1,6 +1,5 @@
 import { getStaffAuthHeaders, getStaffToken, setStaffAuth } from '../utils/staffAuth';
-
-const API_BASE_URL = 'http://localhost:8000/api';
+import { API_URL as API_BASE_URL } from '../config/api';
 
 /**
  * Staff API Service
