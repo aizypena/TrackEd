@@ -248,11 +248,34 @@ const StaffTrainingSched = () => {
   const generateScheduleFromBatches = (batchesData) => {
     const sessions = [];
     
+    console.log('Generating schedule from batches:', batchesData);
+    
     batchesData.forEach((batch) => {
+      console.log('Processing batch:', {
+        id: batch.id,
+        batch_id: batch.batch_id,
+        schedule_days: batch.schedule_days,
+        start_date: batch.start_date,
+        end_date: batch.end_date,
+        program: batch.program?.title
+      });
+      
       if (batch.schedule_days && batch.schedule_days.length > 0 && batch.start_date && batch.end_date) {
-        // Use batch's actual start and end dates
-        const batchStartDate = new Date(batch.start_date);
-        const batchEndDate = new Date(batch.end_date);
+        // Parse dates properly - backend sends ISO format with timestamp
+        // Extract just the date part (YYYY-MM-DD) from ISO string
+        const startDateStr = batch.start_date.split('T')[0];
+        const endDateStr = batch.end_date.split('T')[0];
+        
+        const [startYear, startMonth, startDay] = startDateStr.split('-').map(Number);
+        const [endYear, endMonth, endDay] = endDateStr.split('-').map(Number);
+        
+        const batchStartDate = new Date(startYear, startMonth - 1, startDay); // Month is 0-indexed
+        const batchEndDate = new Date(endYear, endMonth - 1, endDay);
+        
+        console.log('Batch dates parsed:', {
+          batchStartDate,
+          batchEndDate
+        });
         
         // Extend the range slightly to show past and future sessions
         const rangeStartDate = new Date(batchStartDate);
@@ -261,13 +284,20 @@ const StaffTrainingSched = () => {
         rangeEndDate.setDate(rangeEndDate.getDate() + 7); // Show 1 week after
         
         // Generate sessions for each scheduled day within the batch period
-        for (let d = new Date(rangeStartDate); d <= rangeEndDate; d.setDate(d.getDate() + 1)) {
-          const date = new Date(d); // Create new date object to avoid mutation
-          const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+        const currentDate = new Date(rangeStartDate);
+        let sessionCount = 0;
+        
+        while (currentDate <= rangeEndDate) {
+          const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' });
           
           // Check if date is within batch period and matches schedule days
-          if (date >= batchStartDate && date <= batchEndDate && batch.schedule_days.includes(dayName)) {
-            const dateStr = date.toISOString().split('T')[0];
+          if (currentDate >= batchStartDate && currentDate <= batchEndDate && batch.schedule_days.includes(dayName)) {
+            // Create a new date for this session to avoid mutation
+            const sessionDate = new Date(currentDate);
+            const year = sessionDate.getFullYear();
+            const month = String(sessionDate.getMonth() + 1).padStart(2, '0');
+            const day = String(sessionDate.getDate()).padStart(2, '0');
+            const dateStr = `${year}-${month}-${day}`;
             
             const session = {
               id: `${batch.id}-${dateStr}`,
@@ -282,16 +312,32 @@ const StaffTrainingSched = () => {
               room: batch.location || 'TBA',
               participants: batch.enrolled_students_count || 0,
               maxParticipants: batch.max_students,
-              status: getSessionStatus(batch.status, date),
+              status: getSessionStatus(batch.status, sessionDate),
               type: 'practical',
               description: `${batch.program?.title || 'Training'} session for ${batch.batch_id}`
             };
             
             sessions.push(session);
+            sessionCount++;
           }
+          
+          // Move to next day
+          currentDate.setDate(currentDate.getDate() + 1);
         }
+        
+        console.log(`Generated ${sessionCount} sessions for batch ${batch.batch_id}`);
+      } else {
+        console.log('Batch skipped - missing required data:', {
+          has_schedule_days: !!batch.schedule_days,
+          schedule_days_length: batch.schedule_days?.length || 0,
+          has_start_date: !!batch.start_date,
+          has_end_date: !!batch.end_date
+        });
       }
     });
+    
+    console.log('Total sessions generated:', sessions.length);
+    console.log('Sessions:', sessions);
     
     setTrainingSessions(sessions);
   };
@@ -309,11 +355,13 @@ const StaffTrainingSched = () => {
   const getSessionStatus = (batchStatus, sessionDate) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    sessionDate.setHours(0, 0, 0, 0);
     
-    if (sessionDate < today) {
+    const compareDate = new Date(sessionDate);
+    compareDate.setHours(0, 0, 0, 0);
+    
+    if (compareDate < today) {
       return 'completed';
-    } else if (sessionDate.getTime() === today.getTime()) {
+    } else if (compareDate.getTime() === today.getTime()) {
       return 'ongoing';
     } else {
       return 'scheduled';
@@ -538,14 +586,17 @@ const StaffTrainingSched = () => {
     });
 
   const getWeekDates = () => {
-    const curr = new Date(currentDate);
-    const first = curr.getDate() - curr.getDay(); // First day is the day of the month - the day of the week
-    const dates = [];
+    const week = [];
+    const startOfWeek = new Date(currentDate);
+    const day = startOfWeek.getDay();
+    startOfWeek.setDate(currentDate.getDate() - day);
+
     for (let i = 0; i < 7; i++) {
-      const date = new Date(curr.setDate(first + i));
-      dates.push(date);
+      const weekDate = new Date(startOfWeek);
+      weekDate.setDate(startOfWeek.getDate() + i);
+      week.push(weekDate);
     }
-    return dates;
+    return week;
   };
 
   const getSessionsForDate = (date) => {
@@ -767,73 +818,145 @@ const StaffTrainingSched = () => {
           {viewMode === 'week' && (
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
               {/* Week Navigation */}
-              <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <div className="bg-gradient-to-r from-tracked-primary to-blue-600 px-6 py-4 flex items-center justify-between">
                 <button
                   onClick={() => navigateWeek(-1)}
-                  className="p-2 hover:bg-gray-200 rounded-md transition-colors"
+                  className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
+                  title="Previous Week"
                 >
-                  <MdChevronLeft className="h-6 w-6 text-gray-600" />
+                  <MdChevronLeft className="h-6 w-6 text-white" />
                 </button>
-                <div className="text-center">
-                  <h2 className="text-lg font-bold text-gray-800">
+                <div className="text-center text-white">
+                  <h2 className="text-xl font-bold">
                     {weekDates[0].toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                   </h2>
-                  <p className="text-sm text-gray-600">
-                    Week of {weekDates[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  <p className="text-sm text-blue-100">
+                    {weekDates[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {weekDates[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </p>
                 </div>
                 <button
                   onClick={() => navigateWeek(1)}
-                  className="p-2 hover:bg-gray-200 rounded-md transition-colors"
+                  className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
+                  title="Next Week"
                 >
-                  <MdChevronRight className="h-6 w-6 text-gray-600" />
+                  <MdChevronRight className="h-6 w-6 text-white" />
                 </button>
               </div>
 
               {/* Calendar Grid */}
-              <div className="grid grid-cols-7 divide-x divide-gray-200">
+              <div className="grid grid-cols-7">
                 {weekDates.map((date, index) => {
                   const dateStr = date.toISOString().split('T')[0];
                   const sessionsForDay = getSessionsForDate(date);
                   const isToday = dateStr === todayStr;
+                  const isWeekend = date.getDay() === 0 || date.getDay() === 6;
 
                   return (
-                    <div key={index} className="min-h-[300px] bg-white">
-                      <div className={`p-3 text-center border-b border-gray-200 ${isToday ? 'bg-tracked-primary text-white' : 'bg-gray-50'}`}>
-                        <div className="text-xs font-medium uppercase">
+                    <div key={index} className={`min-h-[400px] border-r border-b border-gray-200 ${isWeekend ? 'bg-gray-50' : 'bg-white'} ${index === 6 ? 'border-r-0' : ''}`}>
+                      {/* Day Header */}
+                      <div className={`p-4 text-center border-b-2 ${isToday ? 'bg-tracked-primary border-tracked-primary' : isWeekend ? 'bg-gray-100 border-gray-300' : 'bg-white border-gray-200'}`}>
+                        <div className={`text-xs font-semibold uppercase tracking-wide mb-1 ${isToday ? 'text-blue-100' : 'text-gray-500'}`}>
                           {date.toLocaleDateString('en-US', { weekday: 'short' })}
                         </div>
-                        <div className={`text-lg font-bold mt-1 ${isToday ? 'text-white' : 'text-gray-800'}`}>
+                        <div className={`${isToday ? 'bg-white text-tracked-primary w-10 h-10 rounded-full mx-auto flex items-center justify-center font-bold text-lg' : 'text-2xl font-bold text-gray-800'}`}>
                           {date.getDate()}
                         </div>
                       </div>
-                      <div className="p-2 space-y-2">
-                        {sessionsForDay.map((session) => (
-                          <div
-                            key={session.id}
-                            onClick={() => setSelectedSession(session)}
-                            className="bg-blue-50 border-l-4 border-tracked-primary p-2 rounded cursor-pointer hover:bg-blue-100 transition-colors"
-                          >
-                            <div className="text-xs font-semibold text-tracked-primary truncate">
-                              {formatTime(session.startTime)}
+
+                      {/* Sessions */}
+                      <div className="p-3 space-y-2 overflow-y-auto max-h-[350px]">
+                        {sessionsForDay.length > 0 ? (
+                          sessionsForDay.map((session) => (
+                            <div
+                              key={session.id}
+                              onClick={() => setSelectedSession(session)}
+                              className={`rounded-lg p-3 cursor-pointer transition-all duration-200 hover:shadow-md border-l-4 ${
+                                session.status === 'completed' 
+                                  ? 'bg-gray-100 border-gray-400 hover:bg-gray-200' 
+                                  : session.status === 'ongoing'
+                                    ? 'bg-green-50 border-green-500 hover:bg-green-100'
+                                    : 'bg-blue-50 border-blue-500 hover:bg-blue-100'
+                              }`}
+                            >
+                              {/* Time */}
+                              <div className={`flex items-center gap-1 mb-2 ${
+                                session.status === 'completed' ? 'text-gray-600' : 
+                                session.status === 'ongoing' ? 'text-green-700' : 'text-blue-700'
+                              }`}>
+                                <MdAccessTime className="h-3 w-3" />
+                                <span className="text-xs font-bold">{formatTime(session.startTime)}</span>
+                              </div>
+                              
+                              {/* Title */}
+                              <div className={`text-sm font-semibold mb-1 line-clamp-2 ${
+                                session.status === 'completed' ? 'text-gray-700' : 'text-gray-900'
+                              }`}>
+                                {session.title}
+                              </div>
+                              
+                              {/* Room */}
+                              <div className="flex items-center gap-1 text-gray-600 mb-1">
+                                <MdLocationOn className="h-3 w-3" />
+                                <span className="text-xs truncate">{session.room}</span>
+                              </div>
+                              
+                              {/* Instructor */}
+                              <div className="flex items-center gap-1 text-gray-600 mb-2">
+                                <MdPerson className="h-3 w-3" />
+                                <span className="text-xs truncate">{session.instructor}</span>
+                              </div>
+
+                              {/* Status Badge */}
+                              <div className="flex items-center justify-between">
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                                  session.status === 'completed' 
+                                    ? 'bg-gray-200 text-gray-700' 
+                                    : session.status === 'ongoing'
+                                      ? 'bg-green-200 text-green-800'
+                                      : 'bg-blue-200 text-blue-800'
+                                }`}>
+                                  {session.status === 'completed' && <MdCheckCircle className="h-3 w-3" />}
+                                  {session.status === 'ongoing' && <MdCheckCircle className="h-3 w-3" />}
+                                  {session.status === 'scheduled' && <MdSchedule className="h-3 w-3" />}
+                                  <span className="capitalize">{session.status}</span>
+                                </span>
+                                
+                                {/* Participants indicator */}
+                                <span className="text-xs text-gray-600 flex items-center gap-1">
+                                  <MdPeople className="h-3 w-3" />
+                                  {session.participants}/{session.maxParticipants}
+                                </span>
+                              </div>
                             </div>
-                            <div className="text-xs font-medium text-gray-800 truncate mt-1">
-                              {session.title}
-                            </div>
-                            <div className="text-xs text-gray-500 truncate mt-1">
-                              {session.room}
-                            </div>
-                          </div>
-                        ))}
-                        {sessionsForDay.length === 0 && (
-                          <div className="text-xs text-gray-400 text-center py-4">
-                            No sessions
+                          ))
+                        ) : (
+                          <div className="text-center py-8 text-gray-400">
+                            <MdCalendarToday className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                            <p className="text-xs">No sessions</p>
                           </div>
                         )}
                       </div>
                     </div>
                   );
                 })}
+              </div>
+
+              {/* Legend */}
+              <div className="bg-gray-50 px-6 py-3 border-t border-gray-200">
+                <div className="flex items-center justify-center gap-6 text-xs">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-blue-500 rounded"></div>
+                    <span className="text-gray-600">Scheduled</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-green-500 rounded"></div>
+                    <span className="text-gray-600">Ongoing</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-gray-400 rounded"></div>
+                    <span className="text-gray-600">Completed</span>
+                  </div>
+                </div>
               </div>
             </div>
           )}
