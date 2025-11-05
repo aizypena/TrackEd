@@ -78,13 +78,13 @@ class PaymentController extends Controller
     {
         $request->validate([
             'user_id' => 'required|exists:users,id',
-            'batch_id' => 'required|exists:batches,batch_id',
+            'batch_id' => 'nullable|exists:batches,batch_id',
             'payment_method' => 'required|in:gcash,paymaya,card,grab_pay',
             'amount' => 'nullable|numeric|min:1'
         ]);
 
         $user = User::findOrFail($request->user_id);
-        $batch = Batch::where('batch_id', $request->batch_id)->with('program')->first();
+        $batch = $request->batch_id ? Batch::where('batch_id', $request->batch_id)->with('program')->first() : null;
         
         // Get amount from request or from program pricing
         $amount = $request->amount;
@@ -95,6 +95,15 @@ class PaymentController extends Controller
             $amount = config('paymongo.enrollment_fee', 5000.00);
         }
 
+        // Prepare payment description
+        $description = "Enrollment fee";
+        if ($batch && $batch->program) {
+            $description .= " for {$batch->program->name}";
+            if ($batch->batch_id) {
+                $description .= " - {$batch->batch_id}";
+            }
+        }
+
         // Create payment record
         $payment = Payment::create([
             'user_id' => $user->id,
@@ -103,7 +112,7 @@ class PaymentController extends Controller
             'currency' => 'PHP',
             'payment_method' => $request->payment_method,
             'payment_status' => 'pending',
-            'payment_description' => "Enrollment fee for {$batch->program->name} - {$batch->batch_id}",
+            'payment_description' => $description,
             'reference_code' => 'ENR-' . strtoupper(Str::random(10))
         ]);
 

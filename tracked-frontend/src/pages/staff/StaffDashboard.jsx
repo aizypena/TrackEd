@@ -11,7 +11,6 @@ import {
   MdTrendingUp,
   MdAssignment,
   MdInventory,
-  MdNotifications,
   MdCalendarToday,
   MdWarning
 } from 'react-icons/md';
@@ -36,13 +35,6 @@ const StaffDashboard = () => {
     { id: 1, title: 'Welding NCII Assessment', date: '2025-10-10', time: '09:00 AM', type: 'assessment' },
     { id: 2, title: 'New Batch Orientation', date: '2025-10-12', time: '02:00 PM', type: 'orientation' },
     { id: 3, title: 'Equipment Maintenance', date: '2025-10-15', time: '10:00 AM', type: 'maintenance' }
-  ]);
-
-  const [recentActivities, setRecentActivities] = useState([
-    { id: 1, action: 'New application submitted', user: 'Juan Dela Cruz', time: '2 hours ago' },
-    { id: 2, action: 'Student enrolled', user: 'Maria Santos', time: '5 hours ago' },
-    { id: 3, action: 'Assessment completed', user: 'Welding Batch 03', time: '1 day ago' },
-    { id: 4, action: 'Equipment request approved', user: 'Workshop A', time: '2 days ago' }
   ]);
 
   // Fetch recent applications on component mount
@@ -314,31 +306,6 @@ const StaffDashboard = () => {
               >
                 View Full Calendar →
               </Link>
-            </div>
-          </div>
-
-          {/* Recent Activity */}
-          <div className="mt-6 bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-800">Recent Activity</h2>
-              <MdNotifications className="h-5 w-5 text-gray-400" />
-            </div>
-            <div className="space-y-3">
-              {recentActivities.map((activity) => (
-                <div key={activity.id} className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                  <div className="flex-shrink-0">
-                    <div className="h-2 w-2 bg-tracked-secondary rounded-full mt-2"></div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-800">
-                      <span className="font-medium">{activity.action}</span>
-                      {' - '}
-                      <span className="text-gray-600">{activity.user}</span>
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">{activity.time}</p>
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
         </div>

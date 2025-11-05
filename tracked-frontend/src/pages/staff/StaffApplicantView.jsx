@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import StaffSidebar from '../../layouts/staff/StaffSidebar';
 import ApproveApplicantModal from '../../components/staff/ApproveApplicantModal';
-import ConfirmationModal from '../../components/staff/ConfirmationModal';
+import StatusChangeModal from '../../components/staff/StatusChangeModal';
+import ProcessPaymentModal from '../../components/staff/ProcessPaymentModal';
 import { getStaffToken } from '../../utils/staffAuth';
 import toast, { Toaster } from 'react-hot-toast';
 import { 
@@ -32,6 +33,9 @@ const StaffApplicantView = () => {
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingStatusChange, setPendingStatusChange] = useState(null);
+  const [showEnrollConfirm, setShowEnrollConfirm] = useState(false);
+  const [enrolling, setEnrolling] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   useEffect(() => {
     fetchApplicantDetails();
@@ -97,27 +101,30 @@ const StaffApplicantView = () => {
     const details = {
       under_review: {
         title: 'Mark as Under Review',
-        message: `Are you sure you want to mark this application as under review? This will indicate that the application is currently being reviewed by staff.`,
+        message: `Are you sure you want to mark this application as under review? This will indicate that the application is currently being reviewed by staff. An email notification will be sent to the applicant.`,
         confirmText: 'Mark as Under Review',
-        color: 'blue'
+        color: 'blue',
+        requiresReason: true
       },
       rejected: {
         title: 'Reject Application',
-        message: `Are you sure you want to reject this application? This action will notify the applicant that their application has been rejected.`,
+        message: `Are you sure you want to reject this application? This action will notify the applicant via email that their application has been rejected.`,
         confirmText: 'Reject Application',
-        color: 'red'
+        color: 'red',
+        requiresReason: true
       },
       pending: {
         title: 'Mark as Pending',
         message: `Are you sure you want to mark this application as pending? This will move the application back to the pending queue.`,
         confirmText: 'Mark as Pending',
-        color: 'orange'
+        color: 'orange',
+        requiresReason: false
       }
     };
     return details[status] || details.pending;
   };
 
-  const confirmStatusChange = async () => {
+  const confirmStatusChange = async (reason = '') => {
     if (!pendingStatusChange) return;
 
     setShowConfirmModal(false);
@@ -136,7 +143,10 @@ const StaffApplicantView = () => {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        body: JSON.stringify({ application_status: status })
+        body: JSON.stringify({ 
+          application_status: status,
+          reason: reason
+        })
       });
 
       if (response.ok) {
@@ -154,8 +164,13 @@ const StaffApplicantView = () => {
           'info'
         );
 
-        toast.success(`Application ${status.replace('_', ' ')} successfully!`, {
+        const successMessage = status === 'under_review' || status === 'rejected' 
+          ? `Application ${status.replace('_', ' ')} successfully! Email notification sent to ${applicant.email}. (Check spam folder if not received)`
+          : `Application ${status.replace('_', ' ')} successfully!`;
+
+        toast.success(successMessage, {
           id: loadingToast,
+          duration: 5000,
         });
         fetchApplicantDetails();
       } else {
@@ -171,6 +186,65 @@ const StaffApplicantView = () => {
     } finally {
       setUpdating(false);
     }
+  };
+
+  const handleEnrollAsStudent = async () => {
+    setShowEnrollConfirm(false);
+    const loadingToast = toast.loading('Converting to student and generating Student ID...');
+
+    try {
+      setEnrolling(true);
+      const token = getStaffToken();
+      const response = await fetch(`http://localhost:8000/api/staff/applicants/${id}/enroll-student`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Get staff user info
+        const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
+        const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
+        
+        // Log the enrollment
+        await logSystemAction(
+          'applicant_enrolled_as_student',
+          `${staffName} enrolled ${capitalizeName(applicant.first_name)} ${capitalizeName(applicant.last_name)} (APP-${applicant.id}) as student with ID: ${data.student_id}`,
+          'info'
+        );
+
+        toast.success(`Successfully enrolled as student! Student ID: ${data.student_id}`, {
+          id: loadingToast,
+          duration: 5000,
+        });
+        
+        fetchApplicantDetails();
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.message || 'Failed to enroll as student', {
+          id: loadingToast,
+        });
+      }
+    } catch (error) {
+      console.error('Error enrolling as student:', error);
+      toast.error('Error enrolling as student', {
+        id: loadingToast,
+      });
+    } finally {
+      setEnrolling(false);
+    }
+  };
+
+  const handleProcessPayment = async () => {
+    // Payment is already processed in the modal
+    // Just refresh the applicant details
+    setShowPaymentModal(false);
+    fetchApplicantDetails();
   };
 
   const capitalizeName = (name) => {
@@ -484,41 +558,162 @@ const StaffApplicantView = () => {
 
               {/* Action Buttons */}
               <div className="bg-white rounded-lg shadow-md p-6">
-                <h3 className="text-lg font-bold text-gray-800 mb-4">Update Status</h3>
-                <div className="space-y-3">
-                  <button
-                    onClick={() => handleStatusChangeClick('under_review')}
-                    disabled={updating || applicant.application_status === 'under_review'}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <MdPendingActions className="h-5 w-5" />
-                    Mark as Under Review
-                  </button>
-                  <button
-                    onClick={() => setShowApproveModal(true)}
-                    disabled={updating || applicant.application_status === 'approved' || applicant.role === 'student'}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <MdCheckCircle className="h-5 w-5" />
-                    {applicant.role === 'student' ? 'Already a Student' : 'Approve & Enroll as Student'}
-                  </button>
-                  <button
-                    onClick={() => handleStatusChangeClick('rejected')}
-                    disabled={updating || applicant.application_status === 'rejected'}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <MdCancel className="h-5 w-5" />
-                    Reject Application
-                  </button>
-                  <button
-                    onClick={() => handleStatusChangeClick('pending')}
-                    disabled={updating || applicant.application_status === 'pending'}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <MdPendingActions className="h-5 w-5" />
-                    Mark as Pending
-                  </button>
-                </div>
+                <h3 className="text-lg font-bold text-gray-800 mb-4">
+                  {applicant.application_status === 'approved' ? 'Approval Status' : 'Update Status'}
+                </h3>
+                
+                {/* If Approved - Show Voucher Status or Payment Info */}
+                {applicant.application_status === 'approved' ? (
+                  <div className="space-y-4">
+                    {/* Voucher Eligibility Status */}
+                    <div className={`p-4 rounded-lg ${applicant.voucher_eligible ? 'bg-green-50 border-2 border-green-200' : 'bg-orange-50 border-2 border-orange-200'}`}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <MdCheckCircle className={`h-6 w-6 ${applicant.voucher_eligible ? 'text-green-600' : 'text-orange-600'}`} />
+                        <h4 className={`font-bold ${applicant.voucher_eligible ? 'text-green-800' : 'text-orange-800'}`}>
+                          {applicant.voucher_eligible ? 'Voucher Eligible' : 'Payment Required'}
+                        </h4>
+                      </div>
+                      <p className={`text-sm ${applicant.voucher_eligible ? 'text-green-700' : 'text-orange-700'}`}>
+                        {applicant.voucher_eligible 
+                          ? 'This applicant is eligible for a training voucher. No payment required.'
+                          : 'This applicant is not eligible for a voucher. They must visit the office to process payment.'}
+                      </p>
+                    </div>
+
+                    {/* Approval Details */}
+                    <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                      <div>
+                        <label className="text-xs text-gray-500 font-medium">Approved On</label>
+                        <p className="text-sm text-gray-800 font-medium">{formatDate(applicant.approved_at)}</p>
+                      </div>
+                      {applicant.batch_id && (
+                        <div>
+                          <label className="text-xs text-gray-500 font-medium">Assigned Batch</label>
+                          <p className="text-sm text-gray-800 font-medium">{applicant.batch_id}</p>
+                        </div>
+                      )}
+                      {applicant.approval_notes && (
+                        <div>
+                          <label className="text-xs text-gray-500 font-medium">Notes</label>
+                          <p className="text-sm text-gray-800">{applicant.approval_notes}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Payment Action Button (Only for non-voucher eligible) */}
+                    {!applicant.voucher_eligible && (
+                      <div className="border-t pt-4">
+                        {applicant.role === 'student' ? (
+                          /* Already enrolled as student */
+                          <div>
+                            <div className="bg-green-600 text-white px-4 py-3 rounded-md text-center font-medium">
+                              <MdCheckCircle className="h-6 w-6 mx-auto mb-1" />
+                              Payment Completed & Enrolled
+                            </div>
+                            {applicant.student_id && (
+                              <div className="mt-3 bg-gray-50 p-3 rounded-md text-center">
+                                <label className="text-xs text-gray-500 font-medium block">Student ID</label>
+                                <p className="text-lg font-bold text-tracked-primary">{applicant.student_id}</p>
+                              </div>
+                            )}
+                            <p className="text-xs text-gray-500 text-center mt-2">
+                              Payment has been processed and student is enrolled
+                            </p>
+                          </div>
+                        ) : (
+                          /* Show payment button */
+                          <div>
+                            <button
+                              onClick={() => setShowPaymentModal(true)}
+                              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors"
+                            >
+                              <MdCalendarToday className="h-5 w-5" />
+                              Process Payment & Enroll
+                            </button>
+                            <p className="text-xs text-gray-500 text-center mt-2">
+                              Click to process payment and enroll as student
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Voucher Eligible - Final Status */}
+                    {applicant.voucher_eligible && (
+                      <div className="border-t pt-4">
+                        {applicant.role === 'student' ? (
+                          /* Already enrolled as student */
+                          <div>
+                            <div className="bg-green-600 text-white px-4 py-3 rounded-md text-center font-medium">
+                              <MdCheckCircle className="h-6 w-6 mx-auto mb-1" />
+                              Enrolled as Student
+                            </div>
+                            {applicant.student_id && (
+                              <div className="mt-3 bg-gray-50 p-3 rounded-md text-center">
+                                <label className="text-xs text-gray-500 font-medium block">Student ID</label>
+                                <p className="text-lg font-bold text-tracked-primary">{applicant.student_id}</p>
+                              </div>
+                            )}
+                            <p className="text-xs text-gray-500 text-center mt-2">
+                              This applicant has been successfully enrolled as a student
+                            </p>
+                          </div>
+                        ) : (
+                          /* Show enroll button */
+                          <div>
+                            <button
+                              onClick={() => setShowEnrollConfirm(true)}
+                              disabled={enrolling}
+                              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <MdCheckCircle className="h-5 w-5" />
+                              {enrolling ? 'Enrolling...' : 'Enroll as Student'}
+                            </button>
+                            <p className="text-xs text-gray-500 text-center mt-2">
+                              Click to convert to student and generate Student ID
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* Not Approved Yet - Show Status Change Buttons */
+                  <div className="space-y-3">
+                    <button
+                      onClick={() => handleStatusChangeClick('under_review')}
+                      disabled={updating || applicant.application_status === 'under_review'}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <MdPendingActions className="h-5 w-5" />
+                      Mark as Under Review
+                    </button>
+                    <button
+                      onClick={() => setShowApproveModal(true)}
+                      disabled={updating || applicant.role === 'student'}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <MdCheckCircle className="h-5 w-5" />
+                      {applicant.role === 'student' ? 'Already a Student' : 'Approve Application'}
+                    </button>
+                    <button
+                      onClick={() => handleStatusChangeClick('rejected')}
+                      disabled={updating || applicant.application_status === 'rejected'}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <MdCancel className="h-5 w-5" />
+                      Reject Application
+                    </button>
+                    <button
+                      onClick={() => handleStatusChangeClick('pending')}
+                      disabled={updating || applicant.application_status === 'pending'}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <MdPendingActions className="h-5 w-5" />
+                      Mark as Pending
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -527,19 +722,32 @@ const StaffApplicantView = () => {
       
       {/* Confirmation Modal */}
       {pendingStatusChange && (
-        <ConfirmationModal
+        <StatusChangeModal
           isOpen={showConfirmModal}
           onClose={() => {
             setShowConfirmModal(false);
             setPendingStatusChange(null);
           }}
           onConfirm={confirmStatusChange}
-          title={getConfirmationDetails(pendingStatusChange).title}
-          message={getConfirmationDetails(pendingStatusChange).message}
-          confirmText={getConfirmationDetails(pendingStatusChange).confirmText}
-          confirmColor={getConfirmationDetails(pendingStatusChange).color}
+          details={getConfirmationDetails(pendingStatusChange)}
+          requiresReason={getConfirmationDetails(pendingStatusChange).requiresReason}
         />
       )}
+
+      {/* Enroll as Student Confirmation Modal */}
+      <StatusChangeModal
+        isOpen={showEnrollConfirm}
+        onClose={() => setShowEnrollConfirm(false)}
+        onConfirm={handleEnrollAsStudent}
+        details={{
+          title: 'Enroll as Student',
+          message: `Are you sure you want to enroll ${capitalizeName(applicant?.first_name)} ${capitalizeName(applicant?.last_name)} as a student? This will:\n\n• Change their role to "Student"\n• Generate a unique Student ID\n• Complete their enrollment process\n\nThis action cannot be undone.`,
+          confirmText: 'Enroll as Student',
+          color: 'green',
+          requiresReason: false
+        }}
+        requiresReason={false}
+      />
 
       {/* Approve Applicant Modal */}
       <ApproveApplicantModal
@@ -561,6 +769,14 @@ const StaffApplicantView = () => {
           fetchApplicantDetails();
           setShowApproveModal(false);
         }}
+      />
+
+      {/* Process Payment Modal */}
+      <ProcessPaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        applicant={applicant}
+        onSuccess={handleProcessPayment}
       />
       
       {/* Toast Notifications */}

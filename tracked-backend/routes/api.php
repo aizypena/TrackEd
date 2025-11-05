@@ -2933,7 +2933,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Update applicant status
     Route::put('/staff/applicants/{id}/status', function (Request $request, $id) {
         $request->validate([
-            'application_status' => 'required|in:pending,under_review,approved,rejected'
+            'application_status' => 'required|in:pending,under_review,approved,rejected',
+            'reason' => 'required_if:application_status,under_review,rejected|string|max:1000'
         ]);
 
         $applicant = \App\Models\User::where('role', 'applicant')
@@ -2948,8 +2949,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
             }
         }
         
+        // Store old status to check if it changed
+        $oldStatus = $applicant->application_status;
+        $newStatus = $request->application_status;
+        
         // Handle rejection - free up voucher slot if applicant was eligible
-        if ($request->application_status === 'rejected') {
+        if ($newStatus === 'rejected') {
             // Check if applicant had a voucher assigned (only for approved applicants who were converted to students)
             if ($applicant->role === 'student' && 
                 !empty($applicant->voucher_eligibility) &&
@@ -2982,8 +2987,131 @@ Route::middleware(['auth:sanctum'])->group(function () {
             }
         }
         
-        $applicant->application_status = $request->application_status;
+        $applicant->application_status = $newStatus;
+        
+        // Store the reason if provided
+        if ($request->has('reason') && in_array($newStatus, ['under_review', 'rejected'])) {
+            $applicant->application_status_reason = $request->reason;
+        }
+        
         $applicant->save();
+        
+        // Send email notification if status changed to under_review or rejected
+        if ($oldStatus !== $newStatus && in_array($newStatus, ['under_review', 'rejected'])) {
+            \Log::info("Attempting to send email notification", [
+                'old_status' => $oldStatus,
+                'new_status' => $newStatus,
+                'email' => $applicant->email,
+                'applicant_id' => $applicant->id,
+                'reason' => $request->reason
+            ]);
+            
+            try {
+                $applicantName = ucfirst($applicant->first_name) . ' ' . ucfirst($applicant->last_name);
+                $programName = '';
+                $reason = $request->reason ?? '';
+                
+                // Get program name
+                if ($applicant->course_program) {
+                    $program = \App\Models\Program::find($applicant->course_program);
+                    $programName = $program ? $program->title : 'your selected program';
+                }
+                
+                if ($newStatus === 'under_review') {
+                    $subject = 'Application Under Review - TrackEd';
+                    $message = "
+                        <html>
+                        <head>
+                            <style>
+                                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                                .header { background-color: #1e40af; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+                                .content { background-color: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; }
+                                .reason-box { background-color: #fef3c7; padding: 15px; border-left: 4px solid #f59e0b; margin: 20px 0; }
+                                .footer { background-color: #f3f4f6; padding: 15px; text-align: center; font-size: 12px; color: #6b7280; border-radius: 0 0 5px 5px; }
+                            </style>
+                        </head>
+                        <body>
+                            <div class='container'>
+                                <div class='header'>
+                                    <h1>Application Update</h1>
+                                </div>
+                                <div class='content'>
+                                    <p>Dear {$applicantName},</p>
+                                    <p>Your application for <strong>{$programName}</strong> is now <strong>under review</strong>.</p>
+                                    <div class='reason-box'>
+                                        <strong>Reason for Review:</strong><br>
+                                        {$reason}
+                                    </div>
+                                    <p>Our staff team is currently reviewing your application and submitted documents. We will notify you once a decision has been made.</p>
+                                    <p>This process typically takes 3-5 business days. If we require any additional information, we will contact you via email.</p>
+                                    <p>Thank you for your patience.</p>
+                                    <p>Best regards,<br>TrackEd Team</p>
+                                </div>
+                                <div class='footer'>
+                                    <p>This is an automated message. Please do not reply to this email.</p>
+                                    <p>&copy; 2025 TrackEd. All rights reserved.</p>
+                                </div>
+                            </div>
+                        </body>
+                        </html>
+                    ";
+                } else { // rejected
+                    $subject = 'Application Status Update - TrackEd';
+                    $message = "
+                        <html>
+                        <head>
+                            <style>
+                                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                                .header { background-color: #dc2626; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+                                .content { background-color: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; }
+                                .reason-box { background-color: #fee2e2; padding: 15px; border-left: 4px solid #dc2626; margin: 20px 0; }
+                                .footer { background-color: #f3f4f6; padding: 15px; text-align: center; font-size: 12px; color: #6b7280; border-radius: 0 0 5px 5px; }
+                            </style>
+                        </head>
+                        <body>
+                            <div class='container'>
+                                <div class='header'>
+                                    <h1>Application Status Update</h1>
+                                </div>
+                                <div class='content'>
+                                    <p>Dear {$applicantName},</p>
+                                    <p>Thank you for your interest in <strong>{$programName}</strong> at TrackEd.</p>
+                                    <p>After careful review of your application, we regret to inform you that we are unable to accept your application at this time.</p>
+                                    <div class='reason-box'>
+                                        <strong>Reason:</strong><br>
+                                        {$reason}
+                                    </div>
+                                    <p>We encourage you to reapply in the future or consider other programs that may be a better fit for your qualifications and goals.</p>
+                                    <p>If you have any questions or would like further clarification, please feel free to contact our admissions office.</p>
+                                    <p>Thank you for considering TrackEd for your training needs.</p>
+                                    <p>Best regards,<br>TrackEd Admissions Team</p>
+                                </div>
+                                <div class='footer'>
+                                    <p>This is an automated message. Please do not reply to this email.</p>
+                                    <p>&copy; 2025 TrackEd. All rights reserved.</p>
+                                </div>
+                            </div>
+                        </body>
+                        </html>
+                    ";
+                }
+                
+                // Send email using Laravel's Mail facade
+                \Mail::send([], [], function ($mail) use ($applicant, $subject, $message) {
+                    $mail->to($applicant->email)
+                         ->subject($subject)
+                         ->html($message);
+                });
+                
+                \Log::info("Application status email sent to {$applicant->email} for status: {$newStatus}");
+            } catch (\Exception $e) {
+                \Log::error("Failed to send application status email: " . $e->getMessage());
+                \Log::error("Email error trace: " . $e->getTraceAsString());
+                // Don't fail the status update if email fails
+            }
+        }
         
         return response()->json([
             'message' => 'Application status updated successfully',
@@ -2994,8 +3122,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Approve applicant and convert to student
     Route::post('/staff/applicants/{id}/approve', function (Request $request, $id) {
         $request->validate([
+            'program_id' => 'required|exists:programs,id',
             'batch_id' => 'required|exists:batches,batch_id',
-            'payment_id' => 'nullable|exists:payments,id'
+            'voucher_eligible' => 'boolean',
+            'notes' => 'nullable|string'
         ]);
 
         $applicant = \App\Models\User::where('role', 'applicant')
@@ -3006,185 +3136,248 @@ Route::middleware(['auth:sanctum'])->group(function () {
             return response()->json(['error' => 'Applicant not found'], 404);
         }
         
-        if ($applicant->application_status === 'approved' && $applicant->role === 'student') {
-            return response()->json(['error' => 'Applicant has already been approved and converted to student'], 400);
+        if ($applicant->application_status === 'approved') {
+            return response()->json(['error' => 'Applicant has already been approved'], 400);
         }
         
-        // Get batch details
+        // Get batch and program details
         $batch = \App\Models\Batch::where('batch_id', $request->batch_id)->first();
         if (!$batch) {
             return response()->json(['error' => 'Batch not found'], 404);
         }
         
-        // Check batch capacity
-        $currentEnrollment = \App\Models\User::where('batch_id', $request->batch_id)
-            ->where('role', 'student')
-            ->count();
-        
-        if ($currentEnrollment >= $batch->max_students) {
-            return response()->json([
-                'error' => 'Batch has reached maximum capacity',
-                'current_enrollment' => $currentEnrollment,
-                'max_students' => $batch->max_students
-            ], 400);
+        $program = \App\Models\Program::find($request->program_id);
+        if (!$program) {
+            return response()->json(['error' => 'Program not found'], 404);
         }
         
-        // Generate unique student ID
-        $year = date('Y');
-        $lastStudent = \App\Models\User::where('student_id', 'like', "STU-{$year}-%")
-            ->orderBy('student_id', 'desc')
-            ->first();
-        
-        if ($lastStudent) {
-            $lastNumber = (int) substr($lastStudent->student_id, -4);
-            $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
-        } else {
-            $newNumber = '0001';
-        }
-        
-        $studentId = "STU-{$year}-{$newNumber}";
-        
-        // Check voucher availability at approval time FOR ALL APPLICANTS
-        $voucherStatus = 'not_eligible';
-        $assignedVoucherId = null;
-        $voucherConsumed = false;
-        
-        // Find available voucher for the batch they're being assigned to
-        $voucher = \App\Models\Voucher::where('batch_id', $request->batch_id)
-            ->whereRaw('used_count < quantity')
-            ->whereIn('status', ['pending', 'issued', 'active'])
-            ->first();
-        
-        if ($voucher) {
-            // Voucher available - assign it
-            $voucherStatus = 'eligible';
-            $assignedVoucherId = $voucher->voucher_id;
-            
-            // Increment used_count
-            $voucher->increment('used_count');
-            $voucherConsumed = true;
-            
-            // Update voucher status if all vouchers are used
-            if ($voucher->used_count >= $voucher->quantity) {
-                $voucher->update(['status' => 'used']);
-            }
-        } else {
-            // No vouchers available - PAYMENT REQUIRED
-            $voucherStatus = 'not_eligible';
-            
-            // Check if payment_id was provided
-            if (!$request->payment_id) {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'No vouchers available. Payment required before enrollment.',
-                    'payment_required' => true,
-                    'enrollment_fee' => config('paymongo.enrollment_fee', 5000.00),
-                    'vouchers_exhausted' => true
-                ], 422);
-            }
-            
-            // Verify payment exists and is paid
-            $payment = \App\Models\Payment::where('id', $request->payment_id)
-                ->where('user_id', $applicant->id)
-                ->first();
-            
-            if (!$payment) {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'Payment not found for this applicant'
-                ], 422);
-            }
-            
-            if ($payment->payment_status !== 'paid') {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'Payment has not been completed yet',
-                    'payment_status' => $payment->payment_status
-                ], 422);
-            }
-            
-            // Payment verified, link it to the batch
-            $payment->update(['batch_id' => $request->batch_id]);
-        }
-        
-        $program = \App\Models\Program::find($batch->program_id);
-        
-        // Update applicant to student
+        // Update applicant (keep as applicant role, mark as approved)
         $applicant->update([
-            'student_id' => $studentId,
-            'role' => 'student',
             'application_status' => 'approved',
+            'course_program' => $request->program_id,
             'batch_id' => $request->batch_id,
-            'voucher_eligibility' => $voucherStatus,
-            'voucher_id' => $assignedVoucherId,
+            'voucher_eligible' => $request->voucher_eligible ?? false,
+            'approval_notes' => $request->notes,
+            'approved_at' => now(),
         ]);
         
-        // Send approval email
+        // Send approval email with voucher eligibility details
         try {
             $applicantName = ucwords(strtolower($applicant->first_name)) . ' ' . ucwords(strtolower($applicant->last_name));
-            $programName = $program ? $program->name : 'N/A';
+            $programName = $program->name;
+            $voucherEligible = $request->voucher_eligible ?? false;
             
-            $emailBody = "Dear {$applicantName},\n\n";
-            $emailBody .= "Congratulations! We are pleased to inform you that your application for the {$programName} program at SMI Institute Inc. has been APPROVED.\n\n";
-            $emailBody .= "NEXT STEPS - ONSITE DOCUMENT VERIFICATION REQUIRED\n\n";
-            $emailBody .= "To complete your enrollment, you are required to visit our office for document verification and enrollment confirmation. Please bring the following:\n\n";
-            $emailBody .= "REQUIRED DOCUMENTS (Original and Photocopies):\n";
-            $emailBody .= "✓ Valid Government-Issued ID\n";
-            $emailBody .= "✓ Official Transcript of Records\n";
-            $emailBody .= "✓ Diploma/Certificate of Completion\n";
-            $emailBody .= "✓ Two (2) pieces of 2x2 ID Photos\n\n";
-            $emailBody .= "OFFICE VISIT SCHEDULE:\n";
-            $emailBody .= "Please visit our office within 3 WORKING DAYS from receipt of this email.\n\n";
-            $emailBody .= "Office Hours:\n";
-            $emailBody .= "• Monday to Friday: 8:00 AM - 5:00 PM\n";
-            $emailBody .= "• Saturday & Sunday: CLOSED\n\n";
-            $emailBody .= "IMPORTANT NOTE ON WORKING DAYS:\n";
-            $emailBody .= "Saturdays and Sundays are NOT counted as working days.\n\n";
-            $emailBody .= "Example: If you receive this email on Friday, your 3 working days are:\n";
-            $emailBody .= "- Day 1: Monday\n";
-            $emailBody .= "- Day 2: Tuesday\n";
-            $emailBody .= "- Day 3: Wednesday\n\n";
-            $emailBody .= "OFFICE LOCATION:\n";
-            $emailBody .= "SMI Institute Inc.\n";
-            $emailBody .= "1991 Wardley Bldg., San Juan St., Cor. Taft Ave.\n";
-            $emailBody .= "Brgy. 36, Pasay City, Metro Manila\n\n";
-            $emailBody .= "Contact Number: 09177990724\n\n";
-            $emailBody .= "IMPORTANT REMINDERS:\n";
-            $emailBody .= "1. Enrollment slots are limited and will be confirmed on a first-come, first-served basis\n";
-            $emailBody .= "2. Training vouchers (if available) will be given on a first-come, first-served basis\n";
-            $emailBody .= "3. Failure to visit within 3 working days may result in forfeiture of your slot\n";
-            $emailBody .= "4. Please bring sufficient amount for enrollment fees and other charges (if self-funded)\n";
-            $emailBody .= "5. Walk-in applicants are welcome, but scheduled appointments are prioritized\n\n";
-            $emailBody .= "ENROLLMENT FEES:\n";
-            $emailBody .= "Our staff will provide you with a detailed breakdown of fees during your visit. We accept cash and major credit/debit cards.\n\n";
-            $emailBody .= "Payment may be waived if you qualify for available training vouchers (subject to availability and eligibility).\n\n";
-            $emailBody .= "WHAT TO EXPECT DURING YOUR VISIT:\n";
-            $emailBody .= "1. Document verification (15-20 minutes)\n";
-            $emailBody .= "2. Interview with enrollment officer (10-15 minutes)\n";
-            $emailBody .= "3. Voucher eligibility assessment (if applicable)\n";
-            $emailBody .= "4. Payment processing and issuance of official receipt (for self-funded students)\n";
-            $emailBody .= "5. Schedule assignment and batch confirmation\n";
-            $emailBody .= "6. Orientation on LMS (Learning Management System) access\n\n";
-            $emailBody .= "Once your enrollment is confirmed, you will receive:\n";
-            $emailBody .= "• Official enrollment receipt\n";
-            $emailBody .= "• Student ID number\n";
-            $emailBody .= "• LMS login credentials\n";
-            $emailBody .= "• Class schedule\n";
-            $emailBody .= "• Training program guidelines\n\n";
-            $emailBody .= "Should you have any questions or need to schedule a specific appointment time, please contact us at 09177990724 or reply to this email.\n\n";
-            $emailBody .= "We look forward to welcoming you to the SMI Institute Inc. family!\n\n";
-            $emailBody .= "Warm regards,\n\n";
-            $emailBody .= "Enrollment Team\n";
-            $emailBody .= "SMI Institute Inc.\n";
-            $emailBody .= "TESDA-Accredited Training Center\n\n";
-            $emailBody .= "---\n";
-            $emailBody .= "This is an automated message. Please do not reply directly to this email.\n";
-            $emailBody .= "For inquiries, contact: 09177990724";
+            // Get program fee (format with thousands separator)
+            $programFee = $program->pricing ?? 0;
+            $programFee = number_format($programFee, 2);
             
-            \Illuminate\Support\Facades\Mail::raw($emailBody, function ($message) use ($applicant) {
+            // Create HTML email content based on voucher eligibility
+            if ($voucherEligible) {
+                // Email for voucher-eligible applicants
+                $emailContent = "
+                    <html>
+                    <head>
+                        <style>
+                            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                            .header { background-color: #10b981; color: white; padding: 20px; text-align: center; }
+                            .content { padding: 20px; }
+                            .highlight { background-color: #d1fae5; padding: 15px; border-left: 4px solid #10b981; margin: 20px 0; }
+                            .documents { background-color: #f3f4f6; padding: 15px; margin: 20px 0; }
+                            .footer { background-color: #f9fafb; padding: 20px; text-align: center; font-size: 12px; color: #6b7280; }
+                            ul { padding-left: 20px; }
+                            .important { color: #dc2626; font-weight: bold; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class='header'>
+                            <h1>Congratulations! Application Approved</h1>
+                        </div>
+                        <div class='content'>
+                            <p>Dear {$applicantName},</p>
+                            
+                            <p>We are pleased to inform you that your application for the <strong>{$programName}</strong> program at SMI Institute Inc. has been <strong>APPROVED</strong>!</p>
+                            
+                            <div class='highlight'>
+                                <h3>GREAT NEWS: You are ELIGIBLE for Training Voucher (TESDA Subsidy)</h3>
+                                <p>Your training fees will be covered by TESDA scholarship program. No payment is required from you!</p>
+                            </div>
+                            
+                            <h3>NEXT STEPS - ONSITE DOCUMENT VERIFICATION REQUIRED</h3>
+                            <p>To complete your enrollment, please visit our office within <strong>3 WORKING DAYS</strong> for document verification.</p>
+                            
+                            <div class='documents'>
+                                <h4>Required Documents (Original and Photocopies):</h4>
+                                <ul>
+                                    <li>Valid Government-Issued ID</li>
+                                    <li>Transcript of Records</li>
+                                    <li>Diploma</li>
+                                    <li>Passport size picture with white background</li>
+                                </ul>
+                            </div>
+                            
+                            <h3>OFFICE INFORMATION</h3>
+                            <p><strong>Address:</strong><br>
+                            SMI Institute Inc.<br>
+                            1991 Wardley Bldg., San Juan St., Cor. Taft Ave.<br>
+                            Brgy. 36, Pasay City, Metro Manila</p>
+                            
+                            <p><strong>Contact Number:</strong> 09177990724</p>
+                            
+                            <p><strong>Office Hours:</strong><br>
+                            Monday to Friday: 8:00 AM - 5:00 PM<br>
+                            Saturday & Sunday: CLOSED</p>
+                            
+                            <p class='important'>IMPORTANT: Saturdays and Sundays are NOT counted as working days.</p>
+                            
+                            <h3>WHAT TO EXPECT DURING YOUR VISIT:</h3>
+                            <ul>
+                                <li>Document verification (15-20 minutes)</li>
+                                <li>Interview with enrollment officer (10-15 minutes)</li>
+                                <li>TESDA voucher processing</li>
+                                <li>Schedule assignment and batch confirmation</li>
+                                <li>Orientation on LMS (Learning Management System) access</li>
+                            </ul>
+                            
+                            <p>Once your enrollment is confirmed, you will receive:</p>
+                            <ul>
+                                <li>Student ID number</li>
+                                <li>LMS login credentials</li>
+                                <li>Class schedule</li>
+                                <li>Training program guidelines</li>
+                            </ul>
+                            
+                            <p>Should you have any questions, please contact us at <strong>09177990724</strong>.</p>
+                            
+                            <p>We look forward to welcoming you to the SMI Institute Inc. family!</p>
+                            
+                            <p>Warm regards,<br>
+                            <strong>Enrollment Team</strong><br>
+                            SMI Institute Inc.<br>
+                            TESDA-Accredited Training Center</p>
+                        </div>
+                        <div class='footer'>
+                            <p>This is an automated message. For inquiries, contact: 09177990724</p>
+                        </div>
+                    </body>
+                    </html>
+                ";
+            } else {
+                // Email for non-voucher eligible applicants
+                $emailContent = "
+                    <html>
+                    <head>
+                        <style>
+                            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                            .header { background-color: #f59e0b; color: white; padding: 20px; text-align: center; }
+                            .content { padding: 20px; }
+                            .highlight { background-color: #fef3c7; padding: 15px; border-left: 4px solid #f59e0b; margin: 20px 0; }
+                            .documents { background-color: #f3f4f6; padding: 15px; margin: 20px 0; }
+                            .footer { background-color: #f9fafb; padding: 20px; text-align: center; font-size: 12px; color: #6b7280; }
+                            ul { padding-left: 20px; }
+                            .important { color: #dc2626; font-weight: bold; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class='header'>
+                            <h1>Congratulations! Application Approved</h1>
+                        </div>
+                        <div class='content'>
+                            <p>Dear {$applicantName},</p>
+                            
+                            <p>We are pleased to inform you that your application for the <strong>{$programName}</strong> program at SMI Institute Inc. has been <strong>APPROVED</strong>!</p>
+                            
+                            <div class='highlight'>
+                                <h3>PAYMENT INFORMATION</h3>
+                                <p>Based on our assessment, you will be enrolling as a <strong>self-funded student</strong>.</p>
+                                <div style='background: white; padding: 15px; border-radius: 5px; margin: 15px 0;'>
+                                    <p style='margin: 0; font-size: 14px; color: #666;'>Program Training Fee:</p>
+                                    <p style='margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: #f59e0b;'>₱{$programFee}</p>
+                                </div>
+                                <p><strong>Accepted Payment Methods:</strong></p>
+                                <ul style='margin: 10px 0; padding-left: 20px;'>
+                                    <li>Cash</li>
+                                    <li>Major Debit/Credit Cards</li>
+                                    <li>GCash</li>
+                                    <li>Maya</li>
+                                </ul>
+                            </div>
+                            
+                            <h3>NEXT STEPS - ONSITE DOCUMENT VERIFICATION & PAYMENT</h3>
+                            <p>To complete your enrollment, please visit our office within <strong>3 WORKING DAYS</strong> for document verification and payment processing.</p>
+                            
+                            <div class='documents'>
+                                <h4>Required Documents (Original and Photocopies):</h4>
+                                <ul>
+                                    <li>Valid Government-Issued ID</li>
+                                    <li>Transcript of Records</li>
+                                    <li>Diploma</li>
+                                    <li>Passport size picture with white background</li>
+                                </ul>
+                                <p class='important'>Please bring sufficient amount for enrollment fees and other charges.</p>
+                            </div>
+                            
+                            <h3>OFFICE INFORMATION</h3>
+                            <p><strong>Address:</strong><br>
+                            SMI Institute Inc.<br>
+                            1991 Wardley Bldg., San Juan St., Cor. Taft Ave.<br>
+                            Brgy. 36, Pasay City, Metro Manila</p>
+                            
+                            <p><strong>Contact Number:</strong> 09177990724</p>
+                            
+                            <p><strong>Office Hours:</strong><br>
+                            Monday to Friday: 8:00 AM - 5:00 PM<br>
+                            Saturday & Sunday: CLOSED</p>
+                            
+                            <p class='important'>IMPORTANT: Saturdays and Sundays are NOT counted as working days.</p>
+                            
+                            <h3>WHAT TO EXPECT DURING YOUR VISIT:</h3>
+                            <ul>
+                                <li>Document verification (15-20 minutes)</li>
+                                <li>Interview with enrollment officer (10-15 minutes)</li>
+                                <li>Fee confirmation and discussion of payment options</li>
+                                <li>Payment processing (Cash, Card, GCash, or Maya)</li>
+                                <li>Issuance of official receipt</li>
+                                <li>Schedule assignment and batch confirmation</li>
+                                <li>Orientation on LMS (Learning Management System) access</li>
+                            </ul>
+                            
+                            <p>Once your enrollment is confirmed, you will receive:</p>
+                            <ul>
+                                <li>Official enrollment receipt</li>
+                                <li>Student ID number</li>
+                                <li>LMS login credentials</li>
+                                <li>Class schedule</li>
+                                <li>Training program guidelines</li>
+                            </ul>
+                            
+                            <p>Should you have any questions about fees or payment options, please contact us at <strong>09177990724</strong>.</p>
+                            
+                            <p>We look forward to welcoming you to the SMI Institute Inc. family!</p>
+                            
+                            <p>Warm regards,<br>
+                            <strong>Enrollment Team</strong><br>
+                            SMI Institute Inc.<br>
+                            TESDA-Accredited Training Center</p>
+                        </div>
+                        <div class='footer'>
+                            <p>This is an automated message. For inquiries, contact: 09177990724</p>
+                        </div>
+                    </body>
+                    </html>
+                ";
+            }
+            
+            \Illuminate\Support\Facades\Mail::send([], [], function ($message) use ($applicant, $emailContent, $voucherEligible) {
+                $subject = $voucherEligible 
+                    ? 'SMI Institute Inc. - Application Approved (Voucher Eligible)' 
+                    : 'SMI Institute Inc. - Application Approved (Payment Required)';
+                    
                 $message->to($applicant->email)
-                        ->subject('SMI Institute Inc. - Application Approved: Next Steps for Enrollment');
+                        ->subject($subject)
+                        ->html($emailContent);
             });
+            
+            \Illuminate\Support\Facades\Log::info("Approval email sent to {$applicant->email} with voucher_eligible: " . ($voucherEligible ? 'true' : 'false'));
         } catch (\Exception $e) {
             // Log error but don't fail the approval
             \Illuminate\Support\Facades\Log::error('Failed to send approval email: ' . $e->getMessage());
@@ -3192,9 +3385,718 @@ Route::middleware(['auth:sanctum'])->group(function () {
         
         return response()->json([
             'success' => true,
-            'message' => 'Applicant approved and converted to student successfully',
-            'voucher_consumed' => $voucherConsumed,
-            'voucher_status' => $voucherStatus,
+            'message' => 'Applicant approved successfully',
+            'voucher_eligible' => $request->voucher_eligible ?? false,
+            'applicant' => $applicant->fresh()
+        ]);
+    });
+
+    // Enroll Approved Applicant as Student (Voucher Eligible Only)
+    Route::post('/staff/applicants/{id}/enroll-student', function (Request $request, $id) {
+        $applicant = \App\Models\User::find($id);
+
+        if (!$applicant) {
+            return response()->json(['message' => 'Applicant not found'], 404);
+        }
+
+        // Validate that applicant is approved
+        if ($applicant->application_status !== 'approved') {
+            return response()->json(['message' => 'Only approved applicants can be enrolled'], 400);
+        }
+
+        // Validate that applicant is voucher eligible
+        if (!$applicant->voucher_eligible) {
+            return response()->json(['message' => 'Only voucher-eligible applicants can be enrolled through this process. Non-voucher applicants must complete payment first.'], 400);
+        }
+
+        // Check if already a student
+        if ($applicant->role === 'student') {
+            return response()->json([
+                'message' => 'Applicant is already enrolled as a student',
+                'student_id' => $applicant->student_id
+            ], 400);
+        }
+
+        // Generate Student ID
+        $year = date('Y');
+        $lastStudent = \App\Models\User::where('role', 'student')
+            ->where('student_id', 'like', "STU-{$year}-%")
+            ->orderBy('student_id', 'desc')
+            ->first();
+
+        if ($lastStudent && $lastStudent->student_id) {
+            // Extract the number from the last student ID
+            $lastNumber = (int) substr($lastStudent->student_id, -4);
+            $newNumber = $lastNumber + 1;
+        } else {
+            $newNumber = 1;
+        }
+
+        $studentId = sprintf("STU-%s-%04d", $year, $newNumber);
+
+        // Update user to student role and assign student ID
+        $applicant->role = 'student';
+        $applicant->student_id = $studentId;
+        $applicant->save();
+
+        // Send enrollment confirmation email
+        try {
+            $recipientEmail = $applicant->email;
+            $recipientName = ucwords($applicant->first_name . ' ' . $applicant->last_name);
+            $programName = $applicant->course_program_formatted ?? $applicant->course_program ?? 'N/A';
+            $batchId = $applicant->batch_id ?? 'To be assigned';
+
+            // Generate temporary LMS password (student can change later)
+            $tempPassword = 'SMI' . date('Y') . substr(str_shuffle('0123456789'), 0, 4);
+            
+            // Get batch details for schedule information
+            $batch = null;
+            $scheduleInfo = 'Your class schedule will be sent separately via email once finalized.';
+            if ($applicant->batch_id) {
+                $batch = \App\Models\Batch::where('batch_id', $applicant->batch_id)->first();
+                if ($batch) {
+                    $startDate = $batch->start_date ? date('F d, Y', strtotime($batch->start_date)) : 'TBA';
+                    $endDate = $batch->end_date ? date('F d, Y', strtotime($batch->end_date)) : 'TBA';
+                    $scheduleInfo = "
+                        <strong>Training Period:</strong> {$startDate} to {$endDate}<br>
+                        <strong>Schedule:</strong> Monday to Friday, 8:00 AM - 5:00 PM<br>
+                        <strong>Batch:</strong> {$batchId}<br>
+                        <em>*Specific daily schedules will be provided on the first day of training</em>
+                    ";
+                }
+            }
+
+            $emailContent = "
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <style>
+                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                        .container { max-width: 650px; margin: 0 auto; padding: 20px; }
+                        .header { background-color: #10b981; color: white; padding: 30px 20px; text-align: center; border-radius: 5px 5px 0 0; }
+                        .content { background-color: #f9f9f9; padding: 30px 20px; }
+                        .highlight { background-color: #d1fae5; padding: 15px; border-left: 4px solid #10b981; margin: 20px 0; }
+                        .student-id-box { font-size: 28px; font-weight: bold; color: #10b981; text-align: center; padding: 25px; background: white; border-radius: 5px; margin: 20px 0; border: 2px solid #10b981; }
+                        .info-box { background: white; padding: 20px; border-radius: 5px; margin: 15px 0; border-left: 4px solid #10b981; }
+                        .credentials-box { background: #fff3cd; padding: 20px; border-radius: 5px; margin: 15px 0; border: 2px solid #ffc107; }
+                        .important-box { background: #fee; padding: 15px; border-radius: 5px; border-left: 4px solid #dc3545; margin: 15px 0; }
+                        .guidelines { background: white; padding: 20px; border-radius: 5px; margin: 15px 0; }
+                        .guidelines ol { margin: 10px 0; padding-left: 25px; }
+                        .guidelines li { margin: 8px 0; }
+                        .footer { background-color: #333; color: white; padding: 20px; text-align: center; font-size: 12px; border-radius: 0 0 5px 5px; }
+                        h1 { margin: 0; font-size: 28px; }
+                        h3 { color: #10b981; margin-top: 0; margin-bottom: 15px; }
+                        .warning { color: #dc3545; font-weight: bold; }
+                    </style>
+                </head>
+                <body>
+                    <div class='container'>
+                        <div class='header'>
+                            <h1>Welcome to SMI Training Center!</h1>
+                            <p style='margin: 10px 0 0 0; font-size: 16px;'>Your Enrollment is Complete</p>
+                        </div>
+                        <div class='content'>
+                            <p>Dear <strong>{$recipientName}</strong>,</p>
+                            
+                            <div class='highlight'>
+                                <strong>Congratulations! You are now officially enrolled as a student at SMI Technical Training Center.</strong><br>
+                                Your training voucher has been confirmed and your student account is active. Below are your important enrollment details.
+                            </div>
+
+                            <div class='student-id-box'>
+                                STUDENT ID NUMBER<br>
+                                {$studentId}
+                            </div>
+
+                            <div class='info-box'>
+                                <h3>1. STUDENT IDENTIFICATION</h3>
+                                <p><strong>Student ID:</strong> {$studentId}</p>
+                                <p><strong>Full Name:</strong> {$recipientName}</p>
+                                <p><strong>Program:</strong> {$programName}</p>
+                                <p><strong>Batch:</strong> {$batchId}</p>
+                                <p><strong>Status:</strong> Enrolled - Voucher Eligible</p>
+                            </div>
+
+                            <div class='credentials-box'>
+                                <h3 style='color: #856404; margin-top: 0;'>2. LMS LOGIN CREDENTIALS</h3>
+                                <p><strong>Learning Management System (LMS) Portal:</strong><br>
+                                <a href='http://localhost:3000/student/login' style='color: #0066cc;'>http://localhost:3000/student/login</a></p>
+                                
+                                <p style='margin-top: 15px;'><strong>Your Login Details:</strong></p>
+                                <p style='margin: 5px 0;'><strong>Email/Username:</strong> {$recipientEmail}</p>
+                                <p style='margin: 5px 0;'><strong>Temporary Password:</strong> <span style='background: #fff; padding: 5px 10px; border: 1px solid #856404; border-radius: 3px; font-family: monospace; font-size: 16px;'>{$tempPassword}</span></p>
+                                
+                                <p class='warning' style='margin-top: 15px;'>⚠️ IMPORTANT: Please change your password immediately after your first login for security purposes.</p>
+                            </div>
+
+                            <div class='info-box'>
+                                <h3>3. CLASS SCHEDULE</h3>
+                                <p>{$scheduleInfo}</p>
+                            </div>
+
+                            <div class='guidelines'>
+                                <h3>4. TRAINING PROGRAM GUIDELINES</h3>
+                                <p><strong>Please read and follow these important guidelines:</strong></p>
+                                
+                                <h4 style='color: #333; margin-top: 15px;'>Attendance Requirements:</h4>
+                                <ol>
+                                    <li>Maintain at least <strong>90% attendance</strong> throughout the training program</li>
+                                    <li>Be punctual - classes start promptly at the scheduled time</li>
+                                    <li>Notify your instructor in advance if you cannot attend a session</li>
+                                    <li>Absences exceeding the allowed limit may result in disqualification</li>
+                                </ol>
+
+                                <h4 style='color: #333; margin-top: 15px;'>Academic Requirements:</h4>
+                                <ol>
+                                    <li>Complete all assigned coursework and practical exercises</li>
+                                    <li>Participate actively in class discussions and group activities</li>
+                                    <li>Submit all projects and assessments on time</li>
+                                    <li>Achieve passing grades in all competency assessments</li>
+                                    <li>Maintain professional conduct at all times</li>
+                                </ol>
+
+                                <h4 style='color: #333; margin-top: 15px;'>Training Center Rules:</h4>
+                                <ol>
+                                    <li>Bring your Student ID to every session</li>
+                                    <li>Wear appropriate attire (business casual or as specified for your program)</li>
+                                    <li>Mobile phones must be on silent mode during classes</li>
+                                    <li>Respect training center property and equipment</li>
+                                    <li>Follow safety protocols, especially in laboratory sessions</li>
+                                    <li>No smoking, eating, or drinking in training rooms</li>
+                                </ol>
+
+                                <h4 style='color: #333; margin-top: 15px;'>Certification Requirements:</h4>
+                                <ol>
+                                    <li>Complete all required training hours</li>
+                                    <li>Pass all competency assessments with at least 75% score</li>
+                                    <li>Submit all required documentation</li>
+                                    <li>Settle any outstanding obligations (if applicable)</li>
+                                    <li>Attend the graduation/completion ceremony</li>
+                                </ol>
+                            </div>
+
+                            <div class='important-box'>
+                                <h3 style='color: #dc3545; margin-top: 0;'>IMPORTANT REMINDERS</h3>
+                                <ul style='margin: 10px 0; padding-left: 20px;'>
+                                    <li>Keep your Student ID and LMS credentials confidential and secure</li>
+                                    <li>Login to the LMS portal and change your password immediately</li>
+                                    <li>Check your email and LMS portal regularly for updates and announcements</li>
+                                    <li>Bring the following on your first day:
+                                        <ul style='margin-top: 5px;'>
+                                            <li>Valid Government-Issued ID</li>
+                                            <li>Printed copy of this email</li>
+                                            <li>Notebook and writing materials</li>
+                                            <li>Any specific materials mentioned for your program</li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div class='info-box'>
+                                <h3>CONTACT & SUPPORT</h3>
+                                <p><strong>Training Center Office:</strong><br>
+                                Address: SMI Technical Training Center, 123 Main Street, City, Philippines</p>
+                                <p><strong>Office Hours:</strong> Monday to Friday, 8:00 AM - 5:00 PM</p>
+                                <p><strong>Contact Numbers:</strong> (02) 1234-5678</p>
+                                <p><strong>Email:</strong> info@smitraining.edu.ph</p>
+                                <p><strong>Technical Support:</strong> support@smitraining.edu.ph</p>
+                            </div>
+
+                            <p style='margin-top: 25px;'>We are excited to have you join our training program! If you have any questions or concerns, please don't hesitate to reach out to us.</p>
+                            
+                            <p style='margin-top: 20px;'>Best regards,<br>
+                            <strong>SMI Technical Training Center</strong><br>
+                            <em>Building Skills, Building Futures</em></p>
+                        </div>
+                        <div class='footer'>
+                            <p>&copy; 2025 SMI Technical Training Center. All rights reserved.</p>
+                            <p>This is an automated message. Please do not reply directly to this email.</p>
+                            <p style='margin-top: 10px;'>For inquiries, please contact us at info@smitraining.edu.ph</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            ";
+
+            Mail::html($emailContent, function ($message) use ($recipientEmail, $recipientName, $studentId) {
+                $message->to($recipientEmail, $recipientName)
+                    ->subject("Welcome to SMI Training Center - Student ID: {$studentId}");
+            });
+
+            \Illuminate\Support\Facades\Log::info("Enrollment confirmation email sent to {$applicant->email} with Student ID: {$studentId}");
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to send enrollment email: ' . $e->getMessage());
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Applicant successfully enrolled as student',
+            'student_id' => $studentId,
+            'student' => $applicant->fresh()
+        ]);
+    });
+
+    // Process Cash Payment and Enroll Student (Cash Only)
+    Route::post('/staff/applicants/{id}/process-cash-payment', function (Request $request, $id) {
+        $request->validate([
+            'payment_method' => 'required|in:cash',
+            'amount_paid' => 'required|numeric|min:0',
+            'notes' => 'nullable|string'
+        ]);
+
+        $applicant = \App\Models\User::find($id);
+
+        if (!$applicant) {
+            return response()->json(['success' => false, 'message' => 'Applicant not found'], 404);
+        }
+
+        // Validate that applicant is approved
+        if ($applicant->application_status !== 'approved') {
+            return response()->json(['success' => false, 'message' => 'Only approved applicants can be enrolled'], 400);
+        }
+
+        // Validate that applicant is NOT voucher eligible (payment required)
+        if ($applicant->voucher_eligible) {
+            return response()->json(['success' => false, 'message' => 'This applicant is voucher-eligible. Use the direct enrollment process instead.'], 400);
+        }
+
+        // Check if already a student
+        if ($applicant->role === 'student') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Applicant is already enrolled as a student',
+                'student_id' => $applicant->student_id
+            ], 400);
+        }
+
+        // Generate Student ID
+        $year = date('Y');
+        $lastStudent = \App\Models\User::where('role', 'student')
+            ->where('student_id', 'like', "STU-{$year}-%")
+            ->orderBy('student_id', 'desc')
+            ->first();
+
+        if ($lastStudent && $lastStudent->student_id) {
+            $lastNumber = (int) substr($lastStudent->student_id, -4);
+            $newNumber = $lastNumber + 1;
+        } else {
+            $newNumber = 1;
+        }
+
+        $studentId = sprintf("STU-%s-%04d", $year, $newNumber);
+
+        // Generate Receipt Number
+        $receiptNumber = 'RCP-' . date('Ymd') . '-' . strtoupper(substr(md5(uniqid()), 0, 6));
+
+        // Get program name early for payment description
+        $programName = $applicant->course_program_formatted ?? $applicant->course_program ?? 'N/A';
+
+        // Update user to student role and assign student ID
+        $applicant->role = 'student';
+        $applicant->student_id = $studentId;
+        $applicant->save();
+
+        // Create cash payment record
+        try {
+            \App\Models\Payment::create([
+                'user_id' => $applicant->id,
+                'batch_id' => $applicant->batch_id,
+                'amount' => $request->amount_paid,
+                'currency' => 'PHP',
+                'payment_method' => 'cash',
+                'payment_status' => 'paid',
+                'reference_code' => $receiptNumber,
+                'payment_description' => "Cash enrollment fee for {$programName}" . ($applicant->batch_id ? " - {$applicant->batch_id}" : ''),
+                'notes' => $request->notes ?? 'Cash payment received',
+                'paid_at' => now()
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to create cash payment record: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to record payment: ' . $e->getMessage()
+            ], 500);
+        }
+
+        // Send enrollment confirmation email with receipt
+        try {
+            $recipientEmail = $applicant->email;
+            $recipientName = ucwords($applicant->first_name . ' ' . $applicant->last_name);
+            $batchId = $applicant->batch_id ?? 'To be assigned';
+            $amountPaid = number_format($request->amount_paid, 2);
+            $paymentMethod = 'Cash';
+            $paymentDate = date('F d, Y g:i A');
+
+            // Generate temporary LMS password
+            $tempPassword = 'SMI' . date('Y') . substr(str_shuffle('0123456789'), 0, 4);
+
+            $emailContent = "
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <style>
+                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                        .container { max-width: 650px; margin: 0 auto; padding: 20px; }
+                        .header { background-color: #10b981; color: white; padding: 30px 20px; text-align: center; border-radius: 5px 5px 0 0; }
+                        .content { background-color: #f9f9f9; padding: 30px 20px; }
+                        .receipt-box { background: white; border: 2px dashed #10b981; padding: 20px; margin: 20px 0; border-radius: 5px; }
+                        .receipt-header { background: #10b981; color: white; padding: 10px; text-align: center; font-weight: bold; margin: -20px -20px 15px -20px; }
+                        .receipt-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+                        .receipt-row:last-child { border-bottom: none; font-weight: bold; font-size: 18px; color: #10b981; }
+                        .info-box { background: white; padding: 20px; border-radius: 5px; margin: 15px 0; border-left: 4px solid #10b981; }
+                        .credentials-box { background: #fff3cd; padding: 20px; border-radius: 5px; margin: 15px 0; border: 2px solid #ffc107; }
+                        .footer { background-color: #333; color: white; padding: 20px; text-align: center; font-size: 12px; border-radius: 0 0 5px 5px; }
+                        h1 { margin: 0; font-size: 28px; }
+                        h3 { color: #10b981; margin-top: 0; margin-bottom: 15px; }
+                    </style>
+                </head>
+                <body>
+                    <div class='container'>
+                        <div class='header'>
+                            <h1>Cash Payment Received & Enrollment Complete!</h1>
+                            <p style='margin: 10px 0 0 0; font-size: 16px;'>Welcome to SMI Training Center</p>
+                        </div>
+                        <div class='content'>
+                            <p>Dear <strong>{$recipientName}</strong>,</p>
+                            <p>We have successfully received your cash payment and processed your enrollment. Welcome to SMI Training Center!</p>
+                            
+                            <div class='receipt-box'>
+                                <div class='receipt-header'>OFFICIAL RECEIPT</div>
+                                <div class='receipt-row'>
+                                    <span>Receipt Number:</span>
+                                    <strong>{$receiptNumber}</strong>
+                                </div>
+                                <div class='receipt-row'>
+                                    <span>Payment Date:</span>
+                                    <strong>{$paymentDate}</strong>
+                                </div>
+                                <div class='receipt-row'>
+                                    <span>Payment Method:</span>
+                                    <strong>{$paymentMethod}</strong>
+                                </div>
+                                <div class='receipt-row'>
+                                    <span>Program:</span>
+                                    <strong>{$programName}</strong>
+                                </div>
+                                <div class='receipt-row'>
+                                    <span>Batch:</span>
+                                    <strong>{$batchId}</strong>
+                                </div>
+                                <div class='receipt-row'>
+                                    <span>Amount Paid:</span>
+                                    <strong>₱{$amountPaid}</strong>
+                                </div>
+                            </div>
+
+                            <div class='info-box'>
+                                <h3>📋 Your Student Information</h3>
+                                <p><strong>Student ID:</strong> {$studentId}</p>
+                                <p><strong>Program:</strong> {$programName}</p>
+                                <p><strong>Batch:</strong> {$batchId}</p>
+                                <p style='margin-bottom: 0;'><strong>Status:</strong> <span style='color: #10b981;'>Enrolled</span></p>
+                            </div>
+
+                            <div class='credentials-box'>
+                                <h3 style='color: #856404; margin-top: 0;'>🔐 LMS Access Credentials</h3>
+                                <p><strong>LMS Portal:</strong> <a href='#'>portal.smi-training.edu.ph</a></p>
+                                <p><strong>Username:</strong> {$applicant->email}</p>
+                                <p><strong>Temporary Password:</strong> {$tempPassword}</p>
+                                <p style='margin-bottom: 0; color: #856404; font-size: 13px;'>⚠️ Please change your password upon first login.</p>
+                            </div>
+
+                            <div class='info-box'>
+                                <h3>📅 What's Next?</h3>
+                                <ul style='margin: 0; padding-left: 20px;'>
+                                    <li>Check your batch schedule in the LMS portal</li>
+                                    <li>Prepare required materials for training</li>
+                                    <li>Attend orientation on your batch start date</li>
+                                    <li>Contact us if you have any questions</li>
+                                </ul>
+                            </div>
+
+                            <p style='color: #666; font-size: 14px; margin-top: 25px;'>
+                                If you have any questions or concerns, please don't hesitate to contact our admissions office.
+                            </p>
+                        </div>
+                        <div class='footer'>
+                            <p style='margin: 0 0 5px 0;'><strong>SMI Training Center</strong></p>
+                            <p style='margin: 0; font-size: 11px;'>Address | Phone | Email | Website</p>
+                            <p style='margin: 10px 0 0 0; font-size: 11px;'>This is an automated email. Please keep this for your records.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            ";
+
+            \Illuminate\Support\Facades\Mail::html($emailContent, function ($message) use ($recipientEmail, $recipientName, $receiptNumber) {
+                $message->to($recipientEmail)
+                    ->subject("Payment Received - Receipt #{$receiptNumber} - SMI Training Center")
+                    ->from(config('mail.from.address'), config('mail.from.name'));
+            });
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to send cash payment email: ' . $e->getMessage());
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Cash payment processed and student enrolled successfully',
+            'student_id' => $studentId,
+            'receipt_number' => $receiptNumber,
+            'student' => $applicant->fresh()
+        ]);
+    });
+
+    // Process Payment and Enroll Student (Non-Voucher Eligible)
+    Route::post('/staff/applicants/{id}/process-payment', function (Request $request, $id) {
+        $request->validate([
+            'payment_method' => 'required|in:cash,credit_card,debit_card,gcash,maya',
+            'amount_paid' => 'required|numeric|min:0',
+            'reference_number' => 'nullable|string',
+            'notes' => 'nullable|string'
+        ]);
+
+        $applicant = \App\Models\User::find($id);
+
+        if (!$applicant) {
+            return response()->json(['message' => 'Applicant not found'], 404);
+        }
+
+        // Validate that applicant is approved
+        if ($applicant->application_status !== 'approved') {
+            return response()->json(['message' => 'Only approved applicants can be enrolled'], 400);
+        }
+
+        // Validate that applicant is NOT voucher eligible (payment required)
+        if ($applicant->voucher_eligible) {
+            return response()->json(['message' => 'This applicant is voucher-eligible. Use the direct enrollment process instead.'], 400);
+        }
+
+        // Check if already a student
+        if ($applicant->role === 'student') {
+            return response()->json([
+                'message' => 'Applicant is already enrolled as a student',
+                'student_id' => $applicant->student_id
+            ], 400);
+        }
+
+        // Generate Student ID
+        $year = date('Y');
+        $lastStudent = \App\Models\User::where('role', 'student')
+            ->where('student_id', 'like', "STU-{$year}-%")
+            ->orderBy('student_id', 'desc')
+            ->first();
+
+        if ($lastStudent && $lastStudent->student_id) {
+            $lastNumber = (int) substr($lastStudent->student_id, -4);
+            $newNumber = $lastNumber + 1;
+        } else {
+            $newNumber = 1;
+        }
+
+        $studentId = sprintf("STU-%s-%04d", $year, $newNumber);
+
+        // Generate Receipt Number
+        $receiptNumber = 'RCP-' . date('Ymd') . '-' . strtoupper(substr(md5(uniqid()), 0, 6));
+
+        // Get program name early for payment description
+        $programName = $applicant->course_program_formatted ?? $applicant->course_program ?? 'N/A';
+
+        // Update user to student role and assign student ID
+        $applicant->role = 'student';
+        $applicant->student_id = $studentId;
+        $applicant->save();
+
+        // Update existing payment record or create new one
+        try {
+            // Try to find existing payment by paymongo_payment_id
+            $payment = null;
+            if ($request->paymongo_payment_id) {
+                $payment = \App\Models\Payment::where('paymongo_payment_id', $request->paymongo_payment_id)
+                    ->orWhere('paymongo_payment_intent_id', $request->reference_number)
+                    ->first();
+            }
+
+            if ($payment) {
+                // Update existing payment record
+                $payment->update([
+                    'payment_status' => 'paid',
+                    'reference_code' => $receiptNumber,
+                    'payment_description' => "Enrollment fee for {$programName} - " . ($applicant->batch_id ?? 'N/A'),
+                    'notes' => $request->notes,
+                    'paid_at' => now()
+                ]);
+            } else {
+                // Create new payment record (fallback for cash/manual payments)
+                \App\Models\Payment::create([
+                    'user_id' => $applicant->id,
+                    'batch_id' => $applicant->batch_id,
+                    'amount' => $request->amount_paid,
+                    'currency' => 'PHP',
+                    'payment_method' => $request->payment_method,
+                    'payment_status' => 'paid',
+                    'paymongo_payment_id' => $request->paymongo_payment_id ?? null,
+                    'paymongo_payment_intent_id' => $request->reference_number ?? null,
+                    'reference_code' => $receiptNumber,
+                    'payment_description' => "Enrollment fee for {$programName} - " . ($applicant->batch_id ?? 'N/A'),
+                    'notes' => $request->notes,
+                    'paid_at' => now()
+                ]);
+            }
+        } catch (\Exception $e) {
+            // Log error but continue with enrollment
+            \Illuminate\Support\Facades\Log::error('Failed to update/create payment record: ' . $e->getMessage());
+        }
+
+        // Send enrollment confirmation email with receipt
+        try {
+            $recipientEmail = $applicant->email;
+            $recipientName = ucwords($applicant->first_name . ' ' . $applicant->last_name);
+            $programName = $applicant->course_program_formatted ?? $applicant->course_program ?? 'N/A';
+            $batchId = $applicant->batch_id ?? 'To be assigned';
+            $amountPaid = number_format($request->amount_paid, 2);
+            $paymentMethod = ucwords(str_replace('_', ' ', $request->payment_method));
+            $paymentDate = date('F d, Y g:i A');
+
+            // Generate temporary LMS password
+            $tempPassword = 'SMI' . date('Y') . substr(str_shuffle('0123456789'), 0, 4);
+
+            $emailContent = "
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <style>
+                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                        .container { max-width: 650px; margin: 0 auto; padding: 20px; }
+                        .header { background-color: #10b981; color: white; padding: 30px 20px; text-align: center; border-radius: 5px 5px 0 0; }
+                        .content { background-color: #f9f9f9; padding: 30px 20px; }
+                        .receipt-box { background: white; border: 2px dashed #10b981; padding: 20px; margin: 20px 0; border-radius: 5px; }
+                        .receipt-header { background: #10b981; color: white; padding: 10px; text-align: center; font-weight: bold; margin: -20px -20px 15px -20px; }
+                        .receipt-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+                        .receipt-row:last-child { border-bottom: none; font-weight: bold; font-size: 18px; color: #10b981; }
+                        .info-box { background: white; padding: 20px; border-radius: 5px; margin: 15px 0; border-left: 4px solid #10b981; }
+                        .credentials-box { background: #fff3cd; padding: 20px; border-radius: 5px; margin: 15px 0; border: 2px solid #ffc107; }
+                        .footer { background-color: #333; color: white; padding: 20px; text-align: center; font-size: 12px; border-radius: 0 0 5px 5px; }
+                        h1 { margin: 0; font-size: 28px; }
+                        h3 { color: #10b981; margin-top: 0; margin-bottom: 15px; }
+                    </style>
+                </head>
+                <body>
+                    <div class='container'>
+                        <div class='header'>
+                            <h1>Payment Received & Enrollment Complete!</h1>
+                            <p style='margin: 10px 0 0 0; font-size: 16px;'>Welcome to SMI Training Center</p>
+                        </div>
+                        <div class='content'>
+                            <p>Dear <strong>{$recipientName}</strong>,</p>
+                            
+                            <p>Thank you for your payment! Your enrollment has been completed successfully. Below is your official receipt and enrollment details.</p>
+
+                            <!-- RECEIPT -->
+                            <div class='receipt-box'>
+                                <div class='receipt-header'>OFFICIAL RECEIPT</div>
+                                <div class='receipt-row'>
+                                    <span>Receipt Number:</span>
+                                    <strong>{$receiptNumber}</strong>
+                                </div>
+                                <div class='receipt-row'>
+                                    <span>Date:</span>
+                                    <strong>{$paymentDate}</strong>
+                                </div>
+                                <div class='receipt-row'>
+                                    <span>Student Name:</span>
+                                    <strong>{$recipientName}</strong>
+                                </div>
+                                <div class='receipt-row'>
+                                    <span>Student ID:</span>
+                                    <strong>{$studentId}</strong>
+                                </div>
+                                <div class='receipt-row'>
+                                    <span>Program:</span>
+                                    <strong>{$programName}</strong>
+                                </div>
+                                <div class='receipt-row'>
+                                    <span>Payment Method:</span>
+                                    <strong>{$paymentMethod}</strong>
+                                </div>
+                                " . ($request->reference_number ? "<div class='receipt-row'><span>Reference Number:</span><strong>{$request->reference_number}</strong></div>" : "") . "
+                                <div class='receipt-row'>
+                                    <span>Amount Paid:</span>
+                                    <strong>₱{$amountPaid}</strong>
+                                </div>
+                            </div>
+
+                            <div class='info-box'>
+                                <h3>STUDENT IDENTIFICATION</h3>
+                                <p><strong>Student ID:</strong> {$studentId}</p>
+                                <p><strong>Full Name:</strong> {$recipientName}</p>
+                                <p><strong>Program:</strong> {$programName}</p>
+                                <p><strong>Batch:</strong> {$batchId}</p>
+                                <p><strong>Status:</strong> Enrolled - Payment Completed</p>
+                            </div>
+
+                            <div class='credentials-box'>
+                                <h3 style='color: #856404; margin-top: 0;'>LMS LOGIN CREDENTIALS</h3>
+                                <p><strong>Learning Management System (LMS) Portal:</strong><br>
+                                <a href='http://localhost:3000/student/login' style='color: #0066cc;'>http://localhost:3000/student/login</a></p>
+                                
+                                <p style='margin-top: 15px;'><strong>Your Login Details:</strong></p>
+                                <p style='margin: 5px 0;'><strong>Email/Username:</strong> {$recipientEmail}</p>
+                                <p style='margin: 5px 0;'><strong>Temporary Password:</strong> <span style='background: #fff; padding: 5px 10px; border: 1px solid #856404; border-radius: 3px; font-family: monospace; font-size: 16px;'>{$tempPassword}</span></p>
+                                
+                                <p style='margin-top: 15px; color: #dc2626; font-weight: bold;'>⚠️ IMPORTANT: Please change your password immediately after your first login for security purposes.</p>
+                            </div>
+
+                            <div class='info-box'>
+                                <h3>IMPORTANT REMINDERS</h3>
+                                <ul style='margin: 10px 0; padding-left: 20px;'>
+                                    <li>Keep this receipt for your records</li>
+                                    <li>Your Student ID is required for all training sessions</li>
+                                    <li>Login to the LMS portal and change your password immediately</li>
+                                    <li>Check your email and LMS regularly for schedule updates</li>
+                                    <li>Maintain at least 90% attendance throughout the program</li>
+                                </ul>
+                            </div>
+
+                            <div class='info-box'>
+                                <h3>CONTACT INFORMATION</h3>
+                                <p><strong>Training Center Office:</strong><br>
+                                SMI Institute Inc.<br>
+                                1991 Wardley Bldg., San Juan St., Cor. Taft Ave.<br>
+                                Brgy. 36, Pasay City, Metro Manila</p>
+                                <p><strong>Contact:</strong> 09177990724</p>
+                                <p><strong>Office Hours:</strong> Monday to Friday, 8:00 AM - 5:00 PM</p>
+                            </div>
+
+                            <p style='margin-top: 25px;'>We are excited to have you join our training program! If you have any questions, please don't hesitate to contact us.</p>
+                            
+                            <p style='margin-top: 20px;'>Best regards,<br>
+                            <strong>SMI Technical Training Center</strong><br>
+                            <em>Building Skills, Building Futures</em></p>
+                        </div>
+                        <div class='footer'>
+                            <p>&copy; 2025 SMI Technical Training Center. All rights reserved.</p>
+                            <p>This is an automated message. For inquiries, contact: 09177990724</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            ";
+
+            Mail::html($emailContent, function ($message) use ($recipientEmail, $recipientName, $receiptNumber) {
+                $message->to($recipientEmail, $recipientName)
+                    ->subject("Payment Receipt & Enrollment Confirmation - {$receiptNumber}");
+            });
+
+            \Illuminate\Support\Facades\Log::info("Payment receipt and enrollment email sent to {$applicant->email} with Receipt: {$receiptNumber}");
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to send payment receipt email: ' . $e->getMessage());
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Payment processed and student enrolled successfully',
+            'student_id' => $studentId,
+            'receipt_number' => $receiptNumber,
             'student' => $applicant->fresh()
         ]);
     });

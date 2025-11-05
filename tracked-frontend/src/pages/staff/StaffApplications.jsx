@@ -207,6 +207,11 @@ const StaffApplications = () => {
         icon: <MdFilterList className="h-4 w-4" />,
         label: 'Under Review'
       },
+      approved: {
+        className: 'bg-green-100 text-green-800',
+        icon: <MdCheckCircle className="h-4 w-4" />,
+        label: 'Approved'
+      },
       rejected: {
         className: 'bg-red-100 text-red-800',
         icon: <MdCancel className="h-4 w-4" />,
@@ -251,6 +256,7 @@ const StaffApplications = () => {
     total: applications.length,
     pending: applications.filter(app => app.application_status === 'pending').length,
     underReview: applications.filter(app => app.application_status === 'under_review').length,
+    approved: applications.filter(app => app.application_status === 'approved').length,
     rejected: applications.filter(app => app.application_status === 'rejected').length
   };
 
@@ -286,7 +292,7 @@ const StaffApplications = () => {
         {/* Dashboard Content */}
         <div className="container mx-auto p-6">
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
             <div className="bg-white rounded-lg shadow-md p-4">
               <p className="text-sm text-gray-500 font-medium">Total Applications</p>
               <p className="text-2xl font-bold text-tracked-primary mt-1">{stats.total}</p>
@@ -298,6 +304,10 @@ const StaffApplications = () => {
             <div className="bg-white rounded-lg shadow-md p-4">
               <p className="text-sm text-gray-500 font-medium">Under Review</p>
               <p className="text-2xl font-bold text-blue-600 mt-1">{stats.underReview}</p>
+            </div>
+            <div className="bg-white rounded-lg shadow-md p-4">
+              <p className="text-sm text-gray-500 font-medium">Approved</p>
+              <p className="text-2xl font-bold text-green-600 mt-1">{stats.approved}</p>
             </div>
             <div className="bg-white rounded-lg shadow-md p-4">
               <p className="text-sm text-gray-500 font-medium">Rejected</p>
@@ -334,6 +344,7 @@ const StaffApplications = () => {
                   <option value="all">All Status</option>
                   <option value="pending">Pending</option>
                   <option value="under_review">Under Review</option>
+                  <option value="approved">Approved</option>
                   <option value="rejected">Rejected</option>
                 </select>
               </div>

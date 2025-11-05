@@ -35,6 +35,10 @@ class User extends Authenticatable
         'batch_id',
         'voucher_eligibility',
         'voucher_id',
+        'voucher_eligible',
+        'approval_notes',
+        'application_status_reason',
+        'approved_at',
         'address',
         'date_of_birth',
         'place_of_birth',
@@ -111,6 +115,8 @@ class User extends Authenticatable
             'application_reviewed_at' => 'datetime',
             'certifications' => 'array',
             'assigned_programs' => 'array',
+            'voucher_eligible' => 'boolean',
+            'approved_at' => 'datetime',
         ];
     }
     
