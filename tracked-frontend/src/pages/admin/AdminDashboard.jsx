@@ -404,24 +404,6 @@ const AdminDashboard = () => {
                     <p className="text-xs text-red-600 mt-1">Ineligible</p>
                   </div>
                 </div>
-
-                <div className="border-t border-gray-200 pt-4">
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3">System Performance Metrics</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="text-center p-3 bg-blue-50 rounded-lg">
-                      <p className="text-lg font-bold text-blue-600">{dashboardStats.avgProcessingTime} days</p>
-                      <p className="text-xs text-blue-800">Avg Processing Time</p>
-                    </div>
-                    <div className="text-center p-3 bg-green-50 rounded-lg">
-                      <p className="text-lg font-bold text-green-600">{dashboardStats.conversionRate}%</p>
-                      <p className="text-xs text-green-800">Conversion Rate</p>
-                    </div>
-                    <div className="text-center p-3 bg-purple-50 rounded-lg">
-                      <p className="text-lg font-bold text-purple-600">{dashboardStats.activeBatches}</p>
-                      <p className="text-xs text-purple-800">Active Batches</p>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
 

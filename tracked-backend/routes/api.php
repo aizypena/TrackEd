@@ -3688,8 +3688,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Generate Receipt Number
         $receiptNumber = 'RCP-' . date('Ymd') . '-' . strtoupper(substr(md5(uniqid()), 0, 6));
 
-        // Get program name early for payment description
-        $programName = $applicant->course_program_formatted ?? $applicant->course_program ?? 'N/A';
+        // Get program name from the program table
+        $program = \App\Models\Program::find($applicant->course_program);
+        $programName = $program ? ($program->title ?? $program->name ?? 'N/A') : 'N/A';
 
         // Update user to student role and assign student ID
         $applicant->role = 'student';
@@ -3898,8 +3899,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Generate Receipt Number
         $receiptNumber = 'RCP-' . date('Ymd') . '-' . strtoupper(substr(md5(uniqid()), 0, 6));
 
-        // Get program name early for payment description
-        $programName = $applicant->course_program_formatted ?? $applicant->course_program ?? 'N/A';
+        // Get program name from the program table
+        $program = \App\Models\Program::find($applicant->course_program);
+        $programName = $program ? ($program->title ?? $program->name ?? 'N/A') : 'N/A';
 
         // Update user to student role and assign student ID
         $applicant->role = 'student';
