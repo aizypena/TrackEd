@@ -15,12 +15,19 @@ export const programAPI = {
         ? `${API_BASE_URL}/programs?${queryString}` 
         : `${API_BASE_URL}/programs`;
 
+      const token = getAuthToken();
+      const headers = {
+        'Accept': 'application/json'
+      };
+      
+      // Only add Authorization header if we have a token
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const response = await fetch(url, {
         method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${getAuthToken()}`
-        }
+        headers: headers
       });
 
       const data = await response.json();

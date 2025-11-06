@@ -28,9 +28,17 @@ Route::post('/application', [ApplicationController::class, 'submit']);
 // Public Programs Route (for homepage - no auth required)
 Route::get('/programs', function (Request $request) {
     try {
-        $programs = \App\Models\Program::where('availability', 'available')
-            ->orderBy('title')
-            ->get();
+        $query = \App\Models\Program::query();
+        
+        // Filter by availability if provided in query params
+        if ($request->has('availability')) {
+            $query->where('availability', $request->availability);
+        } else {
+            // Default to only available programs
+            $query->where('availability', 'available');
+        }
+        
+        $programs = $query->orderBy('title')->get();
         
         return response()->json([
             'success' => true,
