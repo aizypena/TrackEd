@@ -61,7 +61,7 @@ const StaffAssessmentResults = () => {
       if (assessmentTypeFilter !== 'all') params.append('assessment_type', assessmentTypeFilter.toLowerCase());
       if (statusFilter !== 'all') params.append('status', statusFilter);
       
-      const response = await fetch(`http://localhost:8000/api/staff/assessment-results?${params}`, {
+      const response = await fetch(`https://api.smitracked.cloud/api/staff/assessment-results?${params}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

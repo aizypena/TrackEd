@@ -47,7 +47,7 @@ const TrainerAnnouncements = () => {
     try {
       setLoading(true);
       const token = getTrainerToken();
-      const response = await fetch('http://localhost:8000/api/trainer/announcements', {
+      const response = await fetch('https://api.smitracked.cloud/api/trainer/announcements', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -71,7 +71,7 @@ const TrainerAnnouncements = () => {
   const fetchBatches = async () => {
     try {
       const token = getTrainerToken();
-      const response = await fetch('http://localhost:8000/api/trainer/batches', {
+      const response = await fetch('https://api.smitracked.cloud/api/trainer/batches', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -148,8 +148,8 @@ const TrainerAnnouncements = () => {
     try {
       const token = getTrainerToken();
       const url = editingAnnouncement
-        ? `http://localhost:8000/api/trainer/announcements/${editingAnnouncement.id}`
-        : 'http://localhost:8000/api/trainer/announcements';
+        ? `https://api.smitracked.cloud/api/trainer/announcements/${editingAnnouncement.id}`
+        : 'https://api.smitracked.cloud/api/trainer/announcements';
       
       const method = editingAnnouncement ? 'PUT' : 'POST';
 
@@ -185,7 +185,7 @@ const TrainerAnnouncements = () => {
       const token = getTrainerToken();
       
       // First verify password
-      const verifyResponse = await fetch('http://localhost:8000/api/trainer/verify-password', {
+      const verifyResponse = await fetch('https://api.smitracked.cloud/api/trainer/verify-password', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -203,7 +203,7 @@ const TrainerAnnouncements = () => {
       }
 
       // If password is correct, proceed with deletion
-      const response = await fetch(`http://localhost:8000/api/trainer/announcements/${announcementId}`, {
+      const response = await fetch(`https://api.smitracked.cloud/api/trainer/announcements/${announcementId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -229,7 +229,7 @@ const TrainerAnnouncements = () => {
 
     try {
       const token = getTrainerToken();
-      const response = await fetch(`http://localhost:8000/api/trainer/announcements/${announcementId}/archive`, {
+      const response = await fetch(`https://api.smitracked.cloud/api/trainer/announcements/${announcementId}/archive`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,

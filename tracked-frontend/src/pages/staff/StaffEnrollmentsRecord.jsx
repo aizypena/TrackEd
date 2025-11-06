@@ -46,7 +46,7 @@ const StaffEnrollmentsRecord = () => {
   const logSystemAction = async (action, description, logLevel = 'info') => {
     try {
       const token = getStaffToken();
-      const response = await fetch('http://localhost:8000/api/log-action', {
+      const response = await fetch('https://api.smitracked.cloud/api/log-action', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -118,7 +118,7 @@ const StaffEnrollmentsRecord = () => {
       setLoading(true);
       const token = getStaffToken();
       
-      const response = await fetch('http://localhost:8000/api/staff/enrollments', {
+      const response = await fetch('https://api.smitracked.cloud/api/staff/enrollments', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -142,7 +142,7 @@ const StaffEnrollmentsRecord = () => {
   const fetchPrograms = async () => {
     try {
       const token = getStaffToken();
-      const response = await fetch('http://localhost:8000/api/programs', {
+      const response = await fetch('https://api.smitracked.cloud/api/programs', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -161,7 +161,7 @@ const StaffEnrollmentsRecord = () => {
   const fetchBatches = async () => {
     try {
       const token = getStaffToken();
-      const response = await fetch('http://localhost:8000/api/batches', {
+      const response = await fetch('https://api.smitracked.cloud/api/batches', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'

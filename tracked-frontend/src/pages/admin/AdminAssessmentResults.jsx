@@ -52,7 +52,7 @@ const AdminAssessmentResults = () => {
         return;
       }
 
-      const response = await fetch('http://localhost:8000/api/admin/assessment-results', {
+      const response = await fetch('https://api.smitracked.cloud/api/admin/assessment-results', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'

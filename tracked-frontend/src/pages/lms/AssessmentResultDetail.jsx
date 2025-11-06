@@ -42,7 +42,7 @@ const AssessmentResultDetail = () => {
         return;
       }
 
-      const response = await fetch(`http://localhost:8000/api/student/quiz-results/${attemptId}`, {
+      const response = await fetch(`https://api.smitracked.cloud/api/student/quiz-results/${attemptId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

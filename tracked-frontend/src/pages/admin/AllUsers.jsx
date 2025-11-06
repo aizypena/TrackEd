@@ -164,7 +164,7 @@ function AllUsers() {
       // Log user view action
       const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
       if (token) {
-        await fetch('http://localhost:8000/api/log-action', {
+        await fetch('https://api.smitracked.cloud/api/log-action', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -274,7 +274,7 @@ function AllUsers() {
         // Log user creation
         const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
         if (token) {
-          await fetch('http://localhost:8000/api/log-action', {
+          await fetch('https://api.smitracked.cloud/api/log-action', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -306,7 +306,7 @@ function AllUsers() {
       try {
         const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
         if (token) {
-          await fetch('http://localhost:8000/api/log-action', {
+          await fetch('https://api.smitracked.cloud/api/log-action', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -337,7 +337,7 @@ function AllUsers() {
     try {
       const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
       if (token) {
-        await fetch('http://localhost:8000/api/log-action', {
+        await fetch('https://api.smitracked.cloud/api/log-action', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -367,7 +367,7 @@ function AllUsers() {
         // Log user update
         const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
         if (token) {
-          await fetch('http://localhost:8000/api/log-action', {
+          await fetch('https://api.smitracked.cloud/api/log-action', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -403,7 +403,7 @@ function AllUsers() {
       try {
         const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
         if (token) {
-          await fetch('http://localhost:8000/api/log-action', {
+          await fetch('https://api.smitracked.cloud/api/log-action', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -468,7 +468,7 @@ function AllUsers() {
                 
                 try {
                   // First verify the admin password
-                  const verifyResponse = await fetch('http://localhost:8000/api/admin/verify-password', {
+                  const verifyResponse = await fetch('https://api.smitracked.cloud/api/admin/verify-password', {
                     method: 'POST',
                     headers: {
                       'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
@@ -488,7 +488,7 @@ function AllUsers() {
                     try {
                       const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
                       if (token) {
-                        await fetch('http://localhost:8000/api/log-action', {
+                        await fetch('https://api.smitracked.cloud/api/log-action', {
                           method: 'POST',
                           headers: {
                             'Authorization': `Bearer ${token}`,
@@ -520,7 +520,7 @@ function AllUsers() {
                     // Log user deletion
                     const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
                     if (token) {
-                      await fetch('http://localhost:8000/api/log-action', {
+                      await fetch('https://api.smitracked.cloud/api/log-action', {
                         method: 'POST',
                         headers: {
                           'Authorization': `Bearer ${token}`,
@@ -551,7 +551,7 @@ function AllUsers() {
                   try {
                     const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
                     if (token) {
-                      await fetch('http://localhost:8000/api/log-action', {
+                      await fetch('https://api.smitracked.cloud/api/log-action', {
                         method: 'POST',
                         headers: {
                           'Authorization': `Bearer ${token}`,

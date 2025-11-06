@@ -7,7 +7,7 @@
 #### Created Files:
 - **`tracked-frontend/src/config/api.js`** - Centralized API configuration
   ```javascript
-  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.smitracked.cloud';
   export const API_URL = `${API_BASE_URL}/api`;
   export const STORAGE_URL = `${API_BASE_URL}/storage`;
   ```
@@ -268,10 +268,10 @@ Update each file to import and use the API config:
 import { API_URL, STORAGE_URL } from '../../config/api';
 
 // Replace inline URLs:
-// OLD: 'http://localhost:8000/api/endpoint'
+// OLD: 'https://api.smitracked.cloud/api/endpoint'
 // NEW: `${API_URL}/endpoint`
 
-// OLD: 'http://localhost:8000/storage/path'
+// OLD: 'https://api.smitracked.cloud/storage/path'
 // NEW: `${STORAGE_URL}/path`
 ```
 

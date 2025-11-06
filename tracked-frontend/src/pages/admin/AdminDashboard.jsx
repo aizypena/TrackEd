@@ -88,7 +88,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchDashboardStats = async () => {
       try {
-        const response = await fetch('http://localhost:8000/api/admin/dashboard-stats', {
+        const response = await fetch('https://api.smitracked.cloud/api/admin/dashboard-stats', {
           headers: {
             'Authorization': `Bearer ${adminToken}`,
             'Content-Type': 'application/json',
@@ -134,7 +134,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchArimaForecast = async () => {
       try {
-        const response = await fetch('http://localhost:8000/api/admin/arima-forecast', {
+        const response = await fetch('https://api.smitracked.cloud/api/admin/arima-forecast', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${adminToken}`,

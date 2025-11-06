@@ -7,7 +7,7 @@ echo ""
 
 # First, login as staff to get token
 echo "1. Logging in as admin..."
-LOGIN_RESPONSE=$(curl -s -X POST http://localhost:8000/api/admin/login \
+LOGIN_RESPONSE=$(curl -s -X POST https://api.smitracked.cloud/api/admin/login \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@smi.edu.ph","password":"admin123"}')
 
@@ -28,7 +28,7 @@ echo ""
 
 # Test categories endpoint
 echo "2. Fetching equipment categories..."
-CATEGORIES_RESPONSE=$(curl -s -X GET http://localhost:8000/api/equipment/categories \
+CATEGORIES_RESPONSE=$(curl -s -X GET https://api.smitracked.cloud/api/equipment/categories \
   -H "Accept: application/json" \
   -H "Authorization: Bearer $TOKEN")
 

@@ -48,7 +48,7 @@ const StudentDashboard = () => {
       setLoading(true);
       const token = localStorage.getItem('studentToken');
       
-      const response = await fetch('http://localhost:8000/api/student/schedule', {
+      const response = await fetch('https://api.smitracked.cloud/api/student/schedule', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -89,7 +89,7 @@ const StudentDashboard = () => {
       setLoadingAssessments(true);
       const token = localStorage.getItem('studentToken');
       
-      const response = await fetch('http://localhost:8000/api/student/pending-assessments', {
+      const response = await fetch('https://api.smitracked.cloud/api/student/pending-assessments', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -117,7 +117,7 @@ const StudentDashboard = () => {
       setLoadingMaterials(true);
       const token = localStorage.getItem('studentToken');
       
-      const response = await fetch('http://localhost:8000/api/student/recent-materials', {
+      const response = await fetch('https://api.smitracked.cloud/api/student/recent-materials', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -145,7 +145,7 @@ const StudentDashboard = () => {
       setLoadingAnnouncements(true);
       const token = localStorage.getItem('studentToken');
       
-      const response = await fetch('http://localhost:8000/api/student/announcements', {
+      const response = await fetch('https://api.smitracked.cloud/api/student/announcements', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
