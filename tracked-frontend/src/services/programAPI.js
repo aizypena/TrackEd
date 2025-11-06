@@ -10,12 +10,15 @@ export const programAPI = {
   // Get all programs
   getAll: async (params = {}) => {
     try {
+      const token = getAuthToken();
+      
+      // Use public endpoint if no token, otherwise use authenticated endpoint
+      const endpoint = token ? '/programs' : '/public/programs';
       const queryString = new URLSearchParams(params).toString();
       const url = queryString 
-        ? `${API_BASE_URL}/programs?${queryString}` 
-        : `${API_BASE_URL}/programs`;
+        ? `${API_BASE_URL}${endpoint}?${queryString}` 
+        : `${API_BASE_URL}${endpoint}`;
 
-      const token = getAuthToken();
       const headers = {
         'Accept': 'application/json'
       };

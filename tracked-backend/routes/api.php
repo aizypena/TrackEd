@@ -26,7 +26,7 @@ Route::get('/test', function () {
 Route::post('/application', [ApplicationController::class, 'submit']);
 
 // Public Programs Route (for homepage - no auth required)
-Route::get('/programs', function (Request $request) {
+Route::get('/public/programs', function (Request $request) {
     try {
         $query = \App\Models\Program::query();
         
@@ -42,7 +42,7 @@ Route::get('/programs', function (Request $request) {
         
         return response()->json([
             'success' => true,
-            'programs' => $programs
+            'data' => $programs  // Changed to 'data' to match expected response format
         ]);
     } catch (\Exception $e) {
         \Log::error('Public programs endpoint error: ' . $e->getMessage());
