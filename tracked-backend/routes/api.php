@@ -25,6 +25,26 @@ Route::get('/test', function () {
 // Application routes
 Route::post('/application', [ApplicationController::class, 'submit']);
 
+// Public Programs Route (for homepage - no auth required)
+Route::get('/programs', function (Request $request) {
+    try {
+        $programs = \App\Models\Program::where('availability', 'available')
+            ->orderBy('title')
+            ->get();
+        
+        return response()->json([
+            'success' => true,
+            'programs' => $programs
+        ]);
+    } catch (\Exception $e) {
+        \Log::error('Public programs endpoint error: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to fetch programs'
+        ], 500);
+    }
+});
+
 // PayMongo Webhook (no auth required)
 Route::post('/webhooks/paymongo', [PaymentController::class, 'handleWebhook']);
 
