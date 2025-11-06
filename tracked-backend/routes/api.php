@@ -3807,7 +3807,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
                             <div class='credentials-box'>
                                 <h3 style='color: #856404; margin-top: 0;'>🔐 LMS Access Credentials</h3>
-                                <p><strong>LMS Portal:</strong> <a href='#'>portal.smi-training.edu.ph</a></p>
+                                <p><strong>LMS Portal:</strong> <a href='#'>smitracked.cloud/smi-lms/login</a></p>
                                 <p><strong>Username:</strong> {$applicant->email}</p>
                                 <p><strong>Temporary Password:</strong> {$tempPassword}</p>
                                 <p style='margin-bottom: 0; color: #856404; font-size: 13px;'>⚠️ Please change your password upon first login.</p>
