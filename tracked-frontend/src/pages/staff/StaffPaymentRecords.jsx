@@ -40,7 +40,7 @@ const StaffPaymentRecords = () => {
   const logSystemAction = async (action, description, logLevel = 'info') => {
     try {
       const token = getStaffToken();
-      const response = await fetch('https://api.smitracked.cloud/api/log-action', {
+      const response = await fetch('http://localhost:8000/api/log-action', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -66,7 +66,7 @@ const StaffPaymentRecords = () => {
     try {
       setLoading(true);
       const token = getStaffToken();
-      const response = await fetch('https://api.smitracked.cloud/api/payments', {
+      const response = await fetch('http://localhost:8000/api/payments', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'

@@ -8,6 +8,9 @@ import {
   MdLock,
   MdVerified,
   MdBusinessCenter,
+  MdSecurity,
+  MdExpandMore,
+  MdChevronRight,
 } from 'react-icons/md';
 import { nationalities } from '../../utils/nationalities';
 import { userAPI } from '../../services/userAPI';
@@ -15,6 +18,7 @@ import toast from 'react-hot-toast';
 
 const AddUserModal = ({ isOpen, onClose, onAdd, editMode = false, initialData = null }) => {
   const [errors, setErrors] = useState({});
+  const [expandedSections, setExpandedSections] = useState({});
   const [formData, setFormData] = useState({
     // Basic Information
     first_name: '',
@@ -56,6 +60,42 @@ const AddUserModal = ({ isOpen, onClose, onAdd, editMode = false, initialData = 
       transcript: null,
       diploma: null,
       passportPhoto: null
+    },
+    // Staff Permissions (for staff role only)
+    permissions: {
+      dashboard: true,
+      enrollments: {
+        enabled: true,
+        applications: true,
+        records: true,
+        documents: true
+      },
+      students: {
+        enabled: true,
+        profiles: true,
+        academics: true,
+        payments: true
+      },
+      training: {
+        enabled: true,
+        schedule: true,
+        batches: true,
+        assessments: true
+      },
+      inventory: {
+        enabled: true,
+        equipment: true,
+        transactions: true
+      },
+      analytics: true,
+      reports: {
+        enabled: true,
+        enrollment: true,
+        students: true,
+        assessments: true,
+        inventory: true,
+        payments: true
+      }
     }
   });
 
@@ -101,6 +141,41 @@ const AddUserModal = ({ isOpen, onClose, onAdd, editMode = false, initialData = 
           transcript: null,
           diploma: null,
           passportPhoto: null
+        },
+        permissions: initialData.permissions || {
+          dashboard: true,
+          enrollments: {
+            enabled: true,
+            applications: true,
+            records: true,
+            documents: true
+          },
+          students: {
+            enabled: true,
+            profiles: true,
+            academics: true,
+            payments: true
+          },
+          training: {
+            enabled: true,
+            schedule: true,
+            batches: true,
+            assessments: true
+          },
+          inventory: {
+            enabled: true,
+            equipment: true,
+            transactions: true
+          },
+          analytics: true,
+          reports: {
+            enabled: true,
+            enrollment: true,
+            students: true,
+            assessments: true,
+            inventory: true,
+            payments: true
+          }
         }
       });
     } else if (!editMode) {
@@ -138,6 +213,41 @@ const AddUserModal = ({ isOpen, onClose, onAdd, editMode = false, initialData = 
           transcript: null,
           diploma: null,
           passportPhoto: null
+        },
+        permissions: {
+          dashboard: true,
+          enrollments: {
+            enabled: true,
+            applications: true,
+            records: true,
+            documents: true
+          },
+          students: {
+            enabled: true,
+            profiles: true,
+            academics: true,
+            payments: true
+          },
+          training: {
+            enabled: true,
+            schedule: true,
+            batches: true,
+            assessments: true
+          },
+          inventory: {
+            enabled: true,
+            equipment: true,
+            transactions: true
+          },
+          analytics: true,
+          reports: {
+            enabled: true,
+            enrollment: true,
+            students: true,
+            assessments: true,
+            inventory: true,
+            payments: true
+          }
         }
       });
     }
@@ -243,7 +353,12 @@ const AddUserModal = ({ isOpen, onClose, onAdd, editMode = false, initialData = 
       // Append all user data
       Object.keys(userData).forEach(key => {
         if (userData[key] !== null && userData[key] !== '') {
-          formDataToSubmit.append(key, userData[key]);
+          // Convert permissions object to JSON string
+          if (key === 'permissions' && typeof userData[key] === 'object') {
+            formDataToSubmit.append(key, JSON.stringify(userData[key]));
+          } else {
+            formDataToSubmit.append(key, userData[key]);
+          }
         }
       });
 
@@ -302,6 +417,41 @@ const AddUserModal = ({ isOpen, onClose, onAdd, editMode = false, initialData = 
             transcript: null,
             diploma: null,
             passportPhoto: null
+          },
+          permissions: {
+            dashboard: true,
+            enrollments: {
+              enabled: true,
+              applications: true,
+              records: true,
+              documents: true
+            },
+            students: {
+              enabled: true,
+              profiles: true,
+              academics: true,
+              payments: true
+            },
+            training: {
+              enabled: true,
+              schedule: true,
+              batches: true,
+              assessments: true
+            },
+            inventory: {
+              enabled: true,
+              equipment: true,
+              transactions: true
+            },
+            analytics: true,
+            reports: {
+              enabled: true,
+              enrollment: true,
+              students: true,
+              assessments: true,
+              inventory: true,
+              payments: true
+            }
           }
         });
       }
@@ -383,6 +533,53 @@ const AddUserModal = ({ isOpen, onClose, onAdd, editMode = false, initialData = 
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+  };
+
+  // Toggle expanded section
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  // Handle parent permission toggle
+  const handleParentToggle = (parent) => {
+    if (parent === 'dashboard' || parent === 'analytics') {
+      setFormData(prev => ({
+        ...prev,
+        permissions: {
+          ...prev.permissions,
+          [parent]: !prev.permissions[parent]
+        }
+      }));
+    } else {
+      const newEnabled = !formData.permissions[parent].enabled;
+      setFormData(prev => ({
+        ...prev,
+        permissions: {
+          ...prev.permissions,
+          [parent]: {
+            ...prev.permissions[parent],
+            enabled: newEnabled
+          }
+        }
+      }));
+    }
+  };
+
+  // Handle child permission toggle
+  const handleChildToggle = (parent, child) => {
+    setFormData(prev => ({
+      ...prev,
+      permissions: {
+        ...prev.permissions,
+        [parent]: {
+          ...prev.permissions[parent],
+          [child]: !prev.permissions[parent][child]
+        }
+      }
+    }));
   };
 
   if (!isOpen) return null;
@@ -1228,6 +1425,302 @@ const AddUserModal = ({ isOpen, onClose, onAdd, editMode = false, initialData = 
                         </div>
                       )}
                     </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Staff Permissions Section - Only for staff role */}
+            {formData.role === 'staff' && (
+              <div className="bg-white p-6 rounded-lg border border-gray-300 mt-6">
+                <div className="flex items-center mb-4">
+                  <MdSecurity className="h-6 w-6 text-purple-600 mr-2" />
+                  <h3 className="text-lg font-semibold text-gray-900">Staff Permissions</h3>
+                </div>
+                <p className="text-sm text-gray-600 mb-4">
+                  Configure which features this staff member can access
+                </p>
+
+                <div className="space-y-3">
+                  {/* Dashboard - Always Enabled */}
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center">
+                      <span className="text-sm font-medium text-gray-700">Dashboard</span>
+                      <span className="ml-2 text-xs text-gray-500">(Always enabled)</span>
+                    </div>
+                    <button
+                      type="button"
+                      disabled
+                      className="w-11 h-6 bg-blue-600 rounded-full relative cursor-not-allowed opacity-75"
+                    >
+                      <span className="block w-4 h-4 bg-white rounded-full absolute top-1 right-1 transition-transform"></span>
+                    </button>
+                  </div>
+
+                  {/* Application & Enrollment */}
+                  <div className="border border-gray-200 rounded-lg">
+                    <div className="flex items-center justify-between p-3 bg-gray-50">
+                      <div className="flex items-center flex-1">
+                        <button
+                          type="button"
+                          onClick={() => toggleSection('enrollments')}
+                          className="mr-2 text-gray-600 hover:text-gray-900"
+                        >
+                          {expandedSections.enrollments ? <MdExpandMore className="h-5 w-5" /> : <MdChevronRight className="h-5 w-5" />}
+                        </button>
+                        <span className="text-sm font-medium text-gray-700">Application & Enrollment</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleParentToggle('enrollments')}
+                        className={`w-11 h-6 rounded-full relative transition-colors ${
+                          formData.permissions.enrollments.enabled ? 'bg-blue-600' : 'bg-gray-300'
+                        }`}
+                      >
+                        <span className={`block w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${
+                          formData.permissions.enrollments.enabled ? 'right-1' : 'left-1'
+                        }`}></span>
+                      </button>
+                    </div>
+                    {expandedSections.enrollments && (
+                      <div className="p-3 space-y-2 bg-white">
+                        {['applications', 'records', 'documents'].map((item) => (
+                          <div key={item} className="flex items-center justify-between pl-8">
+                            <span className="text-sm text-gray-600 capitalize">{item}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleChildToggle('enrollments', item)}
+                              disabled={!formData.permissions.enrollments.enabled}
+                              className={`w-11 h-6 rounded-full relative transition-colors ${
+                                formData.permissions.enrollments[item] && formData.permissions.enrollments.enabled
+                                  ? 'bg-blue-600'
+                                  : 'bg-gray-300'
+                              } ${!formData.permissions.enrollments.enabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                              <span className={`block w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${
+                                formData.permissions.enrollments[item] && formData.permissions.enrollments.enabled ? 'right-1' : 'left-1'
+                              }`}></span>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Student Records */}
+                  <div className="border border-gray-200 rounded-lg">
+                    <div className="flex items-center justify-between p-3 bg-gray-50">
+                      <div className="flex items-center flex-1">
+                        <button
+                          type="button"
+                          onClick={() => toggleSection('students')}
+                          className="mr-2 text-gray-600 hover:text-gray-900"
+                        >
+                          {expandedSections.students ? <MdExpandMore className="h-5 w-5" /> : <MdChevronRight className="h-5 w-5" />}
+                        </button>
+                        <span className="text-sm font-medium text-gray-700">Student Records</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleParentToggle('students')}
+                        className={`w-11 h-6 rounded-full relative transition-colors ${
+                          formData.permissions.students.enabled ? 'bg-blue-600' : 'bg-gray-300'
+                        }`}
+                      >
+                        <span className={`block w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${
+                          formData.permissions.students.enabled ? 'right-1' : 'left-1'
+                        }`}></span>
+                      </button>
+                    </div>
+                    {expandedSections.students && (
+                      <div className="p-3 space-y-2 bg-white">
+                        {['profiles', 'academics', 'payments'].map((item) => (
+                          <div key={item} className="flex items-center justify-between pl-8">
+                            <span className="text-sm text-gray-600 capitalize">{item}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleChildToggle('students', item)}
+                              disabled={!formData.permissions.students.enabled}
+                              className={`w-11 h-6 rounded-full relative transition-colors ${
+                                formData.permissions.students[item] && formData.permissions.students.enabled
+                                  ? 'bg-blue-600'
+                                  : 'bg-gray-300'
+                              } ${!formData.permissions.students.enabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                              <span className={`block w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${
+                                formData.permissions.students[item] && formData.permissions.students.enabled ? 'right-1' : 'left-1'
+                              }`}></span>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Training & Assessment */}
+                  <div className="border border-gray-200 rounded-lg">
+                    <div className="flex items-center justify-between p-3 bg-gray-50">
+                      <div className="flex items-center flex-1">
+                        <button
+                          type="button"
+                          onClick={() => toggleSection('training')}
+                          className="mr-2 text-gray-600 hover:text-gray-900"
+                        >
+                          {expandedSections.training ? <MdExpandMore className="h-5 w-5" /> : <MdChevronRight className="h-5 w-5" />}
+                        </button>
+                        <span className="text-sm font-medium text-gray-700">Training & Assessment</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleParentToggle('training')}
+                        className={`w-11 h-6 rounded-full relative transition-colors ${
+                          formData.permissions.training.enabled ? 'bg-blue-600' : 'bg-gray-300'
+                        }`}
+                      >
+                        <span className={`block w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${
+                          formData.permissions.training.enabled ? 'right-1' : 'left-1'
+                        }`}></span>
+                      </button>
+                    </div>
+                    {expandedSections.training && (
+                      <div className="p-3 space-y-2 bg-white">
+                        {['schedule', 'batches', 'assessments'].map((item) => (
+                          <div key={item} className="flex items-center justify-between pl-8">
+                            <span className="text-sm text-gray-600 capitalize">{item}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleChildToggle('training', item)}
+                              disabled={!formData.permissions.training.enabled}
+                              className={`w-11 h-6 rounded-full relative transition-colors ${
+                                formData.permissions.training[item] && formData.permissions.training.enabled
+                                  ? 'bg-blue-600'
+                                  : 'bg-gray-300'
+                              } ${!formData.permissions.training.enabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                              <span className={`block w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${
+                                formData.permissions.training[item] && formData.permissions.training.enabled ? 'right-1' : 'left-1'
+                              }`}></span>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Inventory Management */}
+                  <div className="border border-gray-200 rounded-lg">
+                    <div className="flex items-center justify-between p-3 bg-gray-50">
+                      <div className="flex items-center flex-1">
+                        <button
+                          type="button"
+                          onClick={() => toggleSection('inventory')}
+                          className="mr-2 text-gray-600 hover:text-gray-900"
+                        >
+                          {expandedSections.inventory ? <MdExpandMore className="h-5 w-5" /> : <MdChevronRight className="h-5 w-5" />}
+                        </button>
+                        <span className="text-sm font-medium text-gray-700">Inventory Management</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleParentToggle('inventory')}
+                        className={`w-11 h-6 rounded-full relative transition-colors ${
+                          formData.permissions.inventory.enabled ? 'bg-blue-600' : 'bg-gray-300'
+                        }`}
+                      >
+                        <span className={`block w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${
+                          formData.permissions.inventory.enabled ? 'right-1' : 'left-1'
+                        }`}></span>
+                      </button>
+                    </div>
+                    {expandedSections.inventory && (
+                      <div className="p-3 space-y-2 bg-white">
+                        {['equipment', 'transactions'].map((item) => (
+                          <div key={item} className="flex items-center justify-between pl-8">
+                            <span className="text-sm text-gray-600 capitalize">{item}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleChildToggle('inventory', item)}
+                              disabled={!formData.permissions.inventory.enabled}
+                              className={`w-11 h-6 rounded-full relative transition-colors ${
+                                formData.permissions.inventory[item] && formData.permissions.inventory.enabled
+                                  ? 'bg-blue-600'
+                                  : 'bg-gray-300'
+                              } ${!formData.permissions.inventory.enabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                              <span className={`block w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${
+                                formData.permissions.inventory[item] && formData.permissions.inventory.enabled ? 'right-1' : 'left-1'
+                              }`}></span>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Enrollment Trends */}
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <span className="text-sm font-medium text-gray-700">Enrollment Trends</span>
+                    <button
+                      type="button"
+                      onClick={() => handleParentToggle('analytics')}
+                      className={`w-11 h-6 rounded-full relative transition-colors ${
+                        formData.permissions.analytics ? 'bg-blue-600' : 'bg-gray-300'
+                      }`}
+                    >
+                      <span className={`block w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${
+                        formData.permissions.analytics ? 'right-1' : 'left-1'
+                      }`}></span>
+                    </button>
+                  </div>
+
+                  {/* Reports */}
+                  <div className="border border-gray-200 rounded-lg">
+                    <div className="flex items-center justify-between p-3 bg-gray-50">
+                      <div className="flex items-center flex-1">
+                        <button
+                          type="button"
+                          onClick={() => toggleSection('reports')}
+                          className="mr-2 text-gray-600 hover:text-gray-900"
+                        >
+                          {expandedSections.reports ? <MdExpandMore className="h-5 w-5" /> : <MdChevronRight className="h-5 w-5" />}
+                        </button>
+                        <span className="text-sm font-medium text-gray-700">Reports</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleParentToggle('reports')}
+                        className={`w-11 h-6 rounded-full relative transition-colors ${
+                          formData.permissions.reports.enabled ? 'bg-blue-600' : 'bg-gray-300'
+                        }`}
+                      >
+                        <span className={`block w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${
+                          formData.permissions.reports.enabled ? 'right-1' : 'left-1'
+                        }`}></span>
+                      </button>
+                    </div>
+                    {expandedSections.reports && (
+                      <div className="p-3 space-y-2 bg-white">
+                        {['enrollment', 'students', 'assessments', 'inventory', 'payments'].map((item) => (
+                          <div key={item} className="flex items-center justify-between pl-8">
+                            <span className="text-sm text-gray-600 capitalize">{item}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleChildToggle('reports', item)}
+                              disabled={!formData.permissions.reports.enabled}
+                              className={`w-11 h-6 rounded-full relative transition-colors ${
+                                formData.permissions.reports[item] && formData.permissions.reports.enabled
+                                  ? 'bg-blue-600'
+                                  : 'bg-gray-300'
+                              } ${!formData.permissions.reports.enabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                              <span className={`block w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${
+                                formData.permissions.reports[item] && formData.permissions.reports.enabled ? 'right-1' : 'left-1'
+                              }`}></span>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

@@ -58,7 +58,7 @@ const CourseMaterials = () => {
         const token = getTrainerToken();
         
         // Fetch assigned programs
-        const programsResponse = await fetch('https://api.smitracked.cloud/api/trainer/assigned-programs', {
+        const programsResponse = await fetch('http://localhost:8000/api/trainer/assigned-programs', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -72,7 +72,7 @@ const CourseMaterials = () => {
         }
         
         // Fetch course materials
-        const materialsResponse = await fetch('https://api.smitracked.cloud/api/trainer/course-materials', {
+        const materialsResponse = await fetch('http://localhost:8000/api/trainer/course-materials', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -248,7 +248,7 @@ const CourseMaterials = () => {
       formData.append('type', uploadForm.type);
       formData.append('file', uploadForm.file);
       
-      const response = await fetch('https://api.smitracked.cloud/api/trainer/course-materials/upload', {
+      const response = await fetch('http://localhost:8000/api/trainer/course-materials/upload', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -262,7 +262,7 @@ const CourseMaterials = () => {
         setUploadForm({ title: '', description: '', type: 'document', file: null });
         
         // Refresh materials
-        const materialsResponse = await fetch('https://api.smitracked.cloud/api/trainer/course-materials', {
+        const materialsResponse = await fetch('http://localhost:8000/api/trainer/course-materials', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -293,7 +293,7 @@ const CourseMaterials = () => {
     
     try {
       const token = getTrainerToken();
-      const response = await fetch(`https://api.smitracked.cloud/api/trainer/course-materials/${id}`, {
+      const response = await fetch(`http://localhost:8000/api/trainer/course-materials/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -337,7 +337,7 @@ const CourseMaterials = () => {
     
     try {
       const token = getTrainerToken();
-      const response = await fetch(`https://api.smitracked.cloud/api/trainer/course-materials/${editingMaterial.id}`, {
+      const response = await fetch(`http://localhost:8000/api/trainer/course-materials/${editingMaterial.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -357,7 +357,7 @@ const CourseMaterials = () => {
         setUploadForm({ title: '', description: '', type: 'document', file: null });
         
         // Refresh materials
-        const materialsResponse = await fetch('https://api.smitracked.cloud/api/trainer/course-materials', {
+        const materialsResponse = await fetch('http://localhost:8000/api/trainer/course-materials', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -384,7 +384,7 @@ const CourseMaterials = () => {
   const handleDownload = async (id) => {
     try {
       const token = getTrainerToken();
-      window.open(`https://api.smitracked.cloud/api/trainer/course-materials/${id}/download?token=${token}`, '_blank');
+      window.open(`http://localhost:8000/api/trainer/course-materials/${id}/download?token=${token}`, '_blank');
       showToast('Download started', 'success');
     } catch (error) {
       console.error('Error downloading material:', error);

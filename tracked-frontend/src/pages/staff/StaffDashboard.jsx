@@ -46,7 +46,7 @@ const StaffDashboard = () => {
     const fetchRecentApplications = async () => {
       try {
         const token = getStaffToken();
-        const response = await fetch('https://api.smitracked.cloud/api/staff/recent-applications', {
+        const response = await fetch('http://localhost:8000/api/staff/recent-applications', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',

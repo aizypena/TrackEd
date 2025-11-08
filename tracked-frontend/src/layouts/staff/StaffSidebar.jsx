@@ -21,6 +21,7 @@ const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsColla
   const location = useLocation();
   const [expandedSections, setExpandedSections] = useState({});
   const [user, setUser] = useState(null);
+  const [filteredNavItems, setFilteredNavItems] = useState([]);
 
   // Fetch user data on mount or use prop if provided
   useEffect(() => {
@@ -107,10 +108,134 @@ const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsColla
     }));
   };
 
+  // Filter navigation items based on permissions
+  useEffect(() => {
+    // Parse permissions - handle various formats
+    let parsedPermissions = user?.permissions;
+    
+    // If it's an array (character array from double-encoded JSON), convert to string first
+    if (Array.isArray(parsedPermissions)) {
+      const permString = Object.values(parsedPermissions)
+        .filter(val => typeof val === 'string' || typeof val === 'number')
+        .join('');
+      try {
+        parsedPermissions = JSON.parse(permString);
+      } catch (error) {
+        console.error('Error parsing permissions from array:', error);
+        parsedPermissions = null;
+      }
+    }
+    // If it's an object but looks like a character array
+    else if (parsedPermissions && typeof parsedPermissions === 'object' && !parsedPermissions.dashboard && parsedPermissions[0]) {
+      const permString = Object.values(parsedPermissions)
+        .filter(val => typeof val === 'string' || typeof val === 'number')
+        .join('');
+      try {
+        parsedPermissions = JSON.parse(permString);
+      } catch (error) {
+        console.error('Error parsing permissions from object:', error);
+        parsedPermissions = null;
+      }
+    }
+    // If it's a plain string
+    else if (typeof parsedPermissions === 'string') {
+      try {
+        parsedPermissions = JSON.parse(parsedPermissions);
+      } catch (error) {
+        console.error('Error parsing permissions string:', error);
+        parsedPermissions = null;
+      }
+    }
+    
+    // Check if user has permissions defined and it's not null/empty
+    if (parsedPermissions && typeof parsedPermissions === 'object' && Object.keys(parsedPermissions).length > 0) {
+      const perms = parsedPermissions;
+      
+      // Create a deep copy of navigation items
+      const filtered = navigationItems
+        .map(item => {
+          // Create a copy with sub-items cloned
+          return {
+            ...item,
+            subItems: item.subItems ? item.subItems.map(sub => ({ ...sub })) : null
+          };
+        })
+        .filter(item => {
+          // Dashboard is always visible
+          if (item.path === '/staff/dashboard') {
+            return true;
+          }
+          
+          // Map item names to permission keys
+          const permKeyMap = {
+            'Application & Enrollment': 'enrollments',
+            'Student Records': 'students',
+            'Training & Assessment': 'training',
+            'Inventory Management': 'inventory',
+            'Enrollment Trends': 'analytics',
+            'Reports': 'reports'
+          };
+          
+          const permKey = permKeyMap[item.name];
+          if (!permKey) {
+            return true; // Show by default if no mapping
+          }
+          
+          // Check if permission exists and is enabled
+          if (typeof perms[permKey] === 'boolean') {
+            // Simple boolean permission (like analytics)
+            return perms[permKey];
+          } else if (perms[permKey] && typeof perms[permKey] === 'object' && perms[permKey].enabled === true) {
+            // Group permission with sub-items
+            
+            // Filter sub-items based on permissions
+            if (item.subItems) {
+              const subKeyMap = {
+                'Applications': 'applications',
+                'Enrollment Records': 'records',
+                'Document Management': 'documents',
+                'Student Profiles': 'profiles',
+                'Academic Records': 'academics',
+                'Payment Records': 'payments',
+                'Training Schedule': 'schedule',
+                'Batch Management': 'batches',
+                'Assessment Results': 'assessments',
+                'Equipment': 'equipment',
+                'Stock Transactions': 'transactions',
+                'Enrollment Reports': 'enrollment',
+                'Student Reports': 'students',
+                'Inventory Reports': 'inventory',
+                'Payment Reports': 'payments'
+              };
+              
+              const filteredSubItems = item.subItems.filter(subItem => {
+                const subKey = subKeyMap[subItem.name];
+                const permValue = perms[permKey]?.[subKey];
+                const hasPermission = subKey && permValue === true;
+                return hasPermission;
+              });
+              
+              item.subItems = filteredSubItems;
+              return item.subItems.length > 0;
+            }
+            return true;
+          } else {
+            return false;
+          }
+        });
+      
+      setFilteredNavItems(filtered);
+    } else {
+      // If no permissions set, show all (backward compatibility)
+      setFilteredNavItems(navigationItems);
+    }
+  }, [user]);
+
   // Auto-expand sections when their sub-items are active
   useEffect(() => {
     const newExpandedSections = {};
-    navigationItems.forEach((item) => {
+    const itemsToCheck = filteredNavItems.length > 0 ? filteredNavItems : navigationItems;
+    itemsToCheck.forEach((item) => {
       if (item.subItems) {
         const hasActiveSubItem = item.subItems.some(subItem => isActivePath(subItem.path));
         if (hasActiveSubItem) {
@@ -119,7 +244,7 @@ const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsColla
       }
     });
     setExpandedSections(prev => ({ ...prev, ...newExpandedSections }));
-  }, [location.pathname]);
+  }, [location.pathname, filteredNavItems]);
 
   return (
     <>
@@ -201,7 +326,7 @@ const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsColla
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3 py-4">
-          {navigationItems.map((item) => (
+          {(filteredNavItems.length > 0 ? filteredNavItems : navigationItems).map((item) => (
             <div key={item.name} className="mb-2">
               {item.subItems ? (
                 // Collapsible section

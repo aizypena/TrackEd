@@ -3,6 +3,7 @@ import Sidebar from '../../layouts/admin/Sidebar';
 import ViewUser from '../../layouts/admin/ViewUser';
 import AddUserModal from '../../components/User Management/AddUserModal';
 import EditUserModal from '../../components/User Management/EditUserModal';
+import StaffPermissionsModal from '../../components/admin/StaffPermissionsModal';
 import { userAPI } from '../../services/userAPI';
 import { programAPI } from '../../services/programAPI';
 import toast from 'react-hot-toast';
@@ -10,7 +11,7 @@ import {
   MdSearch, MdFilterList, MdAdd, MdEdit, MdDelete, MdVisibility,
   MdPeople, MdEmail, MdPhone, MdLocationOn, MdDateRange,
   MdVerified, MdBlock, MdMoreVert, MdDownload, MdRefresh,
-  MdSupervisorAccount, MdSchool, MdBusiness, MdPerson, MdMenu
+  MdSupervisorAccount, MdSchool, MdBusiness, MdPerson, MdMenu, MdSecurity
 } from 'react-icons/md';
 
 function AllUsers() {
@@ -25,7 +26,9 @@ function AllUsers() {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isPermissionsModalOpen, setIsPermissionsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedStaffForPermissions, setSelectedStaffForPermissions] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [programs, setPrograms] = useState([]);
   const [programMap, setProgramMap] = useState({});
@@ -164,7 +167,7 @@ function AllUsers() {
       // Log user view action
       const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
       if (token) {
-        await fetch('https://api.smitracked.cloud/api/log-action', {
+        await fetch('http://localhost:8000/api/log-action', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -274,7 +277,7 @@ function AllUsers() {
         // Log user creation
         const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
         if (token) {
-          await fetch('https://api.smitracked.cloud/api/log-action', {
+          await fetch('http://localhost:8000/api/log-action', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -306,7 +309,7 @@ function AllUsers() {
       try {
         const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
         if (token) {
-          await fetch('https://api.smitracked.cloud/api/log-action', {
+          await fetch('http://localhost:8000/api/log-action', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -337,7 +340,7 @@ function AllUsers() {
     try {
       const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
       if (token) {
-        await fetch('https://api.smitracked.cloud/api/log-action', {
+        await fetch('http://localhost:8000/api/log-action', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -367,7 +370,7 @@ function AllUsers() {
         // Log user update
         const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
         if (token) {
-          await fetch('https://api.smitracked.cloud/api/log-action', {
+          await fetch('http://localhost:8000/api/log-action', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -403,7 +406,7 @@ function AllUsers() {
       try {
         const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
         if (token) {
-          await fetch('https://api.smitracked.cloud/api/log-action', {
+          await fetch('http://localhost:8000/api/log-action', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -422,6 +425,34 @@ function AllUsers() {
       }
       
       return false;
+    }
+  };
+
+  // Handle configuring staff permissions
+  const handleConfigurePermissions = (user) => {
+    setSelectedStaffForPermissions(user);
+    setIsPermissionsModalOpen(true);
+  };
+
+  // Handle saving staff permissions
+  const handleSavePermissions = async (permissions) => {
+    try {
+      // Send permissions as object - API will handle JSON encoding
+      const response = await userAPI.updateUser(selectedStaffForPermissions.id, {
+        permissions: permissions
+      });
+      
+      if (response.success) {
+        toast.success('Permissions updated successfully!');
+        fetchUsers();
+        setIsPermissionsModalOpen(false);
+        setSelectedStaffForPermissions(null);
+      } else {
+        toast.error(response.message || 'Failed to update permissions');
+      }
+    } catch (error) {
+      toast.error(error.message || 'Failed to update permissions');
+      console.error('Error updating permissions:', error);
     }
   };
 
@@ -468,7 +499,7 @@ function AllUsers() {
                 
                 try {
                   // First verify the admin password
-                  const verifyResponse = await fetch('https://api.smitracked.cloud/api/admin/verify-password', {
+                  const verifyResponse = await fetch('http://localhost:8000/api/admin/verify-password', {
                     method: 'POST',
                     headers: {
                       'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
@@ -488,7 +519,7 @@ function AllUsers() {
                     try {
                       const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
                       if (token) {
-                        await fetch('https://api.smitracked.cloud/api/log-action', {
+                        await fetch('http://localhost:8000/api/log-action', {
                           method: 'POST',
                           headers: {
                             'Authorization': `Bearer ${token}`,
@@ -520,7 +551,7 @@ function AllUsers() {
                     // Log user deletion
                     const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
                     if (token) {
-                      await fetch('https://api.smitracked.cloud/api/log-action', {
+                      await fetch('http://localhost:8000/api/log-action', {
                         method: 'POST',
                         headers: {
                           'Authorization': `Bearer ${token}`,
@@ -551,7 +582,7 @@ function AllUsers() {
                   try {
                     const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
                     if (token) {
-                      await fetch('https://api.smitracked.cloud/api/log-action', {
+                      await fetch('http://localhost:8000/api/log-action', {
                         method: 'POST',
                         headers: {
                           'Authorization': `Bearer ${token}`,
@@ -897,6 +928,14 @@ function AllUsers() {
                         title="View">
                         <MdVisibility className="h-5 w-5" />
                       </button>
+                      {user.role === 'staff' && (
+                        <button 
+                          onClick={() => handleConfigurePermissions(user)}
+                          className="text-purple-600 hover:cursor-pointer hover:text-purple-900" 
+                          title="Configure Permissions">
+                          <MdSecurity className="h-5 w-5" />
+                        </button>
+                      )}
                       <button 
                         onClick={() => handleEditUser(user)}
                         className="text-green-600 hover:cursor-pointer hover:text-green-900" 
@@ -1033,6 +1072,17 @@ function AllUsers() {
             userData={selectedUser}
           />
         )}
+
+        {/* Staff Permissions Modal */}
+        <StaffPermissionsModal
+          isOpen={isPermissionsModalOpen}
+          onClose={() => {
+            setIsPermissionsModalOpen(false);
+            setSelectedStaffForPermissions(null);
+          }}
+          userData={selectedStaffForPermissions}
+          onSave={handleSavePermissions}
+        />
       </div>
     </div>
   );

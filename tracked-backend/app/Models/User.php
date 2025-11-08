@@ -15,6 +15,7 @@ class User extends Authenticatable
 
     protected $casts = [
         'documents' => 'array',
+        'permissions' => 'array',
     ];
 
     /**
@@ -78,6 +79,8 @@ class User extends Authenticatable
         'experience',
         'bio',
         'assigned_programs',
+        // Staff permissions
+        'permissions',
     ];
 
     /**

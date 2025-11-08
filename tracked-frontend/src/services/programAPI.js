@@ -3,17 +3,44 @@ import { API_URL as API_BASE_URL } from '../config/api';
 
 // Get token from localStorage (check staff, admin, or general token)
 const getAuthToken = () => {
-  return localStorage.getItem('staffToken') || localStorage.getItem('adminToken') || localStorage.getItem('token');
+  return localStorage.getItem('adminToken') || 
+         localStorage.getItem('staffToken') || 
+         localStorage.getItem('token') || 
+         localStorage.getItem('userToken') ||
+         sessionStorage.getItem('userToken');
+};
+
+// Check if user is actually logged in with valid session
+const isAuthenticated = () => {
+  // Check for admin session
+  const adminToken = localStorage.getItem('adminToken');
+  const adminUser = localStorage.getItem('adminUser');
+  if (adminToken && adminUser) return true;
+  
+  // Check for staff session
+  const staffToken = localStorage.getItem('staffToken');
+  const staffUser = localStorage.getItem('staffUser');
+  if (staffToken && staffUser) return true;
+  
+  // Check for trainer session
+  const trainerToken = localStorage.getItem('trainerToken');
+  const trainerUser = localStorage.getItem('trainerUser');
+  if (trainerToken && trainerUser) return true;
+  
+  // Check for applicant/student session
+  const userToken = localStorage.getItem('userToken') || sessionStorage.getItem('userToken');
+  const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
+  if (userToken && userData) return true;
+  
+  return false;
 };
 
 export const programAPI = {
   // Get all programs
   getAll: async (params = {}) => {
     try {
-      const token = getAuthToken();
-      
-      // Use public endpoint if no token, otherwise use authenticated endpoint
-      const endpoint = token ? '/programs' : '/public/programs';
+      // Use public endpoint if not authenticated, otherwise use authenticated endpoint
+      const endpoint = isAuthenticated() ? '/programs' : '/public/programs';
       const queryString = new URLSearchParams(params).toString();
       const url = queryString 
         ? `${API_BASE_URL}${endpoint}?${queryString}` 
@@ -23,9 +50,12 @@ export const programAPI = {
         'Accept': 'application/json'
       };
       
-      // Only add Authorization header if we have a token
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+      // Only add Authorization header if authenticated
+      if (isAuthenticated()) {
+        const token = getAuthToken();
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
       }
 
       const response = await fetch(url, {

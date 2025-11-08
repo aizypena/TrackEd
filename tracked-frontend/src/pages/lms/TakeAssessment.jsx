@@ -60,7 +60,7 @@ const TakeAssessment = () => {
       const token = localStorage.getItem('studentToken');
 
       // Fetch quiz details with questions
-      const quizResponse = await fetch(`https://api.smitracked.cloud/api/quizzes/${id}`, {
+      const quizResponse = await fetch(`http://localhost:8000/api/quizzes/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -94,7 +94,7 @@ const TakeAssessment = () => {
   const startAttempt = async (quizId) => {
     try {
       const token = localStorage.getItem('studentToken');
-      const response = await fetch('https://api.smitracked.cloud/api/quiz-attempts/start', {
+      const response = await fetch('http://localhost:8000/api/quiz-attempts/start', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -145,7 +145,7 @@ const TakeAssessment = () => {
         answer_text: answers[questionId].answer_text,
       }));
 
-      const response = await fetch(`https://api.smitracked.cloud/api/quiz-attempts/${attemptId}/submit`, {
+      const response = await fetch(`http://localhost:8000/api/quiz-attempts/${attemptId}/submit`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,

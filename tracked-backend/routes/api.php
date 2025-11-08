@@ -334,6 +334,7 @@ Route::post('/staff/login', function (Request $request) {
             'role' => $user->role,
             'status' => $user->status,
             'bio' => $user->bio,
+            'permissions' => $user->permissions,
         ]
     ]);
 });
@@ -2684,6 +2685,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 'role' => $user->role,
                 'status' => $user->status,
                 'bio' => $user->bio,
+                'permissions' => $user->permissions,
             ]
         ]);
     });

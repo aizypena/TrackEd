@@ -48,7 +48,7 @@ const StudentLogin = () => {
     }
 
     try {
-      const response = await fetch('https://api.smitracked.cloud/api/student/login', {
+      const response = await fetch('http://localhost:8000/api/student/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

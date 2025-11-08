@@ -51,7 +51,7 @@ const BatchManagement = () => {
   const logAction = async (action, description, level = 'info') => {
     try {
       const token = localStorage.getItem('adminToken');
-      await fetch('https://api.smitracked.cloud/api/log-action', {
+      await fetch('http://localhost:8000/api/log-action', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -150,7 +150,7 @@ const BatchManagement = () => {
     try {
       // Verify password first
       const token = localStorage.getItem('adminToken');
-      const verifyResponse = await fetch('https://api.smitracked.cloud/api/admin/verify-password', {
+      const verifyResponse = await fetch('http://localhost:8000/api/admin/verify-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

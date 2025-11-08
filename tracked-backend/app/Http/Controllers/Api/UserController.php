@@ -68,7 +68,8 @@ class UserController extends Controller
                 'created_at' => $user->created_at->format('Y-m-d'),
                 'program' => $user->course_program ?? $this->getProgramByRole($user->role),
                 'course_program' => $user->course_program ?? null,
-                'avatar' => null // No avatar system yet
+                'avatar' => null, // No avatar system yet
+                'permissions' => $user->permissions ?? null
             ];
         });
 
@@ -167,6 +168,7 @@ class UserController extends Controller
             'emergency_contact' => 'nullable|string|max:255',
             'emergency_phone' => 'nullable|string|max:20',
             'emergency_relationship' => 'nullable|string|max:255',
+            'permissions' => 'nullable|array',
         ]);
 
         // Hash the password
@@ -198,6 +200,13 @@ class UserController extends Controller
      */
     public function update(Request $request, User $user)
     {
+        // Log permissions for debugging
+        \Log::info('Update user permissions received', [
+            'user_id' => $user->id,
+            'permissions_raw' => $request->input('permissions'),
+            'permissions_type' => gettype($request->input('permissions'))
+        ]);
+
         $request->validate([
             'first_name' => 'sometimes|required|string|max:255',
             'last_name' => 'sometimes|required|string|max:255',
@@ -211,12 +220,15 @@ class UserController extends Controller
             'birth_date' => 'sometimes|nullable|date',
             'place_of_birth' => 'sometimes|nullable|string|max:255',
             'nationality' => 'sometimes|nullable|string|max:255',
+            'permissions' => 'sometimes|nullable|array',
         ]);
 
         $user->update($request->only([
             'first_name', 'last_name', 'middle_name', 'email', 'phone_number',
-            'role', 'status', 'address', 'gender', 'birth_date', 'place_of_birth', 'nationality'
+            'role', 'status', 'address', 'gender', 'birth_date', 'place_of_birth', 'nationality', 'permissions'
         ]));
+        
+        \Log::info('User updated', ['permissions_after' => $user->fresh()->permissions]);
 
         return response()->json([
             'success' => true,

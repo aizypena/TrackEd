@@ -7,14 +7,14 @@
 #### Created Files:
 - **`tracked-frontend/src/config/api.js`** - Centralized API configuration
   ```javascript
-  const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.smitracked.cloud';
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
   export const API_URL = `${API_BASE_URL}/api`;
   export const STORAGE_URL = `${API_BASE_URL}/storage`;
   ```
 
 - **`tracked-frontend/.env.production`** - Production environment variables
   ```env
-  VITE_API_URL=https://api.smitracked.cloud
+  VITE_API_URL=http://localhost:8000
   VITE_APP_NAME=TrackEd - SMI Training Center
   ```
 
@@ -50,7 +50,7 @@ All service files now import and use the centralized API configuration:
 ```env
 APP_ENV=production
 APP_DEBUG=false
-APP_URL=https://api.smitracked.cloud
+APP_URL=http://localhost:8000
 FRONTEND_URL=https://smitracked.cloud
 
 DB_DATABASE=tracked_production
@@ -268,10 +268,10 @@ Update each file to import and use the API config:
 import { API_URL, STORAGE_URL } from '../../config/api';
 
 // Replace inline URLs:
-// OLD: 'https://api.smitracked.cloud/api/endpoint'
+// OLD: 'http://localhost:8000/api/endpoint'
 // NEW: `${API_URL}/endpoint`
 
-// OLD: 'https://api.smitracked.cloud/storage/path'
+// OLD: 'http://localhost:8000/storage/path'
 // NEW: `${STORAGE_URL}/path`
 ```
 
@@ -302,7 +302,7 @@ Make sure Gmail credentials are correct for production emails.
 
 ### Test Backend API:
 ```bash
-curl https://api.smitracked.cloud/api/health
+curl http://localhost:8000/api/health
 ```
 
 ### Test Frontend:

@@ -34,7 +34,7 @@ const StaffAssessmentReports = () => {
   const fetchPrograms = async () => {
     try {
       const token = getStaffToken();
-      const response = await fetch('https://api.smitracked.cloud/api/staff/programs', {
+      const response = await fetch('http://localhost:8000/api/staff/programs', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -56,7 +56,7 @@ const StaffAssessmentReports = () => {
   const fetchBatches = async () => {
     try {
       const token = getStaffToken();
-      const response = await fetch('https://api.smitracked.cloud/api/staff/batches', {
+      const response = await fetch('http://localhost:8000/api/staff/batches', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -82,7 +82,7 @@ const StaffAssessmentReports = () => {
   const logAction = async (action, description) => {
     try {
       const token = getStaffToken();
-      await fetch('https://api.smitracked.cloud/api/log-action', {
+      await fetch('http://localhost:8000/api/log-action', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -125,7 +125,7 @@ const StaffAssessmentReports = () => {
         requestBody.batch_id = parseInt(batchFilter);
       }
       
-      const response = await fetch('https://api.smitracked.cloud/api/staff/reports/assessments', {
+      const response = await fetch('http://localhost:8000/api/staff/reports/assessments', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
