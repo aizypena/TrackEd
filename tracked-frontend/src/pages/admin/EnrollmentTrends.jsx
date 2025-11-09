@@ -98,9 +98,44 @@ const EnrollmentTrends = () => {
     fetchTrendsData();
   }, []);
 
+  // Calculate quarterly data for a specific program from allData
+  const getQuarterlyDataByProgram = (programName) => {
+    if (!trendsData.allData || trendsData.allData.length === 0) {
+      return {};
+    }
+
+    const quarterlyData = {};
+    
+    // Filter data by program if not 'all'
+    const filteredData = programName === 'all' 
+      ? trendsData.allData 
+      : trendsData.allData.filter(record => record.program === programName);
+
+    // Aggregate by quarter
+    filteredData.forEach(record => {
+      const date = new Date(record.date);
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      const quarter = Math.ceil(month / 3);
+      const key = `Q${quarter} ${year}`;
+      
+      if (!quarterlyData[key]) {
+        quarterlyData[key] = 0;
+      }
+      quarterlyData[key] += record.enrollment || 0;
+    });
+
+    return quarterlyData;
+  };
+
   // Filter data by time range
   const getFilteredQuarterlyData = () => {
-    const quarters = Object.keys(trendsData.quarterlyData || {}).sort((a, b) => {
+    // Get quarterly data based on selected program
+    const quarterlyDataForProgram = selectedProgram === 'all' 
+      ? trendsData.quarterlyData 
+      : getQuarterlyDataByProgram(selectedProgram);
+
+    const quarters = Object.keys(quarterlyDataForProgram || {}).sort((a, b) => {
       const matchA = a.match(/Q(\d) (\d+)/);
       const matchB = b.match(/Q(\d) (\d+)/);
       
@@ -189,13 +224,17 @@ const EnrollmentTrends = () => {
     ]
   };
 
-  // Enrollment trends from CSV
+  // Enrollment trends from CSV - filtered by selected program
+  const quarterlyDataForProgram = selectedProgram === 'all' 
+    ? trendsData.quarterlyData 
+    : getQuarterlyDataByProgram(selectedProgram);
+
   const enrollmentTrends = {
     labels: filteredQuarters,
     datasets: [
       {
-        label: 'Quarterly Enrollments',
-        data: filteredQuarters.map(q => trendsData.quarterlyData[q] || 0),
+        label: selectedProgram === 'all' ? 'Quarterly Enrollments (All Programs)' : `Quarterly Enrollments (${selectedProgram})`,
+        data: filteredQuarters.map(q => quarterlyDataForProgram[q] || 0),
         borderColor: 'rgb(59, 130, 246)',
         backgroundColor: 'rgba(59, 130, 246, 0.1)',
         borderWidth: 3,
