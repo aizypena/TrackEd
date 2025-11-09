@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from '../../layouts/admin/Sidebar';
 import IssueVoucher from '../../components/admin/IssueVoucher';
 import { voucherAPI } from '../../services/voucherAPI';
+import { systemLogAPI } from '../../services/systemLogAPI';
 import toast from 'react-hot-toast';
 import {
   MdMenu,
@@ -84,8 +85,18 @@ const VoucherManagement = () => {
     }
     
     try {
+      // Find voucher details before deleting
+      const voucherToDelete = vouchers.find(v => v.id === voucherId);
+      
       const response = await voucherAPI.delete(voucherId);
       if (response.success) {
+        // Log the action
+        await systemLogAPI.logAction(
+          'voucher_deleted',
+          `Deleted voucher ${voucherToDelete?.voucher_id || voucherId} from batch ${voucherToDelete?.batch_id || 'Unknown'}`,
+          'warning'
+        );
+        
         toast.success('Voucher deleted successfully');
         fetchVouchers();
       }
@@ -145,14 +156,6 @@ const VoucherManagement = () => {
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              <button
-                onClick={() => handleBulkAction('print')}
-                className="inline-flex items-center hover:cursor-pointer px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                disabled={selectedVouchers.length === 0}
-              >
-                <MdPrint className="h-5 w-5 mr-2" />
-                Print Selected
-              </button>
               <button
                 onClick={() => handleBulkAction('export')}
                 className="inline-flex hover:cursor-pointer items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
@@ -279,19 +282,6 @@ const VoucherManagement = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedVouchers(vouchers.map(v => v.id));
-                          } else {
-                            setSelectedVouchers([]);
-                          }
-                        }}
-                      />
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Voucher Details
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -311,20 +301,6 @@ const VoucherManagement = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {vouchers.map((voucher) => (
                     <tr key={voucher.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <input
-                          type="checkbox"
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                          checked={selectedVouchers.includes(voucher.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedVouchers([...selectedVouchers, voucher.id]);
-                            } else {
-                              setSelectedVouchers(selectedVouchers.filter(id => id !== voucher.id));
-                            }
-                          }}
-                        />
-                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
                           <div className="text-sm font-medium text-gray-900">{voucher.voucher_id}</div>

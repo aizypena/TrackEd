@@ -3,32 +3,19 @@ import { MdClose } from 'react-icons/md';
 import toast from 'react-hot-toast';
 import { batchAPI } from '../../services/batchAPI';
 import { voucherAPI } from '../../services/voucherAPI';
-import { programAPI } from '../../services/programAPI';
-import { userAPI } from '../../services/userAPI';
+import { systemLogAPI } from '../../services/systemLogAPI';
 
 const IssueVoucher = ({ isOpen, onClose, voucher, programs, onSuccess }) => {
   const [formData, setFormData] = useState({
     // Voucher fields
+    batchId: voucher?.batch_id || '',
     quantity: voucher?.quantity || '',
     issueDate: voucher?.issueDate || '',
-    status: voucher?.status || 'active',
-    
-    // Batch fields (for creating new batch)
-    programId: voucher?.programId || '',
-    trainerId: voucher?.trainerId || '',
-    scheduleDays: voucher?.scheduleDays || [],
-    scheduleTimeStart: voucher?.scheduleTimeStart || '08:00',
-    scheduleTimeEnd: voucher?.scheduleTimeEnd || '17:00',
-    batchStatus: voucher?.batchStatus || 'not started',
-    startDate: voucher?.startDate || '',
-    endDate: voucher?.endDate || '',
-    maxStudents: voucher?.maxStudents || ''
+    status: voucher?.status || 'active'
   });
   const [submitting, setSubmitting] = useState(false);
-  const [availablePrograms, setAvailablePrograms] = useState([]);
-  const [availableTrainers, setAvailableTrainers] = useState([]);
-
-  const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const [availableBatches, setAvailableBatches] = useState([]);
+  const [selectedBatch, setSelectedBatch] = useState(null);
 
   // Update form data when voucher prop changes (for editing)
   useEffect(() => {
@@ -44,86 +31,76 @@ const IssueVoucher = ({ isOpen, onClose, voucher, programs, onSuccess }) => {
       };
 
       setFormData({
+        batchId: voucher.batch_id || '',
         quantity: voucher.quantity || '',
         issueDate: formatDateForInput(voucher.issue_date),
-        status: voucher.status || 'active',
-        programId: voucher.program_id || '',
-        trainerId: voucher.trainer_id || '',
-        scheduleDays: voucher.schedule_days || [],
-        scheduleTimeStart: voucher.schedule_time_start || '08:00',
-        scheduleTimeEnd: voucher.schedule_time_end || '17:00',
-        batchStatus: voucher.batch_status || 'not started',
-        startDate: formatDateForInput(voucher.start_date),
-        endDate: formatDateForInput(voucher.end_date),
-        maxStudents: voucher.max_students || ''
+        status: voucher.status || 'active'
       });
     } else {
       // Reset form for creating new voucher
       setFormData({
+        batchId: '',
         quantity: '',
         issueDate: '',
-        status: 'active',
-        programId: '',
-        trainerId: '',
-        scheduleDays: [],
-        scheduleTimeStart: '08:00',
-        scheduleTimeEnd: '17:00',
-        batchStatus: 'not started',
-        startDate: '',
-        endDate: '',
-        maxStudents: ''
+        status: 'active'
       });
     }
   }, [voucher]);
 
-  // Fetch programs and trainers when modal opens
+  // Fetch batches when modal opens
   useEffect(() => {
     if (isOpen) {
-      fetchPrograms();
-      fetchTrainers();
+      fetchBatches();
     }
   }, [isOpen]);
 
-  const fetchPrograms = async () => {
+  const fetchBatches = async () => {
     try {
-      const response = await programAPI.getAll();
-      if (response.success) {
-        // Filter to show only available programs
-        const availableOnly = response.data.filter(program => program.availability === 'available');
-        setAvailablePrograms(availableOnly);
-      }
-    } catch (error) {
-      console.error('Error fetching programs:', error);
-      toast.error('Failed to load programs');
-      setAvailablePrograms([]); // Set to empty array on error
-    }
-  };
+      // Fetch both batches and vouchers
+      const [batchResponse, voucherResponse] = await Promise.all([
+        batchAPI.getAll(),
+        voucherAPI.getAll()
+      ]);
 
-  const fetchTrainers = async () => {
-    try {
-      const response = await userAPI.getTrainers();
-      if (response.success) {
-        setAvailableTrainers(response.data || []);
+      if (batchResponse.success) {
+        // Filter to show only batches that are not completed or cancelled
+        const activeBatches = batchResponse.data.filter(
+          batch => batch.status !== 'completed' && batch.status !== 'cancelled'
+        );
+
+        // If vouchers were fetched successfully, filter out batches that already have vouchers
+        if (voucherResponse.success) {
+          const batchesWithVouchers = new Set(
+            voucherResponse.data.map(voucher => voucher.batch_id)
+          );
+          
+          // Only show batches that don't have vouchers yet
+          const batchesWithoutVouchers = activeBatches.filter(
+            batch => !batchesWithVouchers.has(batch.batch_id)
+          );
+          
+          setAvailableBatches(batchesWithoutVouchers);
+        } else {
+          // If voucher fetch failed, show all active batches
+          setAvailableBatches(activeBatches);
+        }
       }
     } catch (error) {
-      console.error('Error fetching trainers:', error);
-      toast.error('Failed to load trainers');
-      setAvailableTrainers([]); // Set to empty array on error
+      console.error('Error fetching batches:', error);
+      toast.error('Failed to load batches');
+      setAvailableBatches([]);
     }
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleDayToggle = (day) => {
-    setFormData(prev => ({
-      ...prev,
-      scheduleDays: prev.scheduleDays.includes(day)
-        ? prev.scheduleDays.filter(d => d !== day)
-        : [...prev.scheduleDays, day]
-    }));
+    
+    // If batch is selected, find and set the selected batch details
+    if (name === 'batchId') {
+      const batch = availableBatches.find(b => b.batch_id === value);
+      setSelectedBatch(batch || null);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -144,6 +121,13 @@ const IssueVoucher = ({ isOpen, onClose, voucher, programs, onSuccess }) => {
         const response = await voucherAPI.update(voucher.id, updateData);
         
         if (response.success) {
+          // Log the action
+          await systemLogAPI.logAction(
+            'voucher_updated',
+            `Updated voucher ${voucher.voucher_id}: quantity=${formData.quantity}, status=${formData.status}`,
+            'info'
+          );
+          
           toast.success('Voucher updated successfully!');
           onClose();
           if (onSuccess) onSuccess();
@@ -165,44 +149,23 @@ const IssueVoucher = ({ isOpen, onClose, voucher, programs, onSuccess }) => {
     }
     
     // Create mode - validation for new voucher
-    if (formData.scheduleDays.length === 0) {
-      toast.error('Please select at least one schedule day');
+    if (!formData.batchId) {
+      toast.error('Please select a batch');
       return;
     }
 
     // Validate voucher quantity doesn't exceed batch capacity
-    if (parseInt(formData.quantity) > parseInt(formData.maxStudents)) {
-      toast.error(`Voucher quantity (${formData.quantity}) cannot exceed batch capacity (${formData.maxStudents})`);
+    if (selectedBatch && parseInt(formData.quantity) > parseInt(selectedBatch.max_students)) {
+      toast.error(`Voucher quantity (${formData.quantity}) cannot exceed batch capacity (${selectedBatch.max_students})`);
       return;
     }
     
     try {
       setSubmitting(true);
       
-      // Step 1: Create the batch first
-      const batchData = {
-        program_id: formData.programId,
-        trainer_id: formData.trainerId,
-        schedule_days: formData.scheduleDays,
-        schedule_time_start: formData.scheduleTimeStart,
-        schedule_time_end: formData.scheduleTimeEnd,
-        status: formData.batchStatus,
-        start_date: formData.startDate,
-        end_date: formData.endDate,
-        max_students: parseInt(formData.maxStudents)
-      };
-      
-      const batchResponse = await batchAPI.create(batchData);
-      
-      if (!batchResponse.success) {
-        throw new Error(batchResponse.message || 'Failed to create batch');
-      }
-      
-      const createdBatch = batchResponse.data;
-      
-      // Step 2: Create the voucher linked to the batch
+      // Create the voucher for the selected batch
       const voucherData = {
-        batch_id: createdBatch.batch_id,
+        batch_id: formData.batchId,
         quantity: parseInt(formData.quantity),
         issue_date: formData.issueDate,
         status: formData.status
@@ -211,24 +174,26 @@ const IssueVoucher = ({ isOpen, onClose, voucher, programs, onSuccess }) => {
       const voucherResponse = await voucherAPI.create(voucherData);
 
       if (voucherResponse.success) {
-        toast.success('Batch and voucher created successfully!');
+        // Log the action
+        await systemLogAPI.logAction(
+          'voucher_issued',
+          `Issued ${formData.quantity} vouchers to batch ${formData.batchId} (${selectedBatch?.program?.title || 'Unknown Program'})`,
+          'info'
+        );
+        
+        toast.success('Voucher issued successfully!');
         onClose();
         if (onSuccess) onSuccess();
-      } else {
-        // If voucher creation fails, we might want to delete the batch
-        toast.error('Batch created but voucher issuance failed. Please try issuing voucher separately.');
-        if (onSuccess) onSuccess(); // Refresh the list anyway
-        onClose();
       }
     } catch (error) {
-      console.error('Error creating batch and voucher:', error);
+      console.error('Error issuing voucher:', error);
       
       if (error.errors) {
         Object.keys(error.errors).forEach(key => {
           toast.error(`${key}: ${error.errors[key].join(', ')}`);
         });
       } else {
-        toast.error(error.message || 'Failed to create batch and voucher');
+        toast.error(error.message || 'Failed to issue voucher');
       }
     } finally {
       setSubmitting(false);
@@ -242,7 +207,7 @@ const IssueVoucher = ({ isOpen, onClose, voucher, programs, onSuccess }) => {
       <div className="relative top-10 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white my-10">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-semibold text-gray-900">
-            {voucher ? 'Edit Voucher' : 'Create Batch & Issue Voucher'}
+            {voucher ? 'Edit Voucher' : 'Issue Voucher to Existing Batch'}
           </h3>
           <button
             onClick={onClose}
@@ -254,150 +219,95 @@ const IssueVoucher = ({ isOpen, onClose, voucher, programs, onSuccess }) => {
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Show batch fields only when creating new */}
+          {/* Show batch selection only when creating new */}
           {!voucher && (
             <div>
-              <h4 className="text-md font-semibold text-gray-800 mb-3 pb-2 border-b">Batch Information</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Program *</label>
-                <select
-                  name="programId"
-                  value={formData.programId}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
-                  required
-                >
-                  <option value="">Select a program</option>
-                  {availablePrograms.map(program => (
-                    <option key={program.id} value={program.id}>
-                      {program.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Trainer *</label>
-                <select
-                  name="trainerId"
-                  value={formData.trainerId}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
-                  required
-                >
-                  <option value="">Select a trainer</option>
-                  {availableTrainers.map(trainer => (
-                    <option key={trainer.id} value={trainer.id}>
-                      {trainer.first_name} {trainer.last_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Start Date *</label>
-                <input
-                  type="date"
-                  name="startDate"
-                  value={formData.startDate}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">End Date *</label>
-                <input
-                  type="date"
-                  name="endDate"
-                  value={formData.endDate}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Start Time *</label>
-                <input
-                  type="time"
-                  name="scheduleTimeStart"
-                  value={formData.scheduleTimeStart}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">End Time *</label>
-                <input
-                  type="time"
-                  name="scheduleTimeEnd"
-                  value={formData.scheduleTimeEnd}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Max Students (Batch Capacity) *</label>
-                <input
-                  type="number"
-                  name="maxStudents"
-                  value={formData.maxStudents}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="e.g., 30"
-                  min="1"
-                  required
-                />
-                <p className="mt-1 text-xs text-gray-500">Total capacity of the batch (all students)</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Batch Status *</label>
-                <select
-                  name="batchStatus"
-                  value={formData.batchStatus}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
-                  required
-                >
-                  <option value="not started">Not Started</option>
-                  <option value="ongoing">Ongoing</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Schedule Days *</label>
-                <div className="flex flex-wrap gap-2">
-                  {daysOfWeek.map(day => (
-                    <button
-                      key={day}
-                      type="button"
-                      onClick={() => handleDayToggle(day)}
-                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                        formData.scheduleDays.includes(day)
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                      }`}
+              <h4 className="text-md font-semibold text-gray-800 mb-3 pb-2 border-b">Select Batch</h4>
+              <div className="space-y-4">
+                {availableBatches.length === 0 ? (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div className="flex items-start">
+                      <svg className="h-5 w-5 text-yellow-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                      <div className="ml-3">
+                        <h3 className="text-sm font-medium text-yellow-800">No Available Batches</h3>
+                        <p className="mt-1 text-sm text-yellow-700">
+                          All active batches already have vouchers issued. Please create a new batch first or check if existing vouchers need to be deleted.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Batch *</label>
+                    <select
+                      name="batchId"
+                      value={formData.batchId}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
                     >
-                      {day.slice(0, 3)}
-                    </button>
-                  ))}
-                </div>
-                {formData.scheduleDays.length === 0 && (
-                  <p className="mt-1 text-xs text-red-500">Please select at least one day</p>
+                      <option value="">Select an existing batch</option>
+                      {availableBatches.map(batch => (
+                        <option key={batch.batch_id} value={batch.batch_id}>
+                          {batch.batch_id} - {batch.program?.title || 'Unknown Program'} 
+                          {' '}({batch.status})
+                        </option>
+                      ))}
+                    </select>
+                    <p className="mt-1 text-xs text-gray-500">
+                      Select a batch to issue vouchers to. Only batches without existing vouchers are shown.
+                    </p>
+                  </div>
+                )}
+
+                {/* Show selected batch details */}
+                {selectedBatch && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <h5 className="text-sm font-semibold text-gray-700 mb-2">Batch Details</h5>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-gray-500">Program:</span>
+                        <p className="font-medium text-gray-900">{selectedBatch.program?.title || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Trainer:</span>
+                        <p className="font-medium text-gray-900">
+                          {selectedBatch.trainer?.first_name} {selectedBatch.trainer?.last_name}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Max Students:</span>
+                        <p className="font-medium text-gray-900">{selectedBatch.max_students}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Status:</span>
+                        <p className="font-medium text-gray-900 capitalize">{selectedBatch.status}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Start Date:</span>
+                        <p className="font-medium text-gray-900">
+                          {new Date(selectedBatch.start_date).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">End Date:</span>
+                        <p className="font-medium text-gray-900">
+                          {new Date(selectedBatch.end_date).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-gray-500">Schedule:</span>
+                        <p className="font-medium text-gray-900">
+                          {selectedBatch.schedule_days?.join(', ')} | {selectedBatch.schedule_time_start} - {selectedBatch.schedule_time_end}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
-          </div>
           )}
 
           {/* Voucher Information Section */}
@@ -414,13 +324,13 @@ const IssueVoucher = ({ isOpen, onClose, voucher, programs, onSuccess }) => {
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="e.g., 20"
                   min="1"
-                  max={formData.maxStudents || undefined}
+                  max={selectedBatch?.max_students || undefined}
                   required
                 />
                 <p className="mt-1 text-xs text-gray-500">
-                  Number of vouchers to issue (must be ≤ max students: {formData.maxStudents || 'not set'})
+                  Number of vouchers to issue {selectedBatch ? `(max: ${selectedBatch.max_students})` : '(select a batch first)'}
                 </p>
-                {formData.quantity && formData.maxStudents && parseInt(formData.quantity) > parseInt(formData.maxStudents) && (
+                {formData.quantity && selectedBatch && parseInt(formData.quantity) > parseInt(selectedBatch.max_students) && (
                   <p className="mt-1 text-xs text-red-500">
                     ⚠️ Voucher quantity cannot exceed batch capacity
                   </p>
@@ -453,38 +363,21 @@ const IssueVoucher = ({ isOpen, onClose, voucher, programs, onSuccess }) => {
                 </select>
               </div>
             </div>
-
-            {/* Explanation Card */}
-            {/* <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3">
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-amber-800">Understanding the Difference</h3>
-                  <div className="mt-2 text-sm text-amber-700">
-                    <ul className="list-disc list-inside space-y-1">
-                      <li><strong>Max Students:</strong> Total batch capacity (all students, voucher or not)</li>
-                      <li><strong>Voucher Quantity:</strong> Number of subsidized/free slots available</li>
-                      <li><strong>Example:</strong> Batch of 30 students, but only 20 vouchers = 20 free slots + 10 paying students</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div> */}
           </div>
 
           {/* Info Box */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-800">
-              <strong>Note:</strong> This will create a new batch with <strong>{formData.maxStudents || '0'} total slots</strong> and 
-              issue <strong>{formData.quantity || '0'} vouchers</strong> for subsidized enrollment. 
-              The remaining {formData.maxStudents && formData.quantity ? Math.max(0, parseInt(formData.maxStudents) - parseInt(formData.quantity)) : '0'} slots 
-              will be available for self-funded students.
-            </p>
-          </div>
+          {selectedBatch && formData.quantity && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-800">
+                <strong>Note:</strong> This will issue <strong>{formData.quantity} vouchers</strong> to the selected batch 
+                (Batch {selectedBatch.batch_id} - {selectedBatch.program?.title}). 
+                The batch has a total capacity of <strong>{selectedBatch.max_students} students</strong>.
+                {parseInt(formData.quantity) < parseInt(selectedBatch.max_students) && (
+                  <span> The remaining {parseInt(selectedBatch.max_students) - parseInt(formData.quantity)} slots will be available for self-funded students.</span>
+                )}
+              </p>
+            </div>
+          )}
           
           <div className="flex justify-end space-x-3 pt-4 border-t">
             <button
@@ -497,12 +390,12 @@ const IssueVoucher = ({ isOpen, onClose, voucher, programs, onSuccess }) => {
             </button>
             <button
               type="submit"
-              disabled={submitting}
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 hover:cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              disabled={submitting || (!voucher && availableBatches.length === 0)}
+              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 hover:cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting 
-                ? (voucher ? 'Updating...' : 'Creating...') 
-                : (voucher ? 'Update Voucher' : 'Create Batch & Issue Voucher')
+                ? (voucher ? 'Updating...' : 'Issuing...') 
+                : (voucher ? 'Update Voucher' : 'Issue Voucher')
               }
             </button>
           </div>
