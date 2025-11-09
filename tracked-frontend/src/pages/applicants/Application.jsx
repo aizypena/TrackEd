@@ -261,9 +261,9 @@ const Signup = () => {
   const handleFileChange = (e, documentType) => {
     const file = e.target.files[0];
     
-    // Check file size (25MB limit)
-    if (file && file.size > 25 * 1024 * 1024) {
-      alert('File size must be less than 25MB');
+    // Check file size (10MB limit)
+    if (file && file.size > 10 * 1024 * 1024) {
+      alert('File size must be less than 10MB');
       return;
     }
     
@@ -280,9 +280,9 @@ const Signup = () => {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
     
-    // Check file size (25MB limit)
-    if (file && file.size > 25 * 1024 * 1024) {
-      alert('File size must be less than 25MB');
+    // Check file size (10MB limit)
+    if (file && file.size > 10 * 1024 * 1024) {
+      alert('File size must be less than 10MB');
       return;
     }
     
@@ -960,7 +960,7 @@ const Signup = () => {
   const renderRequiredDocuments = () => (
     <div className="space-y-6">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">Required Documents</h3>
-      <p className="text-sm text-gray-600 mb-6">Please upload the following required documents (Maximum file size: 25MB each):</p>
+      <p className="text-sm text-gray-600 mb-6">Please upload the following required documents (Maximum file size: 10MB each):</p>
       
       <div className="space-y-6">
         {/* Valid ID Upload */}
@@ -1009,7 +1009,7 @@ const Signup = () => {
                     className="hidden"
                   />
                 </label>
-                <p className="text-xs text-gray-500">PDF, JPG, PNG (Max 25MB)</p>
+                <p className="text-xs text-gray-500">PDF, JPG, PNG (Max 10MB)</p>
               </div>
             )}
           </div>
@@ -1061,7 +1061,7 @@ const Signup = () => {
                     className="hidden"
                   />
                 </label>
-                <p className="text-xs text-gray-500">PDF, JPG, PNG (Max 25MB)</p>
+                <p className="text-xs text-gray-500">PDF, JPG, PNG (Max 10MB)</p>
               </div>
             )}
           </div>
@@ -1113,7 +1113,7 @@ const Signup = () => {
                     className="hidden"
                   />
                 </label>
-                <p className="text-xs text-gray-500">PDF, JPG, PNG (Max 25MB)</p>
+                <p className="text-xs text-gray-500">PDF, JPG, PNG (Max 10MB)</p>
               </div>
             )}
           </div>
@@ -1165,7 +1165,7 @@ const Signup = () => {
                     className="hidden"
                   />
                 </label>
-                <p className="text-xs text-gray-500">JPG, PNG (Max 25MB)</p>
+                <p className="text-xs text-gray-500">JPG, PNG (Max 10MB)</p>
               </div>
             )}
           </div>
