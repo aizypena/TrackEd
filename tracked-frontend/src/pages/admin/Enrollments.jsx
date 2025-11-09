@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../layouts/admin/Sidebar';
 import enrollmentAPI from '../../services/enrollmentAPI';
+import ViewEnrollment from '../../components/admin/ViewEnrollment';
 import {
   MdSchool,
   MdSearch,
@@ -32,6 +33,8 @@ const Enrollments = () => {
   const [filterProgram, setFilterProgram] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterBatch, setFilterBatch] = useState('all');
+  const [selectedEnrollment, setSelectedEnrollment] = useState(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   
   // Real data from API
   const [enrollmentStats, setEnrollmentStats] = useState({
@@ -131,6 +134,16 @@ const Enrollments = () => {
   const handleExport = () => {
     // Implement export logic
     console.log('Exporting enrollment data...');
+  };
+
+  const handleViewEnrollment = (enrollment) => {
+    setSelectedEnrollment(enrollment);
+    setIsViewModalOpen(true);
+  };
+
+  const handleCloseViewModal = () => {
+    setIsViewModalOpen(false);
+    setSelectedEnrollment(null);
   };
 
   const getStatusColor = (status) => {
@@ -344,6 +357,9 @@ const Enrollments = () => {
                         Status
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Payment Type
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Enrollment Date
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -401,6 +417,19 @@ const Enrollments = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
+                          {enrollment.voucher_eligible ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-800">
+                              <MdPayment className="h-4 w-4 mr-1" />
+                              Voucher
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-800">
+                              <MdPayment className="h-4 w-4 mr-1" />
+                              Paid
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center text-sm text-gray-900">
                             <MdCalendarToday className="h-4 w-4 text-gray-400 mr-2" />
                             {enrollment.enrollment_date ? new Date(enrollment.enrollment_date).toLocaleDateString() : 'N/A'}
@@ -412,19 +441,20 @@ const Enrollments = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex items-center justify-end space-x-3">
                             <button 
-                              className="text-gray-600 hover:text-gray-900"
+                              onClick={() => handleViewEnrollment(enrollment)}
+                              className="text-gray-600 hover:text-gray-900 transition-colors"
                               title="View Details"
                             >
                               <MdVisibility className="h-5 w-5" />
                             </button>
                             <button 
-                              className="text-blue-600 hover:text-blue-900"
+                              className="text-blue-600 hover:text-blue-900 transition-colors"
                               title="Edit Enrollment"
                             >
                               <MdEdit className="h-5 w-5" />
                             </button>
                             <button 
-                              className="text-red-600 hover:text-red-900"
+                              className="text-red-600 hover:text-red-900 transition-colors"
                               title="Delete Enrollment"
                             >
                               <MdDelete className="h-5 w-5" />
@@ -440,6 +470,13 @@ const Enrollments = () => {
           </div>
         </main>
       </div>
+
+      {/* View Enrollment Modal */}
+      <ViewEnrollment
+        isOpen={isViewModalOpen}
+        onClose={handleCloseViewModal}
+        enrollment={selectedEnrollment}
+      />
     </div>
   );
 };

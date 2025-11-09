@@ -6698,7 +6698,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
         }
 
         // Fetch all users with role 'student' along with their batch and program
-        $students = \App\Models\User::with(['batch.program', 'grades'])
+        $students = \App\Models\User::with(['batch.program', 'grades', 'payments' => function($query) {
+                $query->where('payment_status', 'paid')->latest();
+            }])
             ->where('role', 'student')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -6721,6 +6723,24 @@ Route::middleware(['auth:sanctum'])->group(function () {
             $presentCount = $student->attendances()->where('status', 'present')->count();
             $attendance = $totalAttendance > 0 ? round(($presentCount / $totalAttendance) * 100) : 0;
 
+            // Get payment method from latest paid payment
+            $latestPayment = $student->payments->first();
+            $paymentMethod = null;
+            if ($latestPayment && $latestPayment->payment_method) {
+                // Format payment method for display
+                $method = $latestPayment->payment_method;
+                $methodMap = [
+                    'cash' => 'Cash',
+                    'gcash' => 'GCash',
+                    'maya' => 'Maya',
+                    'paymaya' => 'Maya',
+                    'credit_card' => 'Credit Card',
+                    'debit_card' => 'Debit Card',
+                    'grab_pay' => 'GrabPay',
+                ];
+                $paymentMethod = $methodMap[$method] ?? ucwords(str_replace('_', ' ', $method));
+            }
+
             return [
                 'id' => $student->student_id ?? 'STU-' . str_pad($student->id, 4, '0', STR_PAD_LEFT),
                 'user_id' => $student->id,
@@ -6740,6 +6760,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 'attendance' => $attendance,
                 'date_of_birth' => $student->date_of_birth ? $student->date_of_birth->format('Y-m-d') : null,
                 'gender' => $student->gender,
+                'voucher_eligible' => $student->voucher_eligible ?? false,
+                'payment_method' => $paymentMethod,
             ];
         });
 

@@ -204,6 +204,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get all payments for the user.
+     */
+    public function payments()
+    {
+        return $this->hasMany(Payment::class, 'user_id');
+    }
+
+    /**
      * Get formatted course program name.
      */
     public function getCourseProgramFormattedAttribute()
