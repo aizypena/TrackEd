@@ -6,6 +6,37 @@ import { API_URL as API_BASE_URL } from '../config/api';
  */
 export const staffAPI = {
   /**
+   * Get current staff profile with latest permissions
+   * @returns {Promise<object>} Staff user data with permissions
+   */
+  getProfile: async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/staff/profile`, {
+        method: 'GET',
+        headers: getStaffAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Update localStorage with latest user data (including permissions)
+      if (data.user) {
+        const token = getStaffToken();
+        setStaffAuth(token, data.user);
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Error fetching staff profile:', error);
+      throw error;
+    }
+  },
+
+  /**
    * Update staff profile
    * @param {object} profileData - The profile data to update
    * @returns {Promise<object>} Updated user data

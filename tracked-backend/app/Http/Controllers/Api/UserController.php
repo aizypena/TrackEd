@@ -142,6 +142,13 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
+        // Handle permissions that might come as JSON string from FormData
+        if ($request->has('permissions') && is_string($request->input('permissions'))) {
+            $request->merge([
+                'permissions' => json_decode($request->input('permissions'), true)
+            ]);
+        }
+        
         $validated = $request->validate([
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
@@ -200,13 +207,13 @@ class UserController extends Controller
      */
     public function update(Request $request, User $user)
     {
-        // Log permissions for debugging
-        \Log::info('Update user permissions received', [
-            'user_id' => $user->id,
-            'permissions_raw' => $request->input('permissions'),
-            'permissions_type' => gettype($request->input('permissions'))
-        ]);
-
+        // Handle permissions that might come as JSON string from FormData
+        if ($request->has('permissions') && is_string($request->input('permissions'))) {
+            $request->merge([
+                'permissions' => json_decode($request->input('permissions'), true)
+            ]);
+        }
+        
         $request->validate([
             'first_name' => 'sometimes|required|string|max:255',
             'last_name' => 'sometimes|required|string|max:255',
@@ -223,12 +230,21 @@ class UserController extends Controller
             'permissions' => 'sometimes|nullable|array',
         ]);
 
-        $user->update($request->only([
+        // Get update data
+        $updateData = $request->only([
             'first_name', 'last_name', 'middle_name', 'email', 'phone_number',
-            'role', 'status', 'address', 'gender', 'birth_date', 'place_of_birth', 'nationality', 'permissions'
-        ]));
-        
-        \Log::info('User updated', ['permissions_after' => $user->fresh()->permissions]);
+            'role', 'status', 'address', 'gender', 'birth_date', 'place_of_birth', 'nationality'
+        ]);
+
+        // Handle permissions separately to prevent double-encoding
+        if ($request->has('permissions')) {
+            $permissions = $request->input('permissions');
+            // If it's already an array, use it directly
+            // The 'json' cast in the model will handle the encoding properly
+            $updateData['permissions'] = $permissions;
+        }
+
+        $user->update($updateData);
 
         return response()->json([
             'success' => true,

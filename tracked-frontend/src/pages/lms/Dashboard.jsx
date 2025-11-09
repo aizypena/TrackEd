@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Sidebar from '../../layouts/lms/Sidebar';
 import { getStudentUser } from '../../utils/studentAuth';
+import { API_URL } from '../../config/api';
 import { 
   MdSchool,
   MdFolder, 
@@ -12,7 +13,8 @@ import {
   MdPictureAsPdf,
   MdPlayCircleOutline,
   MdDescription,
-  MdSchedule
+  MdSchedule,
+  MdCampaign
 } from 'react-icons/md';
 
 const StudentDashboard = () => {
@@ -48,7 +50,7 @@ const StudentDashboard = () => {
       setLoading(true);
       const token = localStorage.getItem('studentToken');
       
-      const response = await fetch('http://localhost:8000/api/student/schedule', {
+      const response = await fetch(`${API_URL}/student/schedule`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -89,7 +91,7 @@ const StudentDashboard = () => {
       setLoadingAssessments(true);
       const token = localStorage.getItem('studentToken');
       
-      const response = await fetch('http://localhost:8000/api/student/pending-assessments', {
+      const response = await fetch(`${API_URL}/student/pending-assessments`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -117,7 +119,7 @@ const StudentDashboard = () => {
       setLoadingMaterials(true);
       const token = localStorage.getItem('studentToken');
       
-      const response = await fetch('http://localhost:8000/api/student/recent-materials', {
+      const response = await fetch(`${API_URL}/student/recent-materials`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -145,7 +147,7 @@ const StudentDashboard = () => {
       setLoadingAnnouncements(true);
       const token = localStorage.getItem('studentToken');
       
-      const response = await fetch('http://localhost:8000/api/student/announcements', {
+      const response = await fetch(`${API_URL}/student/announcements`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',

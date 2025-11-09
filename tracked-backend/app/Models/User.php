@@ -15,7 +15,7 @@ class User extends Authenticatable
 
     protected $casts = [
         'documents' => 'array',
-        'permissions' => 'array',
+        'permissions' => 'json',
     ];
 
     /**

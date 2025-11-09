@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { staffLogout, getStaffUser } from '../../utils/staffAuth';
+import { staffAPI } from '../../services/staffAPI';
 import {
   MdDashboard,
   MdPeople,
@@ -14,7 +15,8 @@ import {
   MdClose,
   MdLogout,
   MdExpandMore,
-  MdChevronRight
+  MdChevronRight,
+  MdRefresh
 } from 'react-icons/md';
 
 const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsCollapsed }) => {
@@ -22,16 +24,46 @@ const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsColla
   const [expandedSections, setExpandedSections] = useState({});
   const [user, setUser] = useState(null);
   const [filteredNavItems, setFilteredNavItems] = useState([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Fetch user data on mount or use prop if provided
+  // Fetch fresh user data from API on mount to get latest permissions
   useEffect(() => {
-    if (propUser) {
-      setUser(propUser);
-    } else {
-      const userData = getStaffUser();
-      setUser(userData);
-    }
+    const fetchUserProfile = async () => {
+      if (propUser) {
+        setUser(propUser);
+      } else {
+        try {
+          // First, try to fetch fresh data from API
+          const response = await staffAPI.getProfile();
+          if (response.success && response.user) {
+            setUser(response.user);
+          }
+        } catch (error) {
+          console.error('Error fetching staff profile:', error);
+          // Fallback to localStorage if API fails
+          const userData = getStaffUser();
+          setUser(userData);
+        }
+      }
+    };
+
+    fetchUserProfile();
   }, [propUser]);
+
+  // Manual refresh function
+  const handleRefreshPermissions = async () => {
+    setIsRefreshing(true);
+    try {
+      const response = await staffAPI.getProfile();
+      if (response.success && response.user) {
+        setUser(response.user);
+      }
+    } catch (error) {
+      console.error('Error refreshing permissions:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const navigationItems = [
     {
@@ -282,6 +314,15 @@ const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsColla
           )}
           
           <div className="flex items-center space-x-2">
+            <button
+              onClick={handleRefreshPermissions}
+              disabled={isRefreshing}
+              className="p-1.5 rounded-md text-blue-200 hover:text-white hover:bg-tracked-primary-dark hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Refresh permissions"
+            >
+              <MdRefresh className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </button>
+            
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
               className="hidden lg:block p-1.5 rounded-md text-blue-200 hover:text-white hover:bg-tracked-primary-dark hover:cursor-pointer"

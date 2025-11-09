@@ -421,6 +421,9 @@ Route::post('/student/login', function (Request $request) {
     ]);
 });
 
+// Public Programs Endpoint (for CourseOffered page)
+Route::get('/programs', [ProgramController::class, 'index']);
+
 // Protected Routes
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/user', function (Request $request) {
@@ -2637,6 +2640,31 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
     
     // Staff Routes
+    // Get Staff Profile
+    Route::get('/staff/profile', function (Request $request) {
+        $user = $request->user();
+        
+        if (!in_array($user->role, ['staff', 'trainer'])) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        return response()->json([
+            'success' => true,
+            'user' => [
+                'id' => $user->id,
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
+                'email' => $user->email,
+                'phone_number' => $user->phone_number,
+                'address' => $user->address,
+                'role' => $user->role,
+                'status' => $user->status,
+                'bio' => $user->bio,
+                'permissions' => $user->permissions,
+            ]
+        ]);
+    });
+    
     // Update Staff Profile
     Route::put('/staff/profile', function (Request $request) {
         $user = $request->user();

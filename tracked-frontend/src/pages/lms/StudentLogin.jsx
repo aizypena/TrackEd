@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_URL } from '../../config/api';
 import { 
   MdLock,
   MdPerson,
@@ -48,7 +49,7 @@ const StudentLogin = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:8000/api/student/login', {
+      const response = await fetch(`${API_URL}/student/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
