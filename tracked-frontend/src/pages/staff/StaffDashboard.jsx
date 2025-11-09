@@ -20,10 +20,9 @@ const StaffDashboard = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [user, setUser] = useState(null);
 
-  // Mock data - replace with actual API calls
   const [stats, setStats] = useState({
     pendingApplications: 0,
-    activeStudents: 156,
+    activeStudents: 0,
     upcomingAssessments: 8,
     lowStockItems: 5
   });
@@ -37,16 +36,18 @@ const StaffDashboard = () => {
     { id: 3, title: 'Equipment Maintenance', date: '2025-10-15', time: '10:00 AM', type: 'maintenance' }
   ]);
 
-  // Fetch recent applications on component mount
+  // Fetch dashboard data on component mount
   useEffect(() => {
     // Get user data from localStorage
     const userData = getStaffUser();
     setUser(userData);
 
-    const fetchRecentApplications = async () => {
+    const fetchDashboardData = async () => {
       try {
         const token = getStaffToken();
-        const response = await fetch('http://localhost:8000/api/staff/recent-applications', {
+        
+        // Fetch recent applications
+        const applicationsResponse = await fetch('http://localhost:8000/api/staff/recent-applications', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -54,14 +55,24 @@ const StaffDashboard = () => {
           }
         });
 
-        if (response.ok) {
-          const data = await response.json();
-          setRecentApplications(data.applications);
+        // Fetch enrollments to get active students count
+        const enrollmentsResponse = await fetch('http://localhost:8000/api/staff/enrollments', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        });
+
+        if (applicationsResponse.ok) {
+          const applicationsData = await applicationsResponse.json();
+          setRecentApplications(applicationsData.applications);
           
           // Update pending applications count
-          const pendingCount = data.applications.filter(
+          const pendingCount = applicationsData.applications.filter(
             app => app.application_status === 'pending'
           ).length;
+          
           setStats(prev => ({
             ...prev,
             pendingApplications: pendingCount
@@ -69,14 +80,30 @@ const StaffDashboard = () => {
         } else {
           console.error('Failed to fetch applications');
         }
+
+        if (enrollmentsResponse.ok) {
+          const enrollmentsData = await enrollmentsResponse.json();
+          
+          // Count active students (status 'active')
+          const activeStudentsCount = enrollmentsData.enrollments.filter(
+            enrollment => enrollment.status === 'active'
+          ).length;
+          
+          setStats(prev => ({
+            ...prev,
+            activeStudents: activeStudentsCount
+          }));
+        } else {
+          console.error('Failed to fetch enrollments');
+        }
       } catch (error) {
-        console.error('Error fetching applications:', error);
+        console.error('Error fetching dashboard data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchRecentApplications();
+    fetchDashboardData();
   }, []);
 
   // Format date helper
