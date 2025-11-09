@@ -298,6 +298,7 @@ const AdminCourseMaterials = () => {
             </div>
             <button
               onClick={handleUploadMaterial}
+              title='Upload Material'
               className="inline-flex items-center px-4 py-2 hover:cursor-pointer bg-tracked-primary text-white rounded-lg hover:bg-tracked-secondary transition-colors"
             >
               <MdAdd className="h-5 w-5 mr-2" />
@@ -507,7 +508,8 @@ const AdminCourseMaterials = () => {
               <div className="mt-6">
                 <button
                   onClick={handleUploadMaterial}
-                  className="inline-flex items-center px-4 py-2 bg-tracked-primary text-white rounded-lg hover:bg-tracked-secondary transition-colors"
+                  title='Upload Material'
+                  className="inline-flex hover:cursor-pointer items-center px-4 py-2 bg-tracked-primary text-white rounded-lg hover:bg-tracked-secondary transition-colors"
                 >
                   <MdAdd className="h-5 w-5 mr-2" />
                   Upload Material
