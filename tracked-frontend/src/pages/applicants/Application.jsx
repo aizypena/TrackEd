@@ -1227,7 +1227,7 @@ const Signup = () => {
                   <div>
                     <span className="font-medium text-gray-700">Valid ID:</span>
                     <p className={formData.documents.validId ? 'text-green-700' : 'text-red-700'}>
-                      {formData.documents.validId ? `${formData.documents.validId.name}` : 'Not uploaded'}
+                      {formData.documents.validId ? 'Uploaded ✓' : 'Not uploaded'}
                     </p>
                   </div>
                 </div>
@@ -1236,7 +1236,7 @@ const Signup = () => {
                   <div>
                     <span className="font-medium text-gray-700">Transcript:</span>
                     <p className={formData.documents.transcript ? 'text-green-700' : 'text-red-700'}>
-                      {formData.documents.transcript ? `${formData.documents.transcript.name}` : 'Not uploaded'}
+                      {formData.documents.transcript ? 'Uploaded ✓' : 'Not uploaded'}
                     </p>
                   </div>
                 </div>
@@ -1245,7 +1245,7 @@ const Signup = () => {
                   <div>
                     <span className="font-medium text-gray-700">Diploma:</span>
                     <p className={formData.documents.diploma ? 'text-green-700' : 'text-red-700'}>
-                      {formData.documents.diploma ? `${formData.documents.diploma.name}` : 'Not uploaded'}
+                      {formData.documents.diploma ? 'Uploaded ✓' : 'Not uploaded'}
                     </p>
                   </div>
                 </div>
@@ -1254,7 +1254,7 @@ const Signup = () => {
                   <div>
                     <span className="font-medium text-gray-700">Passport Photo:</span>
                     <p className={formData.documents.passportPhoto ? 'text-green-700' : 'text-red-700'}>
-                      {formData.documents.passportPhoto ? `${formData.documents.passportPhoto.name}` : 'Not uploaded'}
+                      {formData.documents.passportPhoto ? 'Uploaded ✓' : 'Not uploaded'}
                     </p>
                   </div>
                 </div>
