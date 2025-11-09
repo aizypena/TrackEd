@@ -435,6 +435,7 @@ const ArimaForecasting = () => {
                 <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Key Insights</h3>
                   <div className="space-y-3">
+                    {/* Trend Analysis with actual growth rate */}
                     <div className="flex items-start space-x-3">
                       <MdTrendingUp className={`h-5 w-5 mt-0.5 ${
                         forecastData.stats?.trend === 'increasing' ? 'text-green-600' :
@@ -444,31 +445,88 @@ const ArimaForecasting = () => {
                       <div>
                         <p className="text-sm font-medium text-gray-900">Trend Analysis</p>
                         <p className="text-sm text-gray-600">
-                          {forecastData.stats?.trend === 'increasing' 
-                            ? 'Enrollment is projected to increase' 
-                            : forecastData.stats?.trend === 'decreasing'
-                            ? 'Enrollment is projected to decrease'
-                            : 'Enrollment is expected to remain stable'}
+                          {(() => {
+                            const avgGrowth = forecastData.stats?.avgGrowthRate || 0;
+                            const trend = forecastData.stats?.trend || 'stable';
+                            
+                            if (trend === 'increasing') {
+                              return `Enrollment is projected to increase by ${Math.abs(avgGrowth).toFixed(1)}% on average`;
+                            } else if (trend === 'decreasing') {
+                              return `Enrollment is projected to decrease by ${Math.abs(avgGrowth).toFixed(1)}% on average`;
+                            } else {
+                              return `Enrollment is expected to remain stable (${Math.abs(avgGrowth).toFixed(1)}% change)`;
+                            }
+                          })()}
                         </p>
                       </div>
                     </div>
-                    {(forecastData.stats?.avgGrowthRate || 0) > 10 && (
+
+                    {/* Growth rate alert - Show for significant changes (positive or negative) */}
+                    {Math.abs(forecastData.stats?.avgGrowthRate || 0) > 10 && (
                       <div className="flex items-start space-x-3">
-                        <MdWarning className="h-5 w-5 text-yellow-600 mt-0.5" />
+                        <MdWarning className={`h-5 w-5 mt-0.5 ${
+                          (forecastData.stats?.avgGrowthRate || 0) > 0 ? 'text-yellow-600' : 'text-red-600'
+                        }`} />
                         <div>
-                          <p className="text-sm font-medium text-gray-900">High Growth Alert</p>
+                          <p className="text-sm font-medium text-gray-900">
+                            {(forecastData.stats?.avgGrowthRate || 0) > 0 ? 'High Growth Alert' : 'Declining Enrollment Alert'}
+                          </p>
                           <p className="text-sm text-gray-600">
-                            Consider expanding capacity to meet demand
+                            {(forecastData.stats?.avgGrowthRate || 0) > 0 
+                              ? 'Consider expanding capacity and resources to meet increasing demand'
+                              : 'Review program offerings and marketing strategies to address declining trend'}
                           </p>
                         </div>
                       </div>
                     )}
+
+                    {/* Forecast range insight */}
+                    {forecastData.forecast?.length > 0 && (
+                      <div className="flex items-start space-x-3">
+                        <MdSchedule className="h-5 w-5 text-purple-600 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">Forecast Range</p>
+                          <p className="text-sm text-gray-600">
+                            {(() => {
+                              const enrollments = forecastData.forecast.map(f => f.enrollment || 0);
+                              const min = Math.min(...enrollments);
+                              const max = Math.max(...enrollments);
+                              return `Predicted enrollments range from ${min} to ${max} students per quarter`;
+                            })()}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Confidence level insight */}
+                    {forecastData.forecast?.length > 0 && (
+                      <div className="flex items-start space-x-3">
+                        <MdTrendingUp className="h-5 w-5 text-blue-600 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">Forecast Confidence</p>
+                          <p className="text-sm text-gray-600">
+                            {(() => {
+                              const avgConfidence = forecastData.forecast.reduce((sum, f) => sum + (f.confidence || 0), 0) / forecastData.forecast.length;
+                              return avgConfidence >= 80 
+                                ? `High confidence (${avgConfidence.toFixed(1)}%) - predictions are reliable`
+                                : avgConfidence >= 60
+                                ? `Moderate confidence (${avgConfidence.toFixed(1)}%) - use with caution`
+                                : `Lower confidence (${avgConfidence.toFixed(1)}%) - consider multiple scenarios`;
+                            })()}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Data source */}
                     <div className="flex items-start space-x-3">
                       <MdCalendarToday className="h-5 w-5 text-indigo-600 mt-0.5" />
                       <div>
                         <p className="text-sm font-medium text-gray-900">Data Source</p>
                         <p className="text-sm text-gray-600">
-                          Based on {forecastData.historical?.length || 0} quarters of historical data
+                          Based on {forecastData.historical?.length || 0} quarters of historical enrollment data
+                          {forecastData.historical?.length > 0 && forecastData.historical.length < 8 && 
+                            ' (limited data may affect accuracy)'}
                         </p>
                       </div>
                     </div>

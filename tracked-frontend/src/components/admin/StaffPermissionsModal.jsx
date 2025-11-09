@@ -217,11 +217,8 @@ const StaffPermissionsModal = ({ isOpen, onClose, userData, onSave }) => {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={onClose} />
-        
-        <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm overflow-y-auto h-full w-full z-50">
+      <div className="relative top-10 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white my-10">
           {/* Header */}
           <div className="bg-tracked-primary px-6 py-4 flex items-center justify-between">
             <h3 className="text-lg font-semibold text-white">
@@ -248,7 +245,7 @@ const StaffPermissionsModal = ({ isOpen, onClose, userData, onSave }) => {
           </div>
 
           {/* Permissions List */}
-          <div className="px-6 py-4 overflow-y-auto max-h-[60vh]">
+          <div className="px-6 py-4 overflow-y-auto max-h-[60vh] bg-white">
             <div className="space-y-3">
               {permissionConfig.map((permission) => (
                 <div key={permission.id} className="border border-gray-200 rounded-lg overflow-hidden">
@@ -366,7 +363,6 @@ const StaffPermissionsModal = ({ isOpen, onClose, userData, onSave }) => {
           </div>
         </div>
       </div>
-    </div>
   );
 };
 
