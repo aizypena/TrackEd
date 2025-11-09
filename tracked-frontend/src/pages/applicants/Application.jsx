@@ -202,6 +202,45 @@ const Signup = () => {
           ? 'Passwords do not match' 
           : ''
       }));
+    } else if (name === 'birthDate') {
+      // Handle birth date validation (must be at least 18 years old)
+      if (value) {
+        const birthDate = new Date(value);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          age--;
+        }
+        
+        // Update form data
+        setFormData(prev => ({
+          ...prev,
+          [name]: value
+        }));
+        
+        // Set error if under 18
+        if (age < 18) {
+          setErrors(prev => ({
+            ...prev,
+            [name]: 'You must be at least 18 years old to apply'
+          }));
+        } else {
+          setErrors(prev => ({
+            ...prev,
+            [name]: ''
+          }));
+        }
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          [name]: value
+        }));
+        setErrors(prev => ({
+          ...prev,
+          [name]: ''
+        }));
+      }
     } else {
       // Handle other fields normally
       setFormData(prev => ({
@@ -362,12 +401,43 @@ const Signup = () => {
       const requiredFields = ['firstName', 'lastName', 'nationality', 'birthDate', 'address', 'placeOfBirth', 'email', 'password', 'confirmPassword', 'gender', 'mobileNumber'];
       const hasAllRequired = requiredFields.every(field => formData[field]);
       
-      // Check if nationality is Filipino and passwords match
-      const isNationalityValid = formData.nationality === 'filipino';
-      const doPasswordsMatch = formData.password === formData.confirmPassword;
-      const isPasswordStrong = formData.password.length >= 8;
+      if (!hasAllRequired) return false;
       
-      return hasAllRequired && isNationalityValid && doPasswordsMatch && isPasswordStrong;
+      // Check if nationality is Filipino
+      if (formData.nationality !== 'filipino') {
+        setErrors(prev => ({...prev, nationality: 'Only Filipino citizens can apply'}));
+        return false;
+      }
+      
+      // Check if passwords match
+      if (formData.password !== formData.confirmPassword) {
+        setErrors(prev => ({...prev, confirmPassword: 'Passwords do not match'}));
+        return false;
+      }
+      
+      // Check password strength
+      if (formData.password.length < 8) {
+        setErrors(prev => ({...prev, password: 'Password must be at least 8 characters long'}));
+        return false;
+      }
+      
+      // Check if user is at least 18 years old
+      if (formData.birthDate) {
+        const birthDate = new Date(formData.birthDate);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          age--;
+        }
+        
+        if (age < 18) {
+          setErrors(prev => ({...prev, birthDate: 'You must be at least 18 years old to apply'}));
+          return false;
+        }
+      }
+      
+      return true;
     }
     if (currentStep === 4) {
       return formData.documents.validId && formData.documents.transcript && formData.documents.diploma && formData.documents.passportPhoto;
@@ -495,8 +565,15 @@ const Signup = () => {
             required
             value={formData.birthDate}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+              errors.birthDate 
+                ? 'border-red-300 focus:ring-red-500' 
+                : 'border-gray-300 focus:ring-blue-500'
+            }`}
           />
+          {errors.birthDate && (
+            <p className="mt-1 text-sm text-red-600">{errors.birthDate}</p>
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Place of Birth *</label>
