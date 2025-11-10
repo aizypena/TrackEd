@@ -314,14 +314,6 @@ const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsColla
           )}
           
           <div className="flex items-center space-x-2">
-            <button
-              onClick={handleRefreshPermissions}
-              disabled={isRefreshing}
-              className="p-1.5 rounded-md text-blue-200 hover:text-white hover:bg-tracked-primary-dark hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Refresh permissions"
-            >
-              <MdRefresh className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
-            </button>
             
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}

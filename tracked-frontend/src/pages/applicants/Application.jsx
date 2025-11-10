@@ -173,32 +173,38 @@ const Signup = () => {
       }));
     } else if (name === 'password') {
       // Handle password validation
+      const newPasswordValue = value;
+      const currentConfirmPassword = formData.confirmPassword;
+      
       setFormData(prev => ({
         ...prev,
-        [name]: value
+        [name]: newPasswordValue
       }));
       
       // Update errors for password
       setErrors(prev => ({
         ...prev,
-        [name]: value && value.length < 8 
+        [name]: newPasswordValue && newPasswordValue.length < 8 
           ? 'Password must be at least 8 characters long' 
           : '',
-        confirmPassword: prev.confirmPassword && formData.confirmPassword !== value
+        confirmPassword: currentConfirmPassword && currentConfirmPassword !== newPasswordValue
           ? 'Passwords do not match'
           : ''
       }));
     } else if (name === 'confirmPassword') {
       // Handle confirm password validation
+      const newConfirmPasswordValue = value;
+      const currentPassword = formData.password;
+      
       setFormData(prev => ({
         ...prev,
-        [name]: value
+        [name]: newConfirmPasswordValue
       }));
       
       // Update errors for confirm password
       setErrors(prev => ({
         ...prev,
-        [name]: value && value !== formData.password 
+        [name]: newConfirmPasswordValue && newConfirmPasswordValue !== currentPassword 
           ? 'Passwords do not match' 
           : ''
       }));
@@ -1267,7 +1273,9 @@ const Signup = () => {
                 </div>
                 <div className="md:col-span-2">
                   <span className="font-medium text-gray-700">Program Applied For:</span>
-                  <p className="text-gray-900 capitalize">{formData.courseProgram?.replace('-', ' ')}</p>
+                  <p className="text-gray-900">
+                    {availablePrograms.find(p => p.id === parseInt(formData.courseProgram))?.title || 'Not selected'}
+                  </p>
                 </div>
               </div>
             </div>

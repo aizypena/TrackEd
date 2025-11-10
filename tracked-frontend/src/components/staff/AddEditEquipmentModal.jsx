@@ -76,16 +76,22 @@ const AddEditEquipmentModal = ({ isOpen, onClose, equipment, categories, locatio
     setLoading(true);
 
     try {
+      // Always set quantity to 1
+      const submitData = {
+        ...formData,
+        quantity: 1
+      };
+
       let response;
       if (equipment) {
-        response = await equipmentAPI.update(equipment.id, formData);
+        response = await equipmentAPI.update(equipment.id, submitData);
       } else {
-        response = await equipmentAPI.create(formData);
+        response = await equipmentAPI.create(submitData);
       }
 
       if (response.success) {
         // Pass the action type and equipment data to onSuccess for logging
-        onSuccess(equipment ? 'updated' : 'created', response.data || formData);
+        onSuccess(equipment ? 'updated' : 'created', response.data || submitData);
       }
     } catch (error) {
       console.error('Error saving equipment:', error);
@@ -235,22 +241,6 @@ const AddEditEquipmentModal = ({ isOpen, onClose, equipment, categories, locatio
                 onChange={handleChange}
                 className={inputClassName}
                 placeholder="e.g., U1170512345"
-              />
-            </div>
-
-            {/* Quantity */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Quantity <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                name="quantity"
-                value={formData.quantity}
-                onChange={handleChange}
-                required
-                min="1"
-                className={inputClassName}
               />
             </div>
 

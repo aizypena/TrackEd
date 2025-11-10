@@ -36,67 +36,132 @@ const StaffStockTransactions = () => {
   const [sortBy, setSortBy] = useState('newest');
   const [selectedTransaction, setSelectedTransaction] = useState(null);
 
-  // Mock data - replace with actual API calls
+  const [loading, setLoading] = useState(true);
+
+  // Equipment transactions data - based on StaffEquipment.jsx structure
   const [transactions, setTransactions] = useState([
     {
       id: 1,
       transactionCode: 'TXN-2025-001',
-      date: '2025-10-06',
+      date: '2025-11-10',
       time: '09:30 AM',
       type: 'in',
-      itemName: 'Welding Electrodes E6013',
-      category: 'Welding Supplies',
-      quantity: 50,
-      unit: 'boxes',
-      unitPrice: 350,
-      totalAmount: 17500,
-      supplier: 'Manila Welding Supply Co.',
+      itemName: 'Arc Welding Machine Lincoln Electric',
+      equipmentCode: 'EQP-WLD-001',
+      brand: 'Lincoln Electric',
+      model: 'Power MIG 260',
+      category: 'Welding NC II',
+      quantity: 1,
+      unit: 'unit',
+      location: 'Workshop A',
+      condition: 'excellent',
+      unitPrice: 85000,
+      totalAmount: 85000,
+      supplier: 'Manila Industrial Equipment',
       requestedBy: 'Engr. Ramon Cruz',
-      approvedBy: 'Admin Staff',
-      purpose: 'Stock replenishment for Welding NCII program',
+      approvedBy: 'Director',
+      purpose: 'New equipment acquisition for Welding NC II program expansion',
       referenceNumber: 'PO-2025-089',
-      notes: 'Delivered in good condition',
+      notes: 'Brand new with 2-year warranty, includes accessories and training manual',
       status: 'completed'
     },
     {
       id: 2,
       transactionCode: 'TXN-2025-002',
-      date: '2025-10-06',
+      date: '2025-11-10',
       time: '10:15 AM',
       type: 'out',
-      itemName: 'Safety Goggles',
-      category: 'Safety Equipment',
-      quantity: 20,
-      unit: 'pieces',
-      unitPrice: 85,
-      totalAmount: 1700,
-      requestedBy: 'Mr. Jose Santos',
+      itemName: 'Industrial Safety Helmet',
+      equipmentCode: 'EQP-SAF-003',
+      brand: '3M',
+      model: 'Hard Hat H-700 Series',
+      category: 'Construction Painting NC II',
+      quantity: 1,
+      unit: 'unit',
+      location: 'Storage Room',
+      condition: 'good',
+      unitPrice: 850,
+      totalAmount: 850,
+      requestedBy: 'Mr. Pedro Ramos',
       approvedBy: 'Admin Staff',
-      purpose: 'Distribution to Automotive NCII Batch 02-2025',
-      referenceNumber: 'REQ-2025-134',
-      notes: 'Issued to students for practical training',
+      purpose: 'Issued to Construction Painting NC II Batch 02-2025 for practical training',
+      referenceNumber: 'ISU-2025-134',
+      notes: 'Student Juan Dela Cruz signed equipment acknowledgment form',
       status: 'completed'
     },
     {
       id: 3,
       transactionCode: 'TXN-2025-003',
-      date: '2025-10-05',
+      date: '2025-11-09',
       time: '02:45 PM',
       type: 'in',
-      itemName: 'Electronic Components Kit',
-      category: 'Electronics Supplies',
-      quantity: 15,
-      unit: 'sets',
-      unitPrice: 1250,
-      totalAmount: 18750,
-      supplier: 'Tech Electronics Inc.',
-      requestedBy: 'Engr. Maria Garcia',
-      approvedBy: 'Admin Staff',
-      purpose: 'New stock for Electronics NCII program',
-      referenceNumber: 'PO-2025-090',
-      notes: 'All components verified and complete',
+      itemName: 'Automotive Diagnostic Scanner',
+      equipmentCode: 'EQP-AUTO-005',
+      brand: 'Launch',
+      model: 'X431 Pro Elite',
+      category: 'Automotive Servicing NC II',
+      quantity: 1,
+      unit: 'unit',
+      location: 'Workshop B',
+      condition: 'excellent',
+      unitPrice: 42000,
+      totalAmount: 42000,
+      supplier: 'Automotive Tools Philippines',
+      requestedBy: 'Mr. Jose Santos',
+      approvedBy: 'Director',
+      purpose: 'Equipment upgrade for Automotive Servicing NC II diagnostics module',
+      referenceNumber: 'PO-2025-091',
+      notes: 'Latest model with OBD-II compatibility, includes software updates and technical support',
       status: 'completed'
     },
+    {
+      id: 4,
+      transactionCode: 'TXN-2025-004',
+      date: '2025-11-08',
+      time: '11:00 AM',
+      type: 'out',
+      itemName: 'Digital Multimeter',
+      equipmentCode: 'EQP-ELEC-012',
+      brand: 'Fluke',
+      model: '87V Industrial',
+      category: 'Electronics NC II',
+      quantity: 1,
+      unit: 'unit',
+      location: 'Workshop B',
+      condition: 'good',
+      unitPrice: 3500,
+      totalAmount: 3500,
+      requestedBy: 'Engr. Luis Garcia',
+      approvedBy: 'Admin Staff',
+      purpose: 'Issued to Electronics NC II Batch 03-2025 for circuit testing and troubleshooting module',
+      referenceNumber: 'ISU-2025-138',
+      notes: 'Equipment assigned to Workshop B, includes carrying case and test leads. Batch instructor responsible for care',
+      status: 'completed'
+    },
+    {
+      id: 5,
+      transactionCode: 'TXN-2025-005',
+      date: '2025-11-07',
+      time: '03:20 PM',
+      type: 'adjustment',
+      itemName: 'Auto-Darkening Welding Helmet',
+      equipmentCode: 'EQP-WLD-008',
+      brand: 'Miller',
+      model: 'Digital Elite',
+      category: 'Welding NC II',
+      quantity: 1,
+      unit: 'unit',
+      location: 'Workshop A',
+      condition: 'good',
+      unitPrice: 2800,
+      totalAmount: 2800,
+      requestedBy: 'Engr. Ramon Cruz',
+      approvedBy: 'Admin Staff',
+      purpose: 'Equipment returned from maintenance - status updated to available',
+      referenceNumber: 'MNT-2025-012',
+      notes: 'Auto-darkening lens replaced by certified technician, calibrated and tested, now available for use',
+      status: 'completed'
+    },,
     {
       id: 4,
       transactionCode: 'TXN-2025-004',
@@ -138,111 +203,137 @@ const StaffStockTransactions = () => {
     {
       id: 6,
       transactionCode: 'TXN-2025-006',
-      date: '2025-10-04',
-      time: '03:30 PM',
+      date: '2025-11-06',
+      time: '09:00 AM',
       type: 'in',
-      itemName: 'Wood Planks (Hardwood)',
-      category: 'Carpentry Materials',
-      quantity: 100,
-      unit: 'pieces',
-      unitPrice: 280,
-      totalAmount: 28000,
-      supplier: 'Cebu Lumber Trading',
-      requestedBy: 'Mr. Roberto Tan',
-      approvedBy: 'Admin Staff',
-      purpose: 'Stock for Carpentry NCII program',
-      referenceNumber: 'PO-2025-088',
-      notes: 'High quality hardwood, properly seasoned',
+      itemName: 'Commercial Double Deck Oven',
+      equipmentCode: 'EQP-COOK-003',
+      brand: 'Vulcan',
+      model: 'VC4GD Double Deck',
+      category: 'Cookery NC II',
+      quantity: 1,
+      unit: 'unit',
+      location: 'Training Kitchen',
+      condition: 'excellent',
+      unitPrice: 95000,
+      totalAmount: 95000,
+      supplier: 'Commercial Kitchen Solutions Inc.',
+      requestedBy: 'Ms. Ana Lopez',
+      approvedBy: 'Director',
+      purpose: 'New equipment for Cookery NC II baking and pastry module expansion',
+      referenceNumber: 'PO-2025-094',
+      notes: 'Double deck gas-powered oven, professionally installed in Training Kitchen with safety certification',
       status: 'completed'
     },
     {
       id: 7,
       transactionCode: 'TXN-2025-007',
-      date: '2025-10-04',
-      time: '10:45 AM',
+      date: '2025-11-05',
+      time: '01:30 PM',
       type: 'out',
-      itemName: 'Food Processing Containers',
-      category: 'Food Processing Supplies',
-      quantity: 25,
-      unit: 'sets',
-      unitPrice: 150,
-      totalAmount: 3750,
-      requestedBy: 'Ms. Ana Lopez',
+      itemName: 'MIG Welding Torch Assembly',
+      equipmentCode: 'EQP-WLD-015',
+      brand: 'Bernard',
+      model: 'Q-Gun 300A',
+      category: 'Welding NC II',
+      quantity: 1,
+      unit: 'unit',
+      location: 'Workshop A',
+      condition: 'good',
+      unitPrice: 8500,
+      totalAmount: 8500,
+      requestedBy: 'Engr. Ramon Cruz',
       approvedBy: 'Admin Staff',
-      purpose: 'Training materials for Batch 03-2025',
-      referenceNumber: 'REQ-2025-133',
-      notes: 'All containers sanitized before distribution',
+      purpose: 'Issued to Welding NC II Batch 01-2025 for MIG welding practical assessment',
+      referenceNumber: 'ISU-2025-145',
+      notes: 'Complete torch assembly with consumables. Equipment checkout form signed by instructor Engr. Ramon Cruz',
       status: 'completed'
     },
     {
       id: 8,
       transactionCode: 'TXN-2025-008',
-      date: '2025-10-04',
-      time: '08:30 AM',
-      type: 'out',
-      itemName: 'Welding Wire ER70S-6',
-      category: 'Welding Supplies',
-      quantity: 10,
-      unit: 'spools',
-      unitPrice: 850,
-      totalAmount: 8500,
-      requestedBy: 'Engr. Ramon Cruz',
-      approvedBy: 'Admin Staff',
-      purpose: 'MIG welding training session',
-      referenceNumber: 'REQ-2025-132',
-      notes: 'For practical assessment',
+      date: '2025-11-04',
+      time: '10:45 AM',
+      type: 'in',
+      itemName: 'Digital Soldering Station',
+      equipmentCode: 'EQP-ELEC-020',
+      brand: 'Hakko',
+      model: 'FX-888D',
+      category: 'Electronics NC II',
+      quantity: 1,
+      unit: 'unit',
+      location: 'Workshop B',
+      condition: 'excellent',
+      unitPrice: 12000,
+      totalAmount: 12000,
+      supplier: 'Electronics Supply Cebu',
+      requestedBy: 'Engr. Luis Garcia',
+      approvedBy: 'Director',
+      purpose: 'New equipment for Electronics NC II surface mount technology training module',
+      referenceNumber: 'PO-2025-097',
+      notes: 'Digital temperature control (200-480°C), anti-static design, includes tips and accessories',
       status: 'completed'
     },
     {
       id: 9,
       transactionCode: 'TXN-2025-009',
-      date: '2025-10-03',
-      time: '01:15 PM',
-      type: 'in',
-      itemName: 'Safety Gloves (Heavy Duty)',
-      category: 'Safety Equipment',
-      quantity: 100,
-      unit: 'pairs',
-      unitPrice: 120,
-      totalAmount: 12000,
-      supplier: 'Safety First Supplies',
-      requestedBy: 'Admin Staff',
+      date: '2025-11-03',
+      time: '03:15 PM',
+      type: 'out',
+      itemName: '2-Post Hydraulic Car Lift',
+      equipmentCode: 'EQP-AUTO-002',
+      brand: 'Rotary',
+      model: 'SPO12 2-Post',
+      category: 'Automotive Servicing NC II',
+      quantity: 1,
+      unit: 'unit',
+      location: 'Workshop A',
+      condition: 'excellent',
+      unitPrice: 125000,
+      totalAmount: 125000,
+      requestedBy: 'Mr. Jose Santos',
       approvedBy: 'Admin Staff',
-      purpose: 'Stock replenishment for all programs',
-      referenceNumber: 'PO-2025-087',
-      notes: 'Bulk order with discount',
+      purpose: 'Permanently assigned to Workshop A for Automotive Servicing NC II vehicle undercarriage training',
+      referenceNumber: 'ASG-2025-152',
+      notes: '2-post asymmetric lift, 4-ton (8,000 lbs) capacity, safety lock certified, installed with floor anchors',
       status: 'completed'
     },
     {
       id: 10,
       transactionCode: 'TXN-2025-010',
-      date: '2025-10-03',
-      time: '09:00 AM',
-      type: 'adjustment',
-      itemName: 'Measuring Tape',
-      category: 'Tools',
-      quantity: 3,
-      unit: 'pieces',
-      unitPrice: 250,
-      totalAmount: 750,
-      requestedBy: 'Admin Staff',
-      approvedBy: 'Admin Staff',
-      purpose: 'Inventory correction - found during audit',
-      referenceNumber: 'ADJ-2025-011',
-      notes: 'Previously misplaced items found in storage',
+      date: '2025-11-02',
+      time: '11:30 AM',
+      type: 'in',
+      itemName: 'Commercial Planetary Food Mixer',
+      equipmentCode: 'EQP-COOK-007',
+      brand: 'Hobart',
+      model: 'Legacy HL200',
+      category: 'Cookery NC II',
+      quantity: 1,
+      unit: 'unit',
+      location: 'Training Kitchen',
+      condition: 'excellent',
+      unitPrice: 38000,
+      totalAmount: 38000,
+      supplier: 'Kitchen Equipment Manila',
+      requestedBy: 'Ms. Ana Lopez',
+      approvedBy: 'Director',
+      purpose: 'New equipment for Cookery NC II bread and pastry production module',
+      referenceNumber: 'PO-2025-099',
+      notes: '20-liter capacity planetary mixer with dough hook, wire whip, and flat beater attachments. Includes safety guard',
       status: 'completed'
     }
   ]);
 
   const categories = [
-    'Welding Supplies',
-    'Automotive Supplies',
-    'Electronics Supplies',
-    'Plumbing Materials',
-    'Carpentry Materials',
-    'Food Processing Supplies',
-    'Safety Equipment',
-    'Tools'
+    'Welding NC II',
+    'Automotive Servicing NC II',
+    'Electronics NC II',
+    'Cookery NC II',
+    'Carpentry NC II',
+    'Plumbing NC II',
+    'Construction Painting NC II',
+    'Electrical Installation NC II'
   ];
 
   const getTransactionTypeBadge = (type) => {
@@ -551,7 +642,11 @@ const StaffStockTransactions = () => {
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-sm font-medium text-gray-900">{transaction.itemName}</div>
+                          <div className="text-xs text-blue-600">{transaction.equipmentCode}</div>
                           <div className="text-xs text-gray-500">{transaction.category}</div>
+                          {transaction.brand && transaction.model && (
+                            <div className="text-xs text-gray-400 mt-1">{transaction.brand} - {transaction.model}</div>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className={`text-sm font-bold ${
@@ -669,7 +764,7 @@ const StaffStockTransactions = () => {
               <div className="bg-gray-50 rounded-lg p-4 mb-6">
                 <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                   <MdInventory className="h-5 w-5 text-tracked-primary" />
-                  Item Information
+                  Equipment Information
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -677,8 +772,28 @@ const StaffStockTransactions = () => {
                     <p className="text-lg font-bold text-gray-800">{selectedTransaction.itemName}</p>
                   </div>
                   <div>
+                    <p className="text-sm text-gray-600 mb-1">Equipment Code</p>
+                    <p className="text-lg font-bold text-blue-600">{selectedTransaction.equipmentCode}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Brand</p>
+                    <p className="text-base font-semibold text-gray-800">{selectedTransaction.brand}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Model</p>
+                    <p className="text-base font-semibold text-gray-800">{selectedTransaction.model}</p>
+                  </div>
+                  <div>
                     <p className="text-sm text-gray-600 mb-1">Category</p>
-                    <p className="text-lg font-bold text-gray-800">{selectedTransaction.category}</p>
+                    <p className="text-base font-semibold text-gray-800">{selectedTransaction.category}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Location</p>
+                    <p className="text-base font-semibold text-gray-800">{selectedTransaction.location}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Condition</p>
+                    <p className="text-base font-semibold text-gray-800 capitalize">{selectedTransaction.condition}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Quantity</p>

@@ -127,6 +127,7 @@ const StaffEnrollmentsRecord = () => {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('Enrollments data:', data.enrollments); // Debug: Check payment_status values
         setEnrollments(data.enrollments || []);
       } else {
         toast.error('Failed to fetch enrollment records');
@@ -207,6 +208,9 @@ const StaffEnrollmentsRecord = () => {
   };
 
   const getPaymentBadge = (paymentStatus) => {
+    // Normalize payment status to lowercase for consistent comparison
+    const normalizedStatus = paymentStatus ? paymentStatus.toLowerCase() : 'unpaid';
+    
     const paymentConfig = {
       paid: {
         className: 'bg-green-100 text-green-800',
@@ -223,10 +227,14 @@ const StaffEnrollmentsRecord = () => {
       voucher: {
         className: 'bg-blue-100 text-blue-800',
         label: 'Voucher'
+      },
+      pending: {
+        className: 'bg-orange-100 text-orange-800',
+        label: 'Pending'
       }
     };
 
-    const config = paymentConfig[paymentStatus] || paymentConfig.unpaid;
+    const config = paymentConfig[normalizedStatus] || paymentConfig.unpaid;
 
     return (
       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${config.className}`}>
