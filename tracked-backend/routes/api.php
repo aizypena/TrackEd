@@ -3497,6 +3497,18 @@ Route::middleware(['auth:sanctum'])->group(function () {
         $applicant->student_id = $studentId;
         $applicant->save();
 
+        // Increment voucher used count for the batch
+        if ($applicant->batch_id) {
+            $voucher = \App\Models\Voucher::where('batch_id', $applicant->batch_id)->first();
+            if ($voucher) {
+                $voucher->used_count = $voucher->used_count + 1;
+                $voucher->save();
+                \Illuminate\Support\Facades\Log::info("Voucher used count incremented for batch {$applicant->batch_id}. New count: {$voucher->used_count}/{$voucher->quantity}");
+            } else {
+                \Illuminate\Support\Facades\Log::warning("No voucher found for batch {$applicant->batch_id} when enrolling student {$studentId}");
+            }
+        }
+
         // Send enrollment confirmation email
         try {
             $recipientEmail = $applicant->email;

@@ -13,6 +13,7 @@ const ApproveApplicantModal = ({ isOpen, onClose, applicant, onSuccess }) => {
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [fetchingData, setFetchingData] = useState(false);
+  const [selectedBatch, setSelectedBatch] = useState(null);
 
   useEffect(() => {
     if (isOpen && applicant) {
@@ -20,6 +21,7 @@ const ApproveApplicantModal = ({ isOpen, onClose, applicant, onSuccess }) => {
       setVoucherEligible(false);
       setNotes('');
       setSelectedBatchId('');
+      setSelectedBatch(null);
       
       fetchPrograms();
       // Pre-select applicant's program if they have one
@@ -251,42 +253,149 @@ const ApproveApplicantModal = ({ isOpen, onClose, applicant, onSuccess }) => {
               ) : (
                 <select
                   value={selectedBatchId}
-                  onChange={(e) => setSelectedBatchId(e.target.value)}
+                  onChange={(e) => {
+                    const batchId = e.target.value;
+                    setSelectedBatchId(batchId);
+                    // Find and store the selected batch object
+                    const batch = batches.find(b => b.batch_id === batchId);
+                    setSelectedBatch(batch || null);
+                    // Reset voucher eligibility when batch changes
+                    setVoucherEligible(false);
+                  }}
                   className="w-full border border-gray-300 rounded-md shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500"
                   required
                 >
                   <option value="">Select a batch</option>
-                  {Array.isArray(batches) && batches.map((batch) => (
-                    <option key={batch.id} value={batch.batch_id}>
-                      {batch.batch_id}
-                      {batch.start_date && ` - Starts: ${new Date(batch.start_date).toLocaleDateString()}`}
-                    </option>
-                  ))}
+                  {Array.isArray(batches) && batches.map((batch) => {
+                    const enrolledCount = batch.enrolled_students_count || 0;
+                    const maxStudents = batch.max_students || 0;
+                    const isBatchFull = enrolledCount >= maxStudents;
+                    
+                    const hasVouchers = batch.voucher_quantity > 0;
+                    const vouchersUsed = batch.voucher_used_count || 0;
+                    const vouchersTotal = batch.voucher_quantity || 0;
+                    const vouchersFull = hasVouchers && vouchersUsed >= vouchersTotal;
+                    
+                    let statusText = '';
+                    
+                    // Batch capacity status
+                    if (isBatchFull) {
+                      statusText = ` - BATCH FULL (${enrolledCount}/${maxStudents})`;
+                    } else {
+                      statusText = ` - Slots: ${enrolledCount}/${maxStudents}`;
+                    }
+                    
+                    // Voucher status
+                    if (!hasVouchers) {
+                      statusText += ' - No Vouchers';
+                    } else if (vouchersFull) {
+                      statusText += ` - Vouchers Full (${vouchersUsed}/${vouchersTotal})`;
+                    } else {
+                      statusText += ` - Vouchers: ${vouchersUsed}/${vouchersTotal}`;
+                    }
+                    
+                    return (
+                      <option 
+                        key={batch.id} 
+                        value={batch.batch_id}
+                        disabled={isBatchFull}
+                      >
+                        {batch.batch_id}
+                        {batch.start_date && ` - Starts: ${new Date(batch.start_date).toLocaleDateString()}`}
+                        {statusText}
+                      </option>
+                    );
+                  })}
                 </select>
               )}
             </div>
           )}
 
           {/* Voucher Eligibility */}
-          {selectedBatchId && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={voucherEligible}
-                  onChange={(e) => setVoucherEligible(e.target.checked)}
-                  className="mt-1 h-5 w-5 text-green-600 rounded focus:ring-green-500"
-                />
-                <div>
-                  <p className="font-semibold text-gray-800">Voucher Eligible (TESDA Subsidy)</p>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Check this box if the applicant qualifies for TESDA training voucher. 
-                    If checked, training fees will be covered by the subsidy program.
-                  </p>
+          {selectedBatchId && (() => {
+            // Check batch capacity
+            const enrolledCount = selectedBatch?.enrolled_students_count || 0;
+            const maxStudents = selectedBatch?.max_students || 0;
+            const isBatchFull = enrolledCount >= maxStudents;
+            
+            // Check if batch has vouchers and if they're available
+            const hasVouchers = selectedBatch?.voucher_quantity > 0;
+            const vouchersAvailable = hasVouchers && (selectedBatch.voucher_used_count < selectedBatch.voucher_quantity);
+            
+            // If batch is full, show error
+            if (isBatchFull) {
+              return (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1">
+                      <p className="font-semibold text-red-800">Batch Full - Cannot Enroll</p>
+                      <p className="text-sm text-red-700 mt-1">
+                        This batch has reached maximum capacity ({enrolledCount}/{maxStudents} students enrolled). 
+                        Please select a different batch or create a new one.
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </label>
-            </div>
-          )}
+              );
+            }
+            
+            if (!hasVouchers) {
+              // No vouchers allocated to this batch
+              return (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-700">No Vouchers Available</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        This batch does not have any training vouchers allocated. Applicants will need to pay the training fees.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+            
+            if (!vouchersAvailable) {
+              // Vouchers are full
+              return (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1">
+                      <p className="font-semibold text-red-800">Vouchers Full</p>
+                      <p className="text-sm text-red-700 mt-1">
+                        All vouchers for this batch have been used ({selectedBatch.voucher_used_count}/{selectedBatch.voucher_quantity}). 
+                        Applicants will need to pay the training fees.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+            
+            // Vouchers are available
+            return (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={voucherEligible}
+                    onChange={(e) => setVoucherEligible(e.target.checked)}
+                    className="mt-1 h-5 w-5 text-green-600 rounded focus:ring-green-500"
+                  />
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-800">Voucher Eligible (TESDA Subsidy)</p>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Check this box if the applicant qualifies for TESDA training voucher. 
+                      If checked, training fees will be covered by the subsidy program.
+                    </p>
+                    <p className="text-xs text-green-700 mt-2 font-medium">
+                      Available vouchers: {selectedBatch.voucher_quantity - selectedBatch.voucher_used_count} / {selectedBatch.voucher_quantity}
+                    </p>
+                  </div>
+                </label>
+              </div>
+            );
+          })()}
 
           {/* Notes */}
           <div>
@@ -328,7 +437,13 @@ const ApproveApplicantModal = ({ isOpen, onClose, applicant, onSuccess }) => {
           
           <button
             onClick={handleApprove}
-            disabled={loading || !selectedProgramId || !selectedBatchId || batches.length === 0}
+            disabled={
+              loading || 
+              !selectedProgramId || 
+              !selectedBatchId || 
+              batches.length === 0 ||
+              (selectedBatch && selectedBatch.enrolled_students_count >= selectedBatch.max_students)
+            }
             className="flex-1 hover:cursor-pointer flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
