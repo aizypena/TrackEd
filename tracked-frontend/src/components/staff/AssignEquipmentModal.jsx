@@ -64,9 +64,9 @@ const AssignEquipmentModal = ({ isOpen, onClose, equipment, onSuccess, onError }
       });
 
       if (response.data.success) {
-        // Filter only students/trainees
+        // Filter only students/trainees (exclude applicants)
         const filteredUsers = response.data.data.filter(user => 
-          user.role === 'student' || user.role === 'trainee' || user.role === 'applicant'
+          user.role === 'student' || user.role === 'trainer' || user.role === 'staff' || user.role === 'admin'
         );
         setUsers(filteredUsers);
       }
@@ -263,18 +263,11 @@ const AssignEquipmentModal = ({ isOpen, onClose, equipment, onSuccess, onError }
             {/* Quantity */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Quantity <span className="text-red-500">*</span>
+                Quantity
               </label>
-              <input
-                type="number"
-                min="1"
-                max={equipment.available}
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                className={inputClassName}
-                required
-              />
-              <p className="text-xs text-gray-500 mt-1">Max: {equipment.available}</p>
+              <div className="px-4 py-2 bg-gray-50 border border-gray-300 rounded-md">
+                <span className="text-gray-900 font-medium">1</span>
+              </div>
             </div>
 
             {/* Purpose */}
