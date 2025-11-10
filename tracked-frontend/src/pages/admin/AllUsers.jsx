@@ -883,7 +883,7 @@ function AllUsers() {
                       </div>
                       <div className="ml-4">
                         <div className="text-sm font-medium text-gray-900">
-                          {`${user.first_name} ${user.last_name}`}
+                          {`${user.first_name.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')} ${user.last_name.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}`}
                         </div>
                         <div className="text-sm text-gray-500 flex items-center">
                           <MdLocationOn className="h-3 w-3 mr-1" />
