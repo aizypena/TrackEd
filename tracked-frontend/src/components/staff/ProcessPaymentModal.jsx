@@ -297,7 +297,6 @@ const ProcessPaymentModal = ({ isOpen, onClose, applicant, onSuccess }) => {
               required
             >
               <option value="cash">Cash</option>
-              <option value="card">Card (Credit/Debit)</option>
               <option value="gcash">GCash</option>
               <option value="maya">Maya</option>
             </select>

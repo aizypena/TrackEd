@@ -189,7 +189,6 @@ const StaffPaymentRecords = () => {
         'Batch': record.batch || 'N/A',
         'Total Fee': record.totalFee || 0,
         'Amount Paid': record.amountPaid || 0,
-        'Balance': record.balance || 0,
         'Payment Status': record.paymentStatus ? record.paymentStatus.charAt(0).toUpperCase() + record.paymentStatus.slice(1) : 'N/A',
         'Last Payment Date': record.lastPaymentDate || 'N/A',
         'Payment Method': record.paymentMethod || 'N/A',
@@ -211,7 +210,6 @@ const StaffPaymentRecords = () => {
         { wch: 15 }, // Batch
         { wch: 15 }, // Total Fee
         { wch: 15 }, // Amount Paid
-        { wch: 15 }, // Balance
         { wch: 15 }, // Payment Status
         { wch: 18 }, // Last Payment Date
         { wch: 15 }, // Payment Method
@@ -458,9 +456,6 @@ const StaffPaymentRecords = () => {
                       Amount Paid
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Balance
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -488,11 +483,6 @@ const StaffPaymentRecords = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-semibold text-green-600">{formatCurrency(record.amountPaid)}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className={`text-sm font-semibold ${record.balance > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                            {formatCurrency(record.balance)}
-                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {getPaymentStatusBadge(record.paymentStatus)}
@@ -534,7 +524,7 @@ const StaffPaymentRecords = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
+                      <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
                         No payment records found matching your filters.
                       </td>
                     </tr>
