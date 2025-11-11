@@ -10,11 +10,24 @@ import AssessmentResults from '../pages/lms/AssessmentResults';
 import AssessmentResultDetail from '../pages/lms/AssessmentResultDetail';
 import Certificates from '../pages/lms/Certificates';
 import ProfileSettings from '../pages/lms/ProfileSettings';
+import ForgotPassword from '../pages/lms/ForgotPassword';
+import ResetPassword from '../pages/lms/ResetPassword';
 
 const StudentRoutes = () => {
   return (
     <Routes>
       {/* SMI LMS Student Routes - accessible at /smi-lms/* */}
+      
+      {/* Public routes - no authentication required */}
+      <Route 
+        path="/forgot-password" 
+        element={<ForgotPassword />} 
+      />
+      <Route 
+        path="/reset-password" 
+        element={<ResetPassword />} 
+      />
+      
       <Route 
         path="/dashboard" 
         element={

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { API_URL } from '../../config/api';
 import { 
   MdLock,
@@ -142,6 +142,15 @@ const StudentLogin = () => {
                 </button>
               </div>
             </div>
+          </div>
+
+          <div className="flex items-center justify-end">
+            <Link
+              to="/smi-lms/forgot-password"
+              className="text-sm hover:cursor-pointer hover:underline text-blue-600 hover:text-blue-700 font-medium"
+            >
+              Forgot password?
+            </Link>
           </div>
 
           {error && (

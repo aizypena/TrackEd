@@ -4,6 +4,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
+use Carbon\Carbon;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\ApplicationController;
@@ -418,6 +421,231 @@ Route::post('/student/login', function (Request $request) {
             'emergency_phone' => $user->emergency_phone,
             'emergency_relationship' => $user->emergency_relationship,
         ]
+    ]);
+});
+
+// Student Forgot Password
+Route::post('/student/forgot-password', function (Request $request) {
+    $request->validate([
+        'email' => 'required|email',
+    ]);
+
+    // Find user by email and verify they are a student
+    $user = User::where('email', $request->email)
+                ->where('role', 'student')
+                ->first();
+
+    if (!$user) {
+        // Log failed attempt
+        DB::table('system_logs')->insert([
+            'user_id' => null,
+            'action' => 'student_forgot_password_failed',
+            'description' => 'Password reset requested for non-student email: ' . $request->email,
+            'log_level' => 'warning',
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'created_at' => now(),
+        ]);
+
+        return response()->json([
+            'message' => 'If a student account exists with this email, a password reset link will be sent.'
+        ], 200);
+    }
+
+    // Generate reset token
+    $token = Str::random(64);
+    
+    // Store reset token in password_resets table
+    DB::table('password_resets')->updateOrInsert(
+        ['email' => $request->email],
+        [
+            'email' => $request->email,
+            'token' => Hash::make($token),
+            'created_at' => now()
+        ]
+    );
+
+    // Create reset URL
+    $resetUrl = 'http://localhost:5173/smi-lms/reset-password?token=' . $token . '&email=' . urlencode($request->email);
+
+    // Log successful password reset request
+    DB::table('system_logs')->insert([
+        'user_id' => $user->id,
+        'action' => 'student_password_reset_requested',
+        'description' => 'Password reset requested for student: ' . $user->student_id . ' (' . $user->email . ')',
+        'log_level' => 'info',
+        'ip_address' => $request->ip(),
+        'user_agent' => $request->userAgent(),
+        'created_at' => now(),
+    ]);
+
+    // Send password reset email
+    try {
+        $studentName = $user->first_name . ' ' . $user->last_name;
+        $emailContent = "
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background-color: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+                .content { background-color: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; }
+                .button { display: inline-block; padding: 12px 24px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+                .footer { background-color: #f3f4f6; padding: 20px; text-align: center; font-size: 12px; color: #6b7280; border-radius: 0 0 5px 5px; }
+                .warning { background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; }
+            </style>
+        </head>
+        <body>
+            <div class='container'>
+                <div class='header'>
+                    <h1>Password Reset Request</h1>
+                </div>
+                <div class='content'>
+                    <p>Hi <strong>{$studentName}</strong>,</p>
+                    <p>We received a request to reset your password for your TrackEd student account.</p>
+                    <p>Click the button below to reset your password:</p>
+                    <div style='text-align: center;'>
+                        <a href='{$resetUrl}' class='button'>Reset Password</a>
+                    </div>
+                    <p>Or copy and paste this link into your browser:</p>
+                    <p style='word-break: break-all; background-color: #e5e7eb; padding: 10px; border-radius: 3px;'>{$resetUrl}</p>
+                    <div class='warning'>
+                        <strong>⚠️ Security Notice:</strong>
+                        <ul style='margin: 10px 0;'>
+                            <li>This link will expire in 1 hour</li>
+                            <li>If you didn't request this reset, please ignore this email</li>
+                            <li>Never share this link with anyone</li>
+                        </ul>
+                    </div>
+                    <p>If you have any questions or concerns, please contact your administrator.</p>
+                    <p>Best regards,<br><strong>TrackEd Team</strong></p>
+                </div>
+                <div class='footer'>
+                    <p>This is an automated message. Please do not reply to this email.</p>
+                    <p>&copy; " . date('Y') . " TrackEd. All rights reserved.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        ";
+
+        Mail::html($emailContent, function ($message) use ($user, $studentName) {
+            $message->to($user->email, $studentName)
+                    ->subject('Password Reset Request - TrackEd');
+        });
+
+        // Log successful email send
+        DB::table('system_logs')->insert([
+            'user_id' => $user->id,
+            'action' => 'student_password_reset_email_sent',
+            'description' => 'Password reset email sent successfully to: ' . $user->email,
+            'log_level' => 'info',
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'created_at' => now(),
+        ]);
+
+    } catch (\Exception $e) {
+        // Log email failure
+        DB::table('system_logs')->insert([
+            'user_id' => $user->id,
+            'action' => 'student_password_reset_email_failed',
+            'description' => 'Failed to send password reset email: ' . $e->getMessage(),
+            'log_level' => 'error',
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'created_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to send reset email. Please try again later.'
+        ], 500);
+    }
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Password reset link has been sent to your email.'
+    ]);
+});
+
+// Student Reset Password
+Route::post('/student/reset-password', function (Request $request) {
+    $request->validate([
+        'email' => 'required|email',
+        'token' => 'required|string',
+        'password' => 'required|string|min:8|confirmed',
+    ]);
+
+    // Find the password reset record
+    $passwordReset = DB::table('password_resets')
+        ->where('email', $request->email)
+        ->first();
+
+    if (!$passwordReset) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Invalid reset token or email.'
+        ], 400);
+    }
+
+    // Verify the token
+    if (!Hash::check($request->token, $passwordReset->token)) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Invalid reset token.'
+        ], 400);
+    }
+
+    // Check if token is expired (1 hour expiration)
+    $createdAt = Carbon::parse($passwordReset->created_at);
+    if ($createdAt->addHour()->isPast()) {
+        // Delete expired token
+        DB::table('password_resets')->where('email', $request->email)->delete();
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Reset token has expired. Please request a new one.'
+        ], 400);
+    }
+
+    // Find user and verify they are a student
+    $user = User::where('email', $request->email)
+                ->where('role', 'student')
+                ->first();
+
+    if (!$user) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Student account not found.'
+        ], 404);
+    }
+
+    // Update password
+    $user->password = Hash::make($request->password);
+    $user->save();
+
+    // Delete the used token
+    DB::table('password_resets')->where('email', $request->email)->delete();
+
+    // Delete all existing tokens (force re-login)
+    $user->tokens()->delete();
+
+    // Log successful password reset
+    DB::table('system_logs')->insert([
+        'user_id' => $user->id,
+        'action' => 'student_password_reset_success',
+        'description' => 'Password reset successfully for student: ' . $user->student_id . ' (' . $user->email . ')',
+        'log_level' => 'info',
+        'ip_address' => $request->ip(),
+        'user_agent' => $request->userAgent(),
+        'created_at' => now(),
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Password has been reset successfully. You can now login with your new password.'
     ]);
 });
 
