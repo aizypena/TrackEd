@@ -103,8 +103,12 @@ const StaffExamManagement = () => {
       });
 
       const data = await response.json();
+      console.log('Programs data:', data);
       if (data.success) {
         setPrograms(data.data || []);
+        console.log('Programs set:', data.data);
+      } else {
+        console.log('Programs fetch failed:', data.message);
       }
     } catch (error) {
       console.error('Error fetching programs:', error);
@@ -122,8 +126,12 @@ const StaffExamManagement = () => {
       });
 
       const data = await response.json();
+      console.log('Batches data:', data);
       if (data.success) {
         setBatches(data.data || []);
+        console.log('Batches set:', data.data);
+      } else {
+        console.log('Batches fetch failed:', data.message);
       }
     } catch (error) {
       console.error('Error fetching batches:', error);
@@ -434,44 +442,77 @@ const StaffExamManagement = () => {
             <select
               value={programFilter}
               onChange={(e) => setProgramFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
-              style={{ color: '#111827' }}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              style={{ 
+                color: '#000000 !important', 
+                backgroundColor: '#ffffff !important'
+              }}
             >
-              <option value="all" style={{ color: '#111827', backgroundColor: '#ffffff' }}>All Programs</option>
-              {programs.map(program => (
-                <option key={program.id} value={program.id} style={{ color: '#111827', backgroundColor: '#ffffff' }}>
-                  {program.program_name}
+              <option value="all" style={{ color: '#000000 !important', backgroundColor: '#ffffff !important' }}>
+                All Programs {programs.length > 0 ? `(${programs.length})` : ''}
+              </option>
+              {programs.length === 0 ? (
+                <option disabled style={{ color: '#000000 !important', backgroundColor: '#ffffff !important' }}>
+                  No programs available
                 </option>
-              ))}
+              ) : (
+                programs.map(program => (
+                  <option 
+                    key={program.id} 
+                    value={program.id} 
+                    style={{ color: '#000000 !important', backgroundColor: '#ffffff !important' }}
+                  >
+                    {program.title || program.program_name || `Program ${program.id}`}
+                  </option>
+                ))
+              )}
             </select>
 
             {/* Batch Filter */}
             <select
               value={batchFilter}
               onChange={(e) => setBatchFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
-              style={{ color: '#111827' }}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              style={{ 
+                color: '#000000 !important', 
+                backgroundColor: '#ffffff !important'
+              }}
             >
-              <option value="all" style={{ color: '#111827', backgroundColor: '#ffffff' }}>All Batches</option>
-              {batches.map(batch => (
-                <option key={batch.id} value={batch.id} style={{ color: '#111827', backgroundColor: '#ffffff' }}>
-                  {batch.batch_name}
+              <option value="all" style={{ color: '#000000 !important', backgroundColor: '#ffffff !important' }}>
+                All Batches {batches.length > 0 ? `(${batches.length})` : ''}
+              </option>
+              {batches.length === 0 ? (
+                <option disabled style={{ color: '#000000 !important', backgroundColor: '#ffffff !important' }}>
+                  No batches available
                 </option>
-              ))}
+              ) : (
+                batches.map(batch => (
+                  <option 
+                    key={batch.id} 
+                    value={batch.id} 
+                    style={{ color: '#000000 !important', backgroundColor: '#ffffff !important' }}
+                  >
+                    {batch.batch_id || batch.batch_name || `Batch ${batch.id}`}
+                  </option>
+                ))
+              )}
             </select>
 
             {/* Status Filter */}
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
-              style={{ color: '#111827' }}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              style={{ 
+                color: '#000000 !important', 
+                backgroundColor: '#ffffff !important'
+              }}
             >
-              <option value="all" style={{ color: '#111827', backgroundColor: '#ffffff' }}>All Status</option>
-              <option value="scheduled" style={{ color: '#111827', backgroundColor: '#ffffff' }}>Scheduled</option>
-              <option value="ongoing" style={{ color: '#111827', backgroundColor: '#ffffff' }}>Ongoing</option>
-              <option value="completed" style={{ color: '#111827', backgroundColor: '#ffffff' }}>Completed</option>
-              <option value="cancelled" style={{ color: '#111827', backgroundColor: '#ffffff' }}>Cancelled</option>
+              <option value="all" style={{ color: '#000000 !important', backgroundColor: '#ffffff !important' }}>All Status</option>
+              <option value="scheduled" style={{ color: '#000000 !important', backgroundColor: '#ffffff !important' }}>Scheduled</option>
+              <option value="ongoing" style={{ color: '#000000 !important', backgroundColor: '#ffffff !important' }}>Ongoing</option>
+              <option value="completed" style={{ color: '#000000 !important', backgroundColor: '#ffffff !important' }}>Completed</option>
+              <option value="cancelled" style={{ color: '#000000 !important', backgroundColor: '#ffffff !important' }}>Cancelled</option>
             </select>
           </div>
         </div>
