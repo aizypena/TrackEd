@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import Sidebar from '../../layouts/lms/Sidebar';
-import { getStudentToken } from '../../utils/studentAuth';
+import { getStudentToken, getStudentUser } from '../../utils/studentAuth';
 import { 
   MdDownload, 
   MdMenu, 
@@ -31,23 +31,15 @@ const CourseMaterials = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = getStudentToken();
-        
-        // Fetch user data
-        const userResponse = await fetch('http://localhost:8000/api/student/profile', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          }
-        });
-
-        if (userResponse.ok) {
-          const userData = await userResponse.json();
+        // Get user data from localStorage
+        const userData = getStudentUser();
+        if (userData) {
           setUser(userData);
         }
         
-        // Fetch course materials (will need to create this endpoint)
+        const token = getStudentToken();
+        
+        // Fetch course materials
         const materialsResponse = await fetch('http://localhost:8000/api/student/course-materials', {
           headers: {
             'Authorization': `Bearer ${token}`,
