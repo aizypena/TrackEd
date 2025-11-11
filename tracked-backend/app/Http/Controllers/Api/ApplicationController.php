@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules\Password;
 
 class ApplicationController extends Controller
@@ -74,13 +75,32 @@ class ApplicationController extends Controller
         }
 
         try {
+            // Log the incoming marital status for debugging
+            Log::info('Application submission - maritalStatus received:', [
+                'maritalStatus' => $request->maritalStatus,
+                'all_request_data' => $request->except(['password', 'confirmPassword', 'validId', 'transcript', 'diploma', 'passportPhoto'])
+            ]);
+            
             // Create user account first
             $user = User::create([
                 'first_name' => $request->firstName,
+                'middle_name' => $request->middleName,
                 'last_name' => $request->lastName,
                 'email' => $request->email,
                 'phone_number' => $request->mobileNumber,
+                'address' => $request->address,
+                'date_of_birth' => $request->birthDate,
+                'place_of_birth' => $request->placeOfBirth,
+                'gender' => $request->gender,
+                'nationality' => $request->nationality,
                 'marital_status' => $request->maritalStatus,
+                'education_level' => $request->education,
+                'institution_name' => $request->school,
+                'employment_status' => $request->employmentStatus,
+                'occupation' => $request->occupation,
+                'emergency_contact' => $request->emergencyContact,
+                'emergency_phone' => $request->emergencyPhone,
+                'emergency_relationship' => $request->emergencyRelationship,
                 'password' => Hash::make($request->password),
                 'role' => 'applicant',
                 'status' => 'active',

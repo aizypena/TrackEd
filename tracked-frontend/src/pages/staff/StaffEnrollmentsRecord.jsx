@@ -95,7 +95,7 @@ const StaffEnrollmentsRecord = () => {
       startDate: enrollment.start_date,
       attendance: enrollment.attendance || 0,
       overallGrade: 0, // Not available in enrollment data
-      documents: [] // Not available in enrollment data
+      documents: enrollment.documents || {} // Include documents from backend
     };
   };
 
@@ -209,32 +209,34 @@ const StaffEnrollmentsRecord = () => {
 
   const getPaymentBadge = (paymentStatus) => {
     // Normalize payment status to lowercase for consistent comparison
-    const normalizedStatus = paymentStatus ? paymentStatus.toLowerCase() : 'unpaid';
+    const normalizedStatus = paymentStatus ? paymentStatus.toLowerCase() : 'paid';
     
+    // Show "Voucher" if student has voucher, otherwise "Paid"
     const paymentConfig = {
+      voucher: {
+        className: 'bg-blue-100 text-blue-800',
+        label: 'Voucher'
+      },
+      // All other statuses (paid, unpaid, partial, pending) show as "Paid"
       paid: {
         className: 'bg-green-100 text-green-800',
         label: 'Paid'
       },
       partial: {
-        className: 'bg-yellow-100 text-yellow-800',
-        label: 'Partial'
+        className: 'bg-green-100 text-green-800',
+        label: 'Paid'
       },
       unpaid: {
-        className: 'bg-red-100 text-red-800',
-        label: 'Unpaid'
-      },
-      voucher: {
-        className: 'bg-blue-100 text-blue-800',
-        label: 'Voucher'
+        className: 'bg-green-100 text-green-800',
+        label: 'Paid'
       },
       pending: {
-        className: 'bg-orange-100 text-orange-800',
-        label: 'Pending'
+        className: 'bg-green-100 text-green-800',
+        label: 'Paid'
       }
     };
 
-    const config = paymentConfig[normalizedStatus] || paymentConfig.unpaid;
+    const config = paymentConfig[normalizedStatus] || paymentConfig.paid;
 
     return (
       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${config.className}`}>

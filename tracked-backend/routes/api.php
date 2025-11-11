@@ -4261,6 +4261,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
                     'status' => $student->status === 'active' ? 'active' : ($batch && $batch->status === 'finished' ? 'completed' : 'pending'),
                     'payment_status' => $paymentStatus,
                     'attendance' => $attendancePercentage,
+                    'documents' => [
+                        'valid_id' => $student->valid_id_path,
+                        'transcript' => $student->transcript_path,
+                        'diploma' => $student->diploma_path,
+                        'passport_photo' => $student->passport_photo_path,
+                    ],
                 ];
             });
             

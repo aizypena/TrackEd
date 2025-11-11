@@ -707,7 +707,12 @@ const StaffApplicantView = () => {
                     </button>
                     <button
                       onClick={() => handleStatusChangeClick('pending')}
-                      disabled={updating || applicant.application_status === 'pending'}
+                      disabled={
+                        updating || 
+                        applicant.application_status === 'pending' ||
+                        applicant.application_status === 'under_review' ||
+                        applicant.application_status === 'rejected'
+                      }
                       className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <MdPendingActions className="h-5 w-5" />

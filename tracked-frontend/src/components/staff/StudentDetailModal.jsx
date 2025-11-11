@@ -169,13 +169,85 @@ const StudentDetailModal = ({ student, onClose, getStatusBadge, getPaymentBadge 
                 <MdDescription className="h-5 w-5 text-tracked-primary" />
                 Submitted Documents
               </h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {student.documents.map((doc, index) => (
-                  <div key={index} className="flex items-center gap-2 bg-white p-2 rounded border border-gray-200">
-                    <MdCheckCircle className="h-4 w-4 text-green-500" />
-                    <span className="text-xs text-gray-700">{doc}</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {/* Valid ID */}
+                {student.documents?.valid_id && (
+                  <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-200 hover:border-tracked-primary transition-colors">
+                    <div className="flex items-center gap-2">
+                      <MdCheckCircle className="h-5 w-5 text-green-500" />
+                      <span className="text-sm font-medium text-gray-700">Valid ID</span>
+                    </div>
+                    <a
+                      href={`http://localhost:8000/storage/${student.documents.valid_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1 bg-tracked-primary text-white text-xs rounded-md hover:bg-tracked-secondary transition-colors"
+                    >
+                      View
+                    </a>
                   </div>
-                ))}
+                )}
+                
+                {/* Transcript */}
+                {student.documents?.transcript && (
+                  <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-200 hover:border-tracked-primary transition-colors">
+                    <div className="flex items-center gap-2">
+                      <MdCheckCircle className="h-5 w-5 text-green-500" />
+                      <span className="text-sm font-medium text-gray-700">Transcript of Records</span>
+                    </div>
+                    <a
+                      href={`http://localhost:8000/storage/${student.documents.transcript}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1 bg-tracked-primary text-white text-xs rounded-md hover:bg-tracked-secondary transition-colors"
+                    >
+                      View
+                    </a>
+                  </div>
+                )}
+                
+                {/* Diploma */}
+                {student.documents?.diploma && (
+                  <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-200 hover:border-tracked-primary transition-colors">
+                    <div className="flex items-center gap-2">
+                      <MdCheckCircle className="h-5 w-5 text-green-500" />
+                      <span className="text-sm font-medium text-gray-700">Diploma</span>
+                    </div>
+                    <a
+                      href={`http://localhost:8000/storage/${student.documents.diploma}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1 bg-tracked-primary text-white text-xs rounded-md hover:bg-tracked-secondary transition-colors"
+                    >
+                      View
+                    </a>
+                  </div>
+                )}
+                
+                {/* Passport Photo */}
+                {student.documents?.passport_photo && (
+                  <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-200 hover:border-tracked-primary transition-colors">
+                    <div className="flex items-center gap-2">
+                      <MdCheckCircle className="h-5 w-5 text-green-500" />
+                      <span className="text-sm font-medium text-gray-700">Passport Photo</span>
+                    </div>
+                    <a
+                      href={`http://localhost:8000/storage/${student.documents.passport_photo}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1 bg-tracked-primary text-white text-xs rounded-md hover:bg-tracked-secondary transition-colors"
+                    >
+                      View
+                    </a>
+                  </div>
+                )}
+                
+                {/* No documents message */}
+                {(!student.documents?.valid_id && !student.documents?.transcript && !student.documents?.diploma && !student.documents?.passport_photo) && (
+                  <div className="md:col-span-2 text-center py-4 text-gray-500 text-sm">
+                    No documents submitted yet
+                  </div>
+                )}
               </div>
             </div>
           </div>

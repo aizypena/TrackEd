@@ -371,6 +371,10 @@ const Signup = () => {
         }
       });
       
+      // Debug: Log maritalStatus to verify it's being sent
+      console.log('Submitting maritalStatus:', formData.maritalStatus);
+      console.log('All form data:', Object.keys(formData).map(k => k !== 'documents' && k !== 'password' && k !== 'confirmPassword' ? `${k}: ${formData[k]}` : null).filter(Boolean));
+      
       // Add document files with individual field names
       if (formData.documents.validId) {
         submitData.append('validId', formData.documents.validId);

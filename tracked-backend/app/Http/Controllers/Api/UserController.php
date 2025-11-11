@@ -223,17 +223,34 @@ class UserController extends Controller
             'role' => 'sometimes|required|in:applicant,student,trainer,staff,admin',
             'status' => 'sometimes|required|in:active,inactive,suspended',
             'address' => 'sometimes|nullable|string',
-            'gender' => 'sometimes|nullable|in:male,female',
-            'birth_date' => 'sometimes|nullable|date',
+            'gender' => 'sometimes|nullable|in:male,female,other',
+            'date_of_birth' => 'sometimes|nullable|date',
             'place_of_birth' => 'sometimes|nullable|string|max:255',
             'nationality' => 'sometimes|nullable|string|max:255',
+            'marital_status' => 'sometimes|nullable|in:single,married,divorced,widowed,separated',
+            'education_level' => 'sometimes|nullable|string|max:255',
+            'field_of_study' => 'sometimes|nullable|string|max:255',
+            'institution_name' => 'sometimes|nullable|string|max:255',
+            'graduation_year' => 'sometimes|nullable|integer|min:1950|max:2030',
+            'gpa' => 'sometimes|nullable|numeric|min:0|max:4',
+            'employment_status' => 'sometimes|nullable|string|max:255',
+            'occupation' => 'sometimes|nullable|string|max:255',
+            'work_experience' => 'sometimes|nullable|string',
+            'course_program' => 'sometimes|nullable|string|max:255',
+            'emergency_contact' => 'sometimes|nullable|string|max:255',
+            'emergency_phone' => 'sometimes|nullable|string|max:20',
+            'emergency_relationship' => 'sometimes|nullable|string|max:255',
             'permissions' => 'sometimes|nullable|array',
         ]);
 
         // Get update data
         $updateData = $request->only([
             'first_name', 'last_name', 'middle_name', 'email', 'phone_number',
-            'role', 'status', 'address', 'gender', 'birth_date', 'place_of_birth', 'nationality'
+            'role', 'status', 'address', 'gender', 'date_of_birth', 'place_of_birth', 
+            'nationality', 'marital_status', 'education_level', 'field_of_study',
+            'institution_name', 'graduation_year', 'gpa', 'employment_status',
+            'occupation', 'work_experience', 'course_program', 'emergency_contact',
+            'emergency_phone', 'emergency_relationship'
         ]);
 
         // Handle permissions separately to prevent double-encoding
