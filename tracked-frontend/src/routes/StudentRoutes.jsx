@@ -13,6 +13,7 @@ import ProfileSettings from '../pages/lms/ProfileSettings';
 import ForgotPassword from '../pages/lms/ForgotPassword';
 import ResetPassword from '../pages/lms/ResetPassword';
 import Exams from '../pages/lms/Exams';
+import ExamResults from '../pages/lms/ExamResults';
 
 const StudentRoutes = () => {
   return (
@@ -66,6 +67,14 @@ const StudentRoutes = () => {
         element={
           <ProtectedStudentRoute>
             <Exams />
+          </ProtectedStudentRoute>
+        }
+      />
+      <Route
+        path='exam-results'
+        element={
+          <ProtectedStudentRoute>
+            <ExamResults />
           </ProtectedStudentRoute>
         }
       />
