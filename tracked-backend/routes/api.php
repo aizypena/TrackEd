@@ -652,6 +652,256 @@ Route::post('/student/reset-password', function (Request $request) {
 // Public Programs Endpoint (for CourseOffered page)
 Route::get('/programs', [ProgramController::class, 'index']);
 
+// Student Exam Endpoints
+Route::middleware(['auth:sanctum'])->group(function () {
+    // Get exams for logged-in student
+    Route::get('/api/student/exams', function (Request $request) {
+        try {
+            $user = $request->user();
+            
+            if (!$user || $user->role !== 'student') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized'
+                ], 401);
+            }
+
+            // Get student's batch_id and program
+            $studentBatchId = $user->batch_id;
+            $studentProgram = $user->program;
+
+            // Get quizzes (exams) assigned to student's batch
+            $exams = DB::table('quizzes')
+                ->where('batch_id', $studentBatchId)
+                ->where('type', 'written')
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($exam) use ($user) {
+                    // Check if student has attempted this exam
+                    $attempt = DB::table('quiz_attempts')
+                        ->where('quiz_id', $exam->id)
+                        ->where('student_id', $user->id)
+                        ->first();
+
+                    return [
+                        'id' => $exam->id,
+                        'title' => $exam->title,
+                        'code' => 'EXAM-' . str_pad($exam->id, 4, '0', STR_PAD_LEFT),
+                        'description' => $exam->description ?? 'No description available',
+                        'type' => 'Written Test',
+                        'date' => $exam->created_at,
+                        'time' => '09:00:00',
+                        'duration' => $exam->time_limit . ' minutes',
+                        'time_limit' => $exam->time_limit,
+                        'venue' => 'Online',
+                        'status' => $exam->status === 'active' ? 'scheduled' : 'completed',
+                        'total_questions' => $exam->total_questions ?? 0,
+                        'passing_score' => $exam->passing_percentage ?? 50,
+                        'batch_id' => $exam->batch_id,
+                        'has_attempted' => $attempt ? true : false,
+                        'attempt_score' => $attempt ? $attempt->score : null,
+                        'attempt_date' => $attempt ? $attempt->completed_at : null
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'exams' => $exams
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Student exams fetch error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load exams',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
+
+    // Get single exam details
+    Route::get('/api/student/exams/{id}', function (Request $request, $id) {
+        try {
+            $user = $request->user();
+            
+            if (!$user || $user->role !== 'student') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized'
+                ], 401);
+            }
+
+            // Get exam details
+            $exam = DB::table('quizzes')
+                ->where('id', $id)
+                ->where('batch_id', $user->batch_id)
+                ->first();
+
+            if (!$exam) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Exam not found or not assigned to your batch'
+                ], 404);
+            }
+
+            // Get exam questions
+            $questions = DB::table('quiz_questions')
+                ->where('quiz_id', $id)
+                ->orderBy('question_order')
+                ->get()
+                ->map(function ($question) {
+                    return [
+                        'id' => $question->id,
+                        'question_text' => $question->question_text,
+                        'question_type' => $question->question_type,
+                        'points' => $question->points,
+                        'options' => json_decode($question->options, true)
+                    ];
+                });
+
+            // Check if student has already attempted
+            $attempt = DB::table('quiz_attempts')
+                ->where('quiz_id', $id)
+                ->where('student_id', $user->id)
+                ->first();
+
+            return response()->json([
+                'success' => true,
+                'exam' => [
+                    'id' => $exam->id,
+                    'title' => $exam->title,
+                    'description' => $exam->description,
+                    'time_limit' => $exam->time_limit,
+                    'passing_percentage' => $exam->passing_percentage,
+                    'status' => $exam->status,
+                    'total_questions' => count($questions),
+                    'has_attempted' => $attempt ? true : false,
+                    'attempt_score' => $attempt ? $attempt->score : null
+                ],
+                'questions' => $questions
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Student exam details fetch error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load exam details',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
+
+    // Submit exam attempt
+    Route::post('/api/student/exams/{id}/submit', function (Request $request, $id) {
+        try {
+            $user = $request->user();
+            
+            if (!$user || $user->role !== 'student') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized'
+                ], 401);
+            }
+
+            $validated = $request->validate([
+                'answers' => 'required|array',
+                'time_taken' => 'required|integer'
+            ]);
+
+            // Get exam
+            $exam = DB::table('quizzes')
+                ->where('id', $id)
+                ->where('batch_id', $user->batch_id)
+                ->first();
+
+            if (!$exam) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Exam not found'
+                ], 404);
+            }
+
+            // Check if already attempted
+            $existingAttempt = DB::table('quiz_attempts')
+                ->where('quiz_id', $id)
+                ->where('student_id', $user->id)
+                ->first();
+
+            if ($existingAttempt) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You have already completed this exam'
+                ], 400);
+            }
+
+            // Calculate score
+            $questions = DB::table('quiz_questions')
+                ->where('quiz_id', $id)
+                ->get();
+
+            $totalScore = 0;
+            $maxScore = 0;
+            $answersData = [];
+
+            foreach ($questions as $question) {
+                $maxScore += $question->points;
+                $questionId = $question->id;
+                $studentAnswer = $validated['answers'][$questionId] ?? null;
+                
+                $isCorrect = false;
+                if ($studentAnswer !== null && $question->correct_answer == $studentAnswer) {
+                    $isCorrect = true;
+                    $totalScore += $question->points;
+                }
+
+                $answersData[] = [
+                    'question_id' => $questionId,
+                    'answer' => $studentAnswer,
+                    'is_correct' => $isCorrect,
+                    'points_earned' => $isCorrect ? $question->points : 0
+                ];
+            }
+
+            $percentage = $maxScore > 0 ? ($totalScore / $maxScore) * 100 : 0;
+            $passed = $percentage >= $exam->passing_percentage;
+
+            // Create attempt record
+            $attemptId = DB::table('quiz_attempts')->insertGetId([
+                'quiz_id' => $id,
+                'student_id' => $user->id,
+                'score' => $totalScore,
+                'max_score' => $maxScore,
+                'percentage' => $percentage,
+                'passed' => $passed,
+                'time_taken' => $validated['time_taken'],
+                'answers' => json_encode($answersData),
+                'started_at' => now(),
+                'completed_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Exam submitted successfully',
+                'result' => [
+                    'attempt_id' => $attemptId,
+                    'score' => $totalScore,
+                    'max_score' => $maxScore,
+                    'percentage' => round($percentage, 2),
+                    'passed' => $passed,
+                    'time_taken' => $validated['time_taken']
+                ]
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Student exam submit error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to submit exam',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
+});
+
 // Protected Routes
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/user', function (Request $request) {

@@ -12,7 +12,10 @@ import {
   MdMenu,
   MdClose,
   MdPerson,
-  MdLogout
+  MdLogout,
+  MdAssignment,
+  MdMenuBook,
+  MdGrade
 } from 'react-icons/md';
 import { studentLogout } from '../../utils/studentAuth';
 
@@ -42,6 +45,21 @@ const Sidebar = ({ user, isOpen, onClose, sidebarOpen, setSidebarOpen }) => {
       icon: <MdFolder className="h-5 w-5" />
     },
     {
+      name: 'Courses',
+      path: '/smi-lms/courses',
+      icon: <MdMenuBook className="h-5 w-5" />
+    },
+    {
+      name: 'Exams',
+      path: '/smi-lms/exams',
+      icon: <MdAssignment className="h-5 w-5" />
+    },
+    {
+      name: 'Exam Results',
+      path: '/smi-lms/exam-results',
+      icon: <MdSchool className="h-5 w-5" />
+    },
+    {
       name: 'Assessments',
       path: '/smi-lms/assessments',
       icon: <MdQuiz className="h-5 w-5" />
@@ -49,7 +67,7 @@ const Sidebar = ({ user, isOpen, onClose, sidebarOpen, setSidebarOpen }) => {
     {
       name: 'Assessment Results',
       path: '/smi-lms/assessment-results',
-      icon: <MdStars className="h-5 w-5" />
+      icon: <MdGrade className="h-5 w-5" />
     },
     {
       name: 'Certificates',
