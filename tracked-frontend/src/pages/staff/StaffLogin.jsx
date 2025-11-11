@@ -25,9 +25,13 @@ const StaffLogin = () => {
     
     if (staffToken && staffUser) {
       const user = JSON.parse(staffUser);
-      // Redirect based on role - both staff and trainer use /staff routes
-      if (user.role === 'trainer' || user.role === 'staff') {
+      // Only allow staff role
+      if (user.role === 'staff') {
         navigate('/staff/dashboard', { replace: true });
+      } else {
+        // Clear invalid stored data
+        localStorage.removeItem('staffToken');
+        localStorage.removeItem('staffUser');
       }
     }
   }, [navigate]);
@@ -65,16 +69,21 @@ const StaffLogin = () => {
       const data = await response.json();
       
       if (response.ok && data.token) {
-        // Store auth data
+        // Validate that the user is staff only
+        if (data.user.role !== 'staff') {
+          setError('Access denied. This login is for staff members only.');
+          // Clear any stored data
+          localStorage.removeItem('staffToken');
+          localStorage.removeItem('staffUser');
+          return;
+        }
+        
+        // Store auth data for staff users only
         localStorage.setItem('staffToken', data.token);
         localStorage.setItem('staffUser', JSON.stringify(data.user));
         
-        // Redirect both staff and trainer to staff dashboard
-        if (data.user.role === 'trainer' || data.user.role === 'staff') {
-          navigate('/staff/dashboard');
-        } else {
-          setError('Invalid user role');
-        }
+        // Redirect to staff dashboard
+        navigate('/staff/dashboard');
       } else {
         setError(data.message || 'Invalid credentials. Please try again.');
       }
