@@ -1,21 +1,6 @@
 import { useState, useEffect } from 'react';
 import TrainerSidebar from '../../layouts/trainer/TrainerSidebar';
 import toast from 'react-hot-toast';
-import {
-  MdMenu,
-  MdSearch,
-  MdAdd,
-  MdDownload,
-  MdCheckCircle,
-  MdWarning,
-  MdEdit,
-  MdDelete,
-  MdCalendarToday,
-  MdCancel,
-  MdPerson,
-  MdSchool,
-  MdVerified
-} from 'react-icons/md';
 
 const TrainerAssessments = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -49,7 +34,6 @@ const TrainerAssessments = () => {
     { value: 'all', label: 'All Status' },
     { value: 'competent', label: 'Competent' },
     { value: 'not_competent', label: 'Not Competent' },
-    { value: 'pending', label: 'Pending Assessment' }
   ];
 
   useEffect(() => {
@@ -275,24 +259,13 @@ const TrainerAssessments = () => {
   const getStatusBadge = (result) => {
     switch (result) {
       case 'competent':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-green-100 text-green-800';
       case 'not_competent':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-red-100 text-red-800';
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return 'bg-yellow-100 text-yellow-800';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const getStatusIcon = (result) => {
-    switch (result) {
-      case 'competent':
-        return <MdCheckCircle className="w-5 h-5" />;
-      case 'not_competent':
-        return <MdCancel className="w-5 h-5" />;
-      default:
-        return <MdWarning className="w-5 h-5" />;
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -344,29 +317,18 @@ const TrainerAssessments = () => {
         ${isCollapsed ? 'lg:ml-16' : 'lg:ml-64'}
       `}>
         {/* Header */}
-        <div className="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+        <div className="sticky top-0 z-30 bg-white border-b border-gray-200">
           <div className="flex items-center justify-between px-6 py-4">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="lg:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-              >
-                <MdMenu className="h-6 w-6" />
-              </button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">TESDA Assessment Records</h1>
-                <p className="text-sm text-gray-600 mt-1">Manage competency assessment results from TESDA evaluations</p>
-              </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">TESDA Assessment Records</h1>
+              <p className="text-sm text-gray-600 mt-1">Manage competency assessment results</p>
             </div>
-            <div className="flex items-center space-x-3">
-              <button 
-                onClick={handleAddNew}
-                className="inline-flex hover:cursor-pointer items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none"
-              >
-                <MdAdd className="h-5 w-5 mr-2" />
-                Add Assessment Record
-              </button>
-            </div>
+            <button 
+              onClick={handleAddNew}
+              className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+            >
+              Add Assessment
+            </button>
           </div>
 
           {/* Filters */}
@@ -414,71 +376,38 @@ const TrainerAssessments = () => {
               </select>
 
               {/* Search */}
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <MdSearch className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Search students..."
-                  className="block w-full pl-10 pr-3 py-2 text-sm border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
+              <input
+                type="text"
+                placeholder="Search students..."
+                className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
           </div>
         </div>
 
         {/* Statistics Cards */}
         <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Assessments</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">{stats.total}</p>
-                </div>
-                <div className="p-3 bg-blue-100 rounded-lg">
-                  <MdVerified className="h-8 w-8 text-blue-600" />
-                </div>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <p className="text-sm text-gray-600">Total Assessments</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{stats.total}</p>
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Competent</p>
-                  <p className="text-3xl font-bold text-green-600 mt-2">{stats.competent}</p>
-                </div>
-                <div className="p-3 bg-green-100 rounded-lg">
-                  <MdCheckCircle className="h-8 w-8 text-green-600" />
-                </div>
-              </div>
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <p className="text-sm text-gray-600">Competent</p>
+              <p className="text-2xl font-bold text-green-600 mt-1">{stats.competent}</p>
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Not Competent</p>
-                  <p className="text-3xl font-bold text-red-600 mt-2">{stats.notCompetent}</p>
-                </div>
-                <div className="p-3 bg-red-100 rounded-lg">
-                  <MdCancel className="h-8 w-8 text-red-600" />
-                </div>
-              </div>
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <p className="text-sm text-gray-600">Not Competent</p>
+              <p className="text-2xl font-bold text-red-600 mt-1">{stats.notCompetent}</p>
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Competency Rate</p>
-                  <p className="text-3xl font-bold text-blue-600 mt-2">{stats.competencyRate}%</p>
-                </div>
-                <div className="p-3 bg-blue-100 rounded-lg">
-                  <MdSchool className="h-8 w-8 text-blue-600" />
-                </div>
-              </div>
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <p className="text-sm text-gray-600">Competency Rate</p>
+              <p className="text-2xl font-bold text-blue-600 mt-1">{stats.competencyRate}%</p>
             </div>
           </div>
 
@@ -493,22 +422,15 @@ const TrainerAssessments = () => {
           )}
 
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-8">
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <MdWarning className="h-6 w-6 text-red-600" />
-                </div>
-                <div className="ml-3 flex-1">
-                  <h3 className="text-sm font-medium text-red-800">Error Loading Assessment Records</h3>
-                  <p className="mt-2 text-sm text-red-700">{error}</p>
-                  <button
-                    onClick={fetchAssessmentRecords}
-                    className="mt-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none"
-                  >
-                    Try Again
-                  </button>
-                </div>
-              </div>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+              <h3 className="text-sm font-medium text-red-800">Error Loading Assessment Records</h3>
+              <p className="mt-1 text-sm text-red-700">{error}</p>
+              <button
+                onClick={fetchAssessmentRecords}
+                className="mt-3 px-4 py-2 text-sm font-medium rounded-lg text-white bg-red-600 hover:bg-red-700"
+              >
+                Try Again
+              </button>
             </div>
           )}
 
@@ -516,54 +438,39 @@ const TrainerAssessments = () => {
           <div className="space-y-4">
             {filteredRecords.length > 0 ? (
               filteredRecords.map((record) => (
-                <div key={record.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-                  <div className="p-6">
+                <div key={record.id} className="bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
+                  <div className="p-5">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <div className="flex items-center space-x-4 mb-3">
-                          <div className="flex items-center space-x-3">
-                            <div className="p-2 bg-blue-100 rounded-lg">
-                              <MdPerson className="h-6 w-6 text-blue-600" />
-                            </div>
-                            <div>
-                              <h3 className="text-lg font-semibold text-gray-900">{record.student_name}</h3>
-                              <p className="text-sm text-gray-500">ID: {record.student_id}</p>
-                            </div>
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-900">{record.student_name}</h3>
+                            <p className="text-sm text-gray-500">ID: {record.student_id}</p>
                           </div>
-                          <span className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold border-2 ${getStatusBadge(record.result)}`}>
-                            {getStatusIcon(record.result)}
-                            <span className="ml-2">{getStatusLabel(record.result)}</span>
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusBadge(record.result)}`}>
+                            {getStatusLabel(record.result)}
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-                          <div className="flex items-start space-x-2">
-                            <MdSchool className="h-5 w-5 text-gray-400 mt-0.5" />
-                            <div>
-                              <p className="text-xs text-gray-500">Program / Batch</p>
-                              <p className="text-sm font-medium text-gray-900">
-                                {programs.find(p => p.id === record.program_id)?.name || 'N/A'}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {batches.find(b => b.id === record.batch_id)?.batch_id || 'N/A'}
-                              </p>
-                            </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                          <div>
+                            <p className="text-xs text-gray-500">Program / Batch</p>
+                            <p className="text-sm font-medium text-gray-900">
+                              {programs.find(p => p.id === record.program_id)?.name || 'N/A'}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {batches.find(b => b.id === record.batch_id)?.batch_id || 'N/A'}
+                            </p>
                           </div>
 
-                          <div className="flex items-start space-x-2">
-                            <MdCalendarToday className="h-5 w-5 text-gray-400 mt-0.5" />
-                            <div>
-                              <p className="text-xs text-gray-500">Assessment Date</p>
-                              <p className="text-sm font-medium text-gray-900">{formatDate(record.assessment_date)}</p>
-                            </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Assessment Date</p>
+                            <p className="text-sm font-medium text-gray-900">{formatDate(record.assessment_date)}</p>
                           </div>
 
-                          <div className="flex items-start space-x-2">
-                            <MdVerified className="h-5 w-5 text-gray-400 mt-0.5" />
-                            <div>
-                              <p className="text-xs text-gray-500">TESDA Assessor</p>
-                              <p className="text-sm font-medium text-gray-900">{record.tesda_assessor || 'N/A'}</p>
-                            </div>
+                          <div>
+                            <p className="text-xs text-gray-500">TESDA Assessor</p>
+                            <p className="text-sm font-medium text-gray-900">{record.tesda_assessor || 'N/A'}</p>
                           </div>
                         </div>
 
@@ -578,17 +485,15 @@ const TrainerAssessments = () => {
                       <div className="flex space-x-2 ml-4">
                         <button
                           onClick={() => handleEdit(record)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="Edit"
+                          className="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded-lg"
                         >
-                          <MdEdit className="h-5 w-5" />
+                          Edit
                         </button>
                         <button
                           onClick={() => handleDelete(record.id)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Delete"
+                          className="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded-lg"
                         >
-                          <MdDelete className="h-5 w-5" />
+                          Delete
                         </button>
                       </div>
                     </div>
@@ -596,17 +501,15 @@ const TrainerAssessments = () => {
                 </div>
               ))
             ) : (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-                <MdVerified className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+              <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No Assessment Records Found</h3>
                 <p className="text-gray-500 mb-4">
                   Start by adding TESDA competency assessment results for your students.
                 </p>
                 <button
                   onClick={handleAddNew}
-                  className="inline-flex hover:cursor-pointer items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
                 >
-                  <MdAdd className="h-5 w-5 mr-2" />
                   Add First Record
                 </button>
               </div>
@@ -779,8 +682,7 @@ const TrainerAssessments = () => {
                         onChange={(e) => setFormData({...formData, result: e.target.value})}
                         className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                       />
-                      <span className="text-sm font-medium text-gray-700 flex items-center">
-                        <MdCheckCircle className="h-5 w-5 text-green-600 mr-1" />
+                      <span className="text-sm font-medium text-gray-700">
                         Competent
                       </span>
                     </label>
@@ -792,8 +694,7 @@ const TrainerAssessments = () => {
                         onChange={(e) => setFormData({...formData, result: e.target.value})}
                         className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                       />
-                      <span className="text-sm font-medium text-gray-700 flex items-center">
-                        <MdCancel className="h-5 w-5 text-red-600 mr-1" />
+                      <span className="text-sm font-medium text-gray-700">
                         Not Competent
                       </span>
                     </label>

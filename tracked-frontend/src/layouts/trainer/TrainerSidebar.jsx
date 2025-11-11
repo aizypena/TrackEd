@@ -64,11 +64,6 @@ const TrainerSidebar = ({ isOpen, onClose, isCollapsed, setIsCollapsed }) => {
       icon: <MdAssignment className="h-5 w-5" />
     },
     {
-      name: 'Assessment Results',
-      path: '/trainer-lms/assessments',
-      icon: <MdAssignment className="h-5 w-5" />
-    },
-    {
       name: 'Certification',
       path: '/trainer-lms/certification',
       icon: <MdVerified className="h-5 w-5" />,
