@@ -77,11 +77,11 @@ const StaffAssessmentResults = () => {
         setPrograms(data.programs || []);
         setBatches(data.batches || []);
       } else {
-        toast.error('Failed to load assessment results');
+        toast.error('Failed to load exam results');
       }
     } catch (error) {
-      console.error('Error fetching assessment results:', error);
-      toast.error('Failed to load assessment results: ' + error.message);
+      console.error('Error fetching exam results:', error);
+      toast.error('Failed to load exam results: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -209,13 +209,13 @@ const StaffAssessmentResults = () => {
                 <MdMenu className="h-6 w-6" />
               </button>
               <div>
-                <h1 className="text-xl font-bold">Assessment Results</h1>
-                <p className="text-sm text-blue-100">Track and manage student assessment outcomes</p>
+                <h1 className="text-xl font-bold">Exam Results</h1>
+                <p className="text-sm text-blue-100">Track and manage student exam outcomes</p>
               </div>
             </div>
             <button className="flex items-center gap-2 px-4 py-2 bg-tracked-secondary hover:bg-opacity-90 rounded-md transition-colors">
               <MdAdd className="h-5 w-5" />
-              <span className="hidden sm:inline">New Assessment</span>
+              <span className="hidden sm:inline">New Exam</span>
             </button>
           </div>
         </nav>
@@ -230,7 +230,7 @@ const StaffAssessmentResults = () => {
                   <MdAssignment className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 font-medium">Total Assessments</p>
+                  <p className="text-sm text-gray-500 font-medium">Total Exams</p>
                   <p className="text-xl font-bold text-blue-600">{stats.totalAssessments}</p>
                 </div>
               </div>
@@ -280,7 +280,7 @@ const StaffAssessmentResults = () => {
                   <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                   <input
                     type="text"
-                    placeholder="Search assessments..."
+                    placeholder="Search exams..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-tracked-primary focus:border-tracked-primary"
@@ -387,7 +387,7 @@ const StaffAssessmentResults = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Assessment Details
+                      Exam Details
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Program & Batch
@@ -418,7 +418,7 @@ const StaffAssessmentResults = () => {
                       <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
                         <div className="flex items-center justify-center">
                           <MdRefresh className="h-6 w-6 animate-spin mr-2" />
-                          Loading assessment results...
+                          Loading exam results...
                         </div>
                       </td>
                     </tr>
@@ -504,7 +504,7 @@ const StaffAssessmentResults = () => {
                             </button>
                             <button
                               className="text-blue-600 hover:text-blue-700"
-                              title="Edit Assessment"
+                              title="Edit Exam"
                             >
                               <MdEdit className="h-5 w-5" />
                             </button>
@@ -521,7 +521,7 @@ const StaffAssessmentResults = () => {
                   ) : (
                     <tr>
                       <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
-                        No assessment results found matching your filters.
+                        No exam results found matching your filters.
                       </td>
                     </tr>
                   )}
@@ -534,7 +534,7 @@ const StaffAssessmentResults = () => {
               <div className="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200">
                 <div className="text-sm text-gray-700">
                   Showing <span className="font-medium">{filteredAssessments.length}</span> of{' '}
-                  <span className="font-medium">{assessments.length}</span> assessments
+                  <span className="font-medium">{assessments.length}</span> exams
                 </div>
                 <div className="flex gap-2">
                   <button className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
@@ -576,15 +576,15 @@ const StaffAssessmentResults = () => {
             </div>
 
             {/* Modal Body */}
-            <div className="p-6">
-              {/* Assessment Info */}
+              <div className="p-6">
+              {/* Summary Info */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div className="bg-gray-50 rounded-lg p-4">
                   <p className="text-sm text-gray-600 mb-1">Date</p>
                   <p className="text-lg font-bold text-gray-800">{selectedAssessment.date}</p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">Assessor</p>
+                  <p className="text-sm text-gray-600 mb-1">Examiner</p>
                   <p className="text-lg font-bold text-gray-800 truncate">{selectedAssessment.assessor}</p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4">
@@ -597,12 +597,12 @@ const StaffAssessmentResults = () => {
                 </div>
               </div>
 
-              {/* Statistics */}
+              {/* Statistics Summary */}
               {selectedAssessment.status !== 'scheduled' && selectedAssessment.averageScore > 0 && (
                 <div className="bg-gray-50 rounded-lg p-6 mb-6">
                   <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                     <MdBarChart className="h-5 w-5 text-tracked-primary" />
-                    Assessment Statistics
+                    Exam Statistics
                   </h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                     <div className="text-center">
@@ -673,7 +673,7 @@ const StaffAssessmentResults = () => {
                 <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-lg">
                   <MdAssignment className="h-16 w-16 mx-auto text-gray-300 mb-4" />
                   <p className="text-lg">No student results recorded yet.</p>
-                  <p className="text-sm mt-2">Results will appear here once the assessment is completed.</p>
+                  <p className="text-sm mt-2">Results will appear here once the exam is completed.</p>
                 </div>
               )}
 
@@ -687,7 +687,7 @@ const StaffAssessmentResults = () => {
                 )}
                 <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
                   <MdEdit className="h-5 w-5" />
-                  Edit Assessment
+                  Edit Exam
                 </button>
                 <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
                   <MdPrint className="h-5 w-5" />

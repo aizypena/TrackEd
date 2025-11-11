@@ -11,6 +11,7 @@ import StaffPaymentRecords from '../pages/staff/StaffPaymentRecords';
 import StaffTrainingSched from '../pages/staff/StaffTrainingSched';
 import StaffBatchManagement from '../pages/staff/StaffBatchManagement';
 import StaffAssessmentResults from '../pages/staff/StaffAssessmentResults';
+import StaffExamManagement from '../pages/staff/StaffExamManagement';
 import StaffEquipment from '../pages/staff/StaffEquipment';
 import StaffStockTransactions from '../pages/staff/StaffStockTransactions';
 import StaffEnrollmentTrends from '../pages/staff/StaffEnrollmentTrends';
@@ -46,6 +47,7 @@ const StaffRoutes = () => {
       <Route path="/training/schedule" element={<ProtectedStaffRoute><StaffTrainingSched /></ProtectedStaffRoute>} />
       <Route path="/training/batches" element={<ProtectedStaffRoute><StaffBatchManagement /></ProtectedStaffRoute>} />
       <Route path="/training/assessments" element={<ProtectedStaffRoute><StaffAssessmentResults /></ProtectedStaffRoute>} />
+      <Route path='/training/exams' element={<ProtectedStaffRoute><StaffExamManagement /></ProtectedStaffRoute>} />
       
       {/* Inventory Management */}
       <Route path="/inventory/equipment" element={<ProtectedStaffRoute><StaffEquipment /></ProtectedStaffRoute>} />

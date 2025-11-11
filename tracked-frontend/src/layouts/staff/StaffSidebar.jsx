@@ -98,6 +98,7 @@ const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsColla
       subItems: [
         { name: 'Training Schedule', path: '/staff/training/schedule' },
         { name: 'Batch Management', path: '/staff/training/batches' },
+        { name: 'Exam Management', path: '/staff/training/exams' },
         { name: 'Assessment Results', path: '/staff/training/assessments' }
       ]
     },
@@ -231,6 +232,7 @@ const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsColla
                 'Payment Records': 'payments',
                 'Training Schedule': 'schedule',
                 'Batch Management': 'batches',
+                'Exam Management': 'exams',
                 'Assessment Results': 'assessments',
                 'Equipment': 'equipment',
                 'Stock Transactions': 'transactions',
