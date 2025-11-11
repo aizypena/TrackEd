@@ -35,6 +35,8 @@ const CertificationManagement = () => {
   const [generatingCertificate, setGeneratingCertificate] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewStudent, setPreviewStudent] = useState(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [studentToGenerate, setStudentToGenerate] = useState(null);
 
   useEffect(() => {
     fetchCertificationData();
@@ -64,11 +66,15 @@ const CertificationManagement = () => {
     }
   };
 
-  const handleGenerateCertificate = async (studentId, studentName) => {
-    if (!window.confirm(`Are you sure you want to generate a certificate for ${studentName}?`)) {
-      return;
-    }
+  const handleGenerateCertificate = (studentId, studentName) => {
+    setStudentToGenerate({ id: studentId, name: studentName });
+    setShowConfirmModal(true);
+  };
 
+  const confirmGenerateCertificate = async () => {
+    if (!studentToGenerate) return;
+
+    setShowConfirmModal(false);
     setGeneratingCertificate(true);
     const loadingToast = toast.loading('Generating certificate...');
 
@@ -82,7 +88,7 @@ const CertificationManagement = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          student_id: studentId
+          student_id: studentToGenerate.id
         })
       });
 
@@ -103,6 +109,7 @@ const CertificationManagement = () => {
       toast.error('An error occurred while generating certificate');
     } finally {
       setGeneratingCertificate(false);
+      setStudentToGenerate(null);
     }
   };
 
@@ -228,18 +235,21 @@ const CertificationManagement = () => {
               position: absolute;
               bottom: 60px;
               left: 60px;
-              width: 100px;
-              height: 100px;
+              width: 120px;
+              height: 120px;
               border-radius: 50%;
               border: 4px solid #CA8A04;
-              background: #FFFBEB;
+              background: white;
               display: flex;
               align-items: center;
               justify-content: center;
-              font-size: 12px;
-              color: #92400E;
-              font-weight: bold;
-              text-align: center;
+              overflow: hidden;
+              padding: 10px;
+            }
+            .seal img {
+              width: 100%;
+              height: 100%;
+              object-fit: contain;
             }
           </style>
         </head>
@@ -263,11 +273,11 @@ const CertificationManagement = () => {
               <div class="footer-info">
                 <div class="footer-item">
                   <div class="footer-label">Date Issued</div>
-                  <div class="footer-value">${new Date().toLocaleDateString()}</div>
+                  <div class="footer-value">${previewStudent.certificate?.issued_date || new Date().toLocaleDateString()}</div>
                 </div>
                 <div class="footer-item">
                   <div class="footer-label">Certificate No.</div>
-                  <div class="footer-value">CERT-${new Date().getFullYear()}-XXXX</div>
+                  <div class="footer-value">${previewStudent.certificate?.certificate_number || 'CERT-' + new Date().getFullYear() + '-XXXX'}</div>
                 </div>
                 <div class="footer-item">
                   <div class="footer-label">Grade</div>
@@ -280,7 +290,7 @@ const CertificationManagement = () => {
             </div>
             
             <div class="seal">
-              OFFICIAL<br/>SEAL
+              <img src="/smi-logo.jpg" alt="SMI Logo" />
             </div>
           </div>
         </body>
@@ -302,13 +312,15 @@ const CertificationManagement = () => {
     { value: 'not-eligible', label: 'Not Eligible' },
   ];
 
-  const filteredStudents = students.filter(student => {
+    const filteredStudents = students.filter(student => {
+    // Only show students with TESDA assessment records
+    if (!student.has_tesda_assessment) return false;
+    
     const matchesProgram = selectedProgram === 'all' || student.program_id === parseInt(selectedProgram);
     const matchesSection = selectedSection === 'all' || student.batch_id === selectedSection;
-    const matchesStatus = selectedStatus === 'all' || student.certification.status === selectedStatus;
-    const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         student.student_id.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesProgram && matchesSection && matchesStatus && matchesSearch;
+    const matchesSearch = student.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         student.student_id?.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesProgram && matchesSection && matchesSearch;
   });
 
   const getStatusColor = (status) => {
@@ -498,6 +510,11 @@ const CertificationManagement = () => {
                         <h3 className="text-lg font-medium text-gray-900">{student.name}</h3>
                         <p className="text-sm text-gray-500">{student.student_id}</p>
                         <p className="text-sm text-gray-500">{student.program}</p>
+                        {student.certificate && (
+                          <p className="text-sm text-green-600 font-medium mt-1">
+                            Certificate: {student.certificate.certificate_number}
+                          </p>
+                        )}
                       </div>
                       <div className="flex items-center">
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(student.certification.status)}`}>
@@ -578,10 +595,15 @@ const CertificationManagement = () => {
                             className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                           >
                             <MdVisibility className="h-5 w-5 mr-2" />
-                            Preview Certificate
+                            {student.certificate ? 'View Certificate' : 'Preview Certificate'}
                           </button>
                           
-                          {student.certification.status === 'eligible' && (
+                          {student.certificate ? (
+                            <div className="inline-flex items-center px-4 py-2 text-sm font-medium text-green-700 bg-green-50 rounded-md">
+                              <MdCheckCircle className="h-5 w-5 mr-2" />
+                              Certificate Issued
+                            </div>
+                          ) : student.certification.status === 'eligible' ? (
                             <button
                               onClick={() => handleGenerateCertificate(student.id, student.name)}
                               disabled={generatingCertificate}
@@ -590,9 +612,7 @@ const CertificationManagement = () => {
                               <MdSchool className="h-5 w-5 mr-2" />
                               Generate Certificate
                             </button>
-                          )}
-                          
-                          {student.certification.status === 'pending' && (
+                          ) : student.certification.status === 'pending' ? (
                             <button
                               onClick={() => handleRecommendation(student.id, 'review')}
                               className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -600,7 +620,7 @@ const CertificationManagement = () => {
                               <MdPersonSearch className="h-5 w-5 mr-2" />
                               Review Progress
                             </button>
-                          )}
+                          ) : null}
                         </div>
                       </div>
                     </div>
@@ -611,6 +631,45 @@ const CertificationManagement = () => {
           )}
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && studentToGenerate && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6 shadow-xl">
+            <div className="flex items-center justify-center w-12 h-12 mx-auto bg-yellow-100 rounded-full mb-4">
+              <MdWarning className="h-6 w-6 text-yellow-600" />
+            </div>
+            
+            <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">
+              Generate Certificate?
+            </h3>
+            
+            <p className="text-sm text-gray-600 text-center mb-6">
+              Are you sure you want to generate a certificate for{' '}
+              <span className="font-semibold text-gray-900">{studentToGenerate.name}</span>?
+              This action cannot be undone.
+            </p>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  setStudentToGenerate(null);
+                }}
+                className="flex-1 px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmGenerateCertificate}
+                className="flex-1 px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Generate Certificate
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Certificate Preview Modal */}
       {showPreview && previewStudent && (
@@ -658,11 +717,15 @@ const CertificationManagement = () => {
                   <div className="grid grid-cols-3 gap-8 pt-12 mt-8 border-t border-gray-300">
                     <div className="text-center">
                       <p className="text-sm text-gray-600 mb-1">Date Issued</p>
-                      <p className="font-semibold text-gray-900">{new Date().toLocaleDateString()}</p>
+                      <p className="font-semibold text-gray-900">
+                        {previewStudent.certificate?.issued_date || new Date().toLocaleDateString()}
+                      </p>
                     </div>
                     <div className="text-center">
                       <p className="text-sm text-gray-600 mb-1">Certificate No.</p>
-                      <p className="font-semibold text-gray-900">CERT-{new Date().getFullYear()}-XXXX</p>
+                      <p className="font-semibold text-gray-900">
+                        {previewStudent.certificate?.certificate_number || `CERT-${new Date().getFullYear()}-XXXX`}
+                      </p>
                     </div>
                     <div className="text-center">
                       <p className="text-sm text-gray-600 mb-1">Grade</p>
@@ -675,10 +738,10 @@ const CertificationManagement = () => {
                     <p className="text-sm text-gray-700">Authorized Signature</p>
                   </div>
 
-                  {/* Seal Placeholder */}
+                  {/* Official Seal */}
                   <div className="absolute bottom-12 left-12">
-                    <div className="w-24 h-24 rounded-full border-4 border-yellow-600 flex items-center justify-center bg-yellow-50">
-                      <MdSchool className="h-12 w-12 text-yellow-600" />
+                    <div className="w-28 h-28 rounded-full border-4 border-yellow-600 flex items-center justify-center bg-white p-2 overflow-hidden">
+                      <img src="/smi-logo.jpg" alt="SMI Logo" className="w-full h-full object-contain" />
                     </div>
                   </div>
                 </div>
@@ -701,14 +764,22 @@ const CertificationManagement = () => {
                 >
                   Close
                 </button>
-                <button
-                  onClick={handleGenerateCertificateFromPreview}
-                  disabled={generatingCertificate}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <MdSchool className="h-5 w-5 mr-2" />
-                  Generate Official Certificate
-                </button>
+                {!previewStudent?.certificate && (
+                  <button
+                    onClick={handleGenerateCertificateFromPreview}
+                    disabled={generatingCertificate}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <MdSchool className="h-5 w-5 mr-2" />
+                    Generate Official Certificate
+                  </button>
+                )}
+                {previewStudent?.certificate && (
+                  <div className="inline-flex items-center px-4 py-2 text-sm font-medium text-green-700 bg-green-50 rounded-md">
+                    <MdCheckCircle className="h-5 w-5 mr-2" />
+                    Certificate Already Issued
+                  </div>
+                )}
               </div>
             </div>
           </div>

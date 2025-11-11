@@ -2450,12 +2450,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
             
             // Calculate attendance percentage
             $totalClasses = \App\Models\Attendance::where('batch_id', $student->batch_id)
-                ->select('attendance_date')
                 ->distinct()
-                ->count();
+                ->count('date');
             
             $attendedClasses = \App\Models\Attendance::where('user_id', $student->id)
-                ->where('status', 'present')
+                ->whereIn('status', ['present', 'late'])
                 ->count();
             
             $attendancePercentage = $totalClasses > 0 ? round(($attendedClasses / $totalClasses) * 100, 2) : 0;
@@ -2486,6 +2485,17 @@ Route::middleware(['auth:sanctum'])->group(function () {
                     'graded_at' => $grade->graded_at ? $grade->graded_at->toDateString() : null,
                 ];
             })->values();
+            
+            // Check if student has TESDA assessment record
+            $hasTesdaAssessment = DB::table('tesda_assessments')
+                ->where('student_id', $student->student_id)
+                ->exists();
+            
+            // Check if certificate already exists for this student
+            $certificate = DB::table('certificates')
+                ->where('user_id', $student->id)
+                ->where('program_id', $program ? $program->id : null)
+                ->first();
             
             // Determine certification requirements
             $requirements = [
@@ -2519,6 +2529,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 'program_id' => $program ? $program->id : null,
                 'section' => $batch ? $batch->batch_id : 'N/A',
                 'batch_id' => $student->batch_id,
+                'has_tesda_assessment' => $hasTesdaAssessment,
                 'progress' => [
                     'attendance' => round($attendancePercentage, 2),
                     'overall_grade' => round($overallGrade, 2),
@@ -2528,9 +2539,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
                     'total_modules' => $totalModules,
                 ],
                 'grades' => $gradesList,
+                'certificate' => $certificate ? [
+                    'certificate_number' => $certificate->certificate_number,
+                    'issued_date' => $certificate->issued_date,
+                    'status' => $certificate->status,
+                ] : null,
                 'certification' => [
-                    'status' => $status,
-                    'remarks' => $remarks,
+                    'status' => $certificate ? 'certified' : $status,
+                    'remarks' => $certificate ? 'Certificate already issued' : $remarks,
                     'last_updated' => now()->toIso8601String(),
                     'requirements' => $requirements,
                 ],
@@ -2606,12 +2622,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
         $overallGrade = $grades->avg('percentage') ?? 0;
         
         $totalClasses = \App\Models\Attendance::where('batch_id', $student->batch_id)
-            ->select('attendance_date')
             ->distinct()
-            ->count();
+            ->count('date');
         
         $attendedClasses = \App\Models\Attendance::where('user_id', $student->id)
-            ->where('status', 'present')
+            ->whereIn('status', ['present', 'late'])
             ->count();
         
         $attendancePercentage = $totalClasses > 0 ? round(($attendedClasses / $totalClasses) * 100, 2) : 0;
