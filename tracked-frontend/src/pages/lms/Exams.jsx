@@ -375,7 +375,7 @@ const Exams = () => {
                           <div className="flex space-x-3">
                             {exam.status === 'available' && (
                               <button 
-                                onClick={() => navigate(`/smi-lms/take-assessment/${exam.id}`)}
+                                onClick={() => navigate(`/smi-lms/take-assessment/${exam.id}`, { state: { source: 'exams' } })}
                                 className="flex items-center px-6 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
                               >
                                 <MdPlayArrow className="h-4 w-4 mr-2" />
@@ -384,7 +384,7 @@ const Exams = () => {
                             )}
                             {exam.status === 'in-progress' && (
                               <button 
-                                onClick={() => navigate(`/smi-lms/take-assessment/${exam.id}`)}
+                                onClick={() => navigate(`/smi-lms/take-assessment/${exam.id}`, { state: { source: 'exams' } })}
                                 className="flex items-center px-6 py-2.5 text-sm font-medium text-white bg-yellow-600 rounded-lg hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition-colors"
                               >
                                 <MdPending className="h-4 w-4 mr-2" />

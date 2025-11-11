@@ -226,19 +226,6 @@ const Certificates = () => {
                 </div>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
-              <div className="text-right">
-                <div className="text-sm font-medium text-gray-900">{issuedCount} Certificates Earned</div>
-                <div className="text-xs text-gray-500">{certificationCount} Professional • {completionCount} Academic</div>
-              </div>
-              <button
-                onClick={() => window.print()}
-                className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-              >
-                <MdPrint className="h-4 w-4 mr-2" />
-                Export Portfolio
-              </button>
-            </div>
           </div>
         </header>
 

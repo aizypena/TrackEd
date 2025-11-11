@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from '../../layouts/lms/Sidebar';
 import { getStudentUser } from '../../utils/studentAuth';
 import {
@@ -15,6 +15,7 @@ import {
 const TakeAssessment = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [quiz, setQuiz] = useState(null);
@@ -157,8 +158,13 @@ const TakeAssessment = () => {
       const data = await response.json();
 
       if (data.success) {
-        // Redirect to assessments page
-        navigate('/smi-lms/assessments', {
+        // Redirect based on source or quiz type
+        const source = location.state?.source;
+        const redirectRoute = source === 'exams' || quiz?.type === 'exam' 
+          ? '/smi-lms/exams' 
+          : '/smi-lms/assessments';
+        
+        navigate(redirectRoute, {
           state: { message: isAutoSubmit ? 'Time expired - Quiz auto-submitted' : 'Quiz submitted successfully!' }
         });
       } else {
@@ -198,6 +204,15 @@ const TakeAssessment = () => {
   }
 
   if (error) {
+    // Determine the correct back route based on source or quiz type
+    const source = location.state?.source;
+    const backRoute = source === 'exams' || quiz?.type === 'exam' 
+      ? '/smi-lms/exams' 
+      : '/smi-lms/assessments';
+    const backText = source === 'exams' || quiz?.type === 'exam' 
+      ? 'Back to Exams' 
+      : 'Back to Assessments';
+
     return (
       <div className="flex min-h-screen bg-gray-50">
         <Sidebar user={user} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -207,10 +222,10 @@ const TakeAssessment = () => {
             <h2 className="text-xl font-semibold text-gray-900 mb-2 text-center">Error Loading Quiz</h2>
             <p className="text-gray-600 text-center mb-4">{error}</p>
             <button
-              onClick={() => navigate('/smi-lms/assessments')}
+              onClick={() => navigate(backRoute)}
               className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
-              Back to Assessments
+              {backText}
             </button>
           </div>
         </div>
