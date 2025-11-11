@@ -58,6 +58,14 @@ const TrainerRoutes = () => {
         } 
       />
       <Route 
+        path="/assessment-management" 
+        element={
+          <ProtectedTrainerRoute>
+            <TrainerAssessments />
+          </ProtectedTrainerRoute>
+        } 
+      />
+      <Route 
         path="/assessments" 
         element={
           <ProtectedTrainerRoute>

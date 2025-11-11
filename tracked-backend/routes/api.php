@@ -1341,6 +1341,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
             
             $batch->student_count = $studentCount;
             $batch->schedule_days = json_decode($batch->schedule_days);
+            $batch->name = $batch->batch_id; // Add name field for dropdown compatibility
             
             return $batch;
         });
@@ -1348,6 +1349,233 @@ Route::middleware(['auth:sanctum'])->group(function () {
         return response()->json([
             'success' => true,
             'data' => $batches
+        ]);
+    });
+
+    // TESDA Assessment Routes
+    
+    // Get all TESDA assessment records
+    Route::get('/trainer/tesda-assessments', function (Request $request) {
+        $trainer = $request->user();
+        
+        if ($trainer->role !== 'trainer') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+        
+        $assessments = DB::table('tesda_assessments')
+            ->where('trainer_id', $trainer->id)
+            ->orderBy('assessment_date', 'desc')
+            ->get();
+        
+        return response()->json([
+            'success' => true,
+            'data' => $assessments
+        ]);
+    });
+    
+    // Create new TESDA assessment record
+    Route::post('/trainer/tesda-assessments', function (Request $request) {
+        $trainer = $request->user();
+        
+        if ($trainer->role !== 'trainer') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+        
+        $validated = $request->validate([
+            'student_id' => 'required|string|max:255',
+            'student_name' => 'required|string|max:255',
+            'program_id' => 'required|integer',
+            'batch_id' => 'required|integer',
+            'assessment_date' => 'required|date',
+            'tesda_assessor' => 'nullable|string|max:255',
+            'result' => 'required|in:competent,not_competent,pending',
+            'remarks' => 'nullable|string|max:1000'
+        ]);
+        
+        $assessmentId = DB::table('tesda_assessments')->insertGetId([
+            'trainer_id' => $trainer->id,
+            'student_id' => $validated['student_id'],
+            'student_name' => $validated['student_name'],
+            'program_id' => $validated['program_id'],
+            'batch_id' => $validated['batch_id'],
+            'assessment_date' => $validated['assessment_date'],
+            'tesda_assessor' => $validated['tesda_assessor'] ?? null,
+            'result' => $validated['result'],
+            'remarks' => $validated['remarks'] ?? null,
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'TESDA assessment record created successfully',
+            'data' => ['id' => $assessmentId]
+        ], 201);
+    });
+    
+    // Update TESDA assessment record
+    Route::put('/trainer/tesda-assessments/{id}', function (Request $request, $id) {
+        $trainer = $request->user();
+        
+        if ($trainer->role !== 'trainer') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+        
+        $assessment = DB::table('tesda_assessments')
+            ->where('id', $id)
+            ->where('trainer_id', $trainer->id)
+            ->first();
+        
+        if (!$assessment) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Assessment record not found'
+            ], 404);
+        }
+        
+        $validated = $request->validate([
+            'student_id' => 'required|string|max:255',
+            'student_name' => 'required|string|max:255',
+            'program_id' => 'required|integer',
+            'batch_id' => 'required|integer',
+            'assessment_date' => 'required|date',
+            'tesda_assessor' => 'nullable|string|max:255',
+            'result' => 'required|in:competent,not_competent,pending',
+            'remarks' => 'nullable|string|max:1000'
+        ]);
+        
+        DB::table('tesda_assessments')
+            ->where('id', $id)
+            ->update([
+                'student_id' => $validated['student_id'],
+                'student_name' => $validated['student_name'],
+                'program_id' => $validated['program_id'],
+                'batch_id' => $validated['batch_id'],
+                'assessment_date' => $validated['assessment_date'],
+                'tesda_assessor' => $validated['tesda_assessor'] ?? null,
+                'result' => $validated['result'],
+                'remarks' => $validated['remarks'] ?? null,
+                'updated_at' => now()
+            ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'TESDA assessment record updated successfully'
+        ]);
+    });
+    
+    // Delete TESDA assessment record
+    Route::delete('/trainer/tesda-assessments/{id}', function (Request $request, $id) {
+        $trainer = $request->user();
+        
+        if ($trainer->role !== 'trainer') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+        
+        $assessment = DB::table('tesda_assessments')
+            ->where('id', $id)
+            ->where('trainer_id', $trainer->id)
+            ->first();
+        
+        if (!$assessment) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Assessment record not found'
+            ], 404);
+        }
+        
+        DB::table('tesda_assessments')->where('id', $id)->delete();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'TESDA assessment record deleted successfully'
+        ]);
+    });
+    
+    // Get programs list for dropdowns
+    Route::get('/trainer/programs', function (Request $request) {
+        $trainer = $request->user();
+        
+        if ($trainer->role !== 'trainer') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+        
+        // Get distinct programs from trainer's batches
+        $programs = DB::table('batches')
+            ->join('programs', 'batches.program_id', '=', 'programs.id')
+            ->where('batches.trainer_id', $trainer->id)
+            ->select('programs.id', 'programs.title as name')
+            ->distinct()
+            ->orderBy('programs.title')
+            ->get();
+        
+        return response()->json([
+            'success' => true,
+            'data' => $programs
+        ]);
+    });
+    
+    // Get students list for TESDA assessments
+    Route::get('/trainer/students', function (Request $request) {
+        $trainer = $request->user();
+        
+        if ($trainer->role !== 'trainer') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+        
+        // Get batches assigned to this trainer
+        $trainerBatches = DB::table('batches')
+            ->where('trainer_id', $trainer->id)
+            ->pluck('batch_id');
+        
+        // Get students in those batches
+        $students = DB::table('users')
+            ->whereIn('batch_id', $trainerBatches)
+            ->where('role', 'student')
+            ->where('status', 'active')
+            ->select('id', 'student_id', 'first_name', 'last_name', 'batch_id')
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get();
+        
+        // Add program_id and batch_id mapping
+        $students = $students->map(function ($student) {
+            // Get batch details
+            $batch = DB::table('batches')
+                ->where('batch_id', $student->batch_id)
+                ->first();
+            
+            return [
+                'id' => $student->id,
+                'student_id' => $student->student_id,
+                'first_name' => $student->first_name,
+                'last_name' => $student->last_name,
+                'program_id' => $batch ? $batch->program_id : null,
+                'batch_id' => $batch ? $batch->id : null
+            ];
+        });
+        
+        return response()->json([
+            'success' => true,
+            'data' => $students
         ]);
     });
 
