@@ -47,8 +47,18 @@ const TrainerGrades = () => {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
       });
+
+      // Handle authentication errors
+      if (response.status === 401) {
+        localStorage.removeItem('trainerToken');
+        localStorage.removeItem('trainerUser');
+        setError('Your session has expired. Please log in again.');
+        setLoading(false);
+        return;
+      }
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Server error' }));
