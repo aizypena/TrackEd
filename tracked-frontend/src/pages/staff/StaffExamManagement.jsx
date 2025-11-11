@@ -393,7 +393,7 @@ const StaffExamManagement = () => {
 
         {/* Stats Cards */}
         <div className="px-6 py-4 bg-white border-b border-gray-200">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
               <div className="flex items-center justify-between">
                 <div>
@@ -401,24 +401,6 @@ const StaffExamManagement = () => {
                   <p className="text-2xl font-bold text-blue-900 mt-1">{stats.total}</p>
                 </div>
                 <MdAssignment className="h-8 w-8 text-blue-600" />
-              </div>
-            </div>
-            <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 p-4 rounded-lg border border-yellow-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-yellow-600 font-medium">Scheduled</p>
-                  <p className="text-2xl font-bold text-yellow-900 mt-1">{stats.scheduled}</p>
-                </div>
-                <MdCalendarToday className="h-8 w-8 text-yellow-600" />
-              </div>
-            </div>
-            <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-4 rounded-lg border border-orange-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-orange-600 font-medium">Ongoing</p>
-                  <p className="text-2xl font-bold text-orange-900 mt-1">{stats.ongoing}</p>
-                </div>
-                <MdTimer className="h-8 w-8 text-orange-600" />
               </div>
             </div>
             <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
@@ -452,11 +434,14 @@ const StaffExamManagement = () => {
             <select
               value={programFilter}
               onChange={(e) => setProgramFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
+              style={{ color: '#111827' }}
             >
-              <option value="all">All Programs</option>
+              <option value="all" style={{ color: '#111827', backgroundColor: '#ffffff' }}>All Programs</option>
               {programs.map(program => (
-                <option key={program.id} value={program.id}>{program.program_name}</option>
+                <option key={program.id} value={program.id} style={{ color: '#111827', backgroundColor: '#ffffff' }}>
+                  {program.program_name}
+                </option>
               ))}
             </select>
 
@@ -464,11 +449,14 @@ const StaffExamManagement = () => {
             <select
               value={batchFilter}
               onChange={(e) => setBatchFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
+              style={{ color: '#111827' }}
             >
-              <option value="all">All Batches</option>
+              <option value="all" style={{ color: '#111827', backgroundColor: '#ffffff' }}>All Batches</option>
               {batches.map(batch => (
-                <option key={batch.id} value={batch.id}>{batch.batch_name}</option>
+                <option key={batch.id} value={batch.id} style={{ color: '#111827', backgroundColor: '#ffffff' }}>
+                  {batch.batch_name}
+                </option>
               ))}
             </select>
 
@@ -476,13 +464,14 @@ const StaffExamManagement = () => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
+              style={{ color: '#111827' }}
             >
-              <option value="all">All Status</option>
-              <option value="scheduled">Scheduled</option>
-              <option value="ongoing">Ongoing</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
+              <option value="all" style={{ color: '#111827', backgroundColor: '#ffffff' }}>All Status</option>
+              <option value="scheduled" style={{ color: '#111827', backgroundColor: '#ffffff' }}>Scheduled</option>
+              <option value="ongoing" style={{ color: '#111827', backgroundColor: '#ffffff' }}>Ongoing</option>
+              <option value="completed" style={{ color: '#111827', backgroundColor: '#ffffff' }}>Completed</option>
+              <option value="cancelled" style={{ color: '#111827', backgroundColor: '#ffffff' }}>Cancelled</option>
             </select>
           </div>
         </div>
