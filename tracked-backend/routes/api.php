@@ -5079,6 +5079,193 @@ Route::middleware(['auth:sanctum'])->group(function () {
         }
     });
 
+    // Staff Exams Endpoints
+    // Get all exams
+    Route::get('/staff/exams', function (Request $request) {
+        try {
+            $user = $request->user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated'
+                ], 401);
+            }
+            
+            $exams = DB::table('exams')
+                ->leftJoin('programs', 'exams.program_id', '=', 'programs.id')
+                ->leftJoin('batches', 'exams.batch_id', '=', 'batches.id')
+                ->select(
+                    'exams.*',
+                    'programs.title as program_name',
+                    'batches.batch_id as batch_name'
+                )
+                ->orderBy('exams.created_at', 'desc')
+                ->get();
+            
+            return response()->json([
+                'success' => true,
+                'data' => $exams
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Staff exams fetch error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load exams',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
+    
+    // Create exam
+    Route::post('/staff/exams', function (Request $request) {
+        try {
+            $user = $request->user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated'
+                ], 401);
+            }
+            
+            $validated = $request->validate([
+                'exam_title' => 'required|string|max:255',
+                'exam_code' => 'required|string|max:100|unique:exams,exam_code',
+                'program_id' => 'required|exists:programs,id',
+                'batch_id' => 'nullable|exists:batches,id',
+                'exam_type' => 'required|in:written,practical,oral,online',
+                'exam_date' => 'required|date',
+                'exam_time' => 'required',
+                'duration' => 'required|integer|min:1',
+                'passing_score' => 'required|numeric|min:0',
+                'total_score' => 'required|numeric|min:1',
+                'venue' => 'required|string|max:255',
+                'proctor' => 'nullable|string|max:255',
+                'description' => 'nullable|string',
+                'status' => 'required|in:scheduled,ongoing,completed,cancelled'
+            ]);
+            
+            $examId = DB::table('exams')->insertGetId(array_merge($validated, [
+                'created_by' => $user->id,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]));
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Exam created successfully',
+                'data' => ['id' => $examId]
+            ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Staff exam create error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create exam',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
+    
+    // Update exam
+    Route::put('/staff/exams/{id}', function (Request $request, $id) {
+        try {
+            $user = $request->user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated'
+                ], 401);
+            }
+            
+            $exam = DB::table('exams')->where('id', $id)->first();
+            if (!$exam) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Exam not found'
+                ], 404);
+            }
+            
+            $validated = $request->validate([
+                'exam_title' => 'required|string|max:255',
+                'exam_code' => 'required|string|max:100|unique:exams,exam_code,' . $id,
+                'program_id' => 'required|exists:programs,id',
+                'batch_id' => 'nullable|exists:batches,id',
+                'exam_type' => 'required|in:written,practical,oral,online',
+                'exam_date' => 'required|date',
+                'exam_time' => 'required',
+                'duration' => 'required|integer|min:1',
+                'passing_score' => 'required|numeric|min:0',
+                'total_score' => 'required|numeric|min:1',
+                'venue' => 'required|string|max:255',
+                'proctor' => 'nullable|string|max:255',
+                'description' => 'nullable|string',
+                'status' => 'required|in:scheduled,ongoing,completed,cancelled'
+            ]);
+            
+            DB::table('exams')->where('id', $id)->update(array_merge($validated, [
+                'updated_at' => now()
+            ]));
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Exam updated successfully'
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Staff exam update error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update exam',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
+    
+    // Delete exam
+    Route::delete('/staff/exams/{id}', function (Request $request, $id) {
+        try {
+            $user = $request->user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated'
+                ], 401);
+            }
+            
+            $exam = DB::table('exams')->where('id', $id)->first();
+            if (!$exam) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Exam not found'
+                ], 404);
+            }
+            
+            DB::table('exams')->where('id', $id)->delete();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Exam deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Staff exam delete error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete exam',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
+
     // Staff Assessment Reports Endpoint
     Route::post('/staff/reports/assessments', function (Request $request) {
         try {

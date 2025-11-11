@@ -103,12 +103,8 @@ const StaffExamManagement = () => {
       });
 
       const data = await response.json();
-      console.log('Programs data:', data);
       if (data.success) {
         setPrograms(data.data || []);
-        console.log('Programs set:', data.data);
-      } else {
-        console.log('Programs fetch failed:', data.message);
       }
     } catch (error) {
       console.error('Error fetching programs:', error);
@@ -126,12 +122,8 @@ const StaffExamManagement = () => {
       });
 
       const data = await response.json();
-      console.log('Batches data:', data);
       if (data.success) {
         setBatches(data.data || []);
-        console.log('Batches set:', data.data);
-      } else {
-        console.log('Batches fetch failed:', data.message);
       }
     } catch (error) {
       console.error('Error fetching batches:', error);
@@ -755,7 +747,7 @@ const StaffExamManagement = () => {
                   >
                     <option value="">Select Program</option>
                     {programs.map(program => (
-                      <option key={program.id} value={program.id}>{program.program_name}</option>
+                      <option key={program.id} value={program.id}>{program.title || program.program_name}</option>
                     ))}
                   </select>
                 </div>
@@ -772,7 +764,7 @@ const StaffExamManagement = () => {
                   >
                     <option value="">All Batches</option>
                     {batches.map(batch => (
-                      <option key={batch.id} value={batch.id}>{batch.batch_name}</option>
+                      <option key={batch.id} value={batch.id}>{batch.batch_id || batch.batch_name}</option>
                     ))}
                   </select>
                 </div>
@@ -1016,7 +1008,7 @@ const StaffExamManagement = () => {
                   >
                     <option value="">Select Program</option>
                     {programs.map(program => (
-                      <option key={program.id} value={program.id}>{program.program_name}</option>
+                      <option key={program.id} value={program.id}>{program.title || program.program_name}</option>
                     ))}
                   </select>
                 </div>
@@ -1032,7 +1024,7 @@ const StaffExamManagement = () => {
                   >
                     <option value="">All Batches</option>
                     {batches.map(batch => (
-                      <option key={batch.id} value={batch.id}>{batch.batch_name}</option>
+                      <option key={batch.id} value={batch.id}>{batch.batch_id || batch.batch_name}</option>
                     ))}
                   </select>
                 </div>
