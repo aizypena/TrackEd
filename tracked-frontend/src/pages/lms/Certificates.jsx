@@ -456,7 +456,7 @@ const Certificates = () => {
             {!loading && !error && (
             <>
             {/* Certificates Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="space-y-6">
               {filteredCertificates.length > 0 ? (
                 filteredCertificates.map((certificate) => (
                   <div key={certificate.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-200">
@@ -568,7 +568,7 @@ const Certificates = () => {
                   </div>
                 ))
               ) : (
-                <div className="col-span-full bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
                   <div className="mx-auto w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-6">
                     <MdWorkspacePremium className="h-12 w-12 text-blue-600" />
                   </div>

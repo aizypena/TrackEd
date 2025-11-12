@@ -196,14 +196,6 @@ const AssessmentResults = () => {
                 </div>
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-sm font-medium text-gray-900">{totalAssessments} TESDA Assessments</div>
-              <div className="text-xs text-gray-500">
-                <span className="text-green-600 font-medium">{competentAssessments} Competent</span>
-                {' • '}
-                <span className="text-red-600 font-medium">{notYetCompetentAssessments} Not Yet Competent</span>
-              </div>
-            </div>
           </div>
         </header>
 
@@ -233,104 +225,45 @@ const AssessmentResults = () => {
             {!loading && !error && (
               <>
             {/* Results List */}
-            <div className="space-y-6">
+            <div className="space-y-4">
               {assessmentResults.length > 0 ? (
                 assessmentResults.map((result) => (
-                  <div key={result.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-200">
-                    {/* Result Header */}
-                    <div className="p-6 border-b border-gray-100">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-3">
-                            {getStatusIcon(result.status)}
-                            <div>
-                              <h3 className="text-xl font-semibold text-gray-900 mb-1">{result.title}</h3>
-                              <p className="text-sm text-gray-600">{result.course} • {result.courseCode}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-4 text-sm text-gray-600">
-                            <div className="flex items-center space-x-1">
-                              <MdCalendarToday className="h-4 w-4" />
-                              <span>{formatDate(result.dateTaken)}</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <MdSchool className="h-4 w-4" />
-                              <span>{result.type}</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <MdAssessment className="h-4 w-4" />
-                              <span>Assessor: {result.tesdaAssessor}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="ml-6 flex flex-col items-end space-y-3">
-                          <div className={`inline-flex items-center px-4 py-2 rounded-lg font-semibold text-sm ${
-                            result.competency === 'Competent' 
-                              ? 'bg-green-100 text-green-800 border-2 border-green-300' 
-                              : 'bg-red-100 text-red-800 border-2 border-red-300'
-                          }`}>
-                            {result.competency === 'Competent' ? (
-                              <MdVerified className="h-5 w-5 mr-2" />
-                            ) : (
-                              <MdError className="h-5 w-5 mr-2" />
-                            )}
-                            {result.competency}
-                          </div>
-                          <div className="text-right">
-                            <div className="text-2xl font-bold text-gray-900">
-                              {result.obtainedMarks}/{result.totalMarks}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {((result.obtainedMarks / result.totalMarks) * 100).toFixed(1)}%
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Action Bar */}
-                    <div className="p-6 bg-gray-50 border-t border-gray-100">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4 text-sm">
-                          <div className={`flex items-center px-3 py-1.5 rounded-md font-medium ${
+                  <div key={result.id} className="bg-white rounded-lg border border-gray-200 p-6 hover:border-gray-300 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-lg font-semibold text-gray-900">{result.course}</h3>
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                             result.competency === 'Competent' 
                               ? 'bg-green-100 text-green-700' 
                               : 'bg-red-100 text-red-700'
                           }`}>
-                            {result.competency === 'Competent' ? (
-                              <MdCheckCircle className="h-4 w-4 mr-1.5" />
-                            ) : (
-                              <MdCancel className="h-4 w-4 mr-1.5" />
-                            )}
                             {result.competency}
-                          </div>
-                          <span className="text-gray-400">•</span>
-                          <span className="text-gray-600">Assessor: {result.tesdaAssessor}</span>
-                          <span className="text-gray-400">•</span>
-                          <span className="text-gray-600">Batch: {result.batchName}</span>
+                          </span>
                         </div>
-                        <div className="flex space-x-3">
-                          <button 
-                            onClick={() => handleViewDetails(result)}
-                            className="flex items-center px-4 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-                          >
-                            <MdAssessment className="h-4 w-4 mr-2" />
-                            View Details
-                            <MdChevronRight className="h-4 w-4 ml-1" />
-                          </button>
+                        <div className="flex items-center gap-4 text-sm text-gray-600">
+                          <span>{formatDate(result.dateTaken)}</span>
+                          <span>•</span>
+                          <span>Assessor: {result.tesdaAssessor}</span>
+                          <span>•</span>
+                          <span>Batch: {result.batchName}</span>
                         </div>
                       </div>
+                      <button 
+                        onClick={() => handleViewDetails(result)}
+                        className="px-4 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                      >
+                        View Details
+                      </button>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-                  <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                    <MdStars className="h-12 w-12 text-gray-400" />
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No TESDA Assessments Found</h3>
-                  <p className="text-gray-500 max-w-md mx-auto">
-                    You haven't taken any TESDA competency assessments yet. Check back after your trainer conducts the assessments.
+                <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+                  <MdAssessment className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Assessments Yet</h3>
+                  <p className="text-gray-500">
+                    Check back after your trainer conducts the assessments.
                   </p>
                 </div>
               )}
@@ -344,18 +277,15 @@ const AssessmentResults = () => {
       {/* Details Modal */}
       {showDetailsModal && selectedResult && (
         <div className="fixed inset-0 backdrop-blur-md bg-white/30 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+          <div className="bg-white rounded-lg max-w-2xl w-full shadow-xl">
             {/* Modal Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">{selectedResult.title}</h2>
-                <p className="text-sm text-gray-600 mt-1">{selectedResult.course} • {selectedResult.courseCode}</p>
-              </div>
+              <h2 className="text-xl font-semibold text-gray-900">{selectedResult.course}</h2>
               <button
                 onClick={() => setShowDetailsModal(false)}
-                className="text-gray-400 hover:text-gray-500"
+                className="text-gray-400 hover:text-gray-600"
               >
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -363,112 +293,53 @@ const AssessmentResults = () => {
 
             {/* Modal Content */}
             <div className="p-6 space-y-6">
-              {/* Competency Status Banner */}
-              <div className={`p-4 rounded-lg border-2 ${
-                selectedResult.competency === 'Competent'
-                  ? 'bg-green-50 border-green-300'
-                  : 'bg-red-50 border-red-300'
-              }`}>
-                <div className="flex items-center justify-center space-x-3">
-                  {selectedResult.competency === 'Competent' ? (
-                    <MdVerified className="h-8 w-8 text-green-600" />
-                  ) : (
-                    <MdError className="h-8 w-8 text-red-600" />
-                  )}
-                  <div className="text-center">
-                    <div className={`text-2xl font-bold ${
-                      selectedResult.competency === 'Competent' ? 'text-green-800' : 'text-red-800'
-                    }`}>
-                      {selectedResult.competency}
-                    </div>
-                    <div className="text-sm text-gray-600 mt-1">TESDA Competency Status</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Assessment Overview */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-50 rounded-lg p-4 text-center">
-                  <div className="text-sm text-gray-600 mb-1">Batch</div>
-                  <div className="text-lg font-semibold text-gray-900">{selectedResult.batchName}</div>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-4 text-center">
-                  <div className="text-sm text-gray-600 mb-1">TESDA Assessor</div>
-                  <div className="text-lg font-semibold text-gray-900">{selectedResult.tesdaAssessor}</div>
-                </div>
-              </div>
-
-              {/* Assessment Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900">TESDA Assessment Details</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-start space-x-3">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <MdCalendarToday className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">Assessment Date</div>
-                      <div className="text-sm text-gray-600">{formatDate(selectedResult.dateTaken)}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-3">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <MdSchool className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">TESDA Assessor</div>
-                      <div className="text-sm text-gray-600">{selectedResult.tesdaAssessor || 'N/A'}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Assessment Note */}
-              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                <div className="flex items-start space-x-3">
-                  <MdAssessment className="h-5 w-5 text-blue-600 mt-0.5" />
-                  <div>
-                    <h4 className="text-sm font-semibold text-blue-900 mb-1">About TESDA Competency Assessment</h4>
-                    <p className="text-sm text-blue-800">
-                      This assessment evaluates your practical skills and theoretical knowledge based on TESDA competency standards. 
-                      A "Competent" result indicates you have successfully demonstrated the required competencies for this qualification.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Final Assessment Result */}
-              <div className={`rounded-lg p-6 border-2 text-center ${
-                selectedResult.competency === 'Competent' 
-                  ? 'bg-green-50 border-green-300' 
-                  : 'bg-orange-50 border-orange-300'
-              }`}>
-                <div className="flex items-center justify-center space-x-3 mb-2">
-                  {selectedResult.competency === 'Competent' ? (
-                    <MdVerified className="h-10 w-10 text-green-600" />
-                  ) : (
-                    <MdError className="h-10 w-10 text-orange-600" />
-                  )}
-                </div>
-                <div className={`text-sm font-medium mb-2 ${
-                  selectedResult.competency === 'Competent' ? 'text-green-900' : 'text-orange-900'
-                }`}>Official TESDA Assessment Result</div>
-                <div className={`text-4xl font-bold ${
-                  selectedResult.competency === 'Competent' ? 'text-green-700' : 'text-orange-700'
-                }`}>{selectedResult.competency}</div>
-                <div className={`text-sm mt-2 ${
-                  selectedResult.competency === 'Competent' ? 'text-green-700' : 'text-orange-700'
+              {/* Assessment Result */}
+              <div className="text-center py-6">
+                <div className={`inline-flex items-center gap-2 px-6 py-3 rounded-full text-lg font-semibold ${
+                  selectedResult.competency === 'Competent' 
+                    ? 'bg-green-100 text-green-700' 
+                    : 'bg-red-100 text-red-700'
                 }`}>
-                  Assessed on {formatDate(selectedResult.dateTaken)}
+                  {selectedResult.competency === 'Competent' ? (
+                    <MdCheckCircle className="h-6 w-6" />
+                  ) : (
+                    <MdCancel className="h-6 w-6" />
+                  )}
+                  {selectedResult.competency}
                 </div>
+                <p className="text-sm text-gray-600 mt-3">TESDA Competency Status</p>
+              </div>
+
+              {/* Assessment Details */}
+              <div className="space-y-3">
+                <div className="flex justify-between py-2 border-b border-gray-100">
+                  <span className="text-sm text-gray-600">Assessment Date</span>
+                  <span className="text-sm font-medium text-gray-900">{formatDate(selectedResult.dateTaken)}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-gray-100">
+                  <span className="text-sm text-gray-600">Assessor</span>
+                  <span className="text-sm font-medium text-gray-900">{selectedResult.tesdaAssessor}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-gray-100">
+                  <span className="text-sm text-gray-600">Batch</span>
+                  <span className="text-sm font-medium text-gray-900">{selectedResult.batchName}</span>
+                </div>
+              </div>
+
+              {/* Note */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="text-sm text-gray-700">
+                  This assessment evaluates your practical skills and theoretical knowledge based on TESDA competency standards. 
+                  A "Competent" result indicates you have successfully demonstrated the required competencies for this qualification.
+                </p>
               </div>
             </div>
 
             {/* Modal Footer */}
-            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+            <div className="flex justify-end p-6 border-t border-gray-200">
               <button
                 onClick={() => setShowDetailsModal(false)}
-                className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                className="px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
               >
                 Close
               </button>
