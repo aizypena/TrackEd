@@ -7003,7 +7003,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         ]);
     });
     
-    // Get student's quiz results/attempts
+    // Get student's TESDA assessment results
     Route::get('/student/quiz-results', function (Request $request) {
         $user = $request->user();
         
@@ -7014,40 +7014,44 @@ Route::middleware(['auth:sanctum'])->group(function () {
             ], 403);
         }
         
-        // Get all completed attempts for this student with quiz details
-        $attempts = \App\Models\QuizAttempt::where('user_id', $user->id)
-            ->where('status', 'completed')
-            ->with(['quiz', 'answers.question'])
-            ->orderBy('completed_at', 'desc')
+        // Get all TESDA assessment records for this student
+        $assessments = DB::table('tesda_assessments')
+            ->where('student_id', $user->student_id)
+            ->orderBy('assessment_date', 'desc')
             ->get();
         
         // Format the results
-        $results = $attempts->map(function ($attempt) use ($user) {
-            $quiz = $attempt->quiz;
+        $results = $assessments->map(function ($assessment) {
+            // Get program info
+            $program = $assessment->program_id ? \App\Models\Program::find($assessment->program_id) : null;
             
-            // Get batch and program info
-            $batch = $quiz->batch_id ? \App\Models\Batch::where('batch_id', $quiz->batch_id)->first() : null;
-            $program = $batch ? \App\Models\Program::find($batch->program_id) : null;
+            // Get batch info
+            $batch = $assessment->batch_id ? \App\Models\Batch::find($assessment->batch_id) : null;
+            
+            // Determine competency based on result
+            $isCompetent = $assessment->result === 'competent';
             
             return [
-                'id' => $attempt->id,
-                'quiz_id' => $quiz->id,
-                'quiz_title' => $quiz->title,
-                'quiz_description' => $quiz->description,
-                'quiz_type' => $quiz->type,
+                'id' => $assessment->id,
+                'quiz_id' => $assessment->id, // Using assessment ID as quiz_id for compatibility
+                'quiz_title' => 'TESDA Competency Assessment',
+                'quiz_description' => $assessment->remarks ?? 'TESDA competency-based assessment',
+                'quiz_type' => 'demonstration', // TESDA assessments are typically demonstrations
                 'course_title' => $program ? $program->title : 'N/A',
                 'course_code' => $program ? ($program->code ?? $program->title) : 'N/A',
-                'date_taken' => $attempt->completed_at->toDateString(),
-                'time_taken' => $attempt->time_taken, // in seconds
-                'total_marks' => $attempt->total_points,
-                'obtained_marks' => $attempt->score,
-                'passing_marks' => $quiz->passing_score,
-                'percentage' => $attempt->percentage,
-                'status' => $attempt->percentage >= $quiz->passing_score ? 'passed' : 'failed',
-                'attempt_number' => $attempt->attempt_number,
-                'max_attempts' => $quiz->retake_limit,
-                'total_questions' => $quiz->questions()->count(),
-                'correct_answers' => $attempt->answers()->where('is_correct', true)->count(),
+                'date_taken' => $assessment->assessment_date,
+                'time_taken' => 0, // Not tracked for TESDA assessments
+                'total_marks' => 100, // Competency is pass/fail, represented as 100 points
+                'obtained_marks' => $isCompetent ? 100 : 0, // 100 if competent, 0 if not
+                'passing_marks' => 100, // Must be fully competent
+                'percentage' => $isCompetent ? 100 : 0,
+                'status' => $isCompetent ? 'passed' : 'failed',
+                'attempt_number' => 1,
+                'max_attempts' => 1,
+                'total_questions' => 1,
+                'correct_answers' => $isCompetent ? 1 : 0,
+                'tesda_assessor' => $assessment->tesda_assessor,
+                'batch_name' => $batch ? $batch->batch_id : 'N/A'
             ];
         });
         
