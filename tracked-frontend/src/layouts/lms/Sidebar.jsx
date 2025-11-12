@@ -59,11 +59,11 @@ const Sidebar = ({ user, isOpen, onClose, sidebarOpen, setSidebarOpen }) => {
       path: '/smi-lms/exam-results',
       icon: <MdSchool className="h-5 w-5" />
     },
-    {
-      name: 'Assessments',
-      path: '/smi-lms/assessments',
-      icon: <MdQuiz className="h-5 w-5" />
-    },
+    // {
+    //   name: 'Assessments',
+    //   path: '/smi-lms/assessments',
+    //   icon: <MdQuiz className="h-5 w-5" />
+    // },
     {
       name: 'Assessment Results',
       path: '/smi-lms/assessment-results',
