@@ -5,17 +5,15 @@ import { getStudentUser } from '../../utils/studentAuth';
 import { 
   MdCalendarToday, 
   MdTimer, 
-  MdQuiz, 
   MdCheckCircle, 
   MdCancel,
-  MdTrendingUp,
-  MdTrendingDown,
   MdFilterList,
   MdChevronRight,
   MdStars,
   MdSchool,
   MdAssessment,
-  MdBarChart
+  MdVerified,
+  MdError
 } from 'react-icons/md';
 
 const AssessmentResults = () => {
@@ -67,6 +65,7 @@ const AssessmentResults = () => {
           passingMarks: result.passing_marks,
           percentage: result.percentage,
           status: result.status,
+          competency: result.status === 'passed' ? 'Competent' : 'Not Yet Competent',
           grade: calculateGrade(result.percentage),
           attempt: result.attempt_number,
           maxAttempts: result.max_attempts,
@@ -122,11 +121,8 @@ const AssessmentResults = () => {
 
   // Calculate statistics
   const totalAssessments = assessmentResults.length;
-  const passedAssessments = assessmentResults.filter(r => r.status === 'passed').length;
-  const failedAssessments = assessmentResults.filter(r => r.status === 'failed').length;
-  const averageScore = totalAssessments > 0 
-    ? (assessmentResults.reduce((sum, r) => sum + ((r.obtainedMarks / r.totalMarks) * 100), 0) / totalAssessments).toFixed(1)
-    : 0;
+  const competentAssessments = assessmentResults.filter(r => r.competency === 'Competent').length;
+  const notYetCompetentAssessments = assessmentResults.filter(r => r.competency === 'Not Yet Competent').length;
 
   const formatDate = (dateString) => {
     const options = { year: 'numeric', month: 'long', day: 'numeric' };
@@ -183,8 +179,12 @@ const AssessmentResults = () => {
               </div>
             </div>
             <div className="text-right">
-              <div className="text-sm font-medium text-gray-900">{totalAssessments} Total Results</div>
-              <div className="text-xs text-gray-500">{passedAssessments} Passed • {failedAssessments} Failed</div>
+              <div className="text-sm font-medium text-gray-900">{totalAssessments} Total Assessments</div>
+              <div className="text-xs text-gray-500">
+                <span className="text-green-600 font-medium">{competentAssessments} Competent</span>
+                {' • '}
+                <span className="text-red-600 font-medium">{notYetCompetentAssessments} Not Yet Competent</span>
+              </div>
             </div>
           </div>
         </header>
@@ -214,83 +214,6 @@ const AssessmentResults = () => {
 
             {!loading && !error && (
               <>
-            {/* Statistics Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Total Assessments</p>
-                    <p className="text-3xl font-bold text-gray-900">{totalAssessments}</p>
-                  </div>
-                  <div className="p-3 bg-blue-100 rounded-full">
-                    <MdQuiz className="h-6 w-6 text-blue-600" />
-                  </div>
-                </div>
-                <div className="mt-4 flex items-center text-sm">
-                  <MdTrendingUp className="h-4 w-4 text-green-500 mr-1" />
-                  <span className="text-green-600 font-medium">12% increase</span>
-                  <span className="text-gray-500 ml-1">from last semester</span>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Passed</p>
-                    <p className="text-3xl font-bold text-green-600">{passedAssessments}</p>
-                  </div>
-                  <div className="p-3 bg-green-100 rounded-full">
-                    <MdCheckCircle className="h-6 w-6 text-green-600" />
-                  </div>
-                </div>
-                <div className="mt-4 flex items-center text-sm">
-                  <span className="text-gray-500">
-                    {totalAssessments > 0 ? ((passedAssessments / totalAssessments) * 100).toFixed(1) : 0}% pass rate
-                  </span>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Failed</p>
-                    <p className="text-3xl font-bold text-red-600">{failedAssessments}</p>
-                  </div>
-                  <div className="p-3 bg-red-100 rounded-full">
-                    <MdCancel className="h-6 w-6 text-red-600" />
-                  </div>
-                </div>
-                <div className="mt-4 flex items-center text-sm">
-                  <span className="text-gray-500">Retake available</span>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Average Score</p>
-                    <p className="text-3xl font-bold text-blue-600">{averageScore}%</p>
-                  </div>
-                  <div className="p-3 bg-yellow-100 rounded-full">
-                    <MdBarChart className="h-6 w-6 text-yellow-600" />
-                  </div>
-                </div>
-                <div className="mt-4 flex items-center text-sm">
-                  {averageScore >= 85 ? (
-                    <>
-                      <MdTrendingUp className="h-4 w-4 text-green-500 mr-1" />
-                      <span className="text-green-600 font-medium">Excellent performance</span>
-                    </>
-                  ) : (
-                    <>
-                      <MdTrendingDown className="h-4 w-4 text-yellow-500 mr-1" />
-                      <span className="text-yellow-600 font-medium">Room for improvement</span>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-
             {/* Results List */}
             <div className="space-y-6">
               {assessmentResults.length > 0 ? (
@@ -318,11 +241,23 @@ const AssessmentResults = () => {
                             </div>
                             <div className="flex items-center space-x-1">
                               <MdSchool className="h-4 w-4" />
-                              <span>{result.instructor}</span>
+                              <span>{result.type}</span>
                             </div>
                           </div>
                         </div>
                         <div className="ml-6 flex flex-col items-end space-y-3">
+                          <div className={`inline-flex items-center px-4 py-2 rounded-lg font-semibold text-sm ${
+                            result.competency === 'Competent' 
+                              ? 'bg-green-100 text-green-800 border-2 border-green-300' 
+                              : 'bg-red-100 text-red-800 border-2 border-red-300'
+                          }`}>
+                            {result.competency === 'Competent' ? (
+                              <MdVerified className="h-5 w-5 mr-2" />
+                            ) : (
+                              <MdError className="h-5 w-5 mr-2" />
+                            )}
+                            {result.competency}
+                          </div>
                           <div className="text-right">
                             <div className="text-2xl font-bold text-gray-900">
                               {result.obtainedMarks}/{result.totalMarks}
@@ -338,16 +273,23 @@ const AssessmentResults = () => {
                     {/* Action Bar */}
                     <div className="p-6 bg-gray-50 border-t border-gray-100">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4 text-sm text-gray-600">
-                          <span>Attempt {result.attempt} of {result.maxAttempts}</span>
-                          <span>•</span>
-                          <span>Correct Answers: {result.correctAnswers} / {result.totalQuestions}</span>
-                          {result.status === 'failed' && result.attempt < result.maxAttempts && (
-                            <>
-                              <span>•</span>
-                              <span className="text-blue-600 font-medium">Retake Available</span>
-                            </>
-                          )}
+                        <div className="flex items-center space-x-4 text-sm">
+                          <div className={`flex items-center px-3 py-1.5 rounded-md font-medium ${
+                            result.competency === 'Competent' 
+                              ? 'bg-green-100 text-green-700' 
+                              : 'bg-red-100 text-red-700'
+                          }`}>
+                            {result.competency === 'Competent' ? (
+                              <MdCheckCircle className="h-4 w-4 mr-1.5" />
+                            ) : (
+                              <MdCancel className="h-4 w-4 mr-1.5" />
+                            )}
+                            {result.competency}
+                          </div>
+                          <span className="text-gray-400">•</span>
+                          <span className="text-gray-600">Questions: {result.totalQuestions}</span>
+                          <span className="text-gray-400">•</span>
+                          <span className="text-gray-600">Correct Answers: {result.correctAnswers}</span>
                         </div>
                         <div className="flex space-x-3">
                           <button 
