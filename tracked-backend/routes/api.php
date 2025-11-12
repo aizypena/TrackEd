@@ -7147,6 +7147,63 @@ Route::middleware(['auth:sanctum'])->group(function () {
         ]);
     });
     
+    // Get student's certificates
+    Route::get('/student/certificates', function (Request $request) {
+        $user = $request->user();
+        
+        // Check if user is a student
+        if ($user->role !== 'student') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Only students can access this endpoint.'
+            ], 403);
+        }
+        
+        // Get all certificates for this student with related data
+        $certificates = DB::table('certificates')
+            ->where('user_id', $user->id)
+            ->orderBy('issued_date', 'desc')
+            ->get();
+        
+        // Format certificates with program details
+        $formattedCertificates = $certificates->map(function ($cert) use ($user) {
+            // Get program details
+            $program = $cert->program_id ? \App\Models\Program::find($cert->program_id) : null;
+            
+            // Get trainer/issuer details
+            $trainer = $cert->issued_by ? DB::table('users')->find($cert->issued_by) : null;
+            
+            return [
+                'id' => $cert->id,
+                'certificate_number' => $cert->certificate_number,
+                'issued_date' => $cert->issued_date,
+                'status' => $cert->status,
+                'grade' => $cert->grade,
+                'attendance_rate' => $cert->attendance_rate,
+                'notes' => $cert->notes,
+                'program' => $program ? [
+                    'id' => $program->id,
+                    'title' => $program->title,
+                    'code' => $program->code ?? 'N/A',
+                    'description' => $program->description,
+                ] : null,
+                'issued_by' => $trainer ? [
+                    'name' => $trainer->first_name . ' ' . $trainer->last_name,
+                    'email' => $trainer->email,
+                ] : null,
+                'student' => [
+                    'name' => $user->first_name . ' ' . $user->last_name,
+                    'student_id' => $user->student_id ?? 'N/A',
+                ],
+            ];
+        });
+        
+        return response()->json([
+            'success' => true,
+            'data' => $formattedCertificates
+        ]);
+    });
+    
     // Student Exams/Assessments Routes
     Route::get('/student/exams', function (Request $request) {
         $user = $request->user();
