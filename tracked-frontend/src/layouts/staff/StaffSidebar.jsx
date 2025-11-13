@@ -22,28 +22,31 @@ import {
 const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsCollapsed }) => {
   const location = useLocation();
   const [expandedSections, setExpandedSections] = useState({});
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    // Initialize with localStorage data immediately
+    return propUser || getStaffUser();
+  });
   const [filteredNavItems, setFilteredNavItems] = useState([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Fetch fresh user data from API on mount to get latest permissions
   useEffect(() => {
     const fetchUserProfile = async () => {
-      if (propUser) {
-        setUser(propUser);
-      } else {
-        try {
-          // First, try to fetch fresh data from API
-          const response = await staffAPI.getProfile();
-          if (response.success && response.user) {
-            setUser(response.user);
-          }
-        } catch (error) {
-          console.error('Error fetching staff profile:', error);
-          // Fallback to localStorage if API fails
-          const userData = getStaffUser();
-          setUser(userData);
+      // Always start with localStorage/propUser to prevent flashing
+      const initialUser = propUser || getStaffUser();
+      if (initialUser) {
+        setUser(initialUser);
+      }
+
+      // Then try to fetch fresh data from API in the background
+      try {
+        const response = await staffAPI.getProfile();
+        if (response.success && response.user) {
+          setUser(response.user);
         }
+      } catch (error) {
+        console.error('Error fetching staff profile:', error);
+        // Keep the localStorage data if API fails
       }
     };
 
@@ -347,7 +350,7 @@ const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsColla
                     : 'Staff'}
                 </p>
                 <p className="text-xs text-blue-200 truncate">
-                  {user?.email || 'staff@smiinstitute.com'}
+                  {user?.email || ''}
                 </p>
                 <div className="flex items-center space-x-2 mt-1">
                   <span className="inline-block px-2 py-0.5 text-xs font-medium bg-tracked-secondary text-white rounded">
