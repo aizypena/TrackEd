@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from '../../layouts/admin/Sidebar';
 import enrollmentAPI from '../../services/enrollmentAPI';
 import ViewEnrollment from '../../components/admin/ViewEnrollment';
+import EditEnrollment from '../../components/admin/EditEnrollment';
 import {
   MdSchool,
   MdSearch,
@@ -35,6 +36,7 @@ const Enrollments = () => {
   const [filterBatch, setFilterBatch] = useState('all');
   const [selectedEnrollment, setSelectedEnrollment] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   
   // Real data from API
   const [enrollmentStats, setEnrollmentStats] = useState({
@@ -144,6 +146,32 @@ const Enrollments = () => {
   const handleCloseViewModal = () => {
     setIsViewModalOpen(false);
     setSelectedEnrollment(null);
+  };
+
+  const handleEditEnrollment = (enrollment) => {
+    setSelectedEnrollment(enrollment);
+    setIsEditModalOpen(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setSelectedEnrollment(null);
+  };
+
+  const handleUpdateEnrollment = async (userId, updatedData) => {
+    try {
+      // Call your API to update the enrollment
+      const response = await enrollmentAPI.update(userId, updatedData);
+      
+      if (response.success) {
+        // Refresh the enrollments list
+        await fetchEnrollments();
+        alert('Enrollment updated successfully!');
+      }
+    } catch (error) {
+      console.error('Error updating enrollment:', error);
+      throw error;
+    }
   };
 
   const getStatusColor = (status) => {
@@ -448,6 +476,7 @@ const Enrollments = () => {
                               <MdVisibility className="h-5 w-5" />
                             </button>
                             <button 
+                              onClick={() => handleEditEnrollment(enrollment)}
                               className="text-blue-600 hover:text-blue-900 transition-colors"
                               title="Edit Enrollment"
                             >
@@ -476,6 +505,16 @@ const Enrollments = () => {
         isOpen={isViewModalOpen}
         onClose={handleCloseViewModal}
         enrollment={selectedEnrollment}
+      />
+
+      {/* Edit Enrollment Modal */}
+      <EditEnrollment
+        isOpen={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        enrollment={selectedEnrollment}
+        programs={programs}
+        batches={batches}
+        onUpdate={handleUpdateEnrollment}
       />
     </div>
   );

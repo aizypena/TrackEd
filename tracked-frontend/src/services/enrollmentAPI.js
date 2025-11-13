@@ -78,6 +78,27 @@ const enrollmentAPI = {
     }
   },
 
+  // Update enrollment
+  update: async (userId, updateData) => {
+    try {
+      const response = await fetch(`${API_URL}/admin/students/${userId}`, {
+        method: 'PUT',
+        headers: getAdminAuthHeaders(),
+        body: JSON.stringify(updateData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error updating enrollment:', error);
+      throw error;
+    }
+  },
+
   // Update enrollment status
   updateStatus: async (studentId, status) => {
     try {
