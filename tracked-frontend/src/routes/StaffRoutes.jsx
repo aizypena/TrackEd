@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import ProtectedStaffRoute from '../components/ProtectedStaffRoute';
 import StaffDashboard from '../pages/staff/StaffDashboard';
 import StaffApplications from '../pages/staff/StaffApplications';
+import StaffAddApplicant from '../pages/staff/StaffAddApplicant';
 import StaffApplicantView from '../pages/staff/StaffApplicantView';
 import StaffEnrollmentsRecord from '../pages/staff/StaffEnrollmentsRecord';
 import StaffDocumentManagement from '../pages/staff/StaffDocumentManagement';
@@ -33,6 +34,9 @@ const StaffRoutes = () => {
       <Route path="/payment-callback" element={<ProtectedStaffRoute><PaymentCallback /></ProtectedStaffRoute>} />
       
       {/* Enrollment Management */}
+      <Route path="/applications" element={<ProtectedStaffRoute><StaffApplications /></ProtectedStaffRoute>} />
+      <Route path="/applications/add" element={<ProtectedStaffRoute><StaffAddApplicant /></ProtectedStaffRoute>} />
+      <Route path="/applications/:id" element={<ProtectedStaffRoute><StaffApplicantView /></ProtectedStaffRoute>} />
       <Route path="/enrollments/applications" element={<ProtectedStaffRoute><StaffApplications /></ProtectedStaffRoute>} />
       <Route path="/enrollments/applications/:id" element={<ProtectedStaffRoute><StaffApplicantView /></ProtectedStaffRoute>} />
       <Route path="/enrollments/records" element={<ProtectedStaffRoute><StaffEnrollmentsRecord /></ProtectedStaffRoute>} />

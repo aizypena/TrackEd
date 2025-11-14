@@ -696,8 +696,8 @@ Route::post('/student/reset-password', function (Request $request) {
     ]);
 });
 
-// Public Programs Endpoint (for CourseOffered page)
-Route::get('/programs', [ProgramController::class, 'index']);
+// Public Programs Endpoint (for CourseOffered page and applicant registration)
+Route::apiResource('programs', ProgramController::class)->only(['index', 'show']);
 
 // Student Exam Endpoints
 Route::middleware(['auth:sanctum'])->group(function () {
@@ -3718,6 +3718,92 @@ Route::middleware(['auth:sanctum'])->group(function () {
         return response()->json([
             'applications' => $applications
         ]);
+    });
+
+    // Create new applicant (for staff)
+    Route::post('/staff/applicants', function (Request $request) {
+        $validated = $request->validate([
+            'first_name' => 'required|string|max:255',
+            'middle_name' => 'nullable|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'phone_number' => 'required|string|max:20',
+            'password' => 'required|string|min:8',
+            'date_of_birth' => 'required|date',
+            'place_of_birth' => 'required|string|max:255',
+            'gender' => 'required|in:Male,Female,Other',
+            'nationality' => 'required|string|max:255',
+            'marital_status' => 'required|in:Single,Married,Widowed,Divorced',
+            'education' => 'required|string|max:255',
+            'school' => 'required|string|max:255',
+            'course_program' => 'required|string|max:255',
+            'employment_status' => 'required|string|max:255',
+            'company_name' => 'required|string|max:255',
+            'address' => 'required|string',
+            'emergency_contact_name' => 'required|string|max:255',
+            'emergency_contact_phone' => 'required|string|max:20',
+            'emergency_contact_relationship' => 'required|string|max:255',
+            'validId' => 'required|file|max:10240',
+            'transcript' => 'required|file|max:10240',
+            'diploma' => 'required|file|max:10240',
+            'passportPhoto' => 'required|file|max:10240',
+        ]);
+
+        // Hash the password
+        $validated['password'] = bcrypt($validated['password']);
+        
+        // Set role and default status
+        $validated['role'] = 'applicant';
+        $validated['status'] = 'active'; // Status should be 'active' or 'inactive'
+        $validated['application_status'] = 'pending'; // Application status should be 'pending', 'approved', or 'rejected'
+        
+        // Handle document uploads
+        if ($request->hasFile('validId')) {
+            $path = $request->file('validId')->store('applications/valid_ids', 'public');
+            $validated['valid_id_path'] = $path;
+        }
+        
+        if ($request->hasFile('transcript')) {
+            $path = $request->file('transcript')->store('applications/transcripts', 'public');
+            $validated['transcript_path'] = $path;
+        }
+        
+        if ($request->hasFile('diploma')) {
+            $path = $request->file('diploma')->store('applications/diplomas', 'public');
+            $validated['diploma_path'] = $path;
+        }
+        
+        if ($request->hasFile('passportPhoto')) {
+            $path = $request->file('passportPhoto')->store('applications/passport_photos', 'public');
+            $validated['passport_photo_path'] = $path;
+        }
+        
+        // Remove file objects from validated data before creating user
+        unset($validated['validId']);
+        unset($validated['transcript']);
+        unset($validated['diploma']);
+        unset($validated['passportPhoto']);
+        
+        // Map emergency contact fields
+        $validated['emergency_contact'] = $validated['emergency_contact_name'];
+        $validated['emergency_phone'] = $validated['emergency_contact_phone'];
+        $validated['emergency_relationship'] = $validated['emergency_contact_relationship'];
+        unset($validated['emergency_contact_name']);
+        unset($validated['emergency_contact_phone']);
+        unset($validated['emergency_contact_relationship']);
+        
+        // Map company_name to occupation
+        $validated['occupation'] = $validated['company_name'];
+        unset($validated['company_name']);
+        
+        // Create the applicant
+        $applicant = \App\Models\User::create($validated);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Applicant created successfully',
+            'applicant' => $applicant
+        ], 201);
     });
 
     // Get single applicant details
@@ -6778,8 +6864,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         }
     });
     
-    // Program Routes
-    Route::apiResource('programs', ProgramController::class);
+    // Program Routes (admin-only routes for create/update/delete)
+    Route::apiResource('programs', ProgramController::class)->except(['index', 'show']);
     
     // Batch Routes
     Route::apiResource('batches', BatchController::class);

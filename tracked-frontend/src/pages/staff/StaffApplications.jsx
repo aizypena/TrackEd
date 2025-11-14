@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import StaffSidebar from '../../layouts/staff/StaffSidebar';
 import { getStaffToken } from '../../utils/staffAuth';
 import toast, { Toaster } from 'react-hot-toast';
@@ -14,10 +14,12 @@ import {
   MdPendingActions,
   MdDownload,
   MdRefresh,
-  MdSort
+  MdSort,
+  MdAdd
 } from 'react-icons/md';
 
 const StaffApplications = () => {
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -276,7 +278,7 @@ const StaffApplications = () => {
           <div className="container mx-auto flex justify-between items-center">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => setSidebarOpen(true)}
+                onClick={() => setSidebarOpen(!sidebarOpen)}
                 className="lg:hidden p-2 -ml-2 rounded-md hover:bg-tracked-primary-dark"
               >
                 <MdMenu className="h-6 w-6" />
@@ -286,6 +288,13 @@ const StaffApplications = () => {
                 <p className="text-sm text-blue-100">Review and manage student applications</p>
               </div>
             </div>
+            <button
+              onClick={() => navigate('/staff/applications/add')}
+              className="flex items-center gap-2 hover:cursor-pointer px-4 py-2 bg-white text-tracked-primary rounded-lg hover:bg-blue-50 transition-colors font-medium"
+            >
+              <MdAdd className="h-5 w-5" />
+              Add Applicant
+            </button>
           </div>
         </nav>
         
