@@ -266,16 +266,45 @@ const EnrollmentTrends = () => {
 
   const filteredPeriods = getFilteredData();
 
-  // Get filtered program data based on selected program
+  // Get filtered program data based on selected program and time range
   const getFilteredProgramTotals = () => {
-    if (selectedProgram === 'all') {
-      return trendsData.programTotals || {};
+    // If a specific program is selected, calculate its total from filtered periods
+    if (selectedProgram !== 'all') {
+      const dataForProgram = getDataByViewType(selectedProgram);
+      const total = filteredPeriods.reduce((sum, period) => sum + (dataForProgram[period] || 0), 0);
+      
+      const filtered = {};
+      if (total > 0) {
+        filtered[selectedProgram] = total;
+      }
+      return filtered;
     }
-    const filtered = {};
-    if (trendsData.programTotals && trendsData.programTotals[selectedProgram]) {
-      filtered[selectedProgram] = trendsData.programTotals[selectedProgram];
-    }
-    return filtered;
+    
+    // For 'all programs', calculate totals for each program from filtered periods
+    const programTotals = {};
+    
+    // Get all unique programs from the data
+    const allPrograms = Object.keys(trendsData.programTotals || {});
+    
+    // Calculate total for each program based on filtered periods
+    allPrograms.forEach(program => {
+      const dataForProgram = getDataByViewType(program);
+      const total = filteredPeriods.reduce((sum, period) => sum + (dataForProgram[period] || 0), 0);
+      
+      if (total > 0) {
+        programTotals[program] = total;
+      }
+    });
+    
+    // Sort by total enrollments (descending)
+    const sortedPrograms = Object.entries(programTotals)
+      .sort(([, a], [, b]) => b - a)
+      .reduce((acc, [program, total]) => {
+        acc[program] = total;
+        return acc;
+      }, {});
+    
+    return sortedPrograms;
   };
 
   const filteredProgramTotals = getFilteredProgramTotals();
