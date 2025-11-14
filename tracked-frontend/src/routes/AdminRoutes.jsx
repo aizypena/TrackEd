@@ -4,6 +4,7 @@ import ProtectedAdminRoute from '../components/ProtectedAdminRoute';
 // Admin Pages
 import AdminDashboard from '../pages/admin/AdminDashboard';
 import AllUsers from '../pages/admin/AllUsers';
+import AddUser from '../pages/admin/AddUser';
 import AdminApplications from '../pages/admin/AdminApplications';
 import Enrollments from '../pages/admin/Enrollments';
 import EnrollmentTrends from '../pages/admin/EnrollmentTrends';
@@ -40,6 +41,14 @@ const AdminRoutes = () => {
         element={
           <ProtectedAdminRoute>
             <AllUsers />
+          </ProtectedAdminRoute>
+        }
+      />
+      <Route
+        path="/users/add"
+        element={
+          <ProtectedAdminRoute>
+            <AddUser />
           </ProtectedAdminRoute>
         }
       />

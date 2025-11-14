@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from '../../layouts/admin/Sidebar';
 import ViewUser from '../../layouts/admin/ViewUser';
-import AddUserModal from '../../components/User Management/AddUserModal';
 import EditUserModal from '../../components/User Management/EditUserModal';
 import StaffPermissionsModal from '../../components/admin/StaffPermissionsModal';
 import { userAPI } from '../../services/userAPI';
@@ -15,6 +15,7 @@ import {
 } from 'react-icons/md';
 
 function AllUsers() {
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -24,7 +25,6 @@ function AllUsers() {
   const [usersPerPage] = useState(10);
   const [loading, setLoading] = useState(true);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPermissionsModalOpen, setIsPermissionsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -265,70 +265,6 @@ function AllUsers() {
     toast('Export functionality coming soon!', {
       icon: 'ℹ️',
     });
-  };
-
-  const handleAddUser = async (userData) => {
-    try {
-      const response = await userAPI.createUser(userData);
-      if (response.success) {
-        // Get the created user from the response
-        const createdUser = response.user || response.data;
-        
-        // Log user creation
-        const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
-        if (token) {
-          await fetch('http://localhost:8000/api/log-action', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: JSON.stringify({
-              action: 'user_created',
-              description: `Admin created new user: ${createdUser.first_name} ${createdUser.last_name} (${createdUser.email}) with role: ${createdUser.role}`,
-              log_level: 'info'
-            })
-          });
-        }
-        
-        // Refresh the users list
-        fetchUsers();
-        fetchStats();
-        toast.success('User added successfully!');
-        return true;
-      } else {
-        toast.error(response.message || 'Failed to add user');
-        return false;
-      }
-    } catch (error) {
-      console.error('Error adding user:', error);
-      toast.error(error.message || 'Failed to add user');
-      
-      // Log failed creation attempt
-      try {
-        const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
-        if (token) {
-          await fetch('http://localhost:8000/api/log-action', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: JSON.stringify({
-              action: 'user_creation_failed',
-              description: `Admin failed to create user: ${userData.email || 'unknown'} - Error: ${error.message}`,
-              log_level: 'error'
-            })
-          });
-        }
-      } catch (logError) {
-        console.error('Error logging failed user creation:', logError);
-      }
-      
-      return false;
-    }
   };
 
   // Handle editing a user
@@ -740,7 +676,7 @@ function AllUsers() {
               Export
             </button>
             <button 
-              onClick={() => setIsAddModalOpen(true)}
+              onClick={() => navigate('/admin/users/add')}
               title='Add User'
               className="inline-flex hover:cursor-pointer items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
@@ -1052,13 +988,6 @@ function AllUsers() {
             onClose={handleCloseViewModal} 
           />
         )}
-
-        {/* Add User Modal */}
-        <AddUserModal
-          isOpen={isAddModalOpen}
-          onClose={() => setIsAddModalOpen(false)}
-          onAdd={handleAddUser}
-        />
 
         {/* Edit User Modal */}
         {isEditModalOpen && selectedUser && (
