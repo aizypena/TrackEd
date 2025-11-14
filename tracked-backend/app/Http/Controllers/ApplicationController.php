@@ -26,6 +26,7 @@ class ApplicationController extends Controller
                 'mobileNumber' => 'required|string|max:20',
                 'birthDate' => 'required|date',
                 'gender' => 'required|in:male,female,other',
+                'maritalStatus' => 'nullable|in:single,married,widowed,separated,divorced',
                 'address' => 'required|string',
                 'placeOfBirth' => 'nullable|string|max:255',
                 'nationality' => 'required|string|max:255',
@@ -48,6 +49,42 @@ class ApplicationController extends Controller
                 'diploma' => 'required|file|mimes:pdf,jpg,jpeg,png|max:25600',
                 'passportPhoto' => 'required|file|mimes:jpg,jpeg,png|max:25600',
             ]);
+            
+            // Determine if applicant should be waitlisted based on program batch availability
+            $isWaitlisted = false;
+            $programId = $validated['courseProgram'];
+            
+            // Get all active/ongoing batches for this program
+            $batches = \App\Models\Batch::where('program_id', $programId)
+                ->whereIn('status', ['active', 'ongoing'])
+                ->get();
+            
+            if ($batches->isEmpty()) {
+                // No batches available for this program - waitlist
+                $isWaitlisted = true;
+            } else {
+                // Check if all batches are full
+                $hasAvailableSlot = false;
+                
+                foreach ($batches as $batch) {
+                    $currentStudents = User::where('batch_id', $batch->batch_id)
+                        ->where('role', 'student')
+                        ->whereIn('status', ['active', 'inactive'])
+                        ->count();
+                    
+                    $maxStudents = $batch->max_students ?? 0;
+                    
+                    if ($currentStudents < $maxStudents) {
+                        $hasAvailableSlot = true;
+                        break;
+                    }
+                }
+                
+                // If no batch has available slots, applicant goes to waitlist
+                if (!$hasAvailableSlot) {
+                    $isWaitlisted = true;
+                }
+            }
 
             // Check if user with this email already exists
             $existingUser = User::where('email', $validated['email'])->first();
@@ -76,23 +113,31 @@ class ApplicationController extends Controller
             $user = User::create([
                 'first_name' => $validated['firstName'],
                 'last_name' => $validated['lastName'],
+                'middle_name' => $validated['middleName'] ?? null,
                 'email' => $validated['email'],
                 'phone_number' => $validated['mobileNumber'],
                 'password' => bcrypt($validated['password']),
                 'role' => 'applicant',
                 'status' => 'active',
-                'application_status' => 'pending',
+                'application_status' => $isWaitlisted ? 'waitlisted' : 'pending',
                 'date_of_birth' => $validated['birthDate'],
+                'place_of_birth' => $validated['placeOfBirth'] ?? null,
                 'gender' => $validated['gender'],
+                'marital_status' => $validated['maritalStatus'] ?? null,
                 'address' => $validated['address'],
                 'nationality' => $validated['nationality'],
                 'emergency_contact' => $validated['emergencyContact'],
+                'emergency_relationship' => $validated['emergencyRelationship'] ?? null,
                 'emergency_phone' => $validated['emergencyPhone'],
                 
                 // Education fields
                 'education_level' => $validated['education'],
                 'institution_name' => $validated['school'],
                 'course_program' => $validated['courseProgram'],
+                
+                // Employment fields
+                'employment_status' => $validated['employmentStatus'] ?? null,
+                'occupation' => $validated['occupation'] ?? null,
                 
                 // Document paths
                 'valid_id_path' => $documentPaths['validId_path'] ?? null,
@@ -105,10 +150,11 @@ class ApplicationController extends Controller
             ]);
 
             // Log successful application submission
+            $statusMessage = $isWaitlisted ? 'waitlisted (no available slots)' : 'pending (slots available)';
             DB::table('system_logs')->insert([
                 'user_id' => $user->id,
                 'action' => 'application_submitted',
-                'description' => 'New application submitted by: ' . $user->email . ' for program: ' . $validated['courseProgram'],
+                'description' => 'New application submitted by: ' . $user->email . ' for program: ' . $validated['courseProgram'] . ' - Status: ' . $statusMessage,
                 'log_level' => 'info',
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),

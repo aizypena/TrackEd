@@ -327,27 +327,6 @@ const ApplicantDashboard = () => {
             </div>
           </div>
         </div>
-
-        <div className="mt-8">
-          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-              <span className="w-8 h-8 bg-tracked-primary text-white rounded-lg flex items-center justify-center mr-3">
-                <FaBullhorn />
-              </span>
-              Important Notices
-            </h3>
-            <div className="space-y-4">
-              <div className="p-4 bg-tracked-primary rounded-lg border-l-4 border-tracked-primary">
-                <p className="text-sm font-semibold text-white">Enrollment Period</p>
-                <p className="text-white/90 text-sm">Next enrollment period starts on October 1, 2025</p>
-              </div>
-              <div className="p-4 bg-tracked-primary rounded-lg border-l-4 border-tracked-primary">
-                <p className="text-sm font-semibold text-white">Document Deadline</p>
-                <p className="text-white/90 text-sm">Submit all required documents before September 30, 2025</p>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

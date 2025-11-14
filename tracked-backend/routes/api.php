@@ -56,6 +56,53 @@ Route::get('/public/programs', function (Request $request) {
     }
 });
 
+// Public Batches Route (for application form - no auth required)
+Route::get('/public/batches/{programId}', function ($programId) {
+    try {
+        $batches = \App\Models\Batch::where('program_id', $programId)
+            ->whereIn('status', ['active', 'ongoing'])
+            ->get()
+            ->map(function ($batch) {
+                // Count current enrolled students
+                $currentStudents = \App\Models\User::where('batch_id', $batch->batch_id)
+                    ->where('role', 'student')
+                    ->whereIn('status', ['active', 'inactive'])
+                    ->count();
+                
+                $maxStudents = $batch->max_students ?? 0;
+                $availableSlots = max(0, $maxStudents - $currentStudents);
+                $isFull = $currentStudents >= $maxStudents;
+                
+                return [
+                    'id' => $batch->id,
+                    'batch_id' => $batch->batch_id,
+                    'name' => $batch->batch_id,
+                    'program_id' => $batch->program_id,
+                    'schedule_days' => $batch->schedule_days,
+                    'schedule_time_start' => $batch->schedule_time_start,
+                    'schedule_time_end' => $batch->schedule_time_end,
+                    'start_date' => $batch->start_date,
+                    'end_date' => $batch->end_date,
+                    'max_students' => $maxStudents,
+                    'current_students' => $currentStudents,
+                    'available_slots' => $availableSlots,
+                    'is_full' => $isFull
+                ];
+            });
+        
+        return response()->json([
+            'success' => true,
+            'data' => $batches
+        ]);
+    } catch (\Exception $e) {
+        \Log::error('Public batches endpoint error: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to fetch batches'
+        ], 500);
+    }
+});
+
 // PayMongo Webhook (no auth required)
 Route::post('/webhooks/paymongo', [PaymentController::class, 'handleWebhook']);
 

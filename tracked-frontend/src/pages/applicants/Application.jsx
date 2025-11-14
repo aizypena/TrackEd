@@ -14,6 +14,9 @@ const Signup = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [availablePrograms, setAvailablePrograms] = useState([]);
   const [loadingPrograms, setLoadingPrograms] = useState(true);
+  const [availableBatches, setAvailableBatches] = useState([]);
+  const [loadingBatches, setLoadingBatches] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   // Check if user is already logged in
   useEffect(() => {
@@ -96,6 +99,38 @@ const Signup = () => {
 
     fetchAvailablePrograms();
   }, []);
+
+  // Fetch batches when program is selected
+  useEffect(() => {
+    const fetchBatchesForProgram = async () => {
+      if (!formData.courseProgram) {
+        setAvailableBatches([]);
+        return;
+      }
+
+      try {
+        setLoadingBatches(true);
+        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        const API_URL = `${API_BASE_URL}/api`;
+        
+        const response = await fetch(`${API_URL}/public/batches/${formData.courseProgram}`);
+        const data = await response.json();
+        
+        if (data.success && data.data) {
+          setAvailableBatches(Array.isArray(data.data) ? data.data : []);
+        } else {
+          setAvailableBatches([]);
+        }
+      } catch (error) {
+        console.error('Error fetching batches:', error);
+        setAvailableBatches([]);
+      } finally {
+        setLoadingBatches(false);
+      }
+    };
+
+    fetchBatchesForProgram();
+  }, [formData.courseProgram]);
 
   const validatePhilippineMobileNumber = (number) => {
     // Philippine mobile number must be exactly 10 digits starting with 9
@@ -848,6 +883,103 @@ const Signup = () => {
           </p>
         )}
       </div>
+
+      {/* Batch Availability Information */}
+      {formData.courseProgram && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Batch Availability
+          </label>
+          
+          {loadingBatches ? (
+            <div className="flex items-center p-4 bg-gray-50 rounded-lg border border-gray-300">
+              <svg className="animate-spin h-5 w-5 text-gray-600 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <p className="text-sm text-gray-600">Checking batch availability...</p>
+            </div>
+          ) : availableBatches.length === 0 ? (
+            // No batches available - Waitlist message
+            <div className="p-4 bg-amber-50 rounded-lg border border-amber-300">
+              <div className="flex items-start">
+                <svg className="w-5 h-5 mt-0.5 mr-3 flex-shrink-0 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+                <div className="flex-1">
+                  <h5 className="font-medium text-amber-900 mb-1">No Batches Available - You Will Be Waitlisted</h5>
+                  <p className="text-sm text-amber-800">
+                    There are currently no batches available for this program. If you proceed with your application, 
+                    you will be placed on the <strong>waitlist</strong> and automatically enrolled when a batch becomes available.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            // Batches available - Show availability info
+            (() => {
+              const hasAvailableSlots = availableBatches.some(batch => !batch.is_full);
+              const allBatchesFull = availableBatches.every(batch => batch.is_full);
+              const totalSlots = availableBatches.reduce((sum, batch) => sum + batch.available_slots, 0);
+              
+              return (
+                <div className={`p-4 rounded-lg border ${allBatchesFull ? 'bg-amber-50 border-amber-300' : 'bg-blue-50 border-blue-300'}`}>
+                  <div className="flex items-start">
+                    <svg className={`w-5 h-5 mt-0.5 mr-3 flex-shrink-0 ${allBatchesFull ? 'text-amber-600' : 'text-blue-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div className="flex-1">
+                      {allBatchesFull ? (
+                        <>
+                          <h5 className="font-medium text-amber-900 mb-1">All Batches Are Full - You Will Be Waitlisted</h5>
+                          <p className="text-sm text-amber-800 mb-3">
+                            This program has <strong>{availableBatches.length} batch(es)</strong>, but all are currently at full capacity. 
+                            If you proceed with your application, you will be placed on the <strong>waitlist</strong>.
+                          </p>
+                          <div className="text-sm space-y-1">
+                            {availableBatches.map((batch, index) => (
+                              <div key={batch.batch_id} className="flex items-center text-amber-700">
+                                <span className="w-2 h-2 bg-amber-500 rounded-full mr-2"></span>
+                                <span>{batch.name}: FULL ({batch.current_students}/{batch.max_students} students)</span>
+                              </div>
+                            ))}
+                          </div>
+                          <p className="text-sm text-amber-700 mt-3">
+                            You will be automatically enrolled when a slot becomes available.
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <h5 className="font-medium text-blue-900 mb-1">Batches Available</h5>
+                          <p className="text-sm text-blue-800 mb-3">
+                            This program has <strong>{totalSlots} slot(s)</strong> available across <strong>{availableBatches.length} batch(es)</strong>.
+                          </p>
+                          <div className="text-sm space-y-1">
+                            {availableBatches.map((batch, index) => (
+                              <div key={batch.batch_id} className={`flex items-center ${batch.is_full ? 'text-amber-700' : 'text-blue-700'}`}>
+                                <span className={`w-2 h-2 rounded-full mr-2 ${batch.is_full ? 'bg-amber-500' : 'bg-blue-500'}`}></span>
+                                <span>
+                                  {batch.name}: {batch.is_full 
+                                    ? `FULL (${batch.current_students}/${batch.max_students} students)` 
+                                    : `${batch.available_slots} slot(s) available (${batch.current_students}/${batch.max_students} students)`
+                                  }
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                          <p className="text-sm text-blue-700 mt-3">
+                            You will be assigned to an available batch after your application is approved.
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()
+          )}
+        </div>
+      )}
     </div>
   );
 
@@ -1281,6 +1413,39 @@ const Signup = () => {
                     {availablePrograms.find(p => p.id === parseInt(formData.courseProgram))?.title || 'Not selected'}
                   </p>
                 </div>
+                {availableBatches.length > 0 && (
+                  <div className="md:col-span-2">
+                    <span className="font-medium text-gray-700">Batch Status:</span>
+                    {(() => {
+                      const allBatchesFull = availableBatches.every(batch => batch.is_full);
+                      const totalSlots = availableBatches.reduce((sum, batch) => sum + batch.available_slots, 0);
+                      
+                      return allBatchesFull ? (
+                        <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
+                          <p className="text-sm text-amber-800">
+                            <strong>Waitlist:</strong> All batches are full. You will be waitlisted.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                          <p className="text-sm text-blue-800">
+                            <strong>Available:</strong> {totalSlots} slot(s) available across {availableBatches.length} batch(es).
+                          </p>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+                {availableBatches.length === 0 && formData.courseProgram && (
+                  <div className="md:col-span-2">
+                    <span className="font-medium text-gray-700">Batch Status:</span>
+                    <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
+                      <p className="text-sm text-amber-800">
+                        <strong>Waitlist:</strong> No batches available. You will be waitlisted.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1364,19 +1529,44 @@ const Signup = () => {
                 </div>
               </div>
             </div>
+
+            {/* Terms and Conditions Checkbox */}
+            <div className="bg-gray-50 border border-gray-300 rounded-lg p-4">
+              <label className="flex items-start cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreedToTerms}
+                  onChange={(e) => setAgreedToTerms(e.target.checked)}
+                  className="mt-1 h-4 w-4 text-tracked-primary focus:ring-tracked-primary border-gray-300 rounded cursor-pointer"
+                />
+                <span className="ml-3 text-sm text-gray-700">
+                  I hereby declare that all the information provided in this application is true, accurate, and complete to the best of my knowledge. 
+                  I understand that any false or misleading information may result in the rejection of my application or termination from the program. 
+                  I also agree to comply with all the terms and conditions set by SMI Institute Inc. and acknowledge that the submitted documents are genuine and have not been altered or falsified.
+                </span>
+              </label>
+            </div>
           </div>
 
           {/* Modal Actions */}
           <div className="flex justify-end space-x-4 mt-6 pt-4 border-t border-gray-200">
             <button
-              onClick={() => setShowConfirmModal(false)}
+              onClick={() => {
+                setShowConfirmModal(false);
+                setAgreedToTerms(false);
+              }}
               className="px-6 py-2 border hover:cursor-pointer border-gray-300 rounded-full text-gray-700 hover:bg-gray-50 transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleActualSubmit}
-              className="px-6 py-2 bg-tracked-primary hover:cursor-pointer hover:bg-tracked-primary-700 text-white rounded-full transition-colors"
+              disabled={!agreedToTerms}
+              className={`px-6 py-2 rounded-full transition-colors ${
+                agreedToTerms
+                  ? 'bg-tracked-primary hover:cursor-pointer hover:bg-tracked-primary-700 text-white'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
             >
               Confirm & Submit Application
             </button>
