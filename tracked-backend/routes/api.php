@@ -7843,6 +7843,60 @@ Route::middleware(['auth:sanctum'])->group(function () {
         }
     });
 
+    // Delete student enrollment
+    Route::delete('/admin/students/{userId}', function (Request $request, $userId) {
+        $admin = $request->user();
+        
+        if ($admin->role !== 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Only admins can delete enrollments.'
+            ], 403);
+        }
+
+        // Validate password
+        $request->validate([
+            'password' => 'required|string',
+        ]);
+
+        // Verify admin password
+        if (!\Illuminate\Support\Facades\Hash::check($request->password, $admin->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid password. Please check your password and try again.'
+            ], 401);
+        }
+
+        try {
+            $student = \App\Models\User::findOrFail($userId);
+            
+            // Check if user is a student
+            if ($student->role !== 'student') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Can only delete student accounts.'
+                ], 400);
+            }
+            
+            // Store student info for response
+            $studentName = $student->first_name . ' ' . $student->last_name;
+            $studentId = $student->student_id;
+            
+            // Delete the student (this will cascade delete related records if configured)
+            $student->delete();
+            
+            return response()->json([
+                'success' => true,
+                'message' => "Student enrollment for {$studentName} ({$studentId}) has been deleted successfully."
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete enrollment: ' . $e->getMessage()
+            ], 500);
+        }
+    });
+
     // ARIMA Forecast
     Route::post('/admin/arima-forecast', function (Request $request) {
         $program = $request->input('program', 'all');

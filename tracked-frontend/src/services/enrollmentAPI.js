@@ -121,15 +121,17 @@ const enrollmentAPI = {
   },
 
   // Delete enrollment
-  delete: async (studentId) => {
+  delete: async (studentId, password) => {
     try {
-      const response = await fetch(`${API_URL}/users/${studentId}`, {
+      const response = await fetch(`${API_URL}/admin/students/${studentId}`, {
         method: 'DELETE',
         headers: getAdminAuthHeaders(),
+        body: JSON.stringify({ password }),
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();

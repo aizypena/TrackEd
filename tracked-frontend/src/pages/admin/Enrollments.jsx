@@ -4,6 +4,7 @@ import Sidebar from '../../layouts/admin/Sidebar';
 import enrollmentAPI from '../../services/enrollmentAPI';
 import ViewEnrollment from '../../components/admin/ViewEnrollment';
 import EditEnrollment from '../../components/admin/EditEnrollment';
+import DeleteEnrollmentModal from '../../components/admin/DeleteEnrollmentModal';
 import {
   MdSchool,
   MdSearch,
@@ -38,6 +39,7 @@ const Enrollments = () => {
   const [selectedEnrollment, setSelectedEnrollment] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   
   // Real data from API
   const [enrollmentStats, setEnrollmentStats] = useState({
@@ -159,6 +161,33 @@ const Enrollments = () => {
     setSelectedEnrollment(null);
   };
 
+  const handleDeleteEnrollment = (enrollment) => {
+    setSelectedEnrollment(enrollment);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleCloseDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+    setSelectedEnrollment(null);
+  };
+
+  const handleConfirmDelete = async (userId, password) => {
+    try {
+      const response = await enrollmentAPI.delete(userId, password);
+      
+      if (response.success) {
+        await fetchEnrollments();
+        toast.success('Student enrollment deleted successfully!', {
+          duration: 3000,
+          position: 'top-center',
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting enrollment:', error);
+      throw error;
+    }
+  };
+
   const handleUpdateEnrollment = async (userId, updatedData) => {
     try {
       // Call your API to update the enrollment
@@ -186,10 +215,14 @@ const Enrollments = () => {
     switch (status.toLowerCase()) {
       case 'active':
         return 'text-green-600 bg-green-50';
+      case 'inactive':
+        return 'text-gray-600 bg-gray-50';
       case 'pending':
         return 'text-yellow-600 bg-yellow-50';
       case 'completed':
         return 'text-blue-600 bg-blue-50';
+      case 'dropped':
+        return 'text-red-600 bg-red-50';
       default:
         return 'text-gray-600 bg-gray-50';
     }
@@ -199,10 +232,14 @@ const Enrollments = () => {
     switch (status.toLowerCase()) {
       case 'active':
         return <MdCheckCircle className="w-5 h-5 text-green-600" />;
+      case 'inactive':
+        return <MdBlock className="w-5 h-5 text-gray-600" />;
       case 'pending':
         return <MdAccessTime className="w-5 h-5 text-yellow-600" />;
       case 'completed':
         return <MdSchool className="w-5 h-5 text-blue-600" />;
+      case 'dropped':
+        return <MdWarning className="w-5 h-5 text-red-600" />;
       default:
         return <MdBlock className="w-5 h-5 text-gray-600" />;
     }
@@ -343,8 +380,9 @@ const Enrollments = () => {
                 >
                   <option value="all">All Status</option>
                   <option value="active">Active</option>
-                  <option value="pending">Pending</option>
+                  <option value="inactive">Inactive</option>
                   <option value="completed">Completed</option>
+                  <option value="dropped">Dropped</option>
                 </select>
               </div>
             </div>
@@ -492,6 +530,7 @@ const Enrollments = () => {
                               <MdEdit className="h-5 w-5" />
                             </button>
                             <button 
+                              onClick={() => handleDeleteEnrollment(enrollment)}
                               className="text-red-600 hover:text-red-900 transition-colors"
                               title="Delete Enrollment"
                             >
@@ -524,6 +563,14 @@ const Enrollments = () => {
         programs={programs}
         batches={batches}
         onUpdate={handleUpdateEnrollment}
+      />
+
+      {/* Delete Enrollment Modal */}
+      <DeleteEnrollmentModal
+        isOpen={isDeleteModalOpen}
+        onClose={handleCloseDeleteModal}
+        enrollment={selectedEnrollment}
+        onDelete={handleConfirmDelete}
       />
     </div>
   );
