@@ -9,6 +9,7 @@ import {
   MdRefresh,
   MdDownload,
   MdFilterList,
+  MdPayment,
 } from 'react-icons/md';
 import {
   Chart as ChartJS,
@@ -50,6 +51,13 @@ const EnrollmentTrends = () => {
     quarterlyData: {},
     programTotals: {},
     allData: [],
+    voucherStats: {
+      total: 0,
+      withVoucher: 0,
+      withoutVoucher: 0,
+      voucherPercentage: 0,
+      paidPercentage: 0
+    },
     stats: {
       totalPrograms: 0,
       totalEnrollments: 0,
@@ -261,6 +269,24 @@ const EnrollmentTrends = () => {
         backgroundColor: [
           'rgba(54, 162, 235, 0.8)',
           'rgba(75, 192, 192, 0.8)'
+        ],
+        borderWidth: 1
+      }
+    ]
+  };
+
+  // Voucher payment distribution
+  const voucherDistribution = {
+    labels: ['With Voucher', 'Self-Paid'],
+    datasets: [
+      {
+        data: [
+          trendsData.voucherStats?.withVoucher || 0,
+          trendsData.voucherStats?.withoutVoucher || 0
+        ],
+        backgroundColor: [
+          'rgba(168, 85, 247, 0.8)',  // Purple for voucher
+          'rgba(34, 197, 94, 0.8)'     // Green for paid
         ],
         borderWidth: 1
       }
@@ -666,8 +692,60 @@ const EnrollmentTrends = () => {
             </div>
           </div>
 
+          {/* Voucher Statistics */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-lg shadow-sm border border-purple-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-purple-900">With Voucher</p>
+                  <p className="text-2xl font-semibold text-purple-700">
+                    {loading ? '...' : trendsData.voucherStats?.withVoucher?.toLocaleString() || 0}
+                  </p>
+                  <p className="text-xs text-purple-600 mt-1">
+                    {loading ? '...' : `${trendsData.voucherStats?.voucherPercentage || 0}% of total`}
+                  </p>
+                </div>
+                <div className="p-3 bg-purple-200 rounded-full">
+                  <MdPayment className="h-6 w-6 text-purple-700" />
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-lg shadow-sm border border-green-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-green-900">Self-Paid</p>
+                  <p className="text-2xl font-semibold text-green-700">
+                    {loading ? '...' : trendsData.voucherStats?.withoutVoucher?.toLocaleString() || 0}
+                  </p>
+                  <p className="text-xs text-green-600 mt-1">
+                    {loading ? '...' : `${trendsData.voucherStats?.paidPercentage || 0}% of total`}
+                  </p>
+                </div>
+                <div className="p-3 bg-green-200 rounded-full">
+                  <MdPayment className="h-6 w-6 text-green-700" />
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-lg shadow-sm border border-blue-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-blue-900">Total Students</p>
+                  <p className="text-2xl font-semibold text-blue-700">
+                    {loading ? '...' : trendsData.voucherStats?.total?.toLocaleString() || 0}
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1">
+                    Current enrollees
+                  </p>
+                </div>
+                <div className="p-3 bg-blue-200 rounded-full">
+                  <MdPeople className="h-6 w-6 text-blue-700" />
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Charts Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 gap-6">
             {/* Popular Programs Chart */}
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
               {loading ? (
@@ -724,6 +802,38 @@ const EnrollmentTrends = () => {
               ) : (
                 <div style={{ height: '400px' }}>
                   <Doughnut data={qualificationDistribution} options={doughnutOptions} />
+                </div>
+              )}
+            </div>
+
+            {/* Voucher Payment Distribution Chart */}
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+              {loading ? (
+                <div className="flex items-center justify-center h-[400px]">
+                  <div className="text-center">
+                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                    <p className="text-gray-600">Loading chart data...</p>
+                  </div>
+                </div>
+              ) : (trendsData.voucherStats?.total === 0) ? (
+                <div className="flex items-center justify-center h-[400px]">
+                  <p className="text-gray-500">No payment data available</p>
+                </div>
+              ) : (
+                <div style={{ height: '400px' }}>
+                  <Doughnut 
+                    data={voucherDistribution} 
+                    options={{
+                      ...doughnutOptions,
+                      plugins: {
+                        ...doughnutOptions.plugins,
+                        title: {
+                          ...doughnutOptions.plugins.title,
+                          text: 'Payment Method Distribution'
+                        }
+                      }
+                    }} 
+                  />
                 </div>
               )}
             </div>
@@ -813,6 +923,21 @@ const EnrollmentTrends = () => {
                             }
                           })()
                         : 'Insufficient data for trend analysis'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                      <MdPayment className="h-5 w-5 text-purple-600" />
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900">Payment Distribution</h4>
+                    <p className="text-sm text-gray-500">
+                      {loading ? 'Loading...' : trendsData.voucherStats?.total > 0
+                        ? `${trendsData.voucherStats.voucherPercentage}% (${trendsData.voucherStats.withVoucher.toLocaleString()}) use vouchers, ${trendsData.voucherStats.paidPercentage}% (${trendsData.voucherStats.withoutVoucher.toLocaleString()}) are self-paid`
+                        : 'No payment data available'}
                     </p>
                   </div>
                 </div>

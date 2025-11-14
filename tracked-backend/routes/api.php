@@ -7560,11 +7560,25 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Sort program totals
         arsort($programTotals);
 
+        // Get voucher statistics from actual student data
+        $totalStudents = \App\Models\User::where('role', 'student')->count();
+        $voucherStudents = \App\Models\User::where('role', 'student')
+            ->where('voucher_eligible', true)
+            ->count();
+        $paidStudents = $totalStudents - $voucherStudents;
+
         return response()->json([
             'success' => true,
             'quarterlyData' => $quarterlyData,
             'programTotals' => $programTotals,
             'allData' => $allData,
+            'voucherStats' => [
+                'total' => $totalStudents,
+                'withVoucher' => $voucherStudents,
+                'withoutVoucher' => $paidStudents,
+                'voucherPercentage' => $totalStudents > 0 ? round(($voucherStudents / $totalStudents) * 100, 1) : 0,
+                'paidPercentage' => $totalStudents > 0 ? round(($paidStudents / $totalStudents) * 100, 1) : 0,
+            ],
             'stats' => [
                 'totalPrograms' => count($programTotals),
                 'totalEnrollments' => array_sum($programTotals),
@@ -7801,10 +7815,24 @@ Route::middleware(['auth:sanctum'])->group(function () {
         try {
             $student = \App\Models\User::findOrFail($userId);
             
+            // Store original values for logging
+            $originalData = [
+                'email' => $student->email,
+                'phone' => $student->phone_number,
+                'status' => $student->status,
+                'batch_id' => $student->batch_id,
+                'voucher_eligible' => $student->voucher_eligible,
+            ];
+            
+            $changes = [];
+            
             // If batch_id is provided, get the batch_id string (not the numeric id)
             if (isset($validated['batch_id']) && $validated['batch_id']) {
                 $batch = \App\Models\Batch::find($validated['batch_id']);
                 if ($batch) {
+                    if ($student->batch_id !== $batch->batch_id) {
+                        $changes[] = "Batch: {$student->batch_id} → {$batch->batch_id}";
+                    }
                     $student->batch_id = $batch->batch_id; // Use the string batch_id
                 } else {
                     return response()->json([
@@ -7814,21 +7842,40 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 }
             }
             
-            // Update other fields
-            if (isset($validated['email'])) {
+            // Update other fields and track changes
+            if (isset($validated['email']) && $student->email !== $validated['email']) {
+                $changes[] = "Email: {$student->email} → {$validated['email']}";
                 $student->email = $validated['email'];
             }
-            if (isset($validated['phone'])) {
+            if (isset($validated['phone']) && $student->phone_number !== $validated['phone']) {
+                $changes[] = "Phone: {$student->phone_number} → {$validated['phone']}";
                 $student->phone_number = $validated['phone'];
             }
-            if (isset($validated['status'])) {
+            if (isset($validated['status']) && $student->status !== $validated['status']) {
+                $changes[] = "Status: {$student->status} → {$validated['status']}";
                 $student->status = $validated['status'];
             }
-            if (isset($validated['voucher_eligible'])) {
+            if (isset($validated['voucher_eligible']) && $student->voucher_eligible !== $validated['voucher_eligible']) {
+                $voucherOld = $student->voucher_eligible ? 'Yes' : 'No';
+                $voucherNew = $validated['voucher_eligible'] ? 'Yes' : 'No';
+                $changes[] = "Voucher Eligible: {$voucherOld} → {$voucherNew}";
                 $student->voucher_eligible = $validated['voucher_eligible'];
             }
             
             $student->save();
+            
+            // Log the update action
+            if (!empty($changes)) {
+                \Illuminate\Support\Facades\DB::table('system_logs')->insert([
+                    'user_id' => $user->id,
+                    'action' => 'enrollment_update',
+                    'description' => "Updated enrollment for {$student->first_name} {$student->last_name} (ID: {$student->student_id}). Changes: " . implode(', ', $changes),
+                    'log_level' => 'info',
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'created_at' => now(),
+                ]);
+            }
             
             return response()->json([
                 'success' => true,
@@ -7836,6 +7883,17 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 'student' => $student
             ]);
         } catch (\Exception $e) {
+            // Log the error
+            \Illuminate\Support\Facades\DB::table('system_logs')->insert([
+                'user_id' => $user->id,
+                'action' => 'enrollment_update_failed',
+                'description' => "Failed to update enrollment for user ID {$userId}. Error: " . $e->getMessage(),
+                'log_level' => 'error',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'created_at' => now(),
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update enrollment: ' . $e->getMessage()
@@ -7878,18 +7936,43 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 ], 400);
             }
             
-            // Store student info for response
+            // Store student info for logging and response
             $studentName = $student->first_name . ' ' . $student->last_name;
             $studentId = $student->student_id;
+            $studentEmail = $student->email;
+            $studentProgram = $student->batch ? $student->batch->program->title ?? 'N/A' : 'N/A';
+            $studentBatch = $student->batch_id ?? 'N/A';
             
             // Delete the student (this will cascade delete related records if configured)
             $student->delete();
+            
+            // Log the delete action
+            \Illuminate\Support\Facades\DB::table('system_logs')->insert([
+                'user_id' => $admin->id,
+                'action' => 'enrollment_delete',
+                'description' => "Deleted student enrollment: {$studentName} (ID: {$studentId}, Email: {$studentEmail}, Program: {$studentProgram}, Batch: {$studentBatch}). Action performed by admin: {$admin->first_name} {$admin->last_name}",
+                'log_level' => 'warning',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'created_at' => now(),
+            ]);
             
             return response()->json([
                 'success' => true,
                 'message' => "Student enrollment for {$studentName} ({$studentId}) has been deleted successfully."
             ]);
         } catch (\Exception $e) {
+            // Log the error
+            \Illuminate\Support\Facades\DB::table('system_logs')->insert([
+                'user_id' => $admin->id,
+                'action' => 'enrollment_delete_failed',
+                'description' => "Failed to delete student enrollment for user ID {$userId}. Error: " . $e->getMessage(),
+                'log_level' => 'error',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'created_at' => now(),
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete enrollment: ' . $e->getMessage()
