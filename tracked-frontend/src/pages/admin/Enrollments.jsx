@@ -137,8 +137,74 @@ const Enrollments = () => {
   };
 
   const handleExport = () => {
-    // Implement export logic
-    console.log('Exporting enrollment data...');
+    try {
+      // Use filtered enrollments for export
+      const dataToExport = filteredEnrollments.length > 0 ? filteredEnrollments : enrollments;
+      
+      if (dataToExport.length === 0) {
+        toast.error('No data to export', {
+          duration: 3000,
+          position: 'top-center',
+        });
+        return;
+      }
+
+      // Create CSV headers
+      const headers = [
+        'Student ID',
+        'Name',
+        'Email',
+        'Phone',
+        'Program',
+        'Status',
+        'Payment Type',
+        'Enrollment Date',
+        'Batch'
+      ];
+
+      // Create CSV rows
+      const rows = dataToExport.map(enrollment => [
+        enrollment.id || '',
+        enrollment.name || '',
+        enrollment.email || '',
+        enrollment.phone || '',
+        enrollment.program || '',
+        enrollment.status || '',
+        enrollment.voucher_eligible ? 'Voucher' : 'Paid',
+        enrollment.enrollment_date ? new Date(enrollment.enrollment_date).toLocaleDateString() : '',
+        enrollment.batch || ''
+      ]);
+
+      // Combine headers and rows
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ].join('\n');
+
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `enrollments_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast.success(`Exported ${dataToExport.length} enrollment record(s)`, {
+        duration: 3000,
+        position: 'top-center',
+      });
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      toast.error('Failed to export data', {
+        duration: 3000,
+        position: 'top-center',
+      });
+    }
   };
 
   const handleViewEnrollment = (enrollment) => {
@@ -271,13 +337,13 @@ const Enrollments = () => {
             <div className="flex items-center space-x-3">
               <button
                 onClick={handleRefresh}
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
+                className="p-2 text-gray-600 hover:cursor-pointer hover:text-gray-900 hover:bg-gray-100 rounded-lg"
               >
                 <MdRefresh className="h-5 w-5" />
               </button>
               <button
                 onClick={handleExport}
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
+                className="p-2 text-gray-600 hover:cursor-pointer hover:text-gray-900 hover:bg-gray-100 rounded-lg"
               >
                 <MdDownload className="h-5 w-5" />
               </button>
