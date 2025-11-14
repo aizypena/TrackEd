@@ -43,7 +43,7 @@ const EnrollmentTrends = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [timeRange, setTimeRange] = useState('all');
   const [loading, setLoading] = useState(false);
-  const [viewType, setViewType] = useState('quarterly');
+  const [viewType, setViewType] = useState('quarterly'); // weekly, monthly, quarterly, yearly
   const [selectedYear, setSelectedYear] = useState('all');
   const [selectedProgram, setSelectedProgram] = useState('all');
   
@@ -106,88 +106,141 @@ const EnrollmentTrends = () => {
     fetchTrendsData();
   }, []);
 
-  // Calculate quarterly data for a specific program from allData
-  const getQuarterlyDataByProgram = (programName) => {
+  // Calculate data by view type for a specific program from allData
+  const getDataByViewType = (programName) => {
     if (!trendsData.allData || trendsData.allData.length === 0) {
       return {};
     }
 
-    const quarterlyData = {};
+    const aggregatedData = {};
     
     // Filter data by program if not 'all'
     const filteredData = programName === 'all' 
       ? trendsData.allData 
       : trendsData.allData.filter(record => record.program === programName);
 
-    // Aggregate by quarter
+    // Aggregate by view type
     filteredData.forEach(record => {
       const date = new Date(record.date);
       const year = date.getFullYear();
       const month = date.getMonth() + 1;
-      const quarter = Math.ceil(month / 3);
-      const key = `Q${quarter} ${year}`;
-      
-      if (!quarterlyData[key]) {
-        quarterlyData[key] = 0;
+      let key;
+
+      switch (viewType) {
+        case 'weekly':
+          // Get week number of year
+          const firstDayOfYear = new Date(year, 0, 1);
+          const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
+          const weekNum = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+          key = `Week ${weekNum} ${year}`;
+          break;
+        case 'monthly':
+          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          key = `${monthNames[month - 1]} ${year}`;
+          break;
+        case 'yearly':
+          key = `${year}`;
+          break;
+        case 'quarterly':
+        default:
+          const quarter = Math.ceil(month / 3);
+          key = `Q${quarter} ${year}`;
+          break;
       }
-      quarterlyData[key] += record.enrollment || 0;
+      
+      if (!aggregatedData[key]) {
+        aggregatedData[key] = 0;
+      }
+      aggregatedData[key] += record.enrollment || 0;
     });
 
-    return quarterlyData;
+    return aggregatedData;
   };
 
   // Filter data by time range
-  const getFilteredQuarterlyData = () => {
-    // Get quarterly data based on selected program
-    const quarterlyDataForProgram = selectedProgram === 'all' 
-      ? trendsData.quarterlyData 
-      : getQuarterlyDataByProgram(selectedProgram);
+  const getFilteredData = () => {
+    // Get data based on selected program and view type
+    const dataForProgram = selectedProgram === 'all' 
+      ? (viewType === 'quarterly' ? trendsData.quarterlyData : getDataByViewType(selectedProgram))
+      : getDataByViewType(selectedProgram);
 
-    const quarters = Object.keys(quarterlyDataForProgram || {}).sort((a, b) => {
-      const matchA = a.match(/Q(\d) (\d+)/);
-      const matchB = b.match(/Q(\d) (\d+)/);
-      
-      if (!matchA || !matchB) return 0;
-      
-      const yearA = parseInt(matchA[2]);
-      const yearB = parseInt(matchB[2]);
-      const quarterA = parseInt(matchA[1]);
-      const quarterB = parseInt(matchB[1]);
-      
-      if (yearA !== yearB) return yearA - yearB;
-      return quarterA - quarterB;
-    });
+    // Sort function based on view type
+    const sortKeys = (a, b) => {
+      if (viewType === 'weekly') {
+        const matchA = a.match(/Week (\d+) (\d+)/);
+        const matchB = b.match(/Week (\d+) (\d+)/);
+        if (!matchA || !matchB) return 0;
+        const yearA = parseInt(matchA[2]);
+        const yearB = parseInt(matchB[2]);
+        const weekA = parseInt(matchA[1]);
+        const weekB = parseInt(matchB[1]);
+        if (yearA !== yearB) return yearA - yearB;
+        return weekA - weekB;
+      } else if (viewType === 'monthly') {
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const matchA = a.match(/(\w+) (\d+)/);
+        const matchB = b.match(/(\w+) (\d+)/);
+        if (!matchA || !matchB) return 0;
+        const yearA = parseInt(matchA[2]);
+        const yearB = parseInt(matchB[2]);
+        const monthA = monthNames.indexOf(matchA[1]);
+        const monthB = monthNames.indexOf(matchB[1]);
+        if (yearA !== yearB) return yearA - yearB;
+        return monthA - monthB;
+      } else if (viewType === 'yearly') {
+        return parseInt(a) - parseInt(b);
+      } else { // quarterly
+        const matchA = a.match(/Q(\d) (\d+)/);
+        const matchB = b.match(/Q(\d) (\d+)/);
+        if (!matchA || !matchB) return 0;
+        const yearA = parseInt(matchA[2]);
+        const yearB = parseInt(matchB[2]);
+        const quarterA = parseInt(matchA[1]);
+        const quarterB = parseInt(matchB[1]);
+        if (yearA !== yearB) return yearA - yearB;
+        return quarterA - quarterB;
+      }
+    };
+
+    const periods = Object.keys(dataForProgram || {}).sort(sortKeys);
     
     // Filter by selected year first
-    let filtered = quarters;
+    let filtered = periods;
     if (selectedYear !== 'all') {
-      filtered = quarters.filter(q => q.includes(selectedYear));
+      filtered = periods.filter(p => p.includes(selectedYear));
     }
     
     // Then apply time range filter
     if (timeRange === '1year') {
-      return filtered.slice(-4); // Last 4 quarters = 1 year
+      const periodCount = viewType === 'weekly' ? 52 : viewType === 'monthly' ? 12 : viewType === 'yearly' ? 1 : 4;
+      return filtered.slice(-periodCount);
     } else if (timeRange === '3years') {
-      return filtered.slice(-12); // Last 12 quarters = 3 years
+      const periodCount = viewType === 'weekly' ? 156 : viewType === 'monthly' ? 36 : viewType === 'yearly' ? 3 : 12;
+      return filtered.slice(-periodCount);
     } else if (timeRange === '5years') {
-      return filtered.slice(-20); // Last 20 quarters = 5 years
+      const periodCount = viewType === 'weekly' ? 260 : viewType === 'monthly' ? 60 : viewType === 'yearly' ? 5 : 20;
+      return filtered.slice(-periodCount);
     }
     return filtered; // All time or selected year
   };
 
   // Calculate growth rate
   const calculateGrowthRate = () => {
-    const quarters = getFilteredQuarterlyData();
-    if (quarters.length < 2) return 0;
+    const periods = getFilteredData();
+    if (periods.length < 2) return 0;
     
-    const recent = trendsData.quarterlyData[quarters[quarters.length - 1]] || 0;
-    const previous = trendsData.quarterlyData[quarters[quarters.length - 2]] || 0;
+    const dataForProgram = selectedProgram === 'all' 
+      ? (viewType === 'quarterly' ? trendsData.quarterlyData : getDataByViewType(selectedProgram))
+      : getDataByViewType(selectedProgram);
+    
+    const recent = dataForProgram[periods[periods.length - 1]] || 0;
+    const previous = dataForProgram[periods[periods.length - 2]] || 0;
     
     if (previous === 0) return 0;
     return (((recent - previous) / previous) * 100).toFixed(1);
   };
 
-  const filteredQuarters = getFilteredQuarterlyData();
+  const filteredPeriods = getFilteredData();
 
   // Get filtered program data based on selected program
   const getFilteredProgramTotals = () => {
@@ -228,16 +281,18 @@ const EnrollmentTrends = () => {
   };
 
   // Enrollment trends from CSV - filtered by selected program
-  const quarterlyDataForProgram = selectedProgram === 'all' 
-    ? trendsData.quarterlyData 
-    : getQuarterlyDataByProgram(selectedProgram);
+  const dataForProgram = selectedProgram === 'all' 
+    ? (viewType === 'quarterly' ? trendsData.quarterlyData : getDataByViewType(selectedProgram))
+    : getDataByViewType(selectedProgram);
+
+  const viewTypeLabel = viewType.charAt(0).toUpperCase() + viewType.slice(1);
 
   const enrollmentTrends = {
-    labels: filteredQuarters,
+    labels: filteredPeriods,
     datasets: [
       {
-        label: selectedProgram === 'all' ? 'Quarterly Enrollments (All Programs)' : `Quarterly Enrollments (${selectedProgram})`,
-        data: filteredQuarters.map(q => quarterlyDataForProgram[q] || 0),
+        label: selectedProgram === 'all' ? `${viewTypeLabel} Enrollments (All Programs)` : `${viewTypeLabel} Enrollments (${selectedProgram})`,
+        data: filteredPeriods.map(p => dataForProgram[p] || 0),
         borderColor: 'rgb(59, 130, 246)',
         backgroundColor: 'rgba(59, 130, 246, 0.1)',
         borderWidth: 3,
@@ -516,19 +571,25 @@ const EnrollmentTrends = () => {
   };
 
   const handleExport = () => {
-    if (filteredQuarters.length === 0) {
+    if (filteredPeriods.length === 0) {
       toast.error('No data to export');
       return;
     }
     
+    const dataForProgram = selectedProgram === 'all' 
+      ? (viewType === 'quarterly' ? trendsData.quarterlyData : getDataByViewType(selectedProgram))
+      : getDataByViewType(selectedProgram);
+    
+    const periodLabel = viewType.charAt(0).toUpperCase() + viewType.slice(1) + ' Period';
+    
     const csvContent = "data:text/csv;charset=utf-8," + 
-      "Quarter,Enrollments\n" +
-      filteredQuarters.map(q => `${q},${trendsData.quarterlyData[q] || 0}`).join("\n");
+      `${periodLabel},Enrollments\n` +
+      filteredPeriods.map(p => `${p},${dataForProgram[p] || 0}`).join("\n");
     
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `enrollment_trends_${timeRange}.csv`);
+    link.setAttribute("download", `enrollment_trends_${viewType}_${timeRange}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -560,6 +621,16 @@ const EnrollmentTrends = () => {
             </div>
             <div className="flex items-center space-x-3">
               <div className="flex items-center space-x-2">
+                <select
+                  value={viewType}
+                  onChange={(e) => setViewType(e.target.value)}
+                  className="block px-3 py-2 border border-gray-300 rounded-md text-sm font-medium focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-blue-50 text-blue-700"
+                >
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="quarterly">Quarterly</option>
+                  <option value="yearly">Yearly</option>
+                </select>
                 <select
                   value={selectedProgram}
                   onChange={(e) => setSelectedProgram(e.target.value)}
@@ -755,7 +826,7 @@ const EnrollmentTrends = () => {
                     <p className="text-gray-600">Loading chart data...</p>
                   </div>
                 </div>
-              ) : filteredQuarters.length === 0 ? (
+              ) : filteredPeriods.length === 0 ? (
                 <div className="flex items-center justify-center h-[400px]">
                   <p className="text-gray-500">No enrollment data available</p>
                 </div>
@@ -827,8 +898,8 @@ const EnrollmentTrends = () => {
                   <div>
                     <h4 className="text-sm font-medium text-gray-900">Data Coverage</h4>
                     <p className="text-sm text-gray-500">
-                      {loading ? 'Loading...' : filteredQuarters.length > 0 
-                        ? `Showing ${filteredQuarters.length} quarters from ${filteredQuarters[0]} to ${filteredQuarters[filteredQuarters.length - 1]}`
+                      {loading ? 'Loading...' : filteredPeriods.length > 0 
+                        ? `Showing ${filteredPeriods.length} ${viewType} periods from ${filteredPeriods[0]} to ${filteredPeriods[filteredPeriods.length - 1]}`
                         : 'No data available'}
                     </p>
                   </div>
@@ -840,10 +911,10 @@ const EnrollmentTrends = () => {
                     </div>
                   </div>
                   <div>
-                    <h4 className="text-sm font-medium text-gray-900">Latest Quarter Performance</h4>
+                    <h4 className="text-sm font-medium text-gray-900">Latest Period Performance</h4>
                     <p className="text-sm text-gray-500">
-                      {loading ? 'Loading...' : filteredQuarters.length > 0 
-                        ? `${filteredQuarters[filteredQuarters.length - 1]} recorded ${(trendsData.quarterlyData[filteredQuarters[filteredQuarters.length - 1]] || 0).toLocaleString()} enrollments across all programs`
+                      {loading ? 'Loading...' : filteredPeriods.length > 0 
+                        ? `${filteredPeriods[filteredPeriods.length - 1]} recorded ${(dataForProgram[filteredPeriods[filteredPeriods.length - 1]] || 0).toLocaleString()} enrollments across all programs`
                         : 'No data available'}
                     </p>
                   </div>
@@ -857,15 +928,16 @@ const EnrollmentTrends = () => {
                   <div>
                     <h4 className="text-sm font-medium text-gray-900">Growth Trend</h4>
                     <p className="text-sm text-gray-500">
-                      {loading ? 'Loading...' : filteredQuarters.length >= 2
+                      {loading ? 'Loading...' : filteredPeriods.length >= 2
                         ? (() => {
                             const growthRate = parseFloat(calculateGrowthRate());
+                            const periodLabel = viewType === 'weekly' ? 'week' : viewType === 'monthly' ? 'month' : viewType === 'yearly' ? 'year' : 'quarter';
                             if (growthRate > 0) {
-                              return `Enrollments increased by ${growthRate}% from the previous quarter`;
+                              return `Enrollments increased by ${growthRate}% from the previous ${periodLabel}`;
                             } else if (growthRate < 0) {
-                              return `Enrollments decreased by ${Math.abs(growthRate)}% from the previous quarter`;
+                              return `Enrollments decreased by ${Math.abs(growthRate)}% from the previous ${periodLabel}`;
                             } else {
-                              return 'No change from the previous quarter';
+                              return `No change from the previous ${periodLabel}`;
                             }
                           })()
                         : 'Insufficient data for trend analysis'}
