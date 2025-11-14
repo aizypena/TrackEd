@@ -203,12 +203,7 @@ const EnrollmentTrends = () => {
 
   const filteredProgramTotals = getFilteredProgramTotals();
 
-  // Calculate NC II vs NC III distribution
-  const nc2Programs = Object.keys(filteredProgramTotals).filter(p => p.includes('NC II'));
-  const nc3Programs = Object.keys(filteredProgramTotals).filter(p => p.includes('NC III'));
-  
-  const nc2Total = nc2Programs.reduce((sum, prog) => sum + (filteredProgramTotals[prog] || 0), 0);
-  const nc3Total = nc3Programs.reduce((sum, prog) => sum + (filteredProgramTotals[prog] || 0), 0);
+
 
   // Prepare chart data from CSV
   const popularPrograms = {
@@ -256,21 +251,6 @@ const EnrollmentTrends = () => {
         pointHoverBackgroundColor: 'rgb(37, 99, 235)',
         pointHoverBorderColor: '#fff',
         pointHoverBorderWidth: 3
-      }
-    ]
-  };
-
-  // Qualification distribution from CSV
-  const qualificationDistribution = {
-    labels: ['NC II', 'NC III'],
-    datasets: [
-      {
-        data: [nc2Total, nc3Total],
-        backgroundColor: [
-          'rgba(54, 162, 235, 0.8)',
-          'rgba(75, 192, 192, 0.8)'
-        ],
-        borderWidth: 1
       }
     ]
   };
@@ -786,26 +766,6 @@ const EnrollmentTrends = () => {
               )}
             </div>
 
-            {/* Qualification Distribution Chart */}
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              {loading ? (
-                <div className="flex items-center justify-center h-[400px]">
-                  <div className="text-center">
-                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-                    <p className="text-gray-600">Loading chart data...</p>
-                  </div>
-                </div>
-              ) : (nc2Total === 0 && nc3Total === 0) ? (
-                <div className="flex items-center justify-center h-[400px]">
-                  <p className="text-gray-500">No qualification data available</p>
-                </div>
-              ) : (
-                <div style={{ height: '400px' }}>
-                  <Doughnut data={qualificationDistribution} options={doughnutOptions} />
-                </div>
-              )}
-            </div>
-
             {/* Voucher Payment Distribution Chart */}
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
               {loading ? (
@@ -857,21 +817,7 @@ const EnrollmentTrends = () => {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0">
-                    <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                      <MdSchool className="h-5 w-5 text-green-600" />
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-900">Qualification Distribution</h4>
-                    <p className="text-sm text-gray-500">
-                      {loading ? 'Loading...' : (nc2Total + nc3Total) > 0
-                        ? `NC II programs: ${((nc2Total / (nc2Total + nc3Total)) * 100).toFixed(1)}% (${nc2Total.toLocaleString()} enrollments), NC III: ${((nc3Total / (nc2Total + nc3Total)) * 100).toFixed(1)}% (${nc3Total.toLocaleString()} enrollments)`
-                        : 'No data available'}
-                    </p>
-                  </div>
-                </div>
+
                 <div className="flex items-start space-x-3">
                   <div className="flex-shrink-0">
                     <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">
