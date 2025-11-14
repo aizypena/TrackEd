@@ -61,7 +61,7 @@ const ArimaForecasting = () => {
     { id: 'Food and Beverage Services NC II', name: 'Food and Beverage Services NC II' },
     { id: 'Bread and Pastry Production NC II', name: 'Bread and Pastry Production NC II' },
     { id: 'Events Management NC III', name: 'Events Management NC III' },
-    { id: "Chef's Catering Services NC II", name: "Chef's Catering Services NC II" },
+    { id: "Ship's Catering Services NC II", name: "Ship's Catering Services NC II" },
     { id: 'Cookery NC II', name: 'Cookery NC II' }
   ];
 
@@ -301,10 +301,21 @@ const ArimaForecasting = () => {
                 onChange={(e) => setForecastPeriods(parseInt(e.target.value))}
                 className="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="4">4 Quarters</option>
-                <option value="6">6 Quarters</option>
-                <option value="8">8 Quarters</option>
-                <option value="12">12 Quarters</option>
+                <option value="7">Daily (7 days)</option>
+                <option value="30">Daily (30 days)</option>
+                <option value="90">Daily (90 days)</option>
+                <option value="4">Weekly (4 weeks)</option>
+                <option value="12">Weekly (12 weeks)</option>
+                <option value="26">Weekly (26 weeks)</option>
+                <option value="3">Monthly (3 months)</option>
+                <option value="6">Monthly (6 months)</option>
+                <option value="12">Monthly (12 months)</option>
+                <option value="4">Quarterly (4 quarters)</option>
+                <option value="8">Quarterly (8 quarters)</option>
+                <option value="12">Quarterly (12 quarters)</option>
+                <option value="1">Yearly (1 year)</option>
+                <option value="3">Yearly (3 years)</option>
+                <option value="5">Yearly (5 years)</option>
               </select>
               <select
                 value={selectedProgram}
@@ -435,6 +446,29 @@ const ArimaForecasting = () => {
                 <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Key Insights</h3>
                   <div className="space-y-3">
+                    {/* Selected Program Info */}
+                    <div className="flex items-start space-x-3">
+                      <MdCalendarToday className="h-5 w-5 text-indigo-600 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Selected Program</p>
+                        <p className="text-sm text-gray-600">
+                          {selectedProgram === 'all' ? 'All Programs Combined' : selectedProgram}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Forecast Period Info */}
+                    <div className="flex items-start space-x-3">
+                      <MdSchedule className="h-5 w-5 text-purple-600 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Forecast Period</p>
+                        <p className="text-sm text-gray-600">
+                          Projecting {forecastPeriods} periods ahead
+                          {forecastData.forecast?.length > 0 && ` (${formatDate(forecastData.forecast[0]?.date)} - ${formatDate(forecastData.forecast[forecastData.forecast.length - 1]?.date)})`}
+                        </p>
+                      </div>
+                    </div>
+
                     {/* Trend Analysis with actual growth rate */}
                     <div className="flex items-start space-x-3">
                       <MdTrendingUp className={`h-5 w-5 mt-0.5 ${
@@ -491,7 +525,7 @@ const ArimaForecasting = () => {
                               const enrollments = forecastData.forecast.map(f => f.enrollment || 0);
                               const min = Math.min(...enrollments);
                               const max = Math.max(...enrollments);
-                              return `Predicted enrollments range from ${min} to ${max} students per quarter`;
+                              return `Predicted enrollments range from ${min} to ${max} students per period`;
                             })()}
                           </p>
                         </div>
@@ -524,7 +558,7 @@ const ArimaForecasting = () => {
                       <div>
                         <p className="text-sm font-medium text-gray-900">Data Source</p>
                         <p className="text-sm text-gray-600">
-                          Based on {forecastData.historical?.length || 0} quarters of historical enrollment data
+                          Based on {forecastData.historical?.length || 0} periods of historical enrollment data
                           {forecastData.historical?.length > 0 && forecastData.historical.length < 8 && 
                             ' (limited data may affect accuracy)'}
                         </p>
