@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Sidebar from '../../layouts/admin/Sidebar';
-import { MdMenu, MdVisibility, MdDescription, MdImage, MdPictureAsPdf, MdEdit, MdDelete } from 'react-icons/md';
+import { MdMenu, MdVisibility, MdDescription, MdImage, MdPictureAsPdf, MdEdit, MdDelete, MdSearch } from 'react-icons/md';
 import toast from 'react-hot-toast';
 
 export default function AdminApplications() {
@@ -15,6 +15,8 @@ export default function AdminApplications() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [applicantToDelete, setApplicantToDelete] = useState(null);
   const [deletePassword, setDeletePassword] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredApplications, setFilteredApplications] = useState([]);
 
   // Fetch applications from API
   useEffect(() => {
@@ -32,7 +34,9 @@ export default function AdminApplications() {
         });
         if (!response.ok) throw new Error('Failed to fetch applications');
         const data = await response.json();
-        setApplications(data.applications || data.data || []);
+        const apps = data.applications || data.data || [];
+        setApplications(apps);
+        setFilteredApplications(apps);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -42,6 +46,25 @@ export default function AdminApplications() {
     
     fetchApplications();
   }, []);
+
+  // Filter applications based on search term
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setFilteredApplications(applications);
+    } else {
+      const searchLower = searchTerm.toLowerCase();
+      const filtered = applications.filter(app => {
+        const firstName = (app.first_name || '').toLowerCase();
+        const lastName = (app.last_name || '').toLowerCase();
+        const email = (app.email || '').toLowerCase();
+        
+        return firstName.includes(searchLower) ||
+               lastName.includes(searchLower) ||
+               email.includes(searchLower);
+      });
+      setFilteredApplications(filtered);
+    }
+  }, [searchTerm, applications]);
 
   // Log action helper
   const logAction = async (action, description, level = 'info') => {
@@ -314,7 +337,36 @@ export default function AdminApplications() {
           ) : error ? (
             <div className="bg-red-50 border border-red-200 rounded-md p-4 text-red-700">{error}</div>
           ) : (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto">
+            <>
+              {/* Search Bar */}
+              <div className="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <div className="relative">
+                  <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search by name or email..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <span className="text-xl">×</span>
+                    </button>
+                  )}
+                </div>
+                {searchTerm && (
+                  <p className="text-sm text-gray-600 mt-2">
+                    Found {filteredApplications.length} result{filteredApplications.length !== 1 ? 's' : ''}
+                  </p>
+                )}
+              </div>
+
+              {/* Applications Table */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
@@ -327,12 +379,14 @@ export default function AdminApplications() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {applications.length === 0 ? (
+                  {filteredApplications.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="text-center py-8 text-gray-500">No applications found.</td>
+                      <td colSpan={6} className="text-center py-8 text-gray-500">
+                        {searchTerm ? 'No applications match your search.' : 'No applications found.'}
+                      </td>
                     </tr>
                   ) : (
-                    applications.map(app => (
+                    filteredApplications.map(app => (
                       <tr key={app.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">
@@ -387,6 +441,7 @@ export default function AdminApplications() {
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </main>
 
