@@ -151,6 +151,7 @@ const EditEnrollment = ({ isOpen, onClose, enrollment, programs, batches, onUpda
               >
                 <option value="">Select Status</option>
                 <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
                 <option value="completed">Completed</option>
                 <option value="dropped">Dropped</option>
               </select>

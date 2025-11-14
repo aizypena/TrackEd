@@ -7792,7 +7792,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         $validated = $request->validate([
             'email' => 'sometimes|email|unique:users,email,' . $userId,
             'phone' => 'nullable|string',
-            'status' => 'sometimes|string|in:active,pending,completed,dropped',
+            'status' => 'sometimes|string|in:active,inactive,completed,dropped',
             'program_id' => 'sometimes|integer|exists:programs,id',
             'batch_id' => 'nullable|integer',
             'voucher_eligible' => 'sometimes|boolean',
