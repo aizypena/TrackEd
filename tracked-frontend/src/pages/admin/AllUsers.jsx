@@ -812,7 +812,7 @@ function AllUsers() {
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10">
                         <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                          <span className="text-sm font-medium text-gray-700">
+                          <span className="text-sm font-medium text-gray-700 uppercase">
                             {`${user.first_name[0]}${user.last_name[0]}`}
                           </span>
                         </div>

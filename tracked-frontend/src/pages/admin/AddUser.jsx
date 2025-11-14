@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../../layouts/admin/Sidebar';
 import toast from 'react-hot-toast';
@@ -20,6 +20,8 @@ function AddUser() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [nationalityDropdownOpen, setNationalityDropdownOpen] = useState(false);
+  const [availablePrograms, setAvailablePrograms] = useState([]);
+  const [loadingPrograms, setLoadingPrograms] = useState(true);
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -56,6 +58,26 @@ function AddUser() {
 
   // Get admin user info from localStorage
   const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+
+  // Fetch available programs on component mount
+  useEffect(() => {
+    const fetchPrograms = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/api/programs');
+        if (response.ok) {
+          const data = await response.json();
+          setAvailablePrograms(data.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching programs:', error);
+        toast.error('Failed to load programs');
+      } finally {
+        setLoadingPrograms(false);
+      }
+    };
+
+    fetchPrograms();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -233,7 +255,7 @@ function AddUser() {
         }
         
         toast.success('User added successfully!');
-        navigate('/admin/users');
+        navigate('/admin/all-users');
       } else {
         toast.error(response.message || 'Failed to add user');
       }
@@ -593,16 +615,46 @@ function AddUser() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Course/Program Applied For <span className="text-red-500">*</span>
                       </label>
-                      <input
-                        type="text"
-                        name="course_program"
-                        required
-                        value={formData.course_program}
-                        onChange={handleChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Enter program ID or name"
-                      />
-                      <p className="mt-1 text-xs text-gray-500">Enter the program ID number</p>
+                      <div className="relative">
+                        <select
+                          name="course_program"
+                          required
+                          value={formData.course_program}
+                          onChange={handleChange}
+                          disabled={loadingPrograms}
+                          className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        >
+                          <option value="">
+                            {loadingPrograms ? 'Loading programs...' : 'Select a training program'}
+                          </option>
+                          {availablePrograms.length > 0 ? (
+                            availablePrograms.map((program) => (
+                              <option key={program.id} value={program.id}>
+                                {program.title}
+                              </option>
+                            ))
+                          ) : (
+                            !loadingPrograms && <option value="" disabled>No programs available</option>
+                          )}
+                        </select>
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                          {loadingPrograms ? (
+                            <svg className="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                          )}
+                        </div>
+                      </div>
+                      {!loadingPrograms && availablePrograms.length === 0 && (
+                        <p className="mt-1 text-sm text-amber-600">
+                          No training programs are currently available. Please add programs first.
+                        </p>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1033,7 +1085,7 @@ function AddUser() {
                 <div className="pt-6 border-t border-gray-200 flex items-center justify-end space-x-3">
                   <button
                     type="button"
-                    onClick={() => navigate('/admin/users')}
+                    onClick={() => navigate('/admin/all-users')}
                     className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                   >
                     Cancel

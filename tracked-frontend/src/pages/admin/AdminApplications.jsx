@@ -389,8 +389,17 @@ export default function AdminApplications() {
                     filteredApplications.map(app => (
                       <tr key={app.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">
-                            {capitalizeName(app.first_name)} {capitalizeName(app.last_name)}
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                              <span className="text-white text-sm font-semibold uppercase">
+                                {app.first_name && app.last_name
+                                  ? `${app.first_name.charAt(0)}${app.last_name.charAt(0)}`
+                                  : 'NA'}
+                              </span>
+                            </div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {capitalizeName(app.first_name)} {capitalizeName(app.last_name)}
+                            </div>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
