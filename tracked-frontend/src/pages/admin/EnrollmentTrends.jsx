@@ -159,10 +159,9 @@ const EnrollmentTrends = () => {
 
   // Filter data by time range
   const getFilteredData = () => {
-    // Get data based on selected program and view type
-    const dataForProgram = selectedProgram === 'all' 
-      ? (viewType === 'quarterly' ? trendsData.quarterlyData : getDataByViewType(selectedProgram))
-      : getDataByViewType(selectedProgram);
+    // Always use getDataByViewType to respect the current viewType
+    // This ensures data is aggregated according to weekly/monthly/quarterly/yearly
+    const dataForProgram = getDataByViewType(selectedProgram);
 
     // Sort function based on view type
     const sortKeys = (a, b) => {
@@ -204,13 +203,15 @@ const EnrollmentTrends = () => {
 
     const periods = Object.keys(dataForProgram || {}).sort(sortKeys);
     
-    // Filter by selected year first
+    // If a specific year is selected, filter by that year first
     let filtered = periods;
     if (selectedYear !== 'all') {
       filtered = periods.filter(p => p.includes(selectedYear));
+      // When a specific year is selected, ignore timeRange and return all periods for that year
+      return filtered;
     }
     
-    // Then apply time range filter
+    // If "All Years" is selected, apply time range filter
     if (timeRange === '1year') {
       const periodCount = viewType === 'weekly' ? 52 : viewType === 'monthly' ? 12 : viewType === 'yearly' ? 1 : 4;
       return filtered.slice(-periodCount);
@@ -221,7 +222,9 @@ const EnrollmentTrends = () => {
       const periodCount = viewType === 'weekly' ? 260 : viewType === 'monthly' ? 60 : viewType === 'yearly' ? 5 : 20;
       return filtered.slice(-periodCount);
     }
-    return filtered; // All time or selected year
+    
+    // "All Time" - return all periods
+    return filtered;
   };
 
   // Calculate growth rate
@@ -229,9 +232,8 @@ const EnrollmentTrends = () => {
     const periods = getFilteredData();
     if (periods.length < 2) return 0;
     
-    const dataForProgram = selectedProgram === 'all' 
-      ? (viewType === 'quarterly' ? trendsData.quarterlyData : getDataByViewType(selectedProgram))
-      : getDataByViewType(selectedProgram);
+    // Always use getDataByViewType to ensure consistency
+    const dataForProgram = getDataByViewType(selectedProgram);
     
     const recent = dataForProgram[periods[periods.length - 1]] || 0;
     const previous = dataForProgram[periods[periods.length - 2]] || 0;
@@ -280,10 +282,8 @@ const EnrollmentTrends = () => {
     ]
   };
 
-  // Enrollment trends from CSV - filtered by selected program
-  const dataForProgram = selectedProgram === 'all' 
-    ? (viewType === 'quarterly' ? trendsData.quarterlyData : getDataByViewType(selectedProgram))
-    : getDataByViewType(selectedProgram);
+  // Enrollment trends - always use getDataByViewType for consistency
+  const dataForProgram = getDataByViewType(selectedProgram);
 
   const viewTypeLabel = viewType.charAt(0).toUpperCase() + viewType.slice(1);
 
@@ -576,11 +576,12 @@ const EnrollmentTrends = () => {
       return;
     }
     
-    const dataForProgram = selectedProgram === 'all' 
-      ? (viewType === 'quarterly' ? trendsData.quarterlyData : getDataByViewType(selectedProgram))
-      : getDataByViewType(selectedProgram);
+    // Always use getDataByViewType for consistency
+    const dataForProgram = getDataByViewType(selectedProgram);
     
     const periodLabel = viewType.charAt(0).toUpperCase() + viewType.slice(1) + ' Period';
+    const programLabel = selectedProgram === 'all' ? 'all_programs' : selectedProgram.replace(/\s+/g, '_');
+    const yearLabel = selectedYear === 'all' ? timeRange : selectedYear;
     
     const csvContent = "data:text/csv;charset=utf-8," + 
       `${periodLabel},Enrollments\n` +
@@ -589,7 +590,7 @@ const EnrollmentTrends = () => {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `enrollment_trends_${viewType}_${timeRange}.csv`);
+    link.setAttribute("download", `enrollment_trends_${viewType}_${programLabel}_${yearLabel}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -657,12 +658,16 @@ const EnrollmentTrends = () => {
                 <select
                   value={timeRange}
                   onChange={(e) => setTimeRange(e.target.value)}
-                  className="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  disabled={selectedYear !== 'all'}
+                  className={`block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                    selectedYear !== 'all' ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
+                  }`}
+                  title={selectedYear !== 'all' ? 'Time range is disabled when a specific year is selected' : ''}
                 >
-                  <option value="all">All Time (2020-2025)</option>
+                  <option value="all">All Time</option>
                   <option value="5years">Last 5 Years</option>
                   <option value="3years">Last 3 Years</option>
-                  <option value="1year">Last Year</option>
+                  <option value="1year">Last 1 Year</option>
                 </select>
               </div>
               <div className="flex items-center space-x-2">

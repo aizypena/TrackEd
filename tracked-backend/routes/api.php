@@ -7616,7 +7616,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
             'FOOD_AND_BEVERAGE_SERVICES_NC_II',
             'BREAD_AND_PASTRY_PRODUCTION_NC_II',
             'EVENTS_MANAGEMENT_NC_III',
-            'CHEFS_CATERING_SERVICES_NC_II',
+            'SHIPS_CATERING_SERVICES_NC_II',
             'COOKERY_NC_II'
         ];
 
@@ -8130,7 +8130,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 'FOOD_AND_BEVERAGE_SERVICES_NC_II',
                 'BREAD_AND_PASTRY_PRODUCTION_NC_II',
                 'EVENTS_MANAGEMENT_NC_III',
-                'CHEFS_CATERING_SERVICES_NC_II',
+                'SHIPS_CATERING_SERVICES_NC_II',
                 'COOKERY_NC_II'
             ];
             
