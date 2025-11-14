@@ -14,24 +14,45 @@ const EditEnrollment = ({ isOpen, onClose, enrollment, programs, batches, onUpda
 
   useEffect(() => {
     if (enrollment) {
+      // Find the batch ID from batches array
+      // enrollment.batch_id contains the batch string like "BATCH-2025-001"
+      // but we need the numeric id for the dropdown
+      const matchingBatch = batches.find(b => b.name === enrollment.batch || b.id === enrollment.batch_id);
+      const batchId = matchingBatch ? matchingBatch.id : '';
+      
       setFormData({
-        status: enrollment.status || '',
+        status: enrollment.status?.toLowerCase() || '',
         program_id: enrollment.program_id || '',
-        batch_id: enrollment.batch_id || '',
+        batch_id: batchId,
         voucher_eligible: enrollment.voucher_eligible || false,
         email: enrollment.email || '',
         phone: enrollment.phone || ''
       });
     }
-  }, [enrollment]);
+  }, [enrollment, batches]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    
+    // If program changes, clear the batch selection
+    if (name === 'program_id') {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        batch_id: '' // Reset batch when program changes
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value
+      }));
+    }
   };
+
+  // Filter batches based on selected program
+  const filteredBatches = formData.program_id 
+    ? batches.filter(batch => batch.program_id == formData.program_id)
+    : [];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -48,6 +69,9 @@ const EditEnrollment = ({ isOpen, onClose, enrollment, programs, batches, onUpda
       setSaving(false);
     }
   };
+
+  // Check if form is valid (if program is selected, batch must be selected too)
+  const isFormValid = !formData.program_id || (formData.program_id && formData.batch_id);
 
   if (!isOpen || !enrollment) return null;
 
@@ -156,21 +180,42 @@ const EditEnrollment = ({ isOpen, onClose, enrollment, programs, batches, onUpda
             {/* Batch */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Batch
+                Batch {formData.program_id && <span className="text-red-500">*</span>}
               </label>
               <select
                 name="batch_id"
                 value={formData.batch_id}
                 onChange={handleChange}
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                disabled={!formData.program_id}
+                required={formData.program_id ? true : false}
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               >
-                <option value="">Select Batch</option>
-                {batches.map(batch => (
-                  <option key={batch.id} value={batch.id}>
-                    {batch.name}
-                  </option>
-                ))}
+                <option value="">
+                  {formData.program_id ? 'Select Batch' : 'Select a program first'}
+                </option>
+                {filteredBatches.map(batch => {
+                  const currentStudents = batch.current_students || 0;
+                  const maxStudents = batch.max_students || 0;
+                  const isFull = batch.is_full || currentStudents >= maxStudents;
+                  const availableSlots = maxStudents - currentStudents;
+                  const isCurrentBatch = batch.id === formData.batch_id;
+                  
+                  return (
+                    <option 
+                      key={batch.id} 
+                      value={batch.id}
+                      disabled={isFull && !isCurrentBatch}
+                    >
+                      {batch.name} - {isFull ? 'FULL' : `${availableSlots} slot${availableSlots !== 1 ? 's' : ''} available`} ({currentStudents}/{maxStudents})
+                    </option>
+                  );
+                })}
               </select>
+              {formData.program_id && filteredBatches.length === 0 && (
+                <p className="mt-1 text-sm text-gray-500">
+                  No batches available for this program
+                </p>
+              )}
             </div>
           </div>
 
@@ -186,7 +231,7 @@ const EditEnrollment = ({ isOpen, onClose, enrollment, programs, batches, onUpda
             </button>
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || !isFormValid}
               className="inline-flex items-center hover:cursor-pointer px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-tracked-primary hover:bg-tracked-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-tracked-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? (

@@ -7695,8 +7695,17 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Get all programs for filter dropdown
         $programs = \App\Models\Program::select('id', 'title')->get();
         
-        // Get all batches for filter dropdown
-        $batches = \App\Models\Batch::select('batch_id')->get();
+        // Get all batches for filter dropdown with program_id and student counts
+        $batches = \App\Models\Batch::select('id', 'batch_id', 'program_id', 'max_students')->get();
+        
+        // Add student count to each batch
+        $batches = $batches->map(function($batch) {
+            $studentCount = \App\Models\User::where('batch_id', $batch->batch_id)
+                ->where('role', 'student')
+                ->count();
+            $batch->current_students = $studentCount;
+            return $batch;
+        });
 
         // Format student data
         $formattedStudents = $students->map(function ($student) {
@@ -7756,9 +7765,82 @@ Route::middleware(['auth:sanctum'])->group(function () {
             'success' => true,
             'students' => $formattedStudents,
             'programs' => $programs->map(fn($p) => ['id' => $p->id, 'name' => $p->title]),
-            'batches' => $batches->map(fn($b) => ['id' => $b->batch_id, 'name' => $b->batch_id]),
+            'batches' => $batches->map(fn($b) => [
+                'id' => $b->id, 
+                'name' => $b->batch_id, 
+                'program_id' => $b->program_id,
+                'current_students' => $b->current_students,
+                'max_students' => $b->max_students,
+                'is_full' => $b->current_students >= $b->max_students
+            ]),
             'total' => $formattedStudents->count(),
         ]);
+    });
+
+    // Update student enrollment
+    Route::put('/admin/students/{userId}', function (Request $request, $userId) {
+        $user = $request->user();
+        
+        if ($user->role !== 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Only admins can update enrollments.'
+            ], 403);
+        }
+
+        // Validate the request
+        $validated = $request->validate([
+            'email' => 'sometimes|email|unique:users,email,' . $userId,
+            'phone' => 'nullable|string',
+            'status' => 'sometimes|string|in:active,pending,completed,dropped',
+            'program_id' => 'sometimes|integer|exists:programs,id',
+            'batch_id' => 'nullable|integer',
+            'voucher_eligible' => 'sometimes|boolean',
+        ]);
+
+        try {
+            $student = \App\Models\User::findOrFail($userId);
+            
+            // If batch_id is provided, get the batch_id string (not the numeric id)
+            if (isset($validated['batch_id']) && $validated['batch_id']) {
+                $batch = \App\Models\Batch::find($validated['batch_id']);
+                if ($batch) {
+                    $student->batch_id = $batch->batch_id; // Use the string batch_id
+                } else {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Batch not found.'
+                    ], 404);
+                }
+            }
+            
+            // Update other fields
+            if (isset($validated['email'])) {
+                $student->email = $validated['email'];
+            }
+            if (isset($validated['phone'])) {
+                $student->phone_number = $validated['phone'];
+            }
+            if (isset($validated['status'])) {
+                $student->status = $validated['status'];
+            }
+            if (isset($validated['voucher_eligible'])) {
+                $student->voucher_eligible = $validated['voucher_eligible'];
+            }
+            
+            $student->save();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Student enrollment updated successfully.',
+                'student' => $student
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update enrollment: ' . $e->getMessage()
+            ], 500);
+        }
     });
 
     // ARIMA Forecast

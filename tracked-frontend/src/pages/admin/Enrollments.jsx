@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast, { Toaster } from 'react-hot-toast';
 import Sidebar from '../../layouts/admin/Sidebar';
 import enrollmentAPI from '../../services/enrollmentAPI';
 import ViewEnrollment from '../../components/admin/ViewEnrollment';
@@ -166,10 +167,17 @@ const Enrollments = () => {
       if (response.success) {
         // Refresh the enrollments list
         await fetchEnrollments();
-        alert('Enrollment updated successfully!');
+        toast.success('Enrollment updated successfully!', {
+          duration: 3000,
+          position: 'top-center',
+        });
       }
     } catch (error) {
       console.error('Error updating enrollment:', error);
+      toast.error('Failed to update enrollment. Please try again.', {
+        duration: 4000,
+        position: 'top-center',
+      });
       throw error;
     }
   };
@@ -202,6 +210,7 @@ const Enrollments = () => {
 
   return (
     <div className="flex h-screen bg-gray-50">
+      <Toaster />
       {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
