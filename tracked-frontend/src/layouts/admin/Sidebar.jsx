@@ -288,17 +288,6 @@ function Sidebar({ isOpen, onClose }) {
 
         {/* Footer */}
         <div className="p-4 border-t border-gray-200 bg-gray-50 flex-shrink-0">
-          {/* System Status */}
-          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-sm text-green-800 font-medium">System Operational</span>
-            </div>
-            <p className="text-xs text-green-600 mt-1">
-              Last updated: {new Date().toLocaleTimeString()}
-            </p>
-          </div>
-
           {/* Logout Button */}
           <button
             onClick={handleLogout}
