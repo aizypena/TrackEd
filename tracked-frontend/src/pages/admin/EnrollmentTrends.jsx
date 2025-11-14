@@ -44,7 +44,6 @@ const EnrollmentTrends = () => {
   const [timeRange, setTimeRange] = useState('all');
   const [loading, setLoading] = useState(false);
   const [viewType, setViewType] = useState('quarterly'); // weekly, monthly, quarterly, yearly
-  const [selectedYear, setSelectedYear] = useState('all');
   const [selectedProgram, setSelectedProgram] = useState('all');
   
   const [trendsData, setTrendsData] = useState({
@@ -203,28 +202,51 @@ const EnrollmentTrends = () => {
 
     const periods = Object.keys(dataForProgram || {}).sort(sortKeys);
     
-    // If a specific year is selected, filter by that year first
-    let filtered = periods;
-    if (selectedYear !== 'all') {
-      filtered = periods.filter(p => p.includes(selectedYear));
-      // When a specific year is selected, ignore timeRange and return all periods for that year
-      return filtered;
-    }
-    
-    // If "All Years" is selected, apply time range filter
-    if (timeRange === '1year') {
-      const periodCount = viewType === 'weekly' ? 52 : viewType === 'monthly' ? 12 : viewType === 'yearly' ? 1 : 4;
-      return filtered.slice(-periodCount);
-    } else if (timeRange === '3years') {
-      const periodCount = viewType === 'weekly' ? 156 : viewType === 'monthly' ? 36 : viewType === 'yearly' ? 3 : 12;
-      return filtered.slice(-periodCount);
-    } else if (timeRange === '5years') {
-      const periodCount = viewType === 'weekly' ? 260 : viewType === 'monthly' ? 60 : viewType === 'yearly' ? 5 : 20;
-      return filtered.slice(-periodCount);
+    // Apply time range filter based on actual year ranges
+    if (timeRange === '1year' || timeRange === '3years' || timeRange === '5years') {
+      const yearsToShow = timeRange === '1year' ? 1 : timeRange === '3years' ? 3 : 5;
+      
+      // Get the most recent year from the data
+      let mostRecentYear = 0;
+      periods.forEach(period => {
+        let year = 0;
+        if (viewType === 'weekly') {
+          const match = period.match(/Week \d+ (\d+)/);
+          if (match) year = parseInt(match[1]);
+        } else if (viewType === 'monthly') {
+          const match = period.match(/\w+ (\d+)/);
+          if (match) year = parseInt(match[1]);
+        } else if (viewType === 'yearly') {
+          year = parseInt(period);
+        } else { // quarterly
+          const match = period.match(/Q\d (\d+)/);
+          if (match) year = parseInt(match[1]);
+        }
+        if (year > mostRecentYear) mostRecentYear = year;
+      });
+      
+      // Filter periods to only include those within the year range
+      const cutoffYear = mostRecentYear - yearsToShow + 1;
+      return periods.filter(period => {
+        let year = 0;
+        if (viewType === 'weekly') {
+          const match = period.match(/Week \d+ (\d+)/);
+          if (match) year = parseInt(match[1]);
+        } else if (viewType === 'monthly') {
+          const match = period.match(/\w+ (\d+)/);
+          if (match) year = parseInt(match[1]);
+        } else if (viewType === 'yearly') {
+          year = parseInt(period);
+        } else { // quarterly
+          const match = period.match(/Q\d (\d+)/);
+          if (match) year = parseInt(match[1]);
+        }
+        return year >= cutoffYear;
+      });
     }
     
     // "All Time" - return all periods
-    return filtered;
+    return periods;
   };
 
   // Calculate growth rate
@@ -581,7 +603,6 @@ const EnrollmentTrends = () => {
     
     const periodLabel = viewType.charAt(0).toUpperCase() + viewType.slice(1) + ' Period';
     const programLabel = selectedProgram === 'all' ? 'all_programs' : selectedProgram.replace(/\s+/g, '_');
-    const yearLabel = selectedYear === 'all' ? timeRange : selectedYear;
     
     const csvContent = "data:text/csv;charset=utf-8," + 
       `${periodLabel},Enrollments\n` +
@@ -590,7 +611,7 @@ const EnrollmentTrends = () => {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `enrollment_trends_${viewType}_${programLabel}_${yearLabel}.csv`);
+    link.setAttribute("download", `enrollment_trends_${viewType}_${programLabel}_${timeRange}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -643,26 +664,9 @@ const EnrollmentTrends = () => {
                   ))}
                 </select>
                 <select
-                  value={selectedYear}
-                  onChange={(e) => setSelectedYear(e.target.value)}
-                  className="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="all">All Years</option>
-                  <option value="2025">2025</option>
-                  <option value="2024">2024</option>
-                  <option value="2023">2023</option>
-                  <option value="2022">2022</option>
-                  <option value="2021">2021</option>
-                  <option value="2020">2020</option>
-                </select>
-                <select
                   value={timeRange}
                   onChange={(e) => setTimeRange(e.target.value)}
-                  disabled={selectedYear !== 'all'}
-                  className={`block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                    selectedYear !== 'all' ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
-                  }`}
-                  title={selectedYear !== 'all' ? 'Time range is disabled when a specific year is selected' : ''}
+                  className="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="all">All Time</option>
                   <option value="5years">Last 5 Years</option>
