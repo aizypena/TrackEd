@@ -36,53 +36,7 @@ const AdminDashboard = () => {
     accuracy: 0
   });
 
-  const [recentActivities, setRecentActivities] = useState([
-    {
-      id: 1,
-      type: 'application',
-      status: 'success',
-      priority: 'high',
-      message: 'New TESDA voucher application submitted for Data Analytics Program',
-      user: 'Maria Santos',
-      timestamp: '2 minutes ago'
-    },
-    {
-      id: 2,
-      type: 'system',
-      status: 'info',
-      priority: 'medium',
-      message: 'ARIMA forecasting model updated with Q4 enrollment data',
-      user: 'System',
-      timestamp: '15 minutes ago'
-    },
-    {
-      id: 3,
-      type: 'approval',
-      status: 'success',
-      priority: 'high',
-      message: 'Batch enrollment approved for Cybersecurity Fundamentals',
-      user: 'Admin User',
-      timestamp: '1 hour ago'
-    },
-    {
-      id: 4,
-      type: 'notification',
-      status: 'warning',
-      priority: 'medium',
-      message: 'TESDA voucher limit approaching for this quarter',
-      user: 'System',
-      timestamp: '2 hours ago'
-    },
-    {
-      id: 5,
-      type: 'maintenance',
-      status: 'info',
-      priority: 'low',
-      message: 'Scheduled system maintenance completed successfully',
-      user: 'System',
-      timestamp: '4 hours ago'
-    }
-  ]);
+  const [recentActivities, setRecentActivities] = useState([]);
 
   // Fetch dashboard statistics from API
   useEffect(() => {
@@ -112,11 +66,6 @@ const AdminDashboard = () => {
             avgProcessingTime: data.avgProcessingTime || 0,
             activeBatches: data.activeBatches || 0
           });
-
-          // Update recent activities if available
-          if (data.recentActivities && data.recentActivities.length > 0) {
-            setRecentActivities(data.recentActivities);
-          }
         } else {
           console.error('Failed to fetch dashboard stats:', response.status);
         }
@@ -129,6 +78,99 @@ const AdminDashboard = () => {
       fetchDashboardStats();
     }
   }, [adminToken]);
+
+  // Fetch recent system activities from system_logs
+  useEffect(() => {
+    const fetchSystemLogs = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/api/admin/system-logs?per_page=3', {
+          headers: {
+            'Authorization': `Bearer ${adminToken}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          
+          // Transform system logs into activity format
+          if (data.logs && data.logs.length > 0) {
+            const formattedActivities = data.logs.map(log => ({
+              id: log.id,
+              type: getActivityType(log.action),
+              status: getActivityStatus(log.log_level),
+              priority: getActivityPriority(log.log_level),
+              message: log.description,
+              user: log.user?.name || 'System',
+              timestamp: formatTimestamp(log.created_at)
+            }));
+            
+            setRecentActivities(formattedActivities);
+          }
+        } else {
+          console.error('Failed to fetch system logs:', response.status);
+        }
+      } catch (error) {
+        console.error('Error fetching system logs:', error);
+      }
+    };
+
+    if (adminToken) {
+      fetchSystemLogs();
+    }
+  }, [adminToken]);
+
+  // Helper functions to transform log data
+  const getActivityType = (action) => {
+    if (action.includes('application') || action.includes('applicant')) return 'application';
+    if (action.includes('approved') || action.includes('approval')) return 'approval';
+    if (action.includes('created') || action.includes('updated')) return 'system';
+    if (action.includes('deleted') || action.includes('failed')) return 'notification';
+    return 'system';
+  };
+
+  const getActivityStatus = (logLevel) => {
+    switch (logLevel) {
+      case 'error':
+      case 'critical':
+        return 'error';
+      case 'warning':
+        return 'warning';
+      case 'info':
+      case 'debug':
+        return 'info';
+      default:
+        return 'success';
+    }
+  };
+
+  const getActivityPriority = (logLevel) => {
+    switch (logLevel) {
+      case 'critical':
+      case 'error':
+        return 'high';
+      case 'warning':
+        return 'medium';
+      default:
+        return 'low';
+    }
+  };
+
+  const formatTimestamp = (timestamp) => {
+    const now = new Date();
+    const logTime = new Date(timestamp);
+    const diffMs = now - logTime;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    return logTime.toLocaleDateString();
+  };
 
   // Fetch ARIMA forecast data from API
   useEffect(() => {
