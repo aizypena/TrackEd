@@ -159,8 +159,21 @@ const AdminCourseMaterials = () => {
         return;
       }
 
-      // Password verified, proceed with deletion
-      setMaterials(materials.filter(m => m.id !== materialToDelete.id));
+      // Password verified, proceed with deletion by calling backend API
+      const deleteResponse = await fetch(`http://localhost:8000/api/trainer/course-materials/${materialToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+
+      const deleteData = await deleteResponse.json();
+
+      if (!deleteResponse.ok || !deleteData.success) {
+        throw new Error(deleteData.message || 'Failed to delete material');
+      }
       
       // Log successful deletion
       await logAction(
@@ -475,13 +488,6 @@ const AdminCourseMaterials = () => {
                             title="Download"
                           >
                             <MdDownload className="h-5 w-5" />
-                          </button>
-                          <button
-                            onClick={() => handleEditMaterial(material)}
-                            className="text-gray-600 hover:text-gray-900 hover:cursor-pointer"
-                            title="Edit"
-                          >
-                            <MdEdit className="h-5 w-5" />
                           </button>
                           <button
                             onClick={() => handleDeleteMaterial(material)}
