@@ -7736,78 +7736,61 @@ Route::middleware(['auth:sanctum'])->group(function () {
             ], 403);
         }
         
-        // Get all grades with relationships
-        $grades = \App\Models\Grade::with(['student', 'batch.program', 'quiz'])
-            ->orderBy('graded_at', 'desc')
-            ->orderBy('created_at', 'desc')
+        // Get all TESDA assessments
+        $assessments = DB::table('tesda_assessments')
+            ->leftJoin('programs', 'tesda_assessments.program_id', '=', 'programs.id')
+            ->leftJoin('batches', 'tesda_assessments.batch_id', '=', 'batches.id')
+            ->select(
+                'tesda_assessments.*',
+                'programs.title as program_name',
+                'batches.batch_id as batch_name'
+            )
+            ->orderBy('tesda_assessments.assessment_date', 'desc')
+            ->orderBy('tesda_assessments.created_at', 'desc')
             ->get();
         
         // Format the results
-        $results = $grades->map(function ($grade) {
-            $student = $grade->student;
-            $batch = $grade->batch;
-            $program = $batch ? $batch->program : ($grade->program ?? null);
-            
+        $results = $assessments->map(function ($assessment) {
             return [
-                'id' => $grade->id,
-                'student_id' => $student->student_id ?? $student->id,
-                'student_name' => $student->first_name . ' ' . $student->last_name,
-                'program_name' => $program ? $program->title : 'N/A',
-                'program_id' => $program ? $program->id : null,
-                'batch_id' => $grade->batch_id,
-                'batch_name' => $batch ? $batch->batch_id : 'N/A',
-                'assessment_type' => $grade->assessment_type,
-                'assessment_title' => $grade->assessment_title,
-                'score' => $grade->score,
-                'total_points' => $grade->total_points,
-                'percentage' => $grade->percentage,
-                'passing_score' => $grade->passing_score,
-                'status' => $grade->status,
-                'competency_status' => $grade->percentage >= 85 ? 'Competent' : 'Not Competent',
-                'graded_at' => $grade->graded_at,
-                'feedback' => $grade->feedback,
-                'attempt_number' => $grade->attempt_number,
+                'id' => $assessment->id,
+                'student_id' => $assessment->student_id,
+                'student_name' => $assessment->student_name,
+                'program_id' => $assessment->program_id,
+                'program_name' => $assessment->program_name ?? 'N/A',
+                'batch_id' => $assessment->batch_id,
+                'batch_name' => $assessment->batch_name ?? 'N/A',
+                'tesda_assessor' => $assessment->tesda_assessor,
+                'result' => $assessment->result,
+                'assessment_date' => $assessment->assessment_date,
+                'remarks' => $assessment->remarks,
+                'trainer_id' => $assessment->trainer_id,
             ];
         });
         
         // Calculate statistics
         $totalAssessments = $results->count();
-        $passedAssessments = $results->where('status', 'passed')->count();
-        $passRate = $totalAssessments > 0 ? round(($passedAssessments / $totalAssessments) * 100, 1) : 0;
-        $averageScore = $results->avg('percentage') ?? 0;
-        $pendingAssessments = $results->where('status', 'pending')->count();
-        
-        // Score distribution
-        $scoreRanges = [
-            '90-100' => $results->filter(fn($r) => $r['percentage'] >= 90 && $r['percentage'] <= 100)->count(),
-            '80-89' => $results->filter(fn($r) => $r['percentage'] >= 80 && $r['percentage'] < 90)->count(),
-            '70-79' => $results->filter(fn($r) => $r['percentage'] >= 70 && $r['percentage'] < 80)->count(),
-            '60-69' => $results->filter(fn($r) => $r['percentage'] >= 60 && $r['percentage'] < 70)->count(),
-            'Below 60' => $results->filter(fn($r) => $r['percentage'] < 60)->count(),
-        ];
-        
-        // Program performance
-        $programPerformance = $results->groupBy('program_name')->map(function ($programGrades, $programName) {
-            return [
-                'program' => $programName,
-                'average_score' => round($programGrades->avg('percentage'), 1)
-            ];
-        })->values();
+        $competentAssessments = $results->filter(fn($r) => strtolower($r['result']) === 'competent')->count();
+        $passRate = $totalAssessments > 0 ? round(($competentAssessments / $totalAssessments) * 100, 1) : 0;
+        $pendingAssessments = $results->filter(fn($r) => empty($r['result']) || strtolower($r['result']) === 'pending')->count();
         
         // Get unique programs and batches for filtering
-        $programs = $results->unique('program_id')->map(function ($item) {
-            return [
-                'id' => $item['program_id'],
-                'name' => $item['program_name']
-            ];
-        })->values();
+        $programs = collect();
+        $batches = collect();
         
-        $batches = $results->unique('batch_id')->map(function ($item) {
-            return [
-                'id' => $item['batch_id'],
-                'name' => $item['batch_name']
-            ];
-        })->values();
+        foreach ($results as $item) {
+            if ($item['program_id'] && !$programs->contains('id', $item['program_id'])) {
+                $programs->push([
+                    'id' => $item['program_id'],
+                    'name' => $item['program_name']
+                ]);
+            }
+            if ($item['batch_id'] && !$batches->contains('id', $item['batch_id'])) {
+                $batches->push([
+                    'id' => $item['batch_id'],
+                    'name' => $item['batch_name']
+                ]);
+            }
+        }
         
         return response()->json([
             'success' => true,
@@ -7815,13 +7798,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
             'statistics' => [
                 'totalAssessments' => $totalAssessments,
                 'passRate' => $passRate,
-                'averageScore' => round($averageScore, 1),
+                'averageScore' => $passRate, // Using pass rate as average for competency-based assessment
                 'pendingAssessments' => $pendingAssessments,
             ],
-            'scoreDistribution' => $scoreRanges,
-            'programPerformance' => $programPerformance,
-            'programs' => $programs,
-            'batches' => $batches,
+            'programs' => $programs->values(),
+            'batches' => $batches->values(),
         ]);
     });
 

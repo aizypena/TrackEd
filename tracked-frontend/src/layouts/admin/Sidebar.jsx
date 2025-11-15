@@ -84,7 +84,7 @@ function Sidebar({ isOpen, onClose }) {
     },
     {
       id: 'reports',
-      name: 'Reports Management',
+      name: 'Reports',
       icon: MdAssessment,
       submenu: [
         // { id: 'enrollment-reports', name: 'Enrollment Reports', icon: MdSchool, path: '/admin/enrollment-reports' },
