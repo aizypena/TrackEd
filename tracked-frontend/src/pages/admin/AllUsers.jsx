@@ -261,10 +261,46 @@ function AllUsers() {
   };
 
   const handleExport = () => {
-    // Simulate export functionality
-    toast('Export functionality coming soon!', {
-      icon: 'ℹ️',
-    });
+    try {
+      // Prepare CSV data
+      const headers = ['Name', 'Email', 'Phone', 'Role', 'Status', 'Program', 'Address', 'Join Date'];
+      
+      // Map users to CSV rows
+      const rows = currentUsers.map(user => [
+        `${user.first_name} ${user.last_name}`,
+        user.email,
+        user.phone_number,
+        user.role.charAt(0).toUpperCase() + user.role.slice(1),
+        user.status.charAt(0).toUpperCase() + user.status.slice(1),
+        getProgramLabel(user.course_program || user.program),
+        user.address,
+        formatDate(user.created_at)
+      ]);
+      
+      // Create CSV content
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ].join('\n');
+      
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `users_export_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('Users exported successfully!');
+    } catch (error) {
+      console.error('Error exporting users:', error);
+      toast.error('Failed to export users');
+    }
   };
 
   // Handle editing a user
