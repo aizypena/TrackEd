@@ -15,6 +15,14 @@ class UserController extends Controller
             // Log incoming request for debugging
             Log::info('User creation request received', [
                 'role' => $request->role,
+                'generate_student_id' => $request->generate_student_id,
+                'send_credentials_email' => $request->send_credentials_email,
+                'batch_id' => $request->batch_id,
+                'voucher_id' => $request->voucher_id,
+                'voucher_eligible' => $request->voucher_eligible,
+                'application_status' => $request->application_status,
+                'approved_at' => $request->approved_at,
+                'emergency_contact' => $request->emergency_contact,
                 'has_validId' => $request->hasFile('validId'),
                 'has_transcript' => $request->hasFile('transcript'),
                 'has_diploma' => $request->hasFile('diploma'),
@@ -25,13 +33,42 @@ class UserController extends Controller
             $validated = $request->validate([
                 'first_name' => 'required|string|max:255',
                 'last_name' => 'required|string|max:255',
+                'middle_name' => 'nullable|string|max:255',
                 'email' => 'required|string|email|max:255|unique:users',
                 'password' => 'required|string|min:8',
                 'phone_number' => ['required', 'string', 'regex:/^9\d{9}$/'],
                 'emergency_phone' => ['nullable', 'string', 'regex:/^9\d{9}$/'],
+                'emergency_contact' => 'nullable|string|max:255',
+                'emergency_relationship' => 'nullable|string|max:255',
                 'role' => 'required|string|in:student,applicant,admin,instructor,staff,trainer',
                 'status' => 'required|string|in:active,inactive',
                 'course_program' => 'required_if:role,student,applicant',
+                'batch_id' => 'nullable|string|max:255',
+                'voucher_id' => 'nullable|string|max:255',
+                'voucher_eligible' => 'nullable|string',
+                'voucher_eligibility' => 'nullable|string',
+                'application_status' => 'nullable|string',
+                'approved_at' => 'nullable|string',
+                'application_submitted_at' => 'nullable|string',
+                'place_of_birth' => 'nullable|string|max:255',
+                'employment_status' => 'nullable|string|max:255',
+                'address' => 'nullable|string',
+                'date_of_birth' => 'nullable|date',
+                'gender' => 'nullable|string',
+                'nationality' => 'nullable|string',
+                'marital_status' => 'nullable|string',
+                'education' => 'nullable|string',
+                'education_level' => 'nullable|string',
+                'school' => 'nullable|string',
+                'institution_name' => 'nullable|string',
+                'field_of_study' => 'nullable|string',
+                'graduation_year' => 'nullable|string',
+                'gpa' => 'nullable|string',
+                'occupation' => 'nullable|string',
+                'work_experience' => 'nullable|string',
+                'generate_student_id' => 'nullable|string',
+                'send_credentials_email' => 'nullable|string',
+                'auto_generated' => 'nullable|string',
                 // Individual document uploads
                 'validId' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240', // 10MB max
                 'transcript' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240', // 10MB max
@@ -90,6 +127,30 @@ class UserController extends Controller
                 Log::info('Passport photo uploaded', ['path' => $passportPhotoPath]);
             }
 
+            // Generate student_id if this is a student and flag is set
+            $studentId = null;
+            if ($request->role === 'student' && $request->generate_student_id === 'true') {
+                $year = date('Y');
+                $lastStudent = User::where('role', 'student')
+                    ->where('student_id', 'like', "STU-{$year}-%")
+                    ->orderBy('student_id', 'desc')
+                    ->first();
+
+                if ($lastStudent && $lastStudent->student_id) {
+                    // Extract the number from the last student ID
+                    $lastNumber = (int) substr($lastStudent->student_id, -4);
+                    $newNumber = $lastNumber + 1;
+                } else {
+                    $newNumber = 1;
+                }
+
+                $studentId = sprintf("STU-%s-%04d", $year, $newNumber);
+                Log::info('Generated student_id', ['student_id' => $studentId]);
+            }
+
+            // Store plain password for email before hashing
+            $plainPassword = $request->password;
+
             // Create user
             $user = User::create([
                 'first_name' => $request->first_name,
@@ -100,16 +161,23 @@ class UserController extends Controller
                 'phone_number' => $request->phone_number,
                 'role' => $request->role,
                 'status' => $request->status,
-                'application_status' => $request->role === 'applicant' ? 'pending' : null,
+                'student_id' => $studentId,
+                'application_status' => $request->application_status ?? ($request->role === 'applicant' ? 'pending' : null),
+                'approved_at' => $request->approved_at,
+                'application_submitted_at' => $request->application_submitted_at,
+                'batch_id' => $request->batch_id,
+                'voucher_id' => $request->voucher_id,
+                'voucher_eligibility' => $request->voucher_eligibility,
+                'voucher_eligible' => $request->voucher_eligible,
                 'address' => $request->address,
                 'date_of_birth' => $request->date_of_birth,
                 'place_of_birth' => $request->place_of_birth,
                 'gender' => $request->gender,
                 'nationality' => $request->nationality,
                 'marital_status' => $request->marital_status,
-                'education_level' => $request->education,
+                'education_level' => $request->education_level ?? $request->education,
                 'field_of_study' => $request->field_of_study,
-                'institution_name' => $request->school,
+                'institution_name' => $request->institution_name ?? $request->school,
                 'graduation_year' => $request->graduation_year,
                 'gpa' => $request->gpa,
                 'employment_status' => $request->employment_status,
@@ -125,10 +193,50 @@ class UserController extends Controller
                 'passport_photo_path' => $passportPhotoPath
             ]);
 
+            // Increment voucher used count if student has voucher
+            if ($request->role === 'student' && $request->voucher_id && $request->batch_id) {
+                $voucher = \App\Models\Voucher::where('id', $request->voucher_id)
+                    ->where('batch_id', $request->batch_id)
+                    ->first();
+                
+                if ($voucher) {
+                    $voucher->used_count = $voucher->used_count + 1;
+                    $voucher->save();
+                    Log::info("Voucher used count incremented for batch {$request->batch_id}. New count: {$voucher->used_count}/{$voucher->quantity}");
+                } else {
+                    Log::warning("No voucher found with ID {$request->voucher_id} for batch {$request->batch_id} when enrolling student {$studentId}");
+                }
+            }
+
+            // Send credentials email if requested
+            if ($request->role === 'student' && $request->send_credentials_email === 'true') {
+                try {
+                    \Illuminate\Support\Facades\Mail::send('emails.student-credentials', [
+                        'student' => $user,
+                        'password' => $plainPassword,
+                        'loginUrl' => env('FRONTEND_URL', 'http://localhost:5173') . '/student/login'
+                    ], function ($message) use ($user) {
+                        $message->to($user->email)
+                                ->subject('Student Credentials - TrackEd System');
+                    });
+                    
+                    Log::info('Student credentials email sent', ['user_id' => $user->id, 'email' => $user->email]);
+                } catch (\Exception $e) {
+                    Log::error('Failed to send student credentials email', [
+                        'user_id' => $user->id,
+                        'error' => $e->getMessage()
+                    ]);
+                    // Don't fail the whole request if email fails
+                }
+            }
+
             Log::info('User created successfully', [
                 'user_id' => $user->id,
                 'email' => $user->email,
                 'role' => $user->role,
+                'student_id' => $user->student_id ?? null,
+                'batch_id' => $user->batch_id ?? null,
+                'voucher_id' => $user->voucher_id ?? null,
                 'valid_id_path' => $user->valid_id_path,
                 'transcript_path' => $user->transcript_path,
                 'diploma_path' => $user->diploma_path,

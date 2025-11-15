@@ -296,7 +296,7 @@ const Certificates = () => {
             
             <div class="signature">
               <div class="signature-line"></div>
-              <div class="signature-text">Authorized Signature</div>
+              <div class="signature-text">Mr. Rolando S. Luzano</div>
             </div>
           </div>
           

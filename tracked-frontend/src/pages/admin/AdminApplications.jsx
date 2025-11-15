@@ -713,23 +713,6 @@ export default function AdminApplications() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
-
-                  {/* Application Status */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Application Status
-                    </label>
-                    <select
-                      value={selectedApplicant.application_status || 'pending'}
-                      onChange={(e) => setSelectedApplicant({...selectedApplicant, application_status: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="pending">Pending</option>
-                      <option value="under_review">Under Review</option>
-                      <option value="approved">Approved</option>
-                      <option value="rejected">Rejected</option>
-                    </select>
-                  </div>
                 </div>
 
                 {/* Modal Footer */}
