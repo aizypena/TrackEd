@@ -17,6 +17,7 @@ use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\QuizController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\StorageController;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 
@@ -24,6 +25,9 @@ use Illuminate\Support\Facades\Hash;
 Route::get('/test', function () {
     return response()->json(['message' => 'API is working!']);
 });
+
+// Storage file serving (no auth required for viewing documents)
+Route::get('/storage-file/{path}', [StorageController::class, 'serve'])->where('path', '.*');
 
 // Application routes
 Route::post('/application', [ApplicationController::class, 'submit']);

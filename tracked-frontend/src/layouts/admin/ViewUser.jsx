@@ -123,6 +123,70 @@ function ViewUser({ user, isOpen, onClose }) {
               </div>
             )}
           </div>
+
+          {/* Documents Section - Only for Applicants */}
+          {user.role === 'applicant' && (
+            <div className="mt-6 bg-gray-50 rounded-lg p-4">
+              <h4 className="text-sm font-medium text-gray-900 mb-3">Uploaded Documents</h4>
+              <div className="space-y-2">
+                {user.valid_id_path && (
+                  <div className="flex items-center justify-between text-sm p-2 bg-white rounded border border-gray-200">
+                    <span className="text-gray-700">Valid ID</span>
+                    <a
+                      href={`http://localhost:8000/api/storage-file/${user.valid_id_path}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 underline"
+                    >
+                      View Document
+                    </a>
+                  </div>
+                )}
+                {user.transcript_path && (
+                  <div className="flex items-center justify-between text-sm p-2 bg-white rounded border border-gray-200">
+                    <span className="text-gray-700">Transcript of Records</span>
+                    <a
+                      href={`http://localhost:8000/api/storage-file/${user.transcript_path}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 underline"
+                    >
+                      View Document
+                    </a>
+                  </div>
+                )}
+                {user.diploma_path && (
+                  <div className="flex items-center justify-between text-sm p-2 bg-white rounded border border-gray-200">
+                    <span className="text-gray-700">Diploma/Certificate</span>
+                    <a
+                      href={`http://localhost:8000/api/storage-file/${user.diploma_path}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 underline"
+                    >
+                      View Document
+                    </a>
+                  </div>
+                )}
+                {user.passport_photo_path && (
+                  <div className="flex items-center justify-between text-sm p-2 bg-white rounded border border-gray-200">
+                    <span className="text-gray-700">2x2 Passport Photo</span>
+                    <a
+                      href={`http://localhost:8000/api/storage-file/${user.passport_photo_path}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 underline"
+                    >
+                      View Document
+                    </a>
+                  </div>
+                )}
+                {!user.valid_id_path && !user.transcript_path && !user.diploma_path && !user.passport_photo_path && (
+                  <p className="text-sm text-gray-500 italic">No documents uploaded yet</p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer */}

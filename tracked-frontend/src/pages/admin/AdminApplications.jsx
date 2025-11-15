@@ -525,7 +525,7 @@ export default function AdminApplications() {
                       </div>
                       {selectedApplicant.valid_id ? (
                         <a
-                          href={`http://localhost:8000/storage/${selectedApplicant.valid_id}`}
+                          href={`http://localhost:8000/api/storage-file/${selectedApplicant.valid_id}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 rounded text-sm hover:bg-blue-100 transition-colors"
@@ -551,7 +551,7 @@ export default function AdminApplications() {
                       </div>
                       {selectedApplicant.transcript ? (
                         <a
-                          href={`http://localhost:8000/storage/${selectedApplicant.transcript}`}
+                          href={`http://localhost:8000/api/storage-file/${selectedApplicant.transcript}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 rounded text-sm hover:bg-blue-100 transition-colors"
@@ -577,7 +577,7 @@ export default function AdminApplications() {
                       </div>
                       {selectedApplicant.diploma ? (
                         <a
-                          href={`http://localhost:8000/storage/${selectedApplicant.diploma}`}
+                          href={`http://localhost:8000/api/storage-file/${selectedApplicant.diploma}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 rounded text-sm hover:bg-blue-100 transition-colors"
@@ -603,7 +603,7 @@ export default function AdminApplications() {
                       </div>
                       {selectedApplicant.passport_photo ? (
                         <a
-                          href={`http://localhost:8000/storage/${selectedApplicant.passport_photo}`}
+                          href={`http://localhost:8000/api/storage-file/${selectedApplicant.passport_photo}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 rounded text-sm hover:bg-blue-100 transition-colors"

@@ -100,14 +100,33 @@ class ApplicationController extends Controller
             $documentPaths = [];
             $documentTypes = ['validId', 'transcript', 'diploma', 'passportPhoto'];
             
+            Log::info('Checking for uploaded files', [
+                'has_validId' => $request->hasFile('validId'),
+                'has_transcript' => $request->hasFile('transcript'),
+                'has_diploma' => $request->hasFile('diploma'),
+                'has_passportPhoto' => $request->hasFile('passportPhoto'),
+            ]);
+            
             foreach ($documentTypes as $docType) {
                 if ($request->hasFile($docType)) {
                     $file = $request->file($docType);
                     $directory = "applications/documents/{$docType}";
+                    
+                    // Store the file
                     $path = $file->store($directory, 'public');
                     $documentPaths[$docType . '_path'] = $path;
+                    
+                    Log::info("Uploaded {$docType}", [
+                        'path' => $path,
+                        'size' => $file->getSize(),
+                        'mime' => $file->getMimeType()
+                    ]);
+                } else {
+                    Log::warning("File {$docType} not found in request");
                 }
             }
+            
+            Log::info('Document paths to be saved', $documentPaths);
 
             // Create user with application data
             $user = User::create([
