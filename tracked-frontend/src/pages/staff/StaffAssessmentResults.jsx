@@ -7,27 +7,11 @@ import {
   MdMenu,
   MdSearch,
   MdAdd,
-  MdEdit,
-  MdDelete,
-  MdVisibility,
-  MdDownload,
   MdRefresh,
-  MdPrint,
   MdCheckCircle,
-  MdWarning,
   MdCancel,
-  MdClose,
-  MdAssignment,
-  MdGrade,
-  MdTrendingUp,
-  MdTrendingDown,
-  MdPeople,
-  MdCalendarToday,
-  MdBarChart,
   MdAssessment,
-  MdStar,
-  MdFilterList,
-  MdPending
+  MdTrendingUp,
 } from 'react-icons/md';
 
 const StaffAssessmentResults = () => {
@@ -36,17 +20,58 @@ const StaffAssessmentResults = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [programFilter, setProgramFilter] = useState('all');
   const [batchFilter, setBatchFilter] = useState('all');
-  const [assessmentTypeFilter, setAssessmentTypeFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('newest');
   const [selectedAssessment, setSelectedAssessment] = useState(null);
   const [loading, setLoading] = useState(false);
   const [assessments, setAssessments] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [batches, setBatches] = useState([]);
 
+  // Fetch all programs
+  const fetchPrograms = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/public/programs', {
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setPrograms(data.data || []);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching programs:', error);
+    }
+  };
+
+  // Fetch all batches
+  const fetchBatches = async () => {
+    try {
+      const token = getStaffToken();
+      const response = await fetch('http://localhost:8000/api/staff/batches', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setBatches(data.data || []);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching batches:', error);
+    }
+  };
+
   // Fetch assessment results on mount and when filters change
   useEffect(() => {
+    fetchPrograms();
+    fetchBatches();
     fetchAssessmentResults();
   }, []);
 
@@ -58,8 +83,6 @@ const StaffAssessmentResults = () => {
       
       if (programFilter !== 'all') params.append('program_id', programFilter);
       if (batchFilter !== 'all') params.append('batch_id', batchFilter);
-      if (assessmentTypeFilter !== 'all') params.append('assessment_type', assessmentTypeFilter.toLowerCase());
-      if (statusFilter !== 'all') params.append('status', statusFilter);
       
       const response = await fetch(`http://localhost:8000/api/staff/assessment-results?${params}`, {
         method: 'GET',
@@ -74,108 +97,40 @@ const StaffAssessmentResults = () => {
       
       if (data.success) {
         setAssessments(data.data || []);
-        setPrograms(data.programs || []);
-        setBatches(data.batches || []);
       } else {
-        toast.error('Failed to load exam results');
+        toast.error('Failed to load TESDA assessment results');
       }
     } catch (error) {
-      console.error('Error fetching exam results:', error);
-      toast.error('Failed to load exam results: ' + error.message);
+      console.error('Error fetching assessment results:', error);
+      toast.error('Failed to load TESDA assessment results: ' + error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const getStatusBadge = (status) => {
-    const statusConfig = {
-      completed: {
-        className: 'bg-green-100 text-green-800',
-        icon: <MdCheckCircle className="h-4 w-4" />,
-        label: 'Completed'
-      },
-      ongoing: {
-        className: 'bg-blue-100 text-blue-800',
-        icon: <MdAssessment className="h-4 w-4" />,
-        label: 'Ongoing'
-      },
-      scheduled: {
-        className: 'bg-yellow-100 text-yellow-800',
-        icon: <MdCalendarToday className="h-4 w-4" />,
-        label: 'Scheduled'
-      },
-      cancelled: {
-        className: 'bg-red-100 text-red-800',
-        icon: <MdCancel className="h-4 w-4" />,
-        label: 'Cancelled'
-      }
-    };
-
-    const config = statusConfig[status] || statusConfig.scheduled;
-
-    return (
-      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${config.className}`}>
-        {config.icon}
-        {config.label}
-      </span>
-    );
-  };
-
-  const getResultBadge = (result) => {
-    return result === 'Passed' ? (
-      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-        <MdCheckCircle className="h-3 w-3" />
-        Passed
-      </span>
-    ) : (
-      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-        <MdCancel className="h-3 w-3" />
-        Failed
-      </span>
-    );
-  };
-
-  const getScoreColor = (score, passingScore) => {
-    if (score === 0) return 'text-gray-400';
-    if (score >= 90) return 'text-green-600';
-    if (score >= passingScore) return 'text-blue-600';
-    return 'text-red-600';
-  };
-
-  const getTypeBadge = (type) => {
-    return type === 'Practical' ? (
-      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-        Practical
-      </span>
-    ) : (
-      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-        Written
-      </span>
-    );
-  };
-
   const filteredAssessments = assessments
     .filter(assessment => {
-      const matchesSearch = assessment.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           assessment.assessmentCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           assessment.assessor.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesProgram = programFilter === 'all' || assessment.program === programFilter;
-      const matchesBatch = batchFilter === 'all' || assessment.batch === batchFilter;
-      const matchesType = assessmentTypeFilter === 'all' || assessment.assessmentType === assessmentTypeFilter;
-      const matchesStatus = statusFilter === 'all' || assessment.status === statusFilter;
-      return matchesSearch && matchesProgram && matchesBatch && matchesType && matchesStatus;
+      // Search by student name or ID
+      const matchesSearch = searchTerm === '' || 
+        assessment.results?.some(r => 
+          r.studentName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          r.studentId?.toLowerCase().includes(searchTerm.toLowerCase())
+        ) ||
+        assessment.assessor?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // Filter by program
+      const matchesProgram = programFilter === 'all' || 
+        assessment.program === programs.find(p => p.id === parseInt(programFilter))?.title;
+      
+      // Filter by batch
+      const matchesBatch = batchFilter === 'all' || 
+        assessment.batch === batches.find(b => b.id === parseInt(batchFilter))?.batch_id;
+      
+      return matchesSearch && matchesProgram && matchesBatch;
     })
     .sort((a, b) => {
-      if (sortBy === 'newest') {
-        return new Date(b.date) - new Date(a.date);
-      } else if (sortBy === 'oldest') {
-        return new Date(a.date) - new Date(b.date);
-      } else if (sortBy === 'title') {
-        return a.title.localeCompare(b.title);
-      } else if (sortBy === 'passRate') {
-        return b.passRate - a.passRate;
-      }
-      return 0;
+      // Sort by date (newest first)
+      return new Date(b.date) - new Date(a.date);
     });
 
   const stats = {
@@ -209,92 +164,88 @@ const StaffAssessmentResults = () => {
                 <MdMenu className="h-6 w-6" />
               </button>
               <div>
-                <h1 className="text-xl font-bold">Exam Results</h1>
-                <p className="text-sm text-blue-100">Track and manage student exam outcomes</p>
+                <h1 className="text-xl font-bold">TESDA Assessment Results</h1>
+                <p className="text-sm text-blue-100">Track and manage TESDA competency assessments</p>
               </div>
             </div>
-            <button className="flex items-center gap-2 px-4 py-2 bg-tracked-secondary hover:bg-opacity-90 rounded-md transition-colors">
-              <MdAdd className="h-5 w-5" />
-              <span className="hidden sm:inline">New Exam</span>
-            </button>
           </div>
         </nav>
         
         {/* Dashboard Content */}
         <div className="container mx-auto p-6">
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-lg shadow-md p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-blue-100 rounded-full">
-                  <MdAssignment className="h-6 w-6 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 font-medium">Total Exams</p>
-                  <p className="text-xl font-bold text-blue-600">{stats.totalAssessments}</p>
-                </div>
-              </div>
+          {/* Report Header */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <div className="border-b border-gray-200 pb-4 mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">TESDA Assessment Results Report</h2>
+              <p className="text-sm text-gray-500 mt-1">Generated on {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
             </div>
-            <div className="bg-white rounded-lg shadow-md p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-green-100 rounded-full">
-                  <MdCheckCircle className="h-6 w-6 text-green-600" />
+            
+            {/* Statistics Summary */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-blue-50 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <MdAssessment className="h-5 w-5 text-blue-600" />
+                  <p className="text-xs uppercase tracking-wide text-blue-600 font-medium">Total</p>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500 font-medium">Completed</p>
-                  <p className="text-xl font-bold text-green-600">{stats.completedAssessments}</p>
-                </div>
+                <p className="text-xl font-bold text-blue-900">{assessments.length}</p>
               </div>
-            </div>
-            <div className="bg-white rounded-lg shadow-md p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-purple-100 rounded-full">
-                  <MdBarChart className="h-6 w-6 text-purple-600" />
+              <div className="bg-green-50 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <MdCheckCircle className="h-5 w-5 text-green-600" />
+                  <p className="text-xs uppercase tracking-wide text-green-600 font-medium">Competent</p>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500 font-medium">Avg Pass Rate</p>
-                  <p className="text-xl font-bold text-purple-600">{stats.averagePassRate}%</p>
-                </div>
+                <p className="text-xl font-bold text-green-900">
+                  {assessments.filter(a => a.results?.[0]?.result === 'Passed').length}
+                </p>
               </div>
-            </div>
-            <div className="bg-white rounded-lg shadow-md p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-yellow-100 rounded-full">
-                  <MdPending className="h-6 w-6 text-yellow-600" />
+              <div className="bg-red-50 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <MdCancel className="h-5 w-5 text-red-600" />
+                  <p className="text-xs uppercase tracking-wide text-red-600 font-medium">Not Competent</p>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500 font-medium">Pending</p>
-                  <p className="text-xl font-bold text-yellow-600">{stats.pendingAssessments}</p>
+                <p className="text-xl font-bold text-red-900">
+                  {assessments.filter(a => a.results?.[0]?.result === 'Failed').length}
+                </p>
+              </div>
+              <div className="bg-purple-50 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <MdTrendingUp className="h-5 w-5 text-purple-600" />
+                  <p className="text-xs uppercase tracking-wide text-purple-600 font-medium">Pass Rate</p>
                 </div>
+                <p className="text-xl font-bold text-purple-900">
+                  {assessments.length > 0 
+                    ? ((assessments.filter(a => a.results?.[0]?.result === 'Passed').length / assessments.length) * 100).toFixed(1)
+                    : 0}%
+                </p>
               </div>
             </div>
           </div>
 
           {/* Filters and Search */}
-          <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {/* Search */}
               <div className="md:col-span-1">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+                <label className="block text-xs font-medium text-gray-700 mb-2 uppercase tracking-wider">Search</label>
                 <div className="relative">
                   <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                   <input
                     type="text"
-                    placeholder="Search exams..."
+                    placeholder="Search by student name or ID..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-tracked-primary focus:border-tracked-primary"
+                    className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-md focus:ring-tracked-primary focus:border-tracked-primary"
                   />
                 </div>
               </div>
 
               {/* Program Filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Program</label>
+                <label className="block text-xs font-medium text-gray-700 mb-2 uppercase tracking-wider">Program</label>
                 <select
                   value={programFilter}
                   onChange={(e) => setProgramFilter(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-tracked-primary focus:border-tracked-primary"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-tracked-primary focus:border-tracked-primary"
                 >
                   <option value="all">All Programs</option>
                   {programs.map((program) => (
@@ -305,223 +256,138 @@ const StaffAssessmentResults = () => {
 
               {/* Batch Filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Batch</label>
+                <label className="block text-xs font-medium text-gray-700 mb-2 uppercase tracking-wider">Batch</label>
                 <select
                   value={batchFilter}
                   onChange={(e) => setBatchFilter(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-tracked-primary focus:border-tracked-primary"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-tracked-primary focus:border-tracked-primary"
                 >
                   <option value="all">All Batches</option>
                   {batches.map((batch) => (
-                    <option key={batch.id} value={batch.batch_id}>{batch.batch_id}</option>
+                    <option key={batch.id} value={batch.id}>{batch.batch_id}</option>
                   ))}
                 </select>
               </div>
 
-              {/* Type Filter */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
-                <select
-                  value={assessmentTypeFilter}
-                  onChange={(e) => setAssessmentTypeFilter(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-tracked-primary focus:border-tracked-primary"
-                >
-                  <option value="all">All Types</option>
-                  <option value="Written">Written</option>
-                  <option value="Practical">Practical</option>
-                </select>
-              </div>
-
-              {/* Status Filter */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-tracked-primary focus:border-tracked-primary"
-                >
-                  <option value="all">All Status</option>
-                  <option value="scheduled">Scheduled</option>
-                  <option value="ongoing">Ongoing</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex gap-2">
+              {/* Action Buttons */}
+              <div className="flex items-end gap-2">
                 <button 
                   onClick={fetchAssessmentResults}
                   disabled={loading}
-                  className="flex items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2 text-sm bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors disabled:opacity-50"
+                  title="Refresh data"
                 >
-                  <MdRefresh className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
-                  Refresh
+                  <MdRefresh className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                  <span className="hidden sm:inline">Refresh</span>
                 </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
-                  <MdDownload className="h-5 w-5" />
-                  Export
-                </button>
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-gray-700">Sort:</label>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-md focus:ring-tracked-primary focus:border-tracked-primary text-sm"
-                >
-                  <option value="newest">Newest First</option>
-                  <option value="oldest">Oldest First</option>
-                  <option value="title">Title (A-Z)</option>
-                  <option value="passRate">Pass Rate</option>
-                </select>
               </div>
             </div>
           </div>
 
-          {/* Assessments Table */}
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          {/* Assessment Results Table */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Exam Details
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Student Name
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Program & Batch
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Student ID
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date & Assessor
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Program
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Progress
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Batch
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Average Score
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      TESDA Assessor
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Pass Rate
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Result
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Assessment Date
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Remarks
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {loading ? (
                     <tr>
-                      <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
-                        <div className="flex items-center justify-center">
-                          <MdRefresh className="h-6 w-6 animate-spin mr-2" />
-                          Loading exam results...
+                      <td colSpan="8" className="px-4 py-12 text-center text-gray-500">
+                        <div className="flex items-center justify-center gap-2">
+                          <MdRefresh className="h-5 w-5 animate-spin" />
+                          <span>Loading assessment results...</span>
                         </div>
                       </td>
                     </tr>
                   ) : filteredAssessments.length > 0 ? (
                     filteredAssessments.map((assessment) => (
-                      <tr key={assessment.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4">
-                          <div className="text-sm font-medium text-gray-900">{assessment.title}</div>
-                          <div className="text-xs text-gray-500">{assessment.assessmentCode}</div>
-                          <div className="flex gap-2 mt-1">
-                            {getTypeBadge(assessment.assessmentType)}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900">{assessment.program}</div>
-                          <div className="text-xs text-gray-500">{assessment.batch}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{assessment.date}</div>
-                          <div className="text-xs text-gray-500">{assessment.assessor}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
-                            {assessment.assessed}/{assessment.totalStudents}
-                          </div>
-                          <div className="w-24 bg-gray-200 rounded-full h-2 mt-1">
-                            <div 
-                              className={`h-2 rounded-full ${
-                                assessment.assessed === assessment.totalStudents
-                                  ? 'bg-green-600'
-                                  : assessment.assessed > 0
-                                    ? 'bg-blue-600'
-                                    : 'bg-gray-400'
-                              }`}
-                              style={{ width: `${(assessment.assessed / assessment.totalStudents) * 100}%` }}
-                            />
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className={`text-lg font-bold ${getScoreColor(assessment.averageScore, assessment.passingScore)}`}>
-                            {assessment.averageScore > 0 ? `${assessment.averageScore.toFixed(1)}%` : '-'}
-                          </div>
-                          {assessment.averageScore > 0 && (
-                            <div className="text-xs text-gray-500">
-                              Passing: {assessment.passingScore}%
+                      assessment.results?.map((result) => (
+                        <tr key={`${assessment.id}-${result.studentId}`} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              {result.studentName
+                                ? result.studentName.split(' ').map(word => 
+                                    word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+                                  ).join(' ')
+                                : 'N/A'}
                             </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {assessment.passRate > 0 ? (
-                            <>
-                              <div className={`text-lg font-bold ${
-                                assessment.passRate >= 90 ? 'text-green-600' :
-                                assessment.passRate >= 75 ? 'text-blue-600' :
-                                'text-red-600'
-                              }`}>
-                                {assessment.passRate.toFixed(1)}%
-                              </div>
-                              <div className="flex items-center gap-1 text-xs text-gray-500">
-                                {assessment.passRate >= 75 ? (
-                                  <MdTrendingUp className="h-3 w-3 text-green-600" />
-                                ) : (
-                                  <MdTrendingDown className="h-3 w-3 text-red-600" />
-                                )}
-                                {Math.round((assessment.passRate / 100) * assessment.assessed)} passed
-                              </div>
-                            </>
-                          ) : (
-                            <span className="text-gray-400">-</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {getStatusBadge(assessment.status)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => setSelectedAssessment(assessment)}
-                              className="text-tracked-primary hover:text-tracked-secondary"
-                              title="View Details"
-                            >
-                              <MdVisibility className="h-5 w-5" />
-                            </button>
-                            <button
-                              className="text-blue-600 hover:text-blue-700"
-                              title="Edit Exam"
-                            >
-                              <MdEdit className="h-5 w-5" />
-                            </button>
-                            <button
-                              className="text-green-600 hover:text-green-700"
-                              title="Enter Scores"
-                            >
-                              <MdGrade className="h-5 w-5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{result.studentId || 'N/A'}</div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="text-sm text-gray-900">{assessment.program || 'N/A'}</div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{assessment.batch || 'N/A'}</div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              {assessment.assessor
+                                ? assessment.assessor.split(' ').map(word => 
+                                    word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+                                  ).join(' ')
+                                : 'N/A'}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <span className={`px-2 py-1 text-xs font-medium rounded ${
+                              result.result === 'Passed'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
+                            }`}>
+                              {result.result === 'Passed' ? 'Competent' : 'Not Competent'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              {assessment.date ? new Date(assessment.date).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                              }) : 'N/A'}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="text-sm text-gray-600">{result.remarks || '-'}</div>
+                          </td>
+                        </tr>
+                      ))
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
-                        No exam results found matching your filters.
+                      <td colSpan="8" className="px-4 py-12 text-center text-gray-500">
+                        <div className="flex flex-col items-center gap-2">
+                          <MdAssessment className="h-12 w-12 text-gray-300" />
+                          <p>No assessment results found matching your filters.</p>
+                        </div>
                       </td>
                     </tr>
                   )}
@@ -529,185 +395,17 @@ const StaffAssessmentResults = () => {
               </table>
             </div>
 
-            {/* Pagination */}
+            {/* Footer */}
             {filteredAssessments.length > 0 && (
-              <div className="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200">
+              <div className="bg-gray-50 px-4 py-3 border-t border-gray-200">
                 <div className="text-sm text-gray-700">
-                  Showing <span className="font-medium">{filteredAssessments.length}</span> of{' '}
-                  <span className="font-medium">{assessments.length}</span> exams
-                </div>
-                <div className="flex gap-2">
-                  <button className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                    Previous
-                  </button>
-                  <button className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                    Next
-                  </button>
+                  Showing <span className="font-medium">{filteredAssessments.reduce((sum, a) => sum + (a.results?.length || 0), 0)}</span> assessment records
                 </div>
               </div>
             )}
           </div>
         </div>
       </div>
-
-      {/* Assessment Detail Modal */}
-      {selectedAssessment && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
-            <div className="bg-tracked-primary p-6 text-white sticky top-0">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h2 className="text-2xl font-bold mb-2">{selectedAssessment.title}</h2>
-                  <p className="text-blue-100">{selectedAssessment.assessmentCode}</p>
-                  <p className="text-blue-100 mt-1">{selectedAssessment.program} • {selectedAssessment.batch}</p>
-                  <div className="flex gap-2 mt-3">
-                    {getStatusBadge(selectedAssessment.status)}
-                    {getTypeBadge(selectedAssessment.assessmentType)}
-                  </div>
-                </div>
-                <button
-                  onClick={() => setSelectedAssessment(null)}
-                  className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2"
-                >
-                  <MdClose className="h-6 w-6" />
-                </button>
-              </div>
-            </div>
-
-            {/* Modal Body */}
-              <div className="p-6">
-              {/* Summary Info */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">Date</p>
-                  <p className="text-lg font-bold text-gray-800">{selectedAssessment.date}</p>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">Examiner</p>
-                  <p className="text-lg font-bold text-gray-800 truncate">{selectedAssessment.assessor}</p>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">Total Students</p>
-                  <p className="text-lg font-bold text-gray-800">{selectedAssessment.totalStudents}</p>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">Passing Score</p>
-                  <p className="text-lg font-bold text-gray-800">{selectedAssessment.passingScore}%</p>
-                </div>
-              </div>
-
-              {/* Statistics Summary */}
-              {selectedAssessment.status !== 'scheduled' && selectedAssessment.averageScore > 0 && (
-                <div className="bg-gray-50 rounded-lg p-6 mb-6">
-                  <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <MdBarChart className="h-5 w-5 text-tracked-primary" />
-                    Exam Statistics
-                  </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                    <div className="text-center">
-                      <p className={`text-3xl font-bold ${getScoreColor(selectedAssessment.averageScore, selectedAssessment.passingScore)}`}>
-                        {selectedAssessment.averageScore.toFixed(1)}%
-                      </p>
-                      <p className="text-sm text-gray-600 mt-1">Average Score</p>
-                    </div>
-                    <div className="text-center">
-                      <p className={`text-3xl font-bold ${
-                        selectedAssessment.passRate >= 90 ? 'text-green-600' :
-                        selectedAssessment.passRate >= 75 ? 'text-blue-600' :
-                        'text-red-600'
-                      }`}>
-                        {selectedAssessment.passRate.toFixed(1)}%
-                      </p>
-                      <p className="text-sm text-gray-600 mt-1">Pass Rate</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-3xl font-bold text-green-600">{selectedAssessment.highestScore}%</p>
-                      <p className="text-sm text-gray-600 mt-1">Highest Score</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-3xl font-bold text-red-600">{selectedAssessment.lowestScore}%</p>
-                      <p className="text-sm text-gray-600 mt-1">Lowest Score</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Student Results */}
-              {selectedAssessment.results.length > 0 ? (
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <MdPeople className="h-5 w-5 text-tracked-primary" />
-                    Student Results ({selectedAssessment.results.length})
-                  </h3>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-white">
-                        <tr>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Student ID</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Score</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Result</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Remarks</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {selectedAssessment.results.map((result) => (
-                          <tr key={result.id} className="hover:bg-gray-50">
-                            <td className="px-4 py-3 text-sm text-gray-900">{result.studentId}</td>
-                            <td className="px-4 py-3 text-sm font-medium text-gray-900">{result.studentName}</td>
-                            <td className="px-4 py-3">
-                              <span className={`text-lg font-bold ${getScoreColor(result.score, selectedAssessment.passingScore)}`}>
-                                {result.score}%
-                              </span>
-                            </td>
-                            <td className="px-4 py-3">{getResultBadge(result.result)}</td>
-                            <td className="px-4 py-3 text-sm text-gray-600">{result.remarks}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-lg">
-                  <MdAssignment className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-                  <p className="text-lg">No student results recorded yet.</p>
-                  <p className="text-sm mt-2">Results will appear here once the exam is completed.</p>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex gap-2 mt-6 pt-6 border-t border-gray-200">
-                {selectedAssessment.status !== 'completed' && (
-                  <button className="flex items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors">
-                    <MdGrade className="h-5 w-5" />
-                    Enter Scores
-                  </button>
-                )}
-                <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-                  <MdEdit className="h-5 w-5" />
-                  Edit Exam
-                </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
-                  <MdPrint className="h-5 w-5" />
-                  Print Results
-                </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors">
-                  <MdDownload className="h-5 w-5" />
-                  Export
-                </button>
-                <button 
-                  onClick={() => setSelectedAssessment(null)}
-                  className="ml-auto px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
       
       {/* Toast Notifications */}
       <Toaster

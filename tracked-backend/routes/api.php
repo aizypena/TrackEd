@@ -6752,103 +6752,72 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Staff Assessment Results Endpoint
     Route::get('/staff/assessment-results', function (Request $request) {
         try {
-            // Get all grades with relationships
-            $gradesQuery = \App\Models\Grade::with(['student', 'batch.program', 'gradedBy'])
-                ->orderBy('graded_at', 'desc')
-                ->orderBy('created_at', 'desc');
+            // Get all TESDA assessments
+            $assessmentsQuery = DB::table('tesda_assessments')
+                ->leftJoin('programs', 'tesda_assessments.program_id', '=', 'programs.id')
+                ->leftJoin('batches', 'tesda_assessments.batch_id', '=', 'batches.id')
+                ->select(
+                    'tesda_assessments.*',
+                    'programs.title as program_name',
+                    'batches.batch_id as batch_name'
+                )
+                ->orderBy('tesda_assessments.assessment_date', 'desc')
+                ->orderBy('tesda_assessments.created_at', 'desc');
             
             // Apply filters if provided
             if ($request->has('program_id') && $request->program_id !== 'all') {
-                $gradesQuery->where('program_id', $request->program_id);
+                $assessmentsQuery->where('tesda_assessments.program_id', $request->program_id);
             }
             
             if ($request->has('batch_id') && $request->batch_id !== 'all') {
-                $gradesQuery->where('batch_id', $request->batch_id);
+                $assessmentsQuery->where('tesda_assessments.batch_id', $request->batch_id);
             }
             
-            if ($request->has('assessment_type') && $request->assessment_type !== 'all') {
-                $gradesQuery->where('assessment_type', $request->assessment_type);
-            }
+            $tesdaAssessments = $assessmentsQuery->get();
             
-            if ($request->has('status') && $request->status !== 'all') {
-                $gradesQuery->where('status', $request->status);
-            }
-            
-            $grades = $gradesQuery->get();
-            
-            // Group grades by assessment (assessment_title + assessment_type + batch_id)
-            $assessmentGroups = $grades->groupBy(function ($grade) {
-                return $grade->assessment_title . '|' . $grade->assessment_type . '|' . $grade->batch_id;
-            });
-            
-            // Format assessment results
-            $assessments = $assessmentGroups->map(function ($gradeGroup, $key) {
-                $firstGrade = $gradeGroup->first();
-                $batch = $firstGrade->batch;
-                $program = $batch ? $batch->program : null;
+            // Format TESDA assessment results
+            $formattedAssessments = $tesdaAssessments->map(function ($assessment) {
+                // Generate assessment code
+                $assessmentCode = 'TESDA-' . date('Y', strtotime($assessment->assessment_date)) . '-' . str_pad($assessment->id, 4, '0', STR_PAD_LEFT);
                 
-                // Calculate statistics
-                $totalStudents = $gradeGroup->count();
-                $gradedStudents = $gradeGroup->where('status', '!=', 'pending')->count();
-                $passedStudents = $gradeGroup->where('status', 'passed')->count();
-                $averageScore = $gradedStudents > 0 ? $gradeGroup->where('status', '!=', 'pending')->avg('percentage') : 0;
-                $passRate = $gradedStudents > 0 ? ($passedStudents / $gradedStudents) * 100 : 0;
-                $highestScore = $gradedStudents > 0 ? $gradeGroup->where('status', '!=', 'pending')->max('percentage') : 0;
-                $lowestScore = $gradedStudents > 0 ? $gradeGroup->where('status', '!=', 'pending')->min('percentage') : 0;
+                // Determine result for display
+                $result = strtolower($assessment->result ?? 'pending');
+                $status = $result === 'competent' ? 'Passed' : ($result === 'not competent' || $result === 'not_competent' ? 'Failed' : 'Pending');
                 
-                // Determine overall status
-                $pendingCount = $gradeGroup->where('status', 'pending')->count();
-                if ($pendingCount === $totalStudents) {
-                    $status = 'scheduled';
-                } elseif ($pendingCount > 0) {
-                    $status = 'ongoing';
-                } else {
-                    $status = 'completed';
-                }
-                
-                // Format individual student results
-                $results = $gradeGroup->map(function ($grade) use ($firstGrade) {
-                    $student = $grade->student;
-                    return [
-                        'id' => $grade->id,
-                        'studentId' => $student->student_id ?? $student->id,
-                        'studentName' => trim(($student->first_name ?? '') . ' ' . ($student->last_name ?? '')),
-                        'score' => round($grade->percentage, 2),
-                        'rawScore' => $grade->score,
-                        'totalPoints' => $grade->total_points,
-                        'result' => $grade->status === 'passed' ? 'Passed' : ($grade->status === 'failed' ? 'Failed' : 'Pending'),
-                        'remarks' => $grade->feedback ?? ($grade->status === 'pending' ? 'Not yet assessed' : ($grade->isPassed() ? 'Satisfactory performance' : 'Needs improvement')),
-                        'gradedAt' => $grade->graded_at ? $grade->graded_at->format('Y-m-d H:i:s') : null,
-                        'attemptNumber' => $grade->attempt_number ?? 1,
-                    ];
-                })->values();
-                
-                // Generate assessment code (use first grade ID as base)
-                $assessmentCode = 'ASM-' . date('Y') . '-' . str_pad($firstGrade->id, 4, '0', STR_PAD_LEFT);
+                // Score based on competency (100 for competent, 0 for not competent)
+                $score = $result === 'competent' ? 100 : ($result === 'pending' ? 0 : 50);
                 
                 return [
-                    'id' => $firstGrade->id,
+                    'id' => $assessment->id,
                     'assessmentCode' => $assessmentCode,
-                    'title' => $firstGrade->assessment_title,
-                    'program' => $program ? $program->title : 'N/A',
-                    'programId' => $program ? $program->id : null,
-                    'batch' => $batch ? $batch->batch_id : 'N/A',
-                    'batchId' => $firstGrade->batch_id,
-                    'assessmentType' => ucfirst($firstGrade->assessment_type),
-                    'assessor' => $firstGrade->gradedBy ? trim(($firstGrade->gradedBy->first_name ?? '') . ' ' . ($firstGrade->gradedBy->last_name ?? '')) : 'System',
-                    'date' => $firstGrade->graded_at ? $firstGrade->graded_at->format('Y-m-d') : $firstGrade->created_at->format('Y-m-d'),
-                    'totalStudents' => $totalStudents,
-                    'assessed' => $gradedStudents,
-                    'pending' => $pendingCount,
-                    'passingScore' => $firstGrade->passing_score,
-                    'averageScore' => round($averageScore, 2),
-                    'passRate' => round($passRate, 2),
-                    'highestScore' => round($highestScore, 2),
-                    'lowestScore' => $gradedStudents > 0 ? round($lowestScore, 2) : 0,
-                    'status' => $status,
-                    'results' => $results,
+                    'title' => 'TESDA Competency Assessment',
+                    'program' => $assessment->program_name ?? 'N/A',
+                    'programId' => $assessment->program_id,
+                    'batch' => $assessment->batch_name ?? 'N/A',
+                    'batchId' => $assessment->batch_id,
+                    'assessmentType' => 'TESDA',
+                    'assessor' => $assessment->tesda_assessor ?? 'N/A',
+                    'date' => $assessment->assessment_date ?? date('Y-m-d'),
+                    'totalStudents' => 1, // TESDA assessments are individual
+                    'assessed' => $result !== 'pending' ? 1 : 0,
+                    'pending' => $result === 'pending' ? 1 : 0,
+                    'passingScore' => 100, // TESDA uses competent/not competent
+                    'averageScore' => $score,
+                    'passRate' => $result === 'competent' ? 100 : 0,
+                    'highestScore' => $score,
+                    'lowestScore' => $score,
+                    'status' => $result === 'pending' ? 'scheduled' : 'completed',
+                    'results' => [[
+                        'id' => $assessment->id,
+                        'studentId' => $assessment->student_id,
+                        'studentName' => $assessment->student_name,
+                        'score' => $score,
+                        'result' => $status,
+                        'remarks' => $assessment->remarks,
+                        'gradedAt' => $assessment->assessment_date,
+                    ]],
                 ];
-            })->values();
+            });
             
             // Get unique programs and batches for filters
             $programs = \App\Models\Program::select('id', 'title')->get();
@@ -6856,7 +6825,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
             
             return response()->json([
                 'success' => true,
-                'data' => $assessments,
+                'data' => $formattedAssessments,
                 'programs' => $programs,
                 'batches' => $batches,
             ]);
