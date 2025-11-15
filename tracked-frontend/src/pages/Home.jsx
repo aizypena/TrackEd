@@ -252,6 +252,47 @@ const Home = () => {
               </div>
             ))}
           </div>
+
+          {/* Walk-in Enrollment Section */}
+          <div className="mt-16 max-w-4xl mx-auto">
+            <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8">
+              <div className="text-center mb-6">
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">Walk-in Enrollment Available</h3>
+                <p className="text-gray-600">
+                  Visit our office and our staff will assist you with the enrollment process.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+                <div className="flex flex-col items-center">
+                  <MdLocationOn className="h-6 w-6 text-blue-600 mb-2" />
+                  <p className="text-sm text-gray-600 font-medium mb-1">Location</p>
+                  <p className="text-sm text-gray-700">
+                    Wardley Bldg. San Juan St.<br />
+                    Cor. Taft Ave. Brgy 36<br />
+                    Pasay City, Metro Manila
+                  </p>
+                </div>
+
+                <div className="flex flex-col items-center">
+                  <MdPhone className="h-6 w-6 text-blue-600 mb-2" />
+                  <p className="text-sm text-gray-600 font-medium mb-1">Contact</p>
+                  <p className="text-sm text-gray-700">
+                    09177990724<br />
+                    Mon-Fri: 8:00 AM - 5:00 PM
+                  </p>
+                </div>
+
+                <div className="flex flex-col items-center">
+                  <MdEmail className="h-6 w-6 text-blue-600 mb-2" />
+                  <p className="text-sm text-gray-600 font-medium mb-1">Email</p>
+                  <p className="text-sm text-gray-700">
+                    smiacedmicenter@gmail.com
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
