@@ -46,8 +46,8 @@ const ViewMaterial = ({ isOpen, onClose, material, onDownload }) => {
           <div>
             <div className="flex items-start justify-between mb-2">
               <h2 className="text-2xl font-bold text-gray-900">{material.title}</h2>
-              <span className={`px-3 py-1 text-sm font-medium rounded-full ${getFileTypeColor(material.type)}`}>
-                {material.type}
+              <span className={`px-3 py-1 text-sm font-medium rounded-full ${getFileTypeColor(material.file_type || material.type)}`}>
+                {material.file_type || material.type}
               </span>
             </div>
             <p className="text-gray-600 leading-relaxed">{material.description}</p>
@@ -64,7 +64,7 @@ const ViewMaterial = ({ isOpen, onClose, material, onDownload }) => {
                 <MdSchool className="h-5 w-5 text-gray-600" />
                 <span className="text-sm font-medium text-gray-500">Program</span>
               </div>
-              <p className="text-gray-900 font-medium">{material.program}</p>
+              <p className="text-gray-900 font-medium">{material.program?.title || material.program || 'N/A'}</p>
             </div>
 
             {/* File Size */}
@@ -73,7 +73,7 @@ const ViewMaterial = ({ isOpen, onClose, material, onDownload }) => {
                 <MdAttachFile className="h-5 w-5 text-gray-600" />
                 <span className="text-sm font-medium text-gray-500">File Size</span>
               </div>
-              <p className="text-gray-900 font-medium">{material.fileSize}</p>
+              <p className="text-gray-900 font-medium">{material.file_size || material.fileSize || 'N/A'}</p>
             </div>
 
             {/* Upload Date */}
@@ -83,11 +83,14 @@ const ViewMaterial = ({ isOpen, onClose, material, onDownload }) => {
                 <span className="text-sm font-medium text-gray-500">Upload Date</span>
               </div>
               <p className="text-gray-900 font-medium">
-                {new Date(material.uploadDate).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}
+                {material.created_at || material.uploadDate 
+                  ? new Date(material.created_at || material.uploadDate).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })
+                  : 'N/A'
+                }
               </p>
             </div>
 
@@ -97,7 +100,7 @@ const ViewMaterial = ({ isOpen, onClose, material, onDownload }) => {
                 <MdPerson className="h-5 w-5 text-gray-600" />
                 <span className="text-sm font-medium text-gray-500">Uploaded By</span>
               </div>
-              <p className="text-gray-900 font-medium">{material.uploadedBy}</p>
+              <p className="text-gray-900 font-medium">{material.uploaded_by?.name || material.uploadedBy || 'N/A'}</p>
             </div>
           </div>
 
@@ -110,15 +113,15 @@ const ViewMaterial = ({ isOpen, onClose, material, onDownload }) => {
                 </div>
                 <div>
                   <p className="text-sm text-blue-600 font-medium">Total Downloads</p>
-                  <p className="text-2xl font-bold text-blue-900">{material.downloads}</p>
+                  <p className="text-2xl font-bold text-blue-900">{material.download_count || material.downloads || 0}</p>
                 </div>
               </div>
               <div className="text-right">
                 <p className="text-xs text-blue-600">Status</p>
                 <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${
-                  material.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                  (material.status === 'active' || !material.status) ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                 }`}>
-                  {material.status === 'active' ? 'Active' : 'Inactive'}
+                  {(material.status === 'active' || !material.status) ? 'Active' : 'Inactive'}
                 </span>
               </div>
             </div>

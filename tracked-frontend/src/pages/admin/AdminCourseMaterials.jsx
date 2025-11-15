@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../layouts/admin/Sidebar';
 import UploadMaterial from '../../components/admin/UploadMaterial';
-import ViewMaterial from '../../components/admin/ViewMaterial';
+import { programAPI } from '../../services/programAPI';
 import toast, { Toaster } from 'react-hot-toast';
 import {
   MdMenu,
@@ -29,9 +29,7 @@ import {
 const AdminCourseMaterials = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [showViewModal, setShowViewModal] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState(null);
-  const [viewingMaterial, setViewingMaterial] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterProgram, setFilterProgram] = useState('all');
   const [filterType, setFilterType] = useState('all');
@@ -64,23 +62,14 @@ const AdminCourseMaterials = () => {
 
   // Mock data - replace with actual API calls
   const [materials, setMaterials] = useState([]);
-
-  const programs = [
-    'Bartending NC II',
-    'Barista Training NC II',
-    'Housekeeping NC II',
-    'Food and Beverage Services NC II',
-    'Bread and Pastry Production NC II',
-    'Events Management NC III',
-    "Chef's Catering Services NC II",
-    'Cookery NC II'
-  ];
+  const [programs, setPrograms] = useState([]);
 
   const materialTypes = ['PDF', 'Video', 'PPT', 'Document', 'Images', 'Audio'];
 
   // Fetch materials from API
   useEffect(() => {
     fetchMaterials();
+    fetchPrograms();
   }, []);
 
   const fetchMaterials = async () => {
@@ -108,14 +97,21 @@ const AdminCourseMaterials = () => {
     }
   };
 
+  const fetchPrograms = async () => {
+    try {
+      const response = await programAPI.getAll();
+      if (response.success) {
+        setPrograms(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching programs:', error);
+      toast.error('Failed to load programs');
+    }
+  };
+
   const handleUploadMaterial = () => {
     setShowUploadModal(true);
     setEditingMaterial(null);
-  };
-
-  const handleViewMaterial = (material) => {
-    setViewingMaterial(material);
-    setShowViewModal(true);
   };
 
   const handleEditMaterial = (material) => {
@@ -390,7 +386,7 @@ const AdminCourseMaterials = () => {
                 >
                   <option value="all">All Programs</option>
                   {programs.map((program) => (
-                    <option key={program} value={program}>{program}</option>
+                    <option key={program.id} value={program.title}>{program.title}</option>
                   ))}
                 </select>
               </div>
@@ -464,13 +460,15 @@ const AdminCourseMaterials = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex gap-2">
-                          <button
-                            onClick={() => handleViewMaterial(material)}
+                          <a
+                            href={`http://localhost:8000/api/storage-file/${material.file_path}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="text-green-600 hover:text-green-900 hover:cursor-pointer"
                             title="View"
                           >
                             <MdVisibility className="h-5 w-5" />
-                          </button>
+                          </a>
                           <button
                             onClick={() => handleDownloadMaterial(material)}
                             className="text-blue-600 hover:text-blue-900 hover:cursor-pointer"
@@ -552,17 +550,6 @@ const AdminCourseMaterials = () => {
           setLoading(true);
           setTimeout(() => setLoading(false), 1000);
         }}
-      />
-
-      {/* View Material Modal */}
-      <ViewMaterial
-        isOpen={showViewModal}
-        onClose={() => {
-          setShowViewModal(false);
-          setViewingMaterial(null);
-        }}
-        material={viewingMaterial}
-        onDownload={handleDownloadMaterial}
       />
 
       {/* Password Verification Modal */}

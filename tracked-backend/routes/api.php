@@ -2803,6 +2803,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
                     'file_format' => $material->file_format,
                     'file_size' => $material->file_size,
                     'file_name' => $material->file_name,
+                    'file_path' => $material->file_path,
                     'download_count' => $material->downloads ?? 0,
                     'downloads' => $material->downloads ?? 0,
                     'uploaded_by' => $material->uploader->first_name . ' ' . $material->uploader->last_name,
