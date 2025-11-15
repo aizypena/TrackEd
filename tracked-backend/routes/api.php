@@ -538,7 +538,7 @@ Route::post('/student/forgot-password', function (Request $request) {
                 .container { max-width: 600px; margin: 0 auto; padding: 20px; }
                 .header { background-color: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
                 .content { background-color: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; }
-                .button { display: inline-block; padding: 12px 24px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+                .button { display: inline-block; padding: 12px 24px; background-color: #2563eb; color: white !important; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
                 .footer { background-color: #f3f4f6; padding: 20px; text-align: center; font-size: 12px; color: #6b7280; border-radius: 0 0 5px 5px; }
                 .warning { background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; }
             </style>
@@ -553,12 +553,12 @@ Route::post('/student/forgot-password', function (Request $request) {
                     <p>We received a request to reset your password for your TrackEd student account.</p>
                     <p>Click the button below to reset your password:</p>
                     <div style='text-align: center;'>
-                        <a href='{$resetUrl}' class='button'>Reset Password</a>
+                        <a href='{$resetUrl}' class='button' style='color: white !important; text-decoration: none;'>Reset Password</a>
                     </div>
                     <p>Or copy and paste this link into your browser:</p>
                     <p style='word-break: break-all; background-color: #e5e7eb; padding: 10px; border-radius: 3px;'>{$resetUrl}</p>
                     <div class='warning'>
-                        <strong>⚠️ Security Notice:</strong>
+                        <strong>Security Notice:</strong>
                         <ul style='margin: 10px 0;'>
                             <li>This link will expire in 1 hour</li>
                             <li>If you didn't request this reset, please ignore this email</li>
