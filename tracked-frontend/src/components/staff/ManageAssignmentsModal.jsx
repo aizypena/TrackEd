@@ -65,11 +65,11 @@ const ManageAssignmentsModal = ({ isOpen, onClose, equipment, onSuccess, onError
 
       if (response.data.success) {
         // Pass return details to onSuccess for logging
-        const assignment = activeAssignments.find(a => a.id === assignmentId);
+        const assignment = assignments.find(a => a.id === assignmentId);
         onSuccess({
           equipmentCode: equipment.equipment_code,
           equipmentName: equipment.name,
-          userName: assignment?.user_name || 'Unknown User',
+          userName: assignment?.user?.name || 'Unknown User',
           quantity: assignment?.quantity || 1,
           returnCondition: condition,
           returnNotes

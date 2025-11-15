@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import StaffSidebar from '../../layouts/staff/StaffSidebar';
+import { getStaffToken } from '../../utils/staffAuth';
 import { 
   MdMenu,
   MdSearch,
@@ -35,11 +36,83 @@ const StaffStockTransactions = () => {
   const [dateFilter, setDateFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
   const [selectedTransaction, setSelectedTransaction] = useState(null);
-
   const [loading, setLoading] = useState(true);
+  const [transactions, setTransactions] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [stats, setStats] = useState({
+    totalTransactions: 0,
+    stockIn: 0,
+    stockOut: 0,
+    totalValue: 0
+  });
 
-  // Equipment transactions data - based on StaffEquipment.jsx structure
-  const [transactions, setTransactions] = useState([
+  // Fetch transactions from API
+  useEffect(() => {
+    fetchTransactions();
+    fetchCategories();
+  }, [searchTerm, transactionTypeFilter, categoryFilter, dateFilter, sortBy]);
+
+  const fetchTransactions = async () => {
+    try {
+      setLoading(true);
+      const token = getStaffToken();
+      
+      const params = new URLSearchParams();
+      if (searchTerm) params.append('search', searchTerm);
+      if (transactionTypeFilter !== 'all') params.append('type', transactionTypeFilter);
+      if (categoryFilter !== 'all') params.append('category', categoryFilter);
+      if (dateFilter !== 'all') params.append('date_filter', dateFilter);
+      if (sortBy) params.append('sort_by', sortBy);
+      
+      const response = await fetch(`http://localhost:8000/api/staff/equipment/transactions?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setTransactions(data.data || []);
+          setStats(data.stats || {
+            totalTransactions: 0,
+            stockIn: 0,
+            stockOut: 0,
+            totalValue: 0
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const token = getStaffToken();
+      const response = await fetch('http://localhost:8000/api/staff/equipment/categories', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setCategories(data.data || []);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
+
+  // Keep old static data as fallback (commented out)
+  const [oldTransactions] = useState([
     {
       id: 1,
       transactionCode: 'TXN-2025-001',
@@ -325,17 +398,6 @@ const StaffStockTransactions = () => {
     }
   ]);
 
-  const categories = [
-    'Welding NC II',
-    'Automotive Servicing NC II',
-    'Electronics NC II',
-    'Cookery NC II',
-    'Carpentry NC II',
-    'Plumbing NC II',
-    'Construction Painting NC II',
-    'Electrical Installation NC II'
-  ];
-
   const getTransactionTypeBadge = (type) => {
     const typeConfig = {
       in: {
@@ -372,54 +434,8 @@ const StaffStockTransactions = () => {
     }).format(Math.abs(amount));
   };
 
-  const filteredTransactions = transactions
-    .filter(transaction => {
-      const matchesSearch = transaction.itemName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           transaction.transactionCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           transaction.requestedBy.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesType = transactionTypeFilter === 'all' || transaction.type === transactionTypeFilter;
-      const matchesCategory = categoryFilter === 'all' || transaction.category === categoryFilter;
-      
-      // Date filter
-      let matchesDate = true;
-      if (dateFilter !== 'all') {
-        const transactionDate = new Date(transaction.date);
-        const today = new Date('2025-10-06');
-        
-        if (dateFilter === 'today') {
-          matchesDate = transaction.date === '2025-10-06';
-        } else if (dateFilter === 'week') {
-          const weekAgo = new Date(today);
-          weekAgo.setDate(weekAgo.getDate() - 7);
-          matchesDate = transactionDate >= weekAgo;
-        } else if (dateFilter === 'month') {
-          const monthAgo = new Date(today);
-          monthAgo.setMonth(monthAgo.getMonth() - 1);
-          matchesDate = transactionDate >= monthAgo;
-        }
-      }
-      
-      return matchesSearch && matchesType && matchesCategory && matchesDate;
-    })
-    .sort((a, b) => {
-      if (sortBy === 'newest') {
-        return new Date(b.date + ' ' + b.time) - new Date(a.date + ' ' + a.time);
-      } else if (sortBy === 'oldest') {
-        return new Date(a.date + ' ' + a.time) - new Date(b.date + ' ' + b.time);
-      } else if (sortBy === 'amount') {
-        return Math.abs(b.totalAmount) - Math.abs(a.totalAmount);
-      } else if (sortBy === 'item') {
-        return a.itemName.localeCompare(b.itemName);
-      }
-      return 0;
-    });
-
-  const stats = {
-    totalTransactions: transactions.length,
-    stockIn: transactions.filter(t => t.type === 'in').length,
-    stockOut: transactions.filter(t => t.type === 'out').length,
-    totalValue: transactions.reduce((sum, t) => sum + (t.type === 'in' ? t.totalAmount : 0), 0)
-  };
+  // Filtering and sorting handled by backend API
+  const filteredTransactions = transactions;
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -447,10 +463,6 @@ const StaffStockTransactions = () => {
                 <p className="text-sm text-blue-100">Track inventory movements and transactions</p>
               </div>
             </div>
-            <button className="flex items-center gap-2 px-4 py-2 bg-tracked-secondary hover:bg-opacity-90 rounded-md transition-colors">
-              <MdAdd className="h-5 w-5" />
-              <span className="hidden sm:inline">New Transaction</span>
-            </button>
           </div>
         </nav>
         
@@ -585,8 +597,12 @@ const StaffStockTransactions = () => {
 
             {/* Action Buttons */}
             <div className="flex gap-2">
-              <button className="flex items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors">
-                <MdRefresh className="h-5 w-5" />
+              <button 
+                onClick={fetchTransactions}
+                disabled={loading}
+                className="flex items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors disabled:opacity-50"
+              >
+                <MdRefresh className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
                 Refresh
               </button>
               <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
@@ -630,7 +646,16 @@ const StaffStockTransactions = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredTransactions.length > 0 ? (
+                  {loading ? (
+                    <tr>
+                      <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
+                        <div className="flex items-center justify-center gap-2">
+                          <MdRefresh className="h-5 w-5 animate-spin" />
+                          <span>Loading transactions...</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : filteredTransactions.length > 0 ? (
                     filteredTransactions.map((transaction) => (
                       <tr key={transaction.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4">

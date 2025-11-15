@@ -129,9 +129,9 @@ const AssignEquipmentModal = ({ isOpen, onClose, equipment, onSuccess, onError }
         onSuccess({
           equipmentCode: equipment.equipment_code,
           equipmentName: equipment.name,
-          userId: selectedUser,
-          userName: users.find(u => u.id === parseInt(selectedUser))?.name || 'Unknown User',
-          quantity: assignQuantity,
+          userId: selectedUser.id,
+          userName: selectedUser.name,
+          quantity: quantity,
           purpose
         });
         onClose();

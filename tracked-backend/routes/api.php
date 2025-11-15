@@ -6315,6 +6315,164 @@ Route::middleware(['auth:sanctum'])->group(function () {
         }
     });
 
+    // Staff Equipment Transactions Endpoint
+    Route::get('/staff/equipment/transactions', function (Request $request) {
+        try {
+            $user = $request->user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated'
+                ], 401);
+            }
+            
+            // Get filter parameters
+            $search = $request->input('search');
+            $category = $request->input('category');
+            $type = $request->input('type');
+            $dateFilter = $request->input('date_filter');
+            $sortBy = $request->input('sort_by', 'newest');
+            
+            // Build query for equipment assignments (represents transactions)
+            $transactionsQuery = DB::table('equipment_assignments')
+                ->leftJoin('equipment', 'equipment_assignments.equipment_id', '=', 'equipment.id')
+                ->leftJoin('users as assigned_user', 'equipment_assignments.user_id', '=', 'assigned_user.id')
+                ->leftJoin('users as assigned_by_user', 'equipment_assignments.assigned_by', '=', 'assigned_by_user.id')
+                ->select(
+                    'equipment_assignments.*',
+                    'equipment.name as equipment_name',
+                    'equipment.equipment_code',
+                    'equipment.brand',
+                    'equipment.model',
+                    'equipment.category',
+                    'equipment.location',
+                    'equipment.value as unit_price',
+                    DB::raw("CONCAT(assigned_user.first_name, ' ', assigned_user.last_name) as user_name"),
+                    DB::raw("CONCAT(assigned_by_user.first_name, ' ', assigned_by_user.last_name) as assigned_by_name")
+                );
+            
+            // Apply search filter
+            if ($search) {
+                $transactionsQuery->where(function($query) use ($search) {
+                    $query->where('equipment.name', 'like', "%{$search}%")
+                          ->orWhere('equipment.equipment_code', 'like', "%{$search}%")
+                          ->orWhere('equipment.brand', 'like', "%{$search}%")
+                          ->orWhere('assigned_user.first_name', 'like', "%{$search}%")
+                          ->orWhere('assigned_user.last_name', 'like', "%{$search}%");
+                });
+            }
+            
+            // Apply category filter
+            if ($category && $category !== 'all') {
+                $transactionsQuery->where('equipment.category', $category);
+            }
+            
+            // Apply type filter (status-based)
+            if ($type && $type !== 'all') {
+                if ($type === 'out') {
+                    $transactionsQuery->where('equipment_assignments.status', 'active');
+                } elseif ($type === 'in') {
+                    $transactionsQuery->where('equipment_assignments.status', 'returned');
+                }
+            }
+            
+            // Apply date filter
+            if ($dateFilter && $dateFilter !== 'all') {
+                $now = now();
+                switch ($dateFilter) {
+                    case 'today':
+                        $transactionsQuery->whereDate('equipment_assignments.assigned_at', $now->toDateString());
+                        break;
+                    case 'week':
+                        $transactionsQuery->whereBetween('equipment_assignments.assigned_at', [
+                            $now->startOfWeek()->toDateString(),
+                            $now->endOfWeek()->toDateString()
+                        ]);
+                        break;
+                    case 'month':
+                        $transactionsQuery->whereMonth('equipment_assignments.assigned_at', $now->month)
+                                         ->whereYear('equipment_assignments.assigned_at', $now->year);
+                        break;
+                }
+            }
+            
+            // Apply sorting
+            if ($sortBy === 'newest') {
+                $transactionsQuery->orderBy('equipment_assignments.assigned_at', 'desc');
+            } elseif ($sortBy === 'oldest') {
+                $transactionsQuery->orderBy('equipment_assignments.assigned_at', 'asc');
+            } elseif ($sortBy === 'name') {
+                $transactionsQuery->orderBy('equipment.name', 'asc');
+            } elseif ($sortBy === 'value') {
+                $transactionsQuery->orderBy('equipment.value', 'desc');
+            }
+            
+            $transactions = $transactionsQuery->get();
+            
+            // Format transactions for frontend
+            $formattedTransactions = $transactions->map(function($transaction) {
+                $transactionType = $transaction->status === 'returned' ? 'in' : 'out';
+                $transactionDate = $transactionType === 'in' && $transaction->returned_at 
+                    ? $transaction->returned_at 
+                    : $transaction->assigned_at;
+                
+                return [
+                    'id' => $transaction->id,
+                    'transactionCode' => 'TXN-' . date('Y', strtotime($transactionDate)) . '-' . str_pad($transaction->id, 4, '0', STR_PAD_LEFT),
+                    'date' => date('Y-m-d', strtotime($transactionDate)),
+                    'time' => date('h:i A', strtotime($transactionDate)),
+                    'type' => $transactionType,
+                    'itemName' => $transaction->equipment_name,
+                    'equipmentCode' => $transaction->equipment_code,
+                    'brand' => $transaction->brand,
+                    'model' => $transaction->model,
+                    'category' => $transaction->category,
+                    'quantity' => $transaction->quantity,
+                    'unit' => 'unit',
+                    'location' => $transaction->location,
+                    'unitPrice' => (float) $transaction->unit_price,
+                    'totalAmount' => (float) $transaction->unit_price * $transaction->quantity,
+                    'requestedBy' => $transaction->user_name,
+                    'approvedBy' => $transaction->assigned_by_name ?? 'Admin Staff',
+                    'purpose' => $transaction->purpose ?? '-',
+                    'referenceNumber' => $transactionType === 'out' 
+                        ? 'ISU-' . date('Y', strtotime($transaction->assigned_at)) . '-' . str_pad($transaction->id, 3, '0', STR_PAD_LEFT)
+                        : 'RET-' . date('Y', strtotime($transaction->returned_at)) . '-' . str_pad($transaction->id, 3, '0', STR_PAD_LEFT),
+                    'notes' => $transactionType === 'in' 
+                        ? ($transaction->return_notes ?? 'Equipment returned')
+                        : ($transaction->notes ?? 'Equipment issued'),
+                    'status' => 'completed',
+                    'assignedAt' => $transaction->assigned_at,
+                    'returnedAt' => $transaction->returned_at,
+                    'dueDate' => $transaction->due_date,
+                ];
+            });
+            
+            // Calculate statistics
+            $stats = [
+                'totalTransactions' => $formattedTransactions->count(),
+                'stockOut' => $formattedTransactions->where('type', 'out')->count(),
+                'stockIn' => $formattedTransactions->where('type', 'in')->count(),
+                'totalValue' => $formattedTransactions->where('type', 'out')->sum('totalAmount'),
+            ];
+            
+            return response()->json([
+                'success' => true,
+                'data' => $formattedTransactions,
+                'stats' => $stats,
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Equipment transactions error: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load equipment transactions',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
+
     // Staff Inventory Reports Endpoint
     Route::post('/staff/reports/inventory', function (Request $request) {
         try {
