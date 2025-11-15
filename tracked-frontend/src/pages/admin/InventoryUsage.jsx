@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../../layouts/admin/Sidebar';
+import { getAdminToken } from '../../utils/adminAuth';
+import { toast } from 'react-hot-toast';
 import {
   MdMenu,
   MdSearch,
@@ -14,150 +16,128 @@ import {
   MdShoppingCart,
   MdHistory,
 } from 'react-icons/md';
-import { Chart as ChartJS } from 'chart.js/auto';
-import { Line, Bar } from 'react-chartjs-2';
 
 const InventoryUsage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [dateRange, setDateRange] = useState('this-month');
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState('usage');
+  const [categories, setCategories] = useState([]);
+  const [inventorySummary, setInventorySummary] = useState({
+    totalItems: 0,
+    lowStock: 0,
+    totalValue: 0,
+    monthlyUsage: 0,
+  });
+  const [inventoryItems, setInventoryItems] = useState([]);
 
-  // Mock data for categories
-  const categories = [
-    { id: 'training-equipment', name: 'Training Equipment' },
-    { id: 'bartending-supplies', name: 'Bartending Supplies' },
-    { id: 'kitchen-tools', name: 'Kitchen Tools & Equipment' },
-    { id: 'housekeeping-materials', name: 'Housekeeping Materials' },
-    { id: 'consumable-supplies', name: 'Consumable Supplies' },
-    { id: 'safety-equipment', name: 'Safety Equipment' },
-    { id: 'learning-materials', name: 'Learning Materials' },
-    { id: 'maintenance-tools', name: 'Maintenance Tools' }
-  ];
+  // Fetch inventory usage data
+  const fetchInventoryData = async () => {
+    try {
+      setLoading(true);
+      const token = getAdminToken();
+      if (!token) {
+        toast.error('Please login to continue');
+        return;
+      }
 
-  // Mock data for inventory summary
-  const inventorySummary = {
-    totalItems: 856,
-    lowStock: 23,
-    totalValue: 245000,
-    monthlyUsage: 156,
-  };
+      const params = new URLSearchParams();
+      if (selectedCategory !== 'all') params.append('category', selectedCategory);
+      if (dateRange !== 'all') params.append('date_range', dateRange);
+      if (searchQuery) params.append('search', searchQuery);
+      if (sortBy) params.append('sort_by', sortBy);
 
-  // Mock data for monthly usage trend
-  const monthlyUsageTrend = {
-    labels: ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
-    datasets: [{
-      label: 'Monthly Usage',
-      data: [145, 162, 155, 148, 142, 156],
-      tension: 0.4,
-      backgroundColor: 'rgba(59, 130, 246, 0.2)',
-      borderColor: 'rgba(59, 130, 246, 1)',
-      borderWidth: 2,
-      fill: true,
-    }]
-  };
+      const response = await fetch(
+        `http://localhost:8000/api/admin/inventory/usage?${params}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
+          },
+        }
+      );
 
-  // Mock data for category usage
-  const categoryUsage = {
-    labels: categories.map(c => c.name),
-    datasets: [{
-      label: 'Items Used',
-      data: [45, 38, 32, 28, 25, 22],
-      backgroundColor: 'rgba(59, 130, 246, 0.2)',
-      borderColor: 'rgba(59, 130, 246, 1)',
-      borderWidth: 1,
-    }]
-  };
+      if (!response.ok) {
+        throw new Error('Failed to fetch inventory data');
+      }
 
-  // Mock data for inventory items
-  const inventoryItems = [
-    {
-      id: 1,
-      name: 'Professional Cocktail Shaker Set',
-      category: 'Bartending Supplies',
-      totalQuantity: 50,
-      inUse: 35,
-      available: 15,
-      status: 'Good Stock',
-      program: 'Bartending NC II',
-      condition: 'Good',
-      lastMaintenance: '2025-09-15'
-    },
-    {
-      id: 2,
-      name: 'Commercial Chef Knife Set',
-      category: 'Kitchen Tools & Equipment',
-      totalQuantity: 30,
-      inUse: 28,
-      available: 2,
-      status: 'Low Stock',
-      program: 'Cookery NC II',
-      condition: 'Good',
-      lastMaintenance: '2025-09-20'
-    },
-    {
-      id: 3,
-      name: 'Industrial Vacuum Cleaner',
-      category: 'Housekeeping Materials',
-      totalQuantity: 15,
-      inUse: 12,
-      available: 3,
-      status: 'Good Stock',
-      program: 'Housekeeping NC II',
-      condition: 'Needs Maintenance',
-      lastMaintenance: '2025-08-15'
-    },
-    {
-      id: 4,
-      name: 'Safety Goggles',
-      category: 'Safety Equipment',
-      totalQuantity: 100,
-      inUse: 75,
-      available: 25,
-      status: 'Good Stock',
-      program: 'Multiple Programs',
-      condition: 'Good',
-      lastMaintenance: 'N/A'
-    },
-    {
-      id: 5,
-      name: 'Barista Training Manual',
-      category: 'Learning Materials',
-      totalQuantity: 40,
-      inUse: 38,
-      available: 2,
-      status: 'Low Stock',
-      program: 'Barista Training NC II',
-      condition: 'Good',
-      lastMaintenance: 'N/A'
-    },
-    {
-      id: 6,
-      name: 'Commercial Coffee Machine',
-      category: 'Training Equipment',
-      totalQuantity: 5,
-      inUse: 4,
-      available: 1,
-      status: 'Good Stock',
-      program: 'Barista Training NC II',
-      condition: 'Excellent',
-      lastMaintenance: '2025-09-10'
+      const data = await response.json();
+
+      if (data.success) {
+        setInventorySummary(data.summary);
+        setInventoryItems(data.items);
+        setCategories(data.categories);
+      }
+    } catch (error) {
+      console.error('Error fetching inventory data:', error);
+      toast.error('Failed to load inventory data');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  // Fetch data on component mount and when filters change
+  useEffect(() => {
+    fetchInventoryData();
+  }, [selectedCategory, dateRange, searchQuery, sortBy]);
 
   const handleExport = (format) => {
-    console.log('Exporting in format:', format);
+    try {
+      // Prepare CSV data
+      const headers = ['Item Name', 'Category', 'Total Quantity', 'In Use', 'Available', 'Program', 'Condition', 'Last Maintenance'];
+      const csvRows = [headers.join(',')];
+
+      // Add data rows
+      inventoryItems.forEach(item => {
+        const row = [
+          `"${item.name}"`,
+          `"${item.category}"`,
+          item.totalQuantity,
+          item.inUse,
+          item.available,
+          `"${item.program}"`,
+          `"${item.condition}"`,
+          `"${item.lastMaintenance}"`
+        ];
+        csvRows.push(row.join(','));
+      });
+
+      // Add summary at the bottom
+      csvRows.push('');
+      csvRows.push('Summary');
+      csvRows.push(`Total Items,${inventorySummary.totalItems}`);
+      csvRows.push(`Total Value,${formatCurrency(inventorySummary.totalValue)}`);
+      csvRows.push(`Monthly Usage,${inventorySummary.monthlyUsage}`);
+
+      // Create CSV blob and download
+      const csvContent = csvRows.join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `inventory-usage-report-${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('Report exported successfully');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export report');
+    }
   };
 
   const handlePrint = () => {
-    console.log('Printing inventory report');
+    window.print();
   };
 
   const handleRefresh = () => {
-    setLoading(true);
-    setTimeout(() => setLoading(false), 1000);
+    fetchInventoryData();
   };
 
   const formatCurrency = (value) => {
@@ -197,13 +177,6 @@ const InventoryUsage = () => {
                 <MdFileDownload className="h-5 w-5 mr-2" />
                 Export Report
               </button>
-              <button
-                onClick={handlePrint}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-              >
-                <MdPrint className="h-5 w-5 mr-2" />
-                Print Report
-              </button>
             </div>
           </div>
         </header>
@@ -213,7 +186,7 @@ const InventoryUsage = () => {
           <div className="max-w-7xl mx-auto">
             {/* Quick Stats */}
             <div className="mb-8">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
                   <div className="flex items-center">
                     <div className="p-3 bg-blue-50 rounded-lg">
@@ -222,18 +195,6 @@ const InventoryUsage = () => {
                     <div className="ml-4">
                       <p className="text-2xl font-semibold text-gray-900">{inventorySummary.totalItems}</p>
                       <p className="text-sm font-medium text-blue-600">Total Items</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                  <div className="flex items-center">
-                    <div className="p-3 bg-red-50 rounded-lg">
-                      <MdWarning className="h-6 w-6 text-red-600" />
-                    </div>
-                    <div className="ml-4">
-                      <p className="text-2xl font-semibold text-gray-900">{inventorySummary.lowStock}</p>
-                      <p className="text-sm font-medium text-red-600">Low Stock Items</p>
                     </div>
                   </div>
                 </div>
@@ -325,75 +286,6 @@ const InventoryUsage = () => {
               </div>
             </div>
 
-            {/* Charts Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Monthly Usage Trend</h3>
-                <div className="h-[300px]">
-                  <Line
-                    data={monthlyUsageTrend}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: {
-                        legend: {
-                          display: false
-                        }
-                      },
-                      scales: {
-                        y: {
-                          beginAtZero: true,
-                          grid: {
-                            color: 'rgba(0,0,0,0.05)'
-                          }
-                        },
-                        x: {
-                          grid: {
-                            display: false
-                          }
-                        }
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Usage by Category</h3>
-                <div className="h-[300px]">
-                  <Bar
-                    data={categoryUsage}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: {
-                        legend: {
-                          display: false
-                        }
-                      },
-                      scales: {
-                        y: {
-                          beginAtZero: true,
-                          grid: {
-                            color: 'rgba(0,0,0,0.05)'
-                          }
-                        },
-                        x: {
-                          grid: {
-                            display: false
-                          },
-                          ticks: {
-                            maxRotation: 45,
-                            minRotation: 45
-                          }
-                        }
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
             {/* Inventory Table */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200">
@@ -427,9 +319,6 @@ const InventoryUsage = () => {
                       <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         Last Maintenance
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                        Status
-                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -454,27 +343,10 @@ const InventoryUsage = () => {
                           <div className="text-sm text-gray-900">{item.program}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                            item.condition === 'Good' || item.condition === 'Excellent'
-                              ? 'bg-green-100 text-green-800'
-                              : item.condition === 'Needs Maintenance'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}>
-                            {item.condition}
-                          </span>
+                          <div className="text-sm text-gray-900">{item.condition}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">{item.lastMaintenance}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                            item.status === 'Good Stock' 
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}>
-                            {item.status}
-                          </span>
                         </td>
                       </tr>
                     ))}
@@ -485,22 +357,6 @@ const InventoryUsage = () => {
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-gray-500">
                     Showing {inventoryItems.length} items
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => handleExport('csv')}
-                      className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    >
-                      <MdFileDownload className="h-4 w-4 mr-1.5" />
-                      Export List
-                    </button>
-                    <button
-                      onClick={handlePrint}
-                      className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    >
-                      <MdPrint className="h-4 w-4 mr-1.5" />
-                      Print
-                    </button>
                   </div>
                 </div>
               </div>

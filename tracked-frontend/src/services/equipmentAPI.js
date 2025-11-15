@@ -153,4 +153,9 @@ export const equipmentAPI = {
 
     return await response.json();
   },
+
+  // Record maintenance (alias for addMaintenanceHistory)
+  recordMaintenance: async (id, data) => {
+    return equipmentAPI.addMaintenanceHistory(id, data);
+  },
 };

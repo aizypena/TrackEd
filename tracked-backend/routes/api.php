@@ -8206,5 +8206,172 @@ Route::middleware(['auth:sanctum'])->group(function () {
             ]
         ]);
     });
+
+    // Admin Inventory Usage Endpoint
+    Route::get('/admin/inventory/usage', function (Request $request) {
+        try {
+            $user = $request->user();
+            if (!$user || $user->role !== 'admin') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized'
+                ], 403);
+            }
+
+            $category = $request->input('category');
+            $dateRange = $request->input('date_range', 'this-month');
+            $search = $request->input('search');
+            $sortBy = $request->input('sort_by', 'usage');
+
+            // Get all equipment with usage data
+            $equipmentQuery = DB::table('equipment')
+                ->select(
+                    'equipment.*',
+                    DB::raw('COALESCE(equipment.in_use, 0) as in_use'),
+                    DB::raw('COALESCE(equipment.available, 0) as available'),
+                    DB::raw('COALESCE(equipment.quantity, 0) as total_quantity')
+                );
+
+            // Apply category filter (filtering by program)
+            if ($category && $category !== 'all') {
+                // Get the program title from the programs table
+                $program = DB::table('programs')->where('id', $category)->first();
+                if ($program) {
+                    // Use LIKE for flexible matching on category field (case-insensitive)
+                    $equipmentQuery->where('equipment.category', 'like', '%' . $program->title . '%');
+                }
+            }
+
+            // Apply search filter
+            if ($search) {
+                $equipmentQuery->where(function($query) use ($search) {
+                    $query->where('equipment.name', 'like', "%{$search}%")
+                          ->orWhere('equipment.equipment_code', 'like', "%{$search}%")
+                          ->orWhere('equipment.category', 'like', "%{$search}%");
+                });
+            }
+
+            $equipment = $equipmentQuery->get();
+
+            // Format equipment items
+            $items = $equipment->map(function($item) {
+                $totalQty = (int) $item->total_quantity;
+                $inUse = (int) $item->in_use;
+                $available = (int) $item->available;
+                
+                // Determine status
+                $usagePercentage = $totalQty > 0 ? ($inUse / $totalQty) * 100 : 0;
+                $status = 'Good Stock';
+                if ($available <= 2 || $usagePercentage > 90) {
+                    $status = 'Low Stock';
+                } elseif ($available === 0) {
+                    $status = 'Out of Stock';
+                }
+
+                return [
+                    'id' => $item->id,
+                    'name' => $item->name,
+                    'category' => $item->category ?? 'Uncategorized',
+                    'totalQuantity' => $totalQty,
+                    'inUse' => $inUse,
+                    'available' => $available,
+                    'status' => $status,
+                    'program' => $item->location ?? 'Multiple Programs',
+                    'condition' => $item->condition ?? 'Good',
+                    'lastMaintenance' => $item->last_maintenance ?? 'N/A',
+                    'value' => (float) $item->value
+                ];
+            });
+
+            // Apply sorting
+            $items = $items->sortBy(function($item) use ($sortBy) {
+                switch ($sortBy) {
+                    case 'name':
+                        return $item['name'];
+                    case 'stock':
+                        return -$item['available'];
+                    case 'usage':
+                    default:
+                        return -$item['inUse'];
+                }
+            })->values();
+
+            // Calculate summary statistics
+            $totalItems = $equipment->sum('quantity');
+            $totalInUse = $equipment->sum('in_use');
+            $totalAvailable = $equipment->sum('available');
+            $lowStockCount = $items->where('status', 'Low Stock')->count() + $items->where('status', 'Out of Stock')->count();
+            $totalValue = $equipment->sum(function($item) {
+                return $item->value * $item->quantity;
+            });
+
+            // Get usage data for the last 6 months for trend chart
+            $sixMonthsAgo = now()->subMonths(6);
+            $monthlyUsage = DB::table('equipment_assignments')
+                ->select(
+                    DB::raw('DATE_FORMAT(assigned_at, "%b") as month'),
+                    DB::raw('COUNT(*) as usage_count')
+                )
+                ->where('assigned_at', '>=', $sixMonthsAgo)
+                ->groupBy(DB::raw('DATE_FORMAT(assigned_at, "%Y-%m")'), 'month')
+                ->orderBy(DB::raw('DATE_FORMAT(assigned_at, "%Y-%m")'))
+                ->get();
+
+            // Get category usage data
+            $categoryUsage = DB::table('equipment_assignments')
+                ->join('equipment', 'equipment_assignments.equipment_id', '=', 'equipment.id')
+                ->select(
+                    'equipment.category',
+                    DB::raw('COUNT(*) as usage_count')
+                )
+                ->where('equipment_assignments.assigned_at', '>=', $sixMonthsAgo)
+                ->whereNotNull('equipment.category')
+                ->groupBy('equipment.category')
+                ->orderBy('usage_count', 'desc')
+                ->limit(6)
+                ->get();
+
+            // Get all course programs regardless of status
+            $categories = DB::table('programs')
+                ->select('id', 'title')
+                ->orderBy('title')
+                ->get()
+                ->map(function($program) {
+                    return [
+                        'id' => $program->id,
+                        'name' => $program->title
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'summary' => [
+                    'totalItems' => $totalItems,
+                    'lowStock' => $lowStockCount,
+                    'totalValue' => $totalValue,
+                    'monthlyUsage' => $totalInUse
+                ],
+                'items' => $items,
+                'monthlyTrend' => [
+                    'labels' => $monthlyUsage->pluck('month'),
+                    'data' => $monthlyUsage->pluck('usage_count')
+                ],
+                'categoryUsage' => [
+                    'labels' => $categoryUsage->pluck('category'),
+                    'data' => $categoryUsage->pluck('usage_count')
+                ],
+                'categories' => $categories
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Inventory usage error: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load inventory usage',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
 });
 

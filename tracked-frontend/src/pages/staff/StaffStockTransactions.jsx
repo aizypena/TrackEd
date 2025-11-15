@@ -632,9 +632,6 @@ const StaffStockTransactions = () => {
                       Quantity
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Amount
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Type
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -669,9 +666,6 @@ const StaffStockTransactions = () => {
                           <div className="text-sm font-medium text-gray-900">{transaction.itemName}</div>
                           <div className="text-xs text-blue-600">{transaction.equipmentCode}</div>
                           <div className="text-xs text-gray-500">{transaction.category}</div>
-                          {transaction.brand && transaction.model && (
-                            <div className="text-xs text-gray-400 mt-1">{transaction.brand} - {transaction.model}</div>
-                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className={`text-sm font-bold ${
@@ -679,17 +673,7 @@ const StaffStockTransactions = () => {
                             transaction.type === 'out' ? 'text-blue-600' :
                             transaction.quantity > 0 ? 'text-green-600' : 'text-red-600'
                           }`}>
-                            {transaction.quantity > 0 ? '+' : ''}{transaction.quantity} {transaction.unit}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            @ {formatCurrency(transaction.unitPrice)}/{transaction.unit}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className={`text-lg font-bold ${
-                            transaction.totalAmount > 0 ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {transaction.totalAmount > 0 ? '+' : ''}{formatCurrency(transaction.totalAmount)}
+                            {transaction.quantity} {transaction.unit}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -730,7 +714,7 @@ const StaffStockTransactions = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
+                      <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
                         No transactions found matching your filters.
                       </td>
                     </tr>
@@ -825,7 +809,7 @@ const StaffStockTransactions = () => {
                     <p className={`text-lg font-bold ${
                       selectedTransaction.quantity > 0 ? 'text-green-600' : 'text-red-600'
                     }`}>
-                      {selectedTransaction.quantity > 0 ? '+' : ''}{selectedTransaction.quantity} {selectedTransaction.unit}
+                      {selectedTransaction.quantity} {selectedTransaction.unit}
                     </p>
                   </div>
                   <div>

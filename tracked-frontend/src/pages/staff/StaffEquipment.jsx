@@ -6,6 +6,7 @@ import ViewEquipmentModal from '../../components/staff/ViewEquipmentModal';
 import DeleteConfirmationModal from '../../components/staff/DeleteConfirmationModal';
 import AssignEquipmentModal from '../../components/staff/AssignEquipmentModal';
 import ManageAssignmentsModal from '../../components/staff/ManageAssignmentsModal';
+import MaintenanceModal from '../../components/staff/MaintenanceModal';
 import { equipmentAPI } from '../../services/equipmentAPI';
 import { getStaffToken } from '../../utils/staffAuth';
 import axios from 'axios';
@@ -42,6 +43,7 @@ const StaffEquipment = () => {
   const [deletingEquipment, setDeletingEquipment] = useState(null);
   const [assigningEquipment, setAssigningEquipment] = useState(null);
   const [managingEquipment, setManagingEquipment] = useState(null);
+  const [maintainingEquipment, setMaintainingEquipment] = useState(null);
   const [loading, setLoading] = useState(false);
   const [equipment, setEquipment] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -189,6 +191,51 @@ const StaffEquipment = () => {
     // Open the manage assignments modal
     setSelectedEquipment(null); // Close view modal if open
     setManagingEquipment(item);
+  };
+
+  const handleMaintenance = (item) => {
+    // Open the maintenance modal
+    setSelectedEquipment(null); // Close view modal if open
+    setMaintainingEquipment(item);
+  };
+
+  const handleCompleteMaintenance = async (item) => {
+    try {
+      // Calculate restored availability
+      const maintenanceCount = item.maintenance || 0;
+      const damagedCount = item.damaged || 0;
+      const restoredCount = item.status === 'maintenance' ? maintenanceCount : (item.status === 'damaged' ? damagedCount : 0);
+      
+      // Update equipment status to available and restore counts
+      const response = await equipmentAPI.update(item.id, {
+        ...item,
+        status: 'available',
+        available: item.available + restoredCount,
+        maintenance: item.status === 'maintenance' ? 0 : item.maintenance,
+        damaged: item.status === 'damaged' ? 0 : item.damaged
+      });
+
+      if (response.success) {
+        // Get staff user info for logging
+        const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
+        const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
+
+        await logSystemAction(
+          'equipment_maintenance_completed',
+          `${staffName} marked maintenance as complete for ${item.equipment_code} (${item.name}) - Status changed from ${item.status} to available, ${restoredCount} unit(s) restored to available`,
+          'info'
+        );
+
+        setSuccessMessage('Maintenance marked as complete');
+        setSelectedEquipment(null);
+        fetchEquipment();
+      } else {
+        setErrorMessage(response.message || 'Failed to update equipment status');
+      }
+    } catch (error) {
+      console.error('Error completing maintenance:', error);
+      setErrorMessage('Failed to complete maintenance');
+    }
   };
 
   const handleConfirmDelete = async (password) => {
@@ -627,6 +674,8 @@ const StaffEquipment = () => {
         onEdit={handleEditEquipment}
         onAssign={handleAssignEquipment}
         onManageAssignments={handleManageAssignments}
+        onMaintenance={handleMaintenance}
+        onCompleteMaintenance={handleCompleteMaintenance}
       />
 
       {/* Add/Edit Equipment Modal */}
@@ -717,6 +766,29 @@ const StaffEquipment = () => {
 
           setSuccessMessage('Equipment returned successfully');
           setManagingEquipment(null);
+          fetchEquipment();
+        }}
+        onError={(message) => setErrorMessage(message)}
+      />
+
+      {/* Maintenance Modal */}
+      <MaintenanceModal
+        isOpen={!!maintainingEquipment}
+        onClose={() => setMaintainingEquipment(null)}
+        equipment={maintainingEquipment}
+        onSuccess={async (maintenanceData) => {
+          // Get staff user info for logging
+          const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
+          const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
+
+          await logSystemAction(
+            'equipment_maintenance',
+            `${staffName} recorded ${maintenanceData.maintenanceType} maintenance for ${maintenanceData.equipmentCode} (${maintenanceData.equipmentName}) - Performed by: ${maintenanceData.performedBy}, Condition after: ${maintenanceData.conditionAfter}${maintenanceData.notes ? `, Notes: ${maintenanceData.notes}` : ''}`,
+            'info'
+          );
+
+          setSuccessMessage('Maintenance record added successfully');
+          setMaintainingEquipment(null);
           fetchEquipment();
         }}
         onError={(message) => setErrorMessage(message)}

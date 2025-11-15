@@ -12,7 +12,7 @@ import {
   MdAssignment
 } from 'react-icons/md';
 
-const ViewEquipmentModal = ({ isOpen, onClose, equipment, onEdit, onAssign, onManageAssignments }) => {
+const ViewEquipmentModal = ({ isOpen, onClose, equipment, onEdit, onAssign, onManageAssignments, onMaintenance, onCompleteMaintenance }) => {
   if (!isOpen || !equipment) return null;
 
   const getStatusBadge = (status) => {
@@ -200,42 +200,9 @@ const ViewEquipmentModal = ({ isOpen, onClose, equipment, onEdit, onAssign, onMa
             </div>
           </div>
 
-          {/* Maintenance History */}
-          {equipment.maintenance_history && equipment.maintenance_history.length > 0 && (
-            <div className="bg-gray-50 rounded-lg p-4 mb-6">
-              <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <MdCalendarToday className="h-5 w-5 text-tracked-primary" />
-                Maintenance History
-              </h3>
-              <div className="space-y-3">
-                {equipment.maintenance_history.map((record, index) => (
-                  <div key={index} className="bg-white p-4 rounded-lg border border-gray-200">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <MdCalendarToday className="h-4 w-4 text-gray-400" />
-                          <span className="text-sm font-medium text-gray-900">{record.date}</span>
-                          <span className={`text-xs px-2 py-1 rounded-full ${
-                            record.type === 'Routine' ? 'bg-blue-100 text-blue-800' :
-                            record.type === 'Repair' ? 'bg-yellow-100 text-yellow-800' :
-                            record.type === 'Safety Inspection' ? 'bg-green-100 text-green-800' :
-                            'bg-red-100 text-red-800'
-                          }`}>
-                            {record.type}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-600">{record.notes}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-2 pt-6 border-t border-gray-200">
-            {equipment.available > 0 && (
+            {equipment.available > 0 && equipment.status !== 'maintenance' && equipment.status !== 'damaged' && (
               <button 
                 onClick={() => onAssign(equipment)}
                 className="flex hover:cursor-pointer items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-all duration-200 hover:scale-105 active:scale-95"
@@ -243,6 +210,12 @@ const ViewEquipmentModal = ({ isOpen, onClose, equipment, onEdit, onAssign, onMa
                 <MdAssignment className="h-5 w-5" />
                 Assign to User
               </button>
+            )}
+            {equipment.available > 0 && (equipment.status === 'maintenance' || equipment.status === 'damaged') && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-500 rounded-md border border-gray-300">
+                <MdWarning className="h-5 w-5" />
+                <span className="text-sm">Cannot assign - Equipment under {equipment.status === 'maintenance' ? 'maintenance' : 'repair (damaged)'}</span>
+              </div>
             )}
             {equipment.in_use > 0 && (
               <button 
@@ -253,9 +226,21 @@ const ViewEquipmentModal = ({ isOpen, onClose, equipment, onEdit, onAssign, onMa
                 Manage Checkouts ({equipment.in_use})
               </button>
             )}
-            <button className="flex hover:cursor-pointer items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-all duration-200 hover:scale-105 active:scale-95">
+            {(equipment.status === 'maintenance' || equipment.status === 'damaged') && (
+              <button 
+                onClick={() => onCompleteMaintenance(equipment)}
+                className="flex hover:cursor-pointer items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-all duration-200 hover:scale-105 active:scale-95"
+              >
+                <MdCheckCircle className="h-5 w-5" />
+                Mark as Complete
+              </button>
+            )}
+            <button 
+              onClick={() => onMaintenance(equipment)}
+              className="flex hover:cursor-pointer items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-all duration-200 hover:scale-105 active:scale-95"
+            >
               <MdBuild className="h-5 w-5" />
-              Maintenance
+              Record Maintenance
             </button>
             <button 
               onClick={onClose}

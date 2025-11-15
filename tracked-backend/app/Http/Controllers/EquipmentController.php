@@ -176,19 +176,51 @@ class EquipmentController extends Controller
         $request->validate([
             'date' => 'required|date',
             'type' => 'required|string',
-            'notes' => 'nullable|string'
+            'notes' => 'required|string',
+            'performed_by' => 'nullable|string',
+            'cost' => 'nullable|numeric|min:0',
+            'condition_after' => 'nullable|in:excellent,good,fair,poor',
+            'next_maintenance_date' => 'nullable|date|after:date',
+            'mark_as_under_maintenance' => 'nullable|boolean'
         ]);
 
         $history = EquipmentMaintenanceHistory::create([
             'equipment_id' => $id,
             'date' => $request->date,
             'type' => $request->type,
-            'notes' => $request->notes
+            'notes' => $request->notes,
+            'performed_by' => $request->performed_by,
+            'cost' => $request->cost
         ]);
 
-        $equipment->update([
+        // Update equipment
+        $updateData = [
             'last_maintenance' => $request->date
-        ]);
+        ];
+
+        // Update condition if provided
+        if ($request->has('condition_after')) {
+            $updateData['condition'] = $request->condition_after;
+        }
+
+        // Update next maintenance date if provided
+        if ($request->has('next_maintenance_date')) {
+            $updateData['next_maintenance'] = $request->next_maintenance_date;
+        }
+
+        // Mark as under maintenance if requested
+        if ($request->mark_as_under_maintenance) {
+            $updateData['status'] = 'maintenance';
+            
+            // Move available equipment to maintenance count
+            if ($equipment->available > 0) {
+                $maintenanceCount = min($equipment->available, $equipment->quantity);
+                $updateData['maintenance'] = ($equipment->maintenance ?? 0) + $maintenanceCount;
+                $updateData['available'] = max(0, $equipment->available - $maintenanceCount);
+            }
+        }
+
+        $equipment->update($updateData);
 
         return response()->json([
             'success' => true,

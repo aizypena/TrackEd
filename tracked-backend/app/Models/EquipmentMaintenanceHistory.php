@@ -12,7 +12,9 @@ class EquipmentMaintenanceHistory extends Model
         'equipment_id',
         'date',
         'type',
-        'notes'
+        'notes',
+        'performed_by',
+        'cost'
     ];
 
     protected $casts = [
