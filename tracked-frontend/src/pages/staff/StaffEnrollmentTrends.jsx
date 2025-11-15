@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import StaffSidebar from '../../layouts/staff/StaffSidebar';
 import { getStaffToken } from '../../utils/staffAuth';
 import toast, { Toaster } from 'react-hot-toast';
@@ -8,101 +7,463 @@ import {
   MdMenu,
   MdRefresh,
   MdTrendingUp,
-  MdTrendingDown,
   MdPeople,
   MdSchool,
   MdCalendarToday,
-  MdBarChart,
-  MdShowChart,
-  MdPieChart,
-  MdTimeline,
-  MdFilterList,
-  MdDownload
+  MdDownload,
+  MdPayment
 } from 'react-icons/md';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  LineElement,
+  PointElement
+} from 'chart.js';
+import { Bar, Doughnut, Line } from 'react-chartjs-2';
+
+// Register ChartJS components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  LineElement,
+  PointElement
+);
 
 const StaffEnrollmentTrends = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [yearFilter, setYearFilter] = useState('2025');
-  const [programFilter, setProgramFilter] = useState('all');
-  const [viewMode, setViewMode] = useState('overview');
-  const [selectedProgram, setSelectedProgram] = useState(null);
+  const [timeRange, setTimeRange] = useState('all');
   const [loading, setLoading] = useState(false);
-  const [enrollmentData, setEnrollmentData] = useState({
-    yearly: {},
-    monthly: [],
-    programBreakdown: [],
-    demographics: {
-      gender: [],
-      ageGroups: []
+  const [viewType, setViewType] = useState('quarterly');
+  const [selectedProgram, setSelectedProgram] = useState('all');
+  
+  const [trendsData, setTrendsData] = useState({
+    quarterlyData: {},
+    programTotals: {},
+    allData: [],
+    voucherStats: {
+      total: 0,
+      withVoucher: 0,
+      withoutVoucher: 0,
+      voucherPercentage: 0,
+      paidPercentage: 0
     },
-    conversionRate: {
-      applications: 0,
-      enrolled: 0,
-      rate: 0,
-      withdrawn: 0,
-      rejected: 0
+    stats: {
+      totalPrograms: 0,
+      totalEnrollments: 0,
+      avgPerProgram: 0
     }
   });
-  const [programs, setPrograms] = useState([]);
 
-  // Fetch enrollment trends on mount and when year changes
   useEffect(() => {
     fetchEnrollmentTrends();
-  }, [yearFilter]);
+  }, []);
 
   const fetchEnrollmentTrends = async () => {
     try {
       setLoading(true);
       const token = getStaffToken();
       
-      const response = await fetch(`${API_URL}/staff/enrollment-trends?year=${yearFilter}`, {
-        method: 'GET',
+      if (!token) {
+        toast.error('Authentication required');
+        return;
+      }
+      
+      const response = await fetch('http://localhost:8000/api/staff/enrollment-trends', {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+          'Accept': 'application/json'
+        }
       });
 
-      const result = await response.json();
-      
-      if (result.success) {
-        setEnrollmentData(result.data);
-        // Extract unique programs
-        const uniquePrograms = result.data.programBreakdown.map(p => p.program);
-        setPrograms(uniquePrograms);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setTrendsData(data);
+        } else {
+          toast.error('Failed to load enrollment data');
+        }
       } else {
-        toast.error('Failed to load enrollment trends');
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(errorData.message || `Failed to load data (${response.status})`);
       }
     } catch (error) {
-      console.error('Error fetching enrollment trends:', error);
-      toast.error('Failed to load enrollment trends: ' + error.message);
+      console.error('Error fetching trends:', error);
+      toast.error('Error loading data: ' + error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const getTrendIcon = (trend) => {
-    if (trend === 'up') {
-      return <MdTrendingUp className="h-5 w-5 text-green-600" />;
-    } else if (trend === 'down') {
-      return <MdTrendingDown className="h-5 w-5 text-red-600" />;
+  const getDataByViewType = (programName) => {
+    if (!trendsData.allData || trendsData.allData.length === 0) {
+      return {};
     }
-    return <MdShowChart className="h-5 w-5 text-blue-600" />;
+
+    const aggregatedData = {};
+    const filteredData = programName === 'all' 
+      ? trendsData.allData 
+      : trendsData.allData.filter(record => record.program === programName);
+
+    filteredData.forEach(record => {
+      const date = new Date(record.date);
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      let key;
+
+      switch (viewType) {
+        case 'weekly':
+          const firstDayOfYear = new Date(year, 0, 1);
+          const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
+          const weekNum = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+          key = `Week ${weekNum} ${year}`;
+          break;
+        case 'monthly':
+          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          key = `${monthNames[month - 1]} ${year}`;
+          break;
+        case 'yearly':
+          key = `${year}`;
+          break;
+        case 'quarterly':
+        default:
+          const quarter = Math.ceil(month / 3);
+          key = `Q${quarter} ${year}`;
+          break;
+      }
+      
+      if (!aggregatedData[key]) {
+        aggregatedData[key] = 0;
+      }
+      aggregatedData[key] += record.enrollment || 0;
+    });
+
+    return aggregatedData;
   };
 
-  const filteredPrograms = programFilter === 'all' 
-    ? enrollmentData.programBreakdown 
-    : enrollmentData.programBreakdown.filter(p => p.program === programFilter);
+  const getFilteredData = () => {
+    const dataForProgram = getDataByViewType(selectedProgram);
 
-  const currentYearData = enrollmentData.yearly[yearFilter] || enrollmentData.yearly['2025'] || { total: 0, growth: 0 };
-  const totalEnrollments = enrollmentData.programBreakdown.reduce((sum, p) => sum + p.enrollments, 0);
+    const sortKeys = (a, b) => {
+      if (viewType === 'weekly') {
+        const matchA = a.match(/Week (\d+) (\d+)/);
+        const matchB = b.match(/Week (\d+) (\d+)/);
+        if (!matchA || !matchB) return 0;
+        const yearA = parseInt(matchA[2]);
+        const yearB = parseInt(matchB[2]);
+        const weekA = parseInt(matchA[1]);
+        const weekB = parseInt(matchB[1]);
+        if (yearA !== yearB) return yearA - yearB;
+        return weekA - weekB;
+      } else if (viewType === 'monthly') {
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const matchA = a.match(/(\w+) (\d+)/);
+        const matchB = b.match(/(\w+) (\d+)/);
+        if (!matchA || !matchB) return 0;
+        const yearA = parseInt(matchA[2]);
+        const yearB = parseInt(matchB[2]);
+        const monthA = monthNames.indexOf(matchA[1]);
+        const monthB = monthNames.indexOf(matchB[1]);
+        if (yearA !== yearB) return yearA - yearB;
+        return monthA - monthB;
+      } else if (viewType === 'yearly') {
+        return parseInt(a) - parseInt(b);
+      } else {
+        const matchA = a.match(/Q(\d) (\d+)/);
+        const matchB = b.match(/Q(\d) (\d+)/);
+        if (!matchA || !matchB) return 0;
+        const yearA = parseInt(matchA[2]);
+        const yearB = parseInt(matchB[2]);
+        const quarterA = parseInt(matchA[1]);
+        const quarterB = parseInt(matchB[1]);
+        if (yearA !== yearB) return yearA - yearB;
+        return quarterA - quarterB;
+      }
+    };
 
-  // Generate year options from 2020 to current year
-  const availableYears = Object.keys(enrollmentData.yearly).length > 0 
-    ? Object.keys(enrollmentData.yearly).sort((a, b) => b - a)
-    : Array.from({ length: new Date().getFullYear() - 2019 }, (_, i) => (new Date().getFullYear() - i).toString());
+    const periods = Object.keys(dataForProgram || {}).sort(sortKeys);
+    
+    if (timeRange === '1year' || timeRange === '3years' || timeRange === '5years') {
+      const yearsToShow = timeRange === '1year' ? 1 : timeRange === '3years' ? 3 : 5;
+      
+      let mostRecentYear = 0;
+      periods.forEach(period => {
+        let year = 0;
+        if (viewType === 'weekly') {
+          const match = period.match(/Week \d+ (\d+)/);
+          if (match) year = parseInt(match[1]);
+        } else if (viewType === 'monthly') {
+          const match = period.match(/\w+ (\d+)/);
+          if (match) year = parseInt(match[1]);
+        } else if (viewType === 'yearly') {
+          year = parseInt(period);
+        } else {
+          const match = period.match(/Q\d (\d+)/);
+          if (match) year = parseInt(match[1]);
+        }
+        if (year > mostRecentYear) mostRecentYear = year;
+      });
+      
+      const cutoffYear = mostRecentYear - yearsToShow + 1;
+      return periods.filter(period => {
+        let year = 0;
+        if (viewType === 'weekly') {
+          const match = period.match(/Week \d+ (\d+)/);
+          if (match) year = parseInt(match[1]);
+        } else if (viewType === 'monthly') {
+          const match = period.match(/\w+ (\d+)/);
+          if (match) year = parseInt(match[1]);
+        } else if (viewType === 'yearly') {
+          year = parseInt(period);
+        } else {
+          const match = period.match(/Q\d (\d+)/);
+          if (match) year = parseInt(match[1]);
+        }
+        return year >= cutoffYear;
+      });
+    }
+    
+    return periods;
+  };
+
+  const calculateGrowthRate = () => {
+    const periods = getFilteredData();
+    if (periods.length < 2) return 0;
+    
+    const dataForProgram = getDataByViewType(selectedProgram);
+    const recent = dataForProgram[periods[periods.length - 1]] || 0;
+    const previous = dataForProgram[periods[periods.length - 2]] || 0;
+    
+    if (previous === 0) return 0;
+    return (((recent - previous) / previous) * 100).toFixed(1);
+  };
+
+  const filteredPeriods = getFilteredData();
+
+  const getFilteredProgramTotals = () => {
+    if (selectedProgram !== 'all') {
+      const dataForProgram = getDataByViewType(selectedProgram);
+      const total = filteredPeriods.reduce((sum, period) => sum + (dataForProgram[period] || 0), 0);
+      
+      const filtered = {};
+      if (total > 0) {
+        filtered[selectedProgram] = total;
+      }
+      return filtered;
+    }
+    
+    const programTotals = {};
+    const allPrograms = Object.keys(trendsData.programTotals || {});
+    
+    allPrograms.forEach(program => {
+      const dataForProgram = getDataByViewType(program);
+      const total = filteredPeriods.reduce((sum, period) => sum + (dataForProgram[period] || 0), 0);
+      
+      if (total > 0) {
+        programTotals[program] = total;
+      }
+    });
+    
+    const sortedPrograms = Object.entries(programTotals)
+      .sort(([, a], [, b]) => b - a)
+      .reduce((acc, [program, total]) => {
+        acc[program] = total;
+        return acc;
+      }, {});
+    
+    return sortedPrograms;
+  };
+
+  const filteredProgramTotals = getFilteredProgramTotals();
+
+  const popularPrograms = {
+    labels: Object.keys(filteredProgramTotals),
+    datasets: [{
+      label: 'Total Enrollments',
+      data: Object.values(filteredProgramTotals),
+      backgroundColor: [
+        'rgba(54, 162, 235, 0.8)',
+        'rgba(75, 192, 192, 0.8)',
+        'rgba(255, 206, 86, 0.8)',
+        'rgba(153, 102, 255, 0.8)',
+        'rgba(255, 159, 64, 0.8)',
+        'rgba(255, 99, 132, 0.8)',
+        'rgba(201, 203, 207, 0.8)',
+        'rgba(145, 232, 225, 0.8)'
+      ],
+      borderWidth: 1
+    }]
+  };
+
+  const dataForProgram = getDataByViewType(selectedProgram);
+  const viewTypeLabel = viewType.charAt(0).toUpperCase() + viewType.slice(1);
+
+  const enrollmentTrends = {
+    labels: filteredPeriods,
+    datasets: [{
+      label: selectedProgram === 'all' ? `${viewTypeLabel} Enrollments (All Programs)` : `${viewTypeLabel} Enrollments (${selectedProgram})`,
+      data: filteredPeriods.map(p => dataForProgram[p] || 0),
+      borderColor: 'rgb(59, 130, 246)',
+      backgroundColor: 'rgba(59, 130, 246, 0.1)',
+      borderWidth: 3,
+      fill: true,
+      tension: 0.4,
+      pointRadius: 5,
+      pointHoverRadius: 7,
+      pointBackgroundColor: 'rgb(59, 130, 246)',
+      pointBorderColor: '#fff',
+      pointBorderWidth: 2,
+      pointHoverBackgroundColor: 'rgb(37, 99, 235)',
+      pointHoverBorderColor: '#fff',
+      pointHoverBorderWidth: 3
+    }]
+  };
+
+  const voucherDistribution = {
+    labels: ['With Voucher', 'Self-Paid'],
+    datasets: [{
+      data: [
+        trendsData.voucherStats?.withVoucher || 0,
+        trendsData.voucherStats?.withoutVoucher || 0
+      ],
+      backgroundColor: [
+        'rgba(168, 85, 247, 0.8)',
+        'rgba(34, 197, 94, 0.8)'
+      ],
+      borderWidth: 1
+    }]
+  };
+
+  const barOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'top', labels: { usePointStyle: true, padding: 15, font: { size: 12, weight: 'bold' } } },
+      title: { display: true, text: 'Most Popular Training Programs', font: { size: 16, weight: 'bold' }, padding: { bottom: 20 } },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        padding: 12,
+        titleFont: { size: 14, weight: 'bold' },
+        bodyFont: { size: 13 },
+        callbacks: {
+          label: function(context) {
+            let label = context.dataset.label || '';
+            if (label) label += ': ';
+            if (context.parsed.y !== null) label += context.parsed.y.toLocaleString() + ' enrollments';
+            return label;
+          }
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: { callback: function(value) { return value.toLocaleString(); }, font: { size: 11 } },
+        grid: { color: 'rgba(0, 0, 0, 0.05)' },
+        title: { display: true, text: 'Total Enrollments', font: { size: 12, weight: 'bold' } }
+      },
+      x: { ticks: { font: { size: 11 }, maxRotation: 45, minRotation: 45 }, grid: { display: false } }
+    }
+  };
+
+  const lineOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { position: 'top', labels: { usePointStyle: true, padding: 15, font: { size: 12, weight: 'bold' } } },
+      title: { display: true, text: 'Enrollment Trends Over Time', font: { size: 16, weight: 'bold' }, padding: { bottom: 20 } },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        padding: 12,
+        titleFont: { size: 14, weight: 'bold' },
+        bodyFont: { size: 13 },
+        callbacks: {
+          label: function(context) {
+            let label = context.dataset.label || '';
+            if (label) label += ': ';
+            if (context.parsed.y !== null) label += context.parsed.y.toLocaleString() + ' enrollments';
+            return label;
+          }
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: { callback: function(value) { return value.toLocaleString(); }, font: { size: 11 } },
+        grid: { color: 'rgba(0, 0, 0, 0.05)' },
+        title: { display: true, text: 'Number of Enrollments', font: { size: 12, weight: 'bold' } }
+      },
+      x: {
+        ticks: { font: { size: 11 }, maxRotation: 45, minRotation: 45 },
+        grid: { display: false },
+        title: { display: true, text: 'Quarter', font: { size: 12, weight: 'bold' } }
+      }
+    }
+  };
+
+  const doughnutOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'top', labels: { usePointStyle: true, padding: 15, font: { size: 12, weight: 'bold' } } },
+      title: { display: true, text: 'Payment Method Distribution', font: { size: 16, weight: 'bold' }, padding: { bottom: 20 } },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        padding: 12,
+        titleFont: { size: 14, weight: 'bold' },
+        bodyFont: { size: 13 },
+        callbacks: {
+          label: function(context) {
+            const label = context.label || '';
+            const value = context.parsed || 0;
+            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+            return label + ': ' + value.toLocaleString() + ' (' + percentage + '%)';
+          }
+        }
+      }
+    }
+  };
+
+  const handleRefresh = () => { fetchEnrollmentTrends(); };
+
+  const handleExport = () => {
+    if (filteredPeriods.length === 0) {
+      toast.error('No data to export');
+      return;
+    }
+    
+    const dataForProgram = getDataByViewType(selectedProgram);
+    const periodLabel = viewType.charAt(0).toUpperCase() + viewType.slice(1) + ' Period';
+    const programLabel = selectedProgram === 'all' ? 'all_programs' : selectedProgram.replace(/\s+/g, '_');
+    
+    const csvContent = "data:text/csv;charset=utf-8," + 
+      `${periodLabel},Enrollments\n` +
+      filteredPeriods.map(p => `${p},${dataForProgram[p] || 0}`).join("\n");
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `enrollment_trends_${viewType}_${programLabel}_${timeRange}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success('Data exported successfully');
+  };
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -113,278 +474,335 @@ const StaffEnrollmentTrends = () => {
         setIsCollapsed={setSidebarCollapsed}
       />
       
-      {/* Main Content */}
+      {/* Main Content with proper sidebar spacing */}
       <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
-        {/* Top Navigation */}
-        <nav className="bg-tracked-primary text-white p-4">
-          <div className="container mx-auto flex justify-between items-center">
-            <div className="flex items-center gap-4">
+        {/* Header */}
+        <header className="bg-white shadow-sm">
+          <div className="px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center space-x-4">
               <button
-                onClick={() => setSidebarOpen(true)}
-                className="lg:hidden p-2 -ml-2 rounded-md hover:bg-tracked-primary-dark"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="lg:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100"
               >
                 <MdMenu className="h-6 w-6" />
               </button>
               <div>
-                <h1 className="text-xl font-bold">Enrollment Trends</h1>
-                <p className="text-sm text-blue-100">Analytics and insights on enrollment patterns</p>
+                <h1 className="text-2xl font-semibold text-gray-900">Enrollment Trends</h1>
+                <p className="text-sm text-gray-500">Analytics and insights about training programs</p>
               </div>
             </div>
-          </div>
-        </nav>
-        
-        {/* Dashboard Content */}
-        <div className="container mx-auto p-6">
-          {/* Filters */}
-          <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-2">
-                <MdFilterList className="h-5 w-5 text-gray-500" />
-                <span className="text-sm font-medium text-gray-700">Filters:</span>
+            <div className="flex items-center space-x-3 flex-wrap gap-2">
+              <div className="flex items-center space-x-2">
+                <select
+                  value={viewType}
+                  onChange={(e) => setViewType(e.target.value)}
+                  className="block px-3 py-2 border border-gray-300 rounded-md text-sm font-medium focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-blue-50 text-blue-700"
+                >
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="quarterly">Quarterly</option>
+                  <option value="yearly">Yearly</option>
+                </select>
+                <select
+                  value={selectedProgram}
+                  onChange={(e) => setSelectedProgram(e.target.value)}
+                  className="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="all">All Programs</option>
+                  {Object.keys(trendsData.programTotals || {}).map((program) => (
+                    <option key={program} value={program}>{program}</option>
+                  ))}
+                </select>
+                <select
+                  value={timeRange}
+                  onChange={(e) => setTimeRange(e.target.value)}
+                  className="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="all">All Time</option>
+                  <option value="5years">Last 5 Years</option>
+                  <option value="3years">Last 3 Years</option>
+                  <option value="1year">Last 1 Year</option>
+                </select>
               </div>
-              <select
-                value={yearFilter}
-                onChange={(e) => setYearFilter(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-md focus:ring-tracked-primary focus:border-tracked-primary"
-              >
-                {availableYears.map(year => (
-                  <option key={year} value={year}>{year}</option>
-                ))}
-              </select>
-              <select
-                value={programFilter}
-                onChange={(e) => setProgramFilter(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-md focus:ring-tracked-primary focus:border-tracked-primary"
-              >
-                <option value="all">All Programs</option>
-                {programs.map((program) => (
-                  <option key={program} value={program}>{program}</option>
-                ))}
-              </select>
-              <div className="ml-auto flex gap-2">
-                <button 
-                  onClick={fetchEnrollmentTrends}
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={handleRefresh}
+                  className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
                   disabled={loading}
-                  className="flex items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   <MdRefresh className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
-                  Refresh
                 </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors cursor-pointer">
+                <button
+                  onClick={handleExport}
+                  className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
+                  title="Export data as CSV"
+                >
                   <MdDownload className="h-5 w-5" />
-                  Export
                 </button>
               </div>
             </div>
           </div>
+        </header>
 
-          {/* Key Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex items-center justify-between mb-2">
-                <div className="p-3 bg-blue-100 rounded-full">
-                  <MdPeople className="h-6 w-6 text-blue-600" />
+        {/* Main Content Area */}
+        <main className="p-4 sm:p-6 lg:p-8">
+          {/* Stats Overview */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total Programs</p>
+                  <p className="text-2xl font-semibold text-gray-900">
+                    {loading ? '...' : trendsData.stats?.totalPrograms || 0}
+                  </p>
                 </div>
-                {currentYearData.growth > 0 && (
-                  <span className="flex items-center gap-1 text-green-600 text-sm font-medium">
-                    <MdTrendingUp className="h-4 w-4" />
-                    +{currentYearData.growth.toFixed(1)}%
-                  </span>
-                )}
+                <div className="p-3 bg-blue-50 rounded-full">
+                  <MdSchool className="h-6 w-6 text-blue-600" />
+                </div>
               </div>
-              <p className="text-sm text-gray-500 font-medium">Total Enrollments</p>
-              <p className="text-3xl font-bold text-blue-600 mt-2">{currentYearData.total}</p>
-              <p className="text-xs text-gray-500 mt-1">Year {yearFilter}</p>
             </div>
-
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex items-center justify-between mb-2">
-                <div className="p-3 bg-green-100 rounded-full">
-                  <MdSchool className="h-6 w-6 text-green-600" />
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total Enrollments</p>
+                  <p className="text-2xl font-semibold text-gray-900">
+                    {loading ? '...' : trendsData.stats?.totalEnrollments?.toLocaleString() || 0}
+                  </p>
+                </div>
+                <div className="p-3 bg-green-50 rounded-full">
+                  <MdPeople className="h-6 w-6 text-green-600" />
                 </div>
               </div>
-              <p className="text-sm text-gray-500 font-medium">Active Programs</p>
-              <p className="text-3xl font-bold text-green-600 mt-2">{enrollmentData.programBreakdown.length}</p>
-              <p className="text-xs text-gray-500 mt-1">NCII Qualifications</p>
             </div>
-
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex items-center justify-between mb-2">
-                <div className="p-3 bg-purple-100 rounded-full">
-                  <MdBarChart className="h-6 w-6 text-purple-600" />
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Growth Rate</p>
+                  <p className={`text-2xl font-semibold ${parseFloat(calculateGrowthRate()) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {loading ? '...' : `${calculateGrowthRate() > 0 ? '+' : ''}${calculateGrowthRate()}%`}
+                  </p>
+                </div>
+                <div className="p-3 bg-green-50 rounded-full">
+                  <MdTrendingUp className="h-6 w-6 text-green-600" />
                 </div>
               </div>
-              <p className="text-sm text-gray-500 font-medium">Conversion Rate</p>
-              <p className="text-3xl font-bold text-purple-600 mt-2">{enrollmentData.conversionRate.rate}%</p>
-              <p className="text-xs text-gray-500 mt-1">{enrollmentData.conversionRate.enrolled} of {enrollmentData.conversionRate.applications} applicants</p>
             </div>
-
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex items-center justify-between mb-2">
-                <div className="p-3 bg-orange-100 rounded-full">
-                  <MdTimeline className="h-6 w-6 text-orange-600" />
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Avg. Per Program</p>
+                  <p className="text-2xl font-semibold text-blue-600">
+                    {loading ? '...' : trendsData.stats?.avgPerProgram?.toLocaleString() || 0}
+                  </p>
+                </div>
+                <div className="p-3 bg-blue-50 rounded-full">
+                  <MdCalendarToday className="h-6 w-6 text-blue-600" />
                 </div>
               </div>
-              <p className="text-sm text-gray-500 font-medium">Avg. Batch Size</p>
-              <p className="text-3xl font-bold text-orange-600 mt-2">
-                {enrollmentData.programBreakdown.length > 0 
-                  ? Math.round(enrollmentData.programBreakdown.reduce((sum, p) => sum + p.avgBatchSize, 0) / enrollmentData.programBreakdown.length)
-                  : 0}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">Students per batch</p>
             </div>
           </div>
 
-          {/* Monthly Trend Chart */}
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                <MdShowChart className="h-6 w-6 text-tracked-primary" />
-                Monthly Enrollment Trend - {yearFilter}
-              </h2>
-            </div>
-            <div className="space-y-4">
-              {loading ? (
-                <div className="text-center py-8 text-gray-500">
-                  <MdRefresh className="h-8 w-8 animate-spin mx-auto mb-2" />
-                  Loading trend data...
+          {/* Voucher Statistics */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-lg shadow-sm border border-purple-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-purple-900">With Voucher</p>
+                  <p className="text-2xl font-semibold text-purple-700">
+                    {loading ? '...' : trendsData.voucherStats?.withVoucher?.toLocaleString() || 0}
+                  </p>
+                  <p className="text-xs text-purple-600 mt-1">
+                    {loading ? '...' : `${trendsData.voucherStats?.voucherPercentage || 0}% of total`}
+                  </p>
                 </div>
-              ) : enrollmentData.monthly && enrollmentData.monthly.length > 0 ? (
-                enrollmentData.monthly.map((month, index) => {
-                const maxValue = Math.max(...enrollmentData.monthly.map(m => m.enrollments || 1));
-                const enrollmentPercentage = (month.enrollments / maxValue) * 100;
-                
-                return (
-                  <div key={index} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700 w-12">{month.month}</span>
-                      <div className="flex-1 mx-4">
-                        <div className="relative h-8 bg-gray-100 rounded-lg overflow-hidden">
-                          <div 
-                            className="absolute h-full bg-tracked-primary rounded-lg transition-all duration-300"
-                            style={{ width: `${enrollmentPercentage}%` }}
-                          />
-                          <div className="absolute inset-0 flex items-center px-3">
-                            <span className="text-xs font-semibold text-white">
-                              {month.enrollments} enrolled
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right w-20">
-                        <span className="text-sm font-bold text-tracked-primary">
-                          {month.enrollments}
-                        </span>
-                      </div>
-                    </div>
+                <div className="p-3 bg-purple-200 rounded-full">
+                  <MdPayment className="h-6 w-6 text-purple-700" />
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-lg shadow-sm border border-green-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-green-900">Self-Paid</p>
+                  <p className="text-2xl font-semibold text-green-700">
+                    {loading ? '...' : trendsData.voucherStats?.withoutVoucher?.toLocaleString() || 0}
+                  </p>
+                  <p className="text-xs text-green-600 mt-1">
+                    {loading ? '...' : `${trendsData.voucherStats?.paidPercentage || 0}% of total`}
+                  </p>
+                </div>
+                <div className="p-3 bg-green-200 rounded-full">
+                  <MdPayment className="h-6 w-6 text-green-700" />
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-lg shadow-sm border border-blue-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-blue-900">Total Students</p>
+                  <p className="text-2xl font-semibold text-blue-700">
+                    {loading ? '...' : trendsData.voucherStats?.total?.toLocaleString() || 0}
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1">Current enrollees</p>
+                </div>
+                <div className="p-3 bg-blue-200 rounded-full">
+                  <MdPeople className="h-6 w-6 text-blue-700" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Charts Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 gap-6">
+            {/* Popular Programs Chart */}
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+              {loading ? (
+                <div className="flex items-center justify-center h-[400px]">
+                  <div className="text-center">
+                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                    <p className="text-gray-600">Loading chart data...</p>
                   </div>
-                );
-              })
+                </div>
+              ) : Object.keys(trendsData.programTotals || {}).length === 0 ? (
+                <div className="flex items-center justify-center h-[400px]">
+                  <p className="text-gray-500">No program data available</p>
+                </div>
               ) : (
-                <div className="text-center py-8 text-gray-500">
-                  No enrollment data available for {yearFilter}
+                <div style={{ height: '400px' }}>
+                  <Bar data={popularPrograms} options={barOptions} />
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Program Performance */}
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-              <MdBarChart className="h-6 w-6 text-tracked-primary" />
-              Program Performance
-            </h2>
-              <div className="space-y-6">
-                {filteredPrograms.length > 0 ? (
-                  filteredPrograms.map((program, index) => (
-                    <div key={index} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm font-semibold text-gray-800">{program.program}</span>
-                          {getTrendIcon(program.trend)}
-                        </div>
-                        <div className="text-right flex items-center gap-3">
-                          <span className="text-lg font-bold text-tracked-primary">{program.enrollments}</span>
-                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                            {program.percentage ? program.percentage.toFixed(1) : '0.0'}%
-                          </span>
-                        </div>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
-                        <div 
-                          className={`h-4 rounded-full transition-all duration-500 ${
-                            program.trend === 'up' ? 'bg-gradient-to-r from-green-500 to-green-600' :
-                            program.trend === 'down' ? 'bg-gradient-to-r from-red-500 to-red-600' :
-                            'bg-gradient-to-r from-blue-500 to-blue-600'
-                          }`}
-                          style={{ width: `${program.percentage || 0}%` }}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-3">
-                          <span className="text-gray-600">
-                            Avg: <span className="font-semibold text-gray-700">{program.avgBatchSize || 0}</span> students
-                          </span>
-                        </div>
-                        <span className={`font-semibold ${
-                          program.growthRate > 0 ? 'text-green-600' :
-                          program.growthRate < 0 ? 'text-red-600' :
-                          'text-gray-600'
-                        }`}>
-                          {program.growthRate > 0 ? '+' : ''}{program.growthRate || 0}% growth
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <MdBarChart className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-                    <p>No program data available</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-          {/* Year-over-Year Comparison */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-              <MdCalendarToday className="h-6 w-6 text-tracked-primary" />
-              Year-over-Year Comparison
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {Object.entries(enrollmentData.yearly).map(([year, data]) => (
-                <div 
-                  key={year} 
-                  className={`p-6 rounded-lg border-2 transition-all ${
-                    year === yearFilter 
-                      ? 'border-tracked-primary bg-blue-50' 
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
+            {/* Enrollment Trends Chart */}
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+              {loading ? (
+                <div className="flex items-center justify-center h-[400px]">
                   <div className="text-center">
-                    <p className="text-sm text-gray-500 font-medium mb-2">{year}</p>
-                    <p className="text-4xl font-bold text-gray-800 mb-3">{data.total}</p>
-                    {data.growth > 0 && (
-                      <div className="flex items-center justify-center gap-1 text-green-600">
-                        <MdTrendingUp className="h-5 w-5" />
-                        <span className="text-lg font-semibold">+{data.growth}%</span>
-                      </div>
-                    )}
-                    {data.growth < 0 && (
-                      <div className="flex items-center justify-center gap-1 text-red-600">
-                        <MdTrendingDown className="h-5 w-5" />
-                        <span className="text-lg font-semibold">{data.growth}%</span>
-                      </div>
-                    )}
-                    {data.growth === 0 && (
-                      <p className="text-sm text-gray-400">Base year</p>
-                    )}
+                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                    <p className="text-gray-600">Loading chart data...</p>
                   </div>
                 </div>
-              ))}
+              ) : filteredPeriods.length === 0 ? (
+                <div className="flex items-center justify-center h-[400px]">
+                  <p className="text-gray-500">No enrollment data available</p>
+                </div>
+              ) : (
+                <div style={{ height: '400px' }}>
+                  <Line data={enrollmentTrends} options={lineOptions} />
+                </div>
+              )}
+            </div>
+
+            {/* Voucher Payment Distribution Chart */}
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+              {loading ? (
+                <div className="flex items-center justify-center h-[400px]">
+                  <div className="text-center">
+                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                    <p className="text-gray-600">Loading chart data...</p>
+                  </div>
+                </div>
+              ) : (trendsData.voucherStats?.total === 0) ? (
+                <div className="flex items-center justify-center h-[400px]">
+                  <p className="text-gray-500">No payment data available</p>
+                </div>
+              ) : (
+                <div style={{ height: '400px' }}>
+                  <Doughnut data={voucherDistribution} options={doughnutOptions} />
+                </div>
+              )}
+            </div>
+
+            {/* Key Insights Panel */}
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Key Insights</h3>
+              <div className="space-y-4">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                      <MdTrendingUp className="h-5 w-5 text-blue-600" />
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900">Most Popular Program</h4>
+                    <p className="text-sm text-gray-500">
+                      {loading ? 'Loading...' : Object.keys(trendsData.programTotals || {}).length > 0 
+                        ? `${Object.keys(trendsData.programTotals)[0]} leads with ${Object.values(trendsData.programTotals)[0].toLocaleString()} total enrollments`
+                        : 'No data available'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">
+                      <MdCalendarToday className="h-5 w-5 text-yellow-600" />
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900">Data Coverage</h4>
+                    <p className="text-sm text-gray-500">
+                      {loading ? 'Loading...' : filteredPeriods.length > 0 
+                        ? `Showing ${filteredPeriods.length} ${viewType} periods from ${filteredPeriods[0]} to ${filteredPeriods[filteredPeriods.length - 1]}`
+                        : 'No data available'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                      <MdPeople className="h-5 w-5 text-purple-600" />
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900">Latest Period Performance</h4>
+                    <p className="text-sm text-gray-500">
+                      {loading ? 'Loading...' : filteredPeriods.length > 0 
+                        ? `${filteredPeriods[filteredPeriods.length - 1]} recorded ${(dataForProgram[filteredPeriods[filteredPeriods.length - 1]] || 0).toLocaleString()} enrollments`
+                        : 'No data available'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+                      <MdTrendingUp className="h-5 w-5 text-red-600" />
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900">Growth Trend</h4>
+                    <p className="text-sm text-gray-500">
+                      {loading ? 'Loading...' : filteredPeriods.length >= 2
+                        ? (() => {
+                            const growthRate = parseFloat(calculateGrowthRate());
+                            const periodLabel = viewType === 'weekly' ? 'week' : viewType === 'monthly' ? 'month' : viewType === 'yearly' ? 'year' : 'quarter';
+                            if (growthRate > 0) return `Enrollments increased by ${growthRate}% from the previous ${periodLabel}`;
+                            else if (growthRate < 0) return `Enrollments decreased by ${Math.abs(growthRate)}% from the previous ${periodLabel}`;
+                            else return `No change from the previous ${periodLabel}`;
+                          })()
+                        : 'Insufficient data for trend analysis'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                      <MdPayment className="h-5 w-5 text-purple-600" />
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900">Payment Distribution</h4>
+                    <p className="text-sm text-gray-500">
+                      {loading ? 'Loading...' : trendsData.voucherStats?.total > 0
+                        ? `${trendsData.voucherStats.voucherPercentage}% (${trendsData.voucherStats.withVoucher.toLocaleString()}) use vouchers, ${trendsData.voucherStats.paidPercentage}% (${trendsData.voucherStats.withoutVoucher.toLocaleString()}) are self-paid`
+                        : 'No payment data available'}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </main>
       </div>
       
       {/* Toast Notifications */}

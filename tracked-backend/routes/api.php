@@ -5144,264 +5144,118 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
     
     // Staff Enrollment Trends Analytics Endpoint
-    Route::get('/staff/enrollment-trends', function (Request $request) {
-        try {
-            $yearFilter = $request->get('year', date('Y'));
+    Route::get('/staff/enrollment-trends', function () {
+        $csvPath = public_path('enrollment-data');
+        $programs = [
+            'BARTENDING_NC_II',
+            'BARISTA_TRAINING_NC_II',
+            'HOUSEKEEPING_NC_II',
+            'FOOD_AND_BEVERAGE_SERVICES_NC_II',
+            'BREAD_AND_PASTRY_PRODUCTION_NC_II',
+            'EVENTS_MANAGEMENT_NC_III',
+            'SHIPS_CATERING_SERVICES_NC_II',
+            'COOKERY_NC_II'
+        ];
+
+        $allData = [];
+        $programTotals = [];
+
+        foreach ($programs as $program) {
+            $filename = $csvPath . '/' . $program . '_HISTORICAL.csv';
             
-            // Function to read and parse CSV files
-            $readCSVData = function() {
-                $csvPath = public_path('enrollment-data');
-                $csvData = [];
+            if (file_exists($filename)) {
+                $file = fopen($filename, 'r');
+                fgetcsv($file); // Skip title row (first line)
+                fgetcsv($file); // Skip header row (second line)
                 
-                if (is_dir($csvPath)) {
-                    $files = glob($csvPath . '/*.csv');
-                    foreach ($files as $file) {
-                        if (($handle = fopen($file, 'r')) !== false) {
-                            $headers = fgetcsv($handle);
-                            while (($row = fgetcsv($handle)) !== false) {
-                                if (count($row) >= 3) {
-                                    $csvData[] = [
-                                        'date' => $row[0],
-                                        'enrollment' => (int)$row[1],
-                                        'program' => $row[2]
-                                    ];
-                                }
-                            }
-                            fclose($handle);
-                        }
+                $programData = [];
+                $total = 0;
+                $programName = '';
+                
+                while (($row = fgetcsv($file)) !== false) {
+                    // Skip empty rows
+                    if (empty($row[0]) || empty($row[1]) || empty($row[2])) {
+                        continue;
                     }
-                }
-                return $csvData;
-            };
-            
-            // Get CSV data
-            $csvEnrollments = $readCSVData();
-            
-            // Get all students (enrolled users) from database
-            $students = \App\Models\User::where('role', 'student')
-                ->with(['batch.program'])
-                ->get();
-            
-            // Get all applications
-            $applications = \App\Models\Application::all();
-            
-            // Calculate yearly enrollment data (2020 to current year)
-            $yearlyData = [];
-            for ($year = 2020; $year <= date('Y'); $year++) {
-                // Count from CSV data
-                $csvYearTotal = collect($csvEnrollments)->filter(function ($item) use ($year) {
-                    return substr($item['date'], 0, 4) == $year;
-                })->sum('enrollment');
-                
-                // Count from database
-                $dbYearTotal = $students->filter(function ($student) use ($year) {
-                    return $student->created_at && $student->created_at->year == $year;
-                })->count();
-                
-                // Combine totals
-                $yearTotal = $csvYearTotal + $dbYearTotal;
-                
-                // Calculate previous year total
-                $csvPrevYearTotal = collect($csvEnrollments)->filter(function ($item) use ($year) {
-                    return substr($item['date'], 0, 4) == ($year - 1);
-                })->sum('enrollment');
-                
-                $dbPrevYearTotal = $students->filter(function ($student) use ($year) {
-                    return $student->created_at && $student->created_at->year == ($year - 1);
-                })->count();
-                
-                $previousYearTotal = $csvPrevYearTotal + $dbPrevYearTotal;
-                
-                $growth = $previousYearTotal > 0 
-                    ? (($yearTotal - $previousYearTotal) / $previousYearTotal) * 100 
-                    : 0;
-                
-                $yearlyData[$year] = [
-                    'total' => $yearTotal,
-                    'growth' => round($growth, 1)
-                ];
-            }
-            
-            // Calculate monthly data for selected year
-            $monthlyData = [];
-            for ($month = 1; $month <= 12; $month++) {
-                // CSV enrollments for this month
-                $csvMonthEnrollments = collect($csvEnrollments)->filter(function ($item) use ($yearFilter, $month) {
-                    $itemDate = strtotime($item['date']);
-                    return date('Y', $itemDate) == $yearFilter && date('n', $itemDate) == $month;
-                })->sum('enrollment');
-                
-                // Database enrollments for this month
-                $dbMonthEnrollments = $students->filter(function ($student) use ($yearFilter, $month) {
-                    return $student->created_at 
-                        && $student->created_at->year == $yearFilter 
-                        && $student->created_at->month == $month;
-                })->count();
-                
-                $monthApplications = $applications->filter(function ($app) use ($yearFilter, $month) {
-                    return $app->created_at 
-                        && $app->created_at->year == $yearFilter 
-                        && $app->created_at->month == $month;
-                })->count();
-                
-                $monthlyData[] = [
-                    'month' => date('M', mktime(0, 0, 0, $month, 1)),
-                    'enrollments' => $csvMonthEnrollments + $dbMonthEnrollments,
-                    'applications' => $monthApplications
-                ];
-            }
-            
-            // Get program breakdown
-            $programs = \App\Models\Program::all();
-            $programBreakdown = $programs->map(function ($program) use ($students, $csvEnrollments) {
-                // Database program students
-                $programStudents = $students->filter(function ($student) use ($program) {
-                    return $student->batch && $student->batch->program_id == $program->id;
-                });
-                
-                // CSV program enrollments (match by program title)
-                $csvProgramTotal = collect($csvEnrollments)->filter(function ($item) use ($program) {
-                    return stripos($item['program'], $program->title) !== false;
-                })->sum('enrollment');
-                
-                $dbEnrollmentCount = $programStudents->count();
-                $enrollmentCount = $csvProgramTotal + $dbEnrollmentCount;
-                
-                // Calculate total (CSV + DB)
-                $totalCsvEnrollments = collect($csvEnrollments)->sum('enrollment');
-                $totalDbStudents = $students->count();
-                $totalStudents = $totalCsvEnrollments + $totalDbStudents;
-                
-                $percentage = $totalStudents > 0 ? ($enrollmentCount / $totalStudents) * 100 : 0;
-                
-                // Calculate growth (comparing current year to previous year)
-                // CSV current year
-                $csvCurrentYear = collect($csvEnrollments)->filter(function ($item) use ($program) {
-                    return stripos($item['program'], $program->title) !== false 
-                        && substr($item['date'], 0, 4) == date('Y');
-                })->sum('enrollment');
-                
-                // DB current year
-                $dbCurrentYear = $programStudents->filter(function ($student) {
-                    return $student->created_at && $student->created_at->year == date('Y');
-                })->count();
-                
-                $currentYearStudents = $csvCurrentYear + $dbCurrentYear;
-                
-                // CSV previous year
-                $csvPreviousYear = collect($csvEnrollments)->filter(function ($item) use ($program) {
-                    return stripos($item['program'], $program->title) !== false 
-                        && substr($item['date'], 0, 4) == (date('Y') - 1);
-                })->sum('enrollment');
-                
-                // DB previous year
-                $dbPreviousYear = $programStudents->filter(function ($student) {
-                    return $student->created_at && $student->created_at->year == (date('Y') - 1);
-                })->count();
-                
-                $previousYearStudents = $csvPreviousYear + $dbPreviousYear;
-                
-                $growthRate = $previousYearStudents > 0 
-                    ? (($currentYearStudents - $previousYearStudents) / $previousYearStudents) * 100 
-                    : 0;
-                
-                // Determine trend
-                $trend = 'stable';
-                if ($growthRate > 5) $trend = 'up';
-                elseif ($growthRate < -5) $trend = 'down';
-                
-                // Get batch count
-                $batches = \App\Models\Batch::where('program_id', $program->id)->count();
-                $avgBatchSize = $batches > 0 ? round($enrollmentCount / $batches) : $enrollmentCount;
-                
-                return [
-                    'program' => $program->title,
-                    'enrollments' => $enrollmentCount,
-                    'percentage' => round($percentage, 1),
-                    'trend' => $trend,
-                    'growthRate' => round($growthRate, 1),
-                    'batches' => $batches,
-                    'avgBatchSize' => $avgBatchSize
-                ];
-            })->sortByDesc('enrollments')->values();
-            
-            // Demographics
-            $genderStats = [
-                [
-                    'category' => 'Male',
-                    'count' => $students->where('gender', 'male')->count(),
-                    'percentage' => $students->count() > 0 ? round(($students->where('gender', 'male')->count() / $students->count()) * 100, 1) : 0
-                ],
-                [
-                    'category' => 'Female',
-                    'count' => $students->where('gender', 'female')->count(),
-                    'percentage' => $students->count() > 0 ? round(($students->where('gender', 'female')->count() / $students->count()) * 100, 1) : 0
-                ]
-            ];
-            
-            // Age groups
-            $ageGroups = [
-                ['group' => '18-24', 'count' => 0, 'percentage' => 0],
-                ['group' => '25-34', 'count' => 0, 'percentage' => 0],
-                ['group' => '35-44', 'count' => 0, 'percentage' => 0],
-                ['group' => '45+', 'count' => 0, 'percentage' => 0]
-            ];
-            
-            foreach ($students as $student) {
-                if ($student->date_of_birth) {
-                    $dob = is_string($student->date_of_birth) 
-                        ? \Carbon\Carbon::parse($student->date_of_birth) 
-                        : $student->date_of_birth;
-                    $age = $dob->age;
                     
-                    if ($age >= 18 && $age <= 24) $ageGroups[0]['count']++;
-                    elseif ($age >= 25 && $age <= 34) $ageGroups[1]['count']++;
-                    elseif ($age >= 35 && $age <= 44) $ageGroups[2]['count']++;
-                    elseif ($age >= 45) $ageGroups[3]['count']++;
+                    $data = [
+                        'date' => $row[0],
+                        'enrollment' => (int)$row[1],
+                        'program' => $row[2]
+                    ];
+                    $programData[] = $data;
+                    $allData[] = $data;
+                    $total += (int)$row[1];
+                    $programName = $row[2];
+                }
+                
+                fclose($file);
+                
+                if ($programName) {
+                    $programTotals[$programName] = $total;
                 }
             }
-            
-            foreach ($ageGroups as $key => $group) {
-                $ageGroups[$key]['percentage'] = $students->count() > 0 
-                    ? round(($group['count'] / $students->count()) * 100, 1) 
-                    : 0;
-            }
-            
-            // Conversion rate
-            $totalApplications = $applications->count();
-            $enrolledCount = $students->count();
-            $approvedApplications = $applications->where('application_status', 'approved')->count();
-            $rejectedApplications = $applications->where('application_status', 'rejected')->count();
-            $withdrawnApplications = $applications->where('application_status', 'withdrawn')->count();
-            
-            $conversionRate = [
-                'applications' => $totalApplications,
-                'enrolled' => $enrolledCount,
-                'rate' => $totalApplications > 0 ? round(($enrolledCount / $totalApplications) * 100, 1) : 0,
-                'withdrawn' => $withdrawnApplications,
-                'rejected' => $rejectedApplications
-            ];
-            
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'yearly' => $yearlyData,
-                    'monthly' => $monthlyData,
-                    'programBreakdown' => $programBreakdown,
-                    'demographics' => [
-                        'gender' => $genderStats,
-                        'ageGroups' => $ageGroups
-                    ],
-                    'conversionRate' => $conversionRate
-                ]
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch enrollment trends',
-                'error' => $e->getMessage()
-            ], 500);
         }
+
+
+        // Calculate quarterly aggregates
+        $quarterlyData = [];
+        foreach ($allData as $record) {
+            $date = new \DateTime($record['date']);
+            $year = $date->format('Y');
+            $month = (int)$date->format('m');
+            $quarter = ceil($month / 3);
+            $key = "Q{$quarter} {$year}";
+            
+            if (!isset($quarterlyData[$key])) {
+                $quarterlyData[$key] = 0;
+            }
+            $quarterlyData[$key] += $record['enrollment'];
+        }
+
+        // Sort quarterly data by date
+        uksort($quarterlyData, function($a, $b) {
+            preg_match('/Q(\d) (\d+)/', $a, $matchA);
+            preg_match('/Q(\d) (\d+)/', $b, $matchB);
+            $yearA = (int)$matchA[2];
+            $yearB = (int)$matchB[2];
+            $quarterA = (int)$matchA[1];
+            $quarterB = (int)$matchB[1];
+            
+            if ($yearA != $yearB) {
+                return $yearA - $yearB;
+            }
+            return $quarterA - $quarterB;
+        });
+
+        // Sort program totals
+        arsort($programTotals);
+
+        // Get voucher statistics from actual student data
+        $totalStudents = \App\Models\User::where('role', 'student')->count();
+        $voucherStudents = \App\Models\User::where('role', 'student')
+            ->where('voucher_eligible', true)
+            ->count();
+        $paidStudents = $totalStudents - $voucherStudents;
+
+        return response()->json([
+            'success' => true,
+            'quarterlyData' => $quarterlyData,
+            'programTotals' => $programTotals,
+            'allData' => $allData,
+            'voucherStats' => [
+                'total' => $totalStudents,
+                'withVoucher' => $voucherStudents,
+                'withoutVoucher' => $paidStudents,
+                'voucherPercentage' => $totalStudents > 0 ? round(($voucherStudents / $totalStudents) * 100, 1) : 0,
+                'paidPercentage' => $totalStudents > 0 ? round(($paidStudents / $totalStudents) * 100, 1) : 0,
+            ],
+            'stats' => [
+                'totalPrograms' => count($programTotals),
+                'totalEnrollments' => array_sum($programTotals),
+                'avgPerProgram' => count($programTotals) > 0 ? round(array_sum($programTotals) / count($programTotals)) : 0,
+            ]
+        ]);
     });
     
     // Staff Enrollment Report Endpoint
