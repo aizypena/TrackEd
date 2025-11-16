@@ -276,7 +276,9 @@ const StaffAddApplicant = () => {
       />
       
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${
+        sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'
+      }`}>
         {/* Top Navigation Bar */}
         <nav className="bg-tracked-primary text-white shadow-md">
           <div className="px-6 py-4">
