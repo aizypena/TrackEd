@@ -517,7 +517,7 @@ Route::post('/student/forgot-password', function (Request $request) {
     );
 
     // Create reset URL
-    $resetUrl = 'http://localhost:5173/smi-lms/reset-password?token=' . $token . '&email=' . urlencode($request->email);
+    $resetUrl = 'https://smitracked.cloud/smi-lms/reset-password?token=' . $token . '&email=' . urlencode($request->email);
 
     // Log successful password reset request
     DB::table('system_logs')->insert([
@@ -4453,7 +4453,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
                             <div class='credentials-box'>
                                 <h3 style='color: #856404; margin-top: 0;'>2. LMS LOGIN CREDENTIALS</h3>
                                 <p><strong>Learning Management System (LMS) Portal:</strong><br>
-                                <a href='http://localhost:3000/student/login' style='color: #0066cc;'>http://localhost:3000/student/login</a></p>
+                                <a href='https://smitracked.cloud/student/login' style='color: #0066cc;'>https://smitracked.cloud/student/login</a></p>
                                 
                                 <p style='margin-top: 15px;'><strong>Your Login Details:</strong></p>
                                 <p style='margin: 5px 0;'><strong>Email/Username:</strong> {$recipientEmail}</p>
@@ -4980,7 +4980,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
                             <div class='credentials-box'>
                                 <h3 style='color: #856404; margin-top: 0;'>LMS LOGIN CREDENTIALS</h3>
                                 <p><strong>Learning Management System (LMS) Portal:</strong><br>
-                                <a href='http://localhost:3000/student/login' style='color: #0066cc;'>http://localhost:3000/student/login</a></p>
+                                <a href='https://smitracked.cloud/student/login' style='color: #0066cc;'>https://smitracked.cloud/student/login</a></p>
                                 
                                 <p style='margin-top: 15px;'><strong>Your Login Details:</strong></p>
                                 <p style='margin: 5px 0;'><strong>Email/Username:</strong> {$recipientEmail}</p>
