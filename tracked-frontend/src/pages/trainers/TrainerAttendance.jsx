@@ -126,6 +126,49 @@ const TrainerAttendance = () => {
     }
   };
 
+  const handleExport = () => {
+    // Filter students based on current filters
+    const filteredStudents = students.filter(student => {
+      const matchesProgram = selectedProgram === 'all' || student.program_id === parseInt(selectedProgram);
+      const matchesBatch = selectedBatch === 'all' || student.batch_id === selectedBatch;
+      const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           (student.student_id && student.student_id.toLowerCase().includes(searchQuery.toLowerCase()));
+      return matchesProgram && matchesBatch && matchesSearch;
+    });
+
+    // Create CSV content
+    const headers = ['Student ID', 'Name', 'Program', 'Batch', 'Status', 'Date'];
+    const csvRows = [headers.join(',')];
+
+    filteredStudents.forEach(student => {
+      const status = student.attendance?.status || 'absent';
+      const row = [
+        student.student_id || '',
+        `"${student.name}"`,
+        `"${student.program_name}"`,
+        student.batch_id || '',
+        status.charAt(0).toUpperCase() + status.slice(1),
+        selectedDate
+      ];
+      csvRows.push(row.join(','));
+    });
+
+    const csvContent = csvRows.join('\n');
+
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `attendance_${selectedDate}_${Date.now()}.csv`);
+    link.style.visibility = 'hidden';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleAttendanceChange = async (student, status) => {
     try {
       setSaving(true);
@@ -190,12 +233,7 @@ const TrainerAttendance = () => {
             </div>
             <div className="flex items-center space-x-2">
               <button
-                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
-              >
-                <MdPrint className="h-5 w-5 mr-2" />
-                Print Report
-              </button>
-              <button
+                onClick={handleExport}
                 className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
               >
                 <MdDownload className="h-5 w-5 mr-2" />
