@@ -4,6 +4,33 @@ import Navbar from '../layouts/applicants/Navbar';
 import Footer from '../layouts/applicants/Footer';
 import { programAPI } from '../services/programAPI';
 
+// Import program images
+import baristaImg from '../assets/images/barista.jpg';
+import bartendingImg from '../assets/images/bartending.jpg';
+import breadPastryImg from '../assets/images/breadandpastry.jpg';
+import cookeryImg from '../assets/images/cookery.jpg';
+import eventsImg from '../assets/images/events.jpg';
+import foodBeverageImg from '../assets/images/foodandbeverage.png';
+import housekeepingImg from '../assets/images/housekeeping.jpg';
+import shipsImg from '../assets/images/ships.jpg';
+
+// Map program names to images
+const programImages = {
+  'barista': baristaImg,
+  'bartending': bartendingImg,
+  'bread': breadPastryImg,
+  'pastry': breadPastryImg,
+  'cookery': cookeryImg,
+  'culinary': cookeryImg,
+  'events': eventsImg,
+  'food': foodBeverageImg,
+  'beverage': foodBeverageImg,
+  'housekeeping': housekeepingImg,
+  'ship': shipsImg,
+  'cruise': shipsImg,
+  'catering': shipsImg,
+};
+
 function CourseOffered() {
   const navigate = useNavigate();
   const [programs, setPrograms] = useState([]);
@@ -53,6 +80,19 @@ function CourseOffered() {
 
     fetchPrograms();
   }, []);
+
+  // Function to get program image based on title
+  const getProgramImage = (title) => {
+    if (!title) return cookeryImg; // Default image
+    
+    const titleLower = title.toLowerCase();
+    for (const [key, image] of Object.entries(programImages)) {
+      if (titleLower.includes(key)) {
+        return image;
+      }
+    }
+    return cookeryImg; // Default fallback
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -157,7 +197,16 @@ function CourseOffered() {
           {!loading && !error && programs.length > 0 && (
             <div className="space-y-8">
               {programs.map((program) => (
-                <div key={program.id} className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                <div key={program.id} className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+                  {/* Program Image */}
+                  <div className="h-64 w-full overflow-hidden bg-gray-200">
+                    <img 
+                      src={getProgramImage(program.title)} 
+                      alt={program.title}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  
                   <div className="p-8">
                     <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between">
                       {/* Course Header */}
