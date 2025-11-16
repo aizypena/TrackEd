@@ -204,7 +204,7 @@ const AddBatch = ({ isOpen, onClose, batch, programs, onSuccess }) => {
         token = localStorage.getItem('adminToken');
       }
       
-      await fetch('http://localhost:8000/api/log-action', {
+      await fetch('https://api.smitracked.cloud/api/log-action', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

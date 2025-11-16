@@ -64,7 +64,7 @@ const StaffStockTransactions = () => {
       if (dateFilter !== 'all') params.append('date_filter', dateFilter);
       if (sortBy) params.append('sort_by', sortBy);
       
-      const response = await fetch(`http://localhost:8000/api/staff/equipment/transactions?${params}`, {
+      const response = await fetch(`https://api.smitracked.cloud/api/staff/equipment/transactions?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -93,7 +93,7 @@ const StaffStockTransactions = () => {
   const fetchCategories = async () => {
     try {
       const token = getStaffToken();
-      const response = await fetch('http://localhost:8000/api/staff/equipment/categories', {
+      const response = await fetch('https://api.smitracked.cloud/api/staff/equipment/categories', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'

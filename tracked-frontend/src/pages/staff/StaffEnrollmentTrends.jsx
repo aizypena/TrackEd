@@ -80,7 +80,7 @@ const StaffEnrollmentTrends = () => {
         return;
       }
       
-      const response = await fetch('http://localhost:8000/api/staff/enrollment-trends', {
+      const response = await fetch('https://api.smitracked.cloud/api/staff/enrollment-trends', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'

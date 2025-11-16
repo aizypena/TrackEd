@@ -26,7 +26,7 @@ export default function AdminApplications() {
       try {
         // Use admin token for authentication
         const token = localStorage.getItem('adminToken');
-        const response = await fetch('http://localhost:8000/api/admin/applications', {
+        const response = await fetch('https://api.smitracked.cloud/api/admin/applications', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Accept': 'application/json'
@@ -70,7 +70,7 @@ export default function AdminApplications() {
   const logAction = async (action, description, level = 'info') => {
     try {
       const token = localStorage.getItem('adminToken');
-      await fetch('http://localhost:8000/api/log-action', {
+      await fetch('https://api.smitracked.cloud/api/log-action', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -92,7 +92,7 @@ export default function AdminApplications() {
   const handleViewDocuments = async (applicantId) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(`http://localhost:8000/api/admin/applicants/${applicantId}`, {
+      const response = await fetch(`https://api.smitracked.cloud/api/admin/applicants/${applicantId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -153,7 +153,7 @@ export default function AdminApplications() {
   const handleEditApplicant = async (applicantId) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(`http://localhost:8000/api/admin/applicants/${applicantId}`, {
+      const response = await fetch(`https://api.smitracked.cloud/api/admin/applicants/${applicantId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -197,7 +197,7 @@ export default function AdminApplications() {
       const token = localStorage.getItem('adminToken');
       
       // First verify the admin password
-      const verifyResponse = await fetch('http://localhost:8000/api/admin/verify-password', {
+      const verifyResponse = await fetch('https://api.smitracked.cloud/api/admin/verify-password', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -221,7 +221,7 @@ export default function AdminApplications() {
       }
 
       // If password is correct, proceed with deletion
-      const deleteResponse = await fetch(`http://localhost:8000/api/admin/applicants/${applicantToDelete.id}`, {
+      const deleteResponse = await fetch(`https://api.smitracked.cloud/api/admin/applicants/${applicantToDelete.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -260,7 +260,7 @@ export default function AdminApplications() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(`http://localhost:8000/api/admin/applicants/${selectedApplicant.id}`, {
+      const response = await fetch(`https://api.smitracked.cloud/api/admin/applicants/${selectedApplicant.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -525,7 +525,7 @@ export default function AdminApplications() {
                       </div>
                       {selectedApplicant.valid_id ? (
                         <a
-                          href={`http://localhost:8000/api/storage-file/${selectedApplicant.valid_id}`}
+                          href={`https://api.smitracked.cloud/api/storage-file/${selectedApplicant.valid_id}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 rounded text-sm hover:bg-blue-100 transition-colors"
@@ -551,7 +551,7 @@ export default function AdminApplications() {
                       </div>
                       {selectedApplicant.transcript ? (
                         <a
-                          href={`http://localhost:8000/api/storage-file/${selectedApplicant.transcript}`}
+                          href={`https://api.smitracked.cloud/api/storage-file/${selectedApplicant.transcript}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 rounded text-sm hover:bg-blue-100 transition-colors"
@@ -577,7 +577,7 @@ export default function AdminApplications() {
                       </div>
                       {selectedApplicant.diploma ? (
                         <a
-                          href={`http://localhost:8000/api/storage-file/${selectedApplicant.diploma}`}
+                          href={`https://api.smitracked.cloud/api/storage-file/${selectedApplicant.diploma}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 rounded text-sm hover:bg-blue-100 transition-colors"
@@ -603,7 +603,7 @@ export default function AdminApplications() {
                       </div>
                       {selectedApplicant.passport_photo ? (
                         <a
-                          href={`http://localhost:8000/api/storage-file/${selectedApplicant.passport_photo}`}
+                          href={`https://api.smitracked.cloud/api/storage-file/${selectedApplicant.passport_photo}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 rounded text-sm hover:bg-blue-100 transition-colors"

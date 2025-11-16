@@ -47,7 +47,7 @@ const StaffDashboard = () => {
         const token = getStaffToken();
         
         // Fetch recent applications
-        const applicationsResponse = await fetch('http://localhost:8000/api/staff/recent-applications', {
+        const applicationsResponse = await fetch('https://api.smitracked.cloud/api/staff/recent-applications', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -56,7 +56,7 @@ const StaffDashboard = () => {
         });
 
         // Fetch enrollments to get active students count
-        const enrollmentsResponse = await fetch('http://localhost:8000/api/staff/enrollments', {
+        const enrollmentsResponse = await fetch('https://api.smitracked.cloud/api/staff/enrollments', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',

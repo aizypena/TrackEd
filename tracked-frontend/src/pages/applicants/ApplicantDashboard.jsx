@@ -30,7 +30,7 @@ const ApplicantDashboard = () => {
       
       if (token) {
         // Call backend logout endpoint to log the action
-        await fetch('http://localhost:8000/api/logout', {
+        await fetch('https://api.smitracked.cloud/api/logout', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,

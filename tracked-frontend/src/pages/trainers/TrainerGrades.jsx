@@ -43,7 +43,7 @@ const TrainerGrades = () => {
         return;
       }
       
-      const response = await fetch('http://localhost:8000/api/trainer/grades', {
+      const response = await fetch('https://api.smitracked.cloud/api/trainer/grades', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -140,7 +140,7 @@ const TrainerGrades = () => {
       setSaving(true);
       const token = localStorage.getItem('trainerToken');
       
-      const response = await fetch('http://localhost:8000/api/trainer/grades/update', {
+      const response = await fetch('https://api.smitracked.cloud/api/trainer/grades/update', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

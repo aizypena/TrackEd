@@ -46,7 +46,7 @@ const CertificationManagement = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('trainerToken');
-      const response = await fetch('http://localhost:8000/api/trainer/certification/students', {
+      const response = await fetch('https://api.smitracked.cloud/api/trainer/certification/students', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -80,7 +80,7 @@ const CertificationManagement = () => {
 
     try {
       const token = localStorage.getItem('trainerToken');
-      const response = await fetch('http://localhost:8000/api/trainer/certification/generate', {
+      const response = await fetch('https://api.smitracked.cloud/api/trainer/certification/generate', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
