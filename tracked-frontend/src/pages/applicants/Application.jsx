@@ -216,16 +216,25 @@ const Signup = () => {
         [name]: newPasswordValue
       }));
       
-      // Update errors for password
-      setErrors(prev => ({
-        ...prev,
-        [name]: newPasswordValue && newPasswordValue.length < 8 
-          ? 'Password must be at least 8 characters long' 
-          : '',
-        confirmPassword: currentConfirmPassword && currentConfirmPassword !== newPasswordValue
-          ? 'Passwords do not match'
-          : ''
-      }));
+      // Calculate errors
+      const passwordError = newPasswordValue && newPasswordValue.length < 8 
+        ? 'Password must be at least 8 characters long' 
+        : '';
+      const confirmPasswordError = currentConfirmPassword && currentConfirmPassword !== newPasswordValue
+        ? 'Passwords do not match'
+        : '';
+      
+      // Only update errors if they actually changed
+      const currentPasswordError = errors.password || '';
+      const currentConfirmPasswordError = errors.confirmPassword || '';
+      
+      if (passwordError !== currentPasswordError || confirmPasswordError !== currentConfirmPasswordError) {
+        setErrors(prev => ({
+          ...prev,
+          password: passwordError,
+          confirmPassword: confirmPasswordError
+        }));
+      }
     } else if (name === 'confirmPassword') {
       // Handle confirm password validation
       const newConfirmPasswordValue = value;
@@ -236,13 +245,19 @@ const Signup = () => {
         [name]: newConfirmPasswordValue
       }));
       
-      // Update errors for confirm password
-      setErrors(prev => ({
-        ...prev,
-        [name]: newConfirmPasswordValue && newConfirmPasswordValue !== currentPassword 
-          ? 'Passwords do not match' 
-          : ''
-      }));
+      // Calculate new error message
+      const newErrorMessage = newConfirmPasswordValue && newConfirmPasswordValue !== currentPassword
+        ? 'Passwords do not match'
+        : '';
+      const currentErrorMessage = errors[name] || '';
+      
+      // Only update errors if the error message actually changes
+      if (newErrorMessage !== currentErrorMessage) {
+        setErrors(prev => ({
+          ...prev,
+          [name]: newErrorMessage
+        }));
+      }
     } else if (name === 'birthDate') {
       // Handle birth date validation (must be at least 18 years old)
       if (value) {
@@ -448,25 +463,22 @@ const Signup = () => {
       
       if (!hasAllRequired) return false;
       
-      // Check if nationality is Filipino
+      // Check if nationality is Filipino (don't set errors here, they're set in handleChange)
       if (formData.nationality !== 'filipino') {
-        setErrors(prev => ({...prev, nationality: 'Only Filipino citizens can apply'}));
         return false;
       }
       
-      // Check if passwords match
+      // Check if passwords match (don't set errors here, they're set in handleChange)
       if (formData.password !== formData.confirmPassword) {
-        setErrors(prev => ({...prev, confirmPassword: 'Passwords do not match'}));
         return false;
       }
       
-      // Check password strength
+      // Check password strength (don't set errors here, they're set in handleChange)
       if (formData.password.length < 8) {
-        setErrors(prev => ({...prev, password: 'Password must be at least 8 characters long'}));
         return false;
       }
       
-      // Check if user is at least 18 years old
+      // Check if user is at least 18 years old (don't set errors here, they're set in handleChange)
       if (formData.birthDate) {
         const birthDate = new Date(formData.birthDate);
         const today = new Date();
@@ -477,7 +489,6 @@ const Signup = () => {
         }
         
         if (age < 18) {
-          setErrors(prev => ({...prev, birthDate: 'You must be at least 18 years old to apply'}));
           return false;
         }
       }
@@ -694,7 +705,40 @@ const Signup = () => {
             </div>
           </div>
         </div>
-        
+
+        {/* Mobile Number */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number *</label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <span className="text-lg mr-1">🇵🇭</span>
+              <span className="text-gray-500 text-sm">+63</span>
+            </div>
+            <input
+              type="tel"
+              name="mobileNumber"
+              required
+              value={formData.mobileNumber}
+              onChange={handleChange}
+              className={`w-full pl-16 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                errors.mobileNumber 
+                  ? 'border-red-300 focus:ring-red-500' 
+                  : 'border-gray-300 focus:ring-blue-500'
+              }`}
+              placeholder="9XX XXX XXXX"
+            />
+          </div>
+          {errors.mobileNumber && (
+            <p className="mt-1 text-sm text-red-600">{errors.mobileNumber}</p>
+          )}
+          <p className="mt-1 text-xs text-gray-500">
+            Enter exactly 10 digits starting with 9 (e.g., 9171234567)
+          </p>
+        </div>
+      </div>
+
+      {/* Password and Confirm Password on same row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Password */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
@@ -758,35 +802,9 @@ const Signup = () => {
             <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
           )}
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number *</label>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <span className="text-lg mr-1">🇵🇭</span>
-              <span className="text-gray-500 text-sm">+63</span>
-            </div>
-            <input
-              type="tel"
-              name="mobileNumber"
-              required
-              value={formData.mobileNumber}
-              onChange={handleChange}
-              className={`w-full pl-16 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-                errors.mobileNumber 
-                  ? 'border-red-300 focus:ring-red-500' 
-                  : 'border-gray-300 focus:ring-blue-500'
-              }`}
-              placeholder="9XX XXX XXXX"
-            />
-          </div>
-          {errors.mobileNumber && (
-            <p className="mt-1 text-sm text-red-600">{errors.mobileNumber}</p>
-          )}
-          <p className="mt-1 text-xs text-gray-500">
-            Enter exactly 10 digits starting with 9 (e.g., 9171234567)
-          </p>
-        </div>
       </div>
+
+      {/* Address field */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Address *</label>
         <textarea
