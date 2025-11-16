@@ -52,7 +52,7 @@ const TrainerAttendance = () => {
   const fetchBatches = async () => {
     try {
       const token = localStorage.getItem('trainerToken');
-      const response = await fetch('https://api.smitracked.cloud/api/trainer/batches', {
+      const response = await fetch('http://localhost:8000/api/trainer/batches', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -71,7 +71,7 @@ const TrainerAttendance = () => {
   const fetchPrograms = async () => {
     try {
       const token = localStorage.getItem('trainerToken');
-      const response = await fetch('https://api.smitracked.cloud/api/trainer/assigned-programs', {
+      const response = await fetch('http://localhost:8000/api/trainer/assigned-programs', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -105,7 +105,7 @@ const TrainerAttendance = () => {
         params.append('program_id', selectedProgram);
       }
 
-      const response = await fetch(`https://api.smitracked.cloud/api/trainer/attendance/students?${params}`, {
+      const response = await fetch(`http://localhost:8000/api/trainer/attendance/students?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -131,7 +131,7 @@ const TrainerAttendance = () => {
       setSaving(true);
       const token = localStorage.getItem('trainerToken');
 
-      const response = await fetch('https://api.smitracked.cloud/api/trainer/attendance/mark', {
+      const response = await fetch('http://localhost:8000/api/trainer/attendance/mark', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -348,9 +348,6 @@ const TrainerAttendance = () => {
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Status
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Attendance %
-                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -398,23 +395,12 @@ const TrainerAttendance = () => {
                               <option value="excused">Excused</option>
                             </select>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className="relative w-16 h-2 bg-gray-200 rounded-full mr-2">
-                                <div
-                                  className="absolute left-0 top-0 h-2 bg-green-500 rounded-full"
-                                  style={{ width: `${student.attendance_percentage}%` }}
-                                />
-                              </div>
-                              <span className="text-sm text-gray-900">{student.attendance_percentage}%</span>
-                            </div>
-                          </td>
                         </tr>
                       );
                     })}
                     {students.length === 0 && (
                       <tr>
-                        <td colSpan="5" className="px-6 py-12 text-center">
+                        <td colSpan="4" className="px-6 py-12 text-center">
                           <div className="text-gray-500">
                             <MdPeople className="h-12 w-12 mx-auto mb-2 text-gray-400" />
                             <p className="font-medium mb-2">No students found</p>

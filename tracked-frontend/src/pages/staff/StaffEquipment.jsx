@@ -72,7 +72,7 @@ const StaffEquipment = () => {
   const logSystemAction = async (action, description, logLevel = 'info') => {
     try {
       const token = getStaffToken();
-      const response = await fetch('https://api.smitracked.cloud/api/log-action', {
+      const response = await fetch('http://localhost:8000/api/log-action', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -265,7 +265,7 @@ const StaffEquipment = () => {
       }
 
       // Verify the user's password
-      const API_URL = 'https://api.smitracked.cloud/api';
+      const API_URL = 'http://localhost:8000/api';
       const loginResponse = await axios.post(`${API_URL}/login`, {
         email,
         password

@@ -71,8 +71,8 @@ class PayMongoService
                                     'send_email_receipt' => false,
                                     'show_description' => true,
                                     'show_line_items' => true,
-                                    'cancel_url' => 'https://smitracked.cloud/staff/payment-callback',
-                                    'success_url' => 'https://smitracked.cloud/staff/payment-callback',
+                                    'cancel_url' => 'http://localhost:5173/staff/payment-callback',
+                                    'success_url' => 'http://localhost:5173/staff/payment-callback',
                                     'line_items' => [
                                         [
                                             'currency' => 'PHP',
@@ -160,7 +160,7 @@ class PayMongoService
                                     'attributes' => [
                                         'payment_method' => $paymentMethodId,
                                         'client_key' => $clientKey,
-                                        'return_url' => 'https://smitracked.cloud/staff/payment-callback',
+                                        'return_url' => 'http://localhost:5173/staff/payment-callback',
                                     ]
                                 ]
                             ]);

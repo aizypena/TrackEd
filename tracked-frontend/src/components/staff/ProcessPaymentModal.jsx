@@ -35,7 +35,7 @@ const ProcessPaymentModal = ({ isOpen, onClose, applicant, onSuccess }) => {
     try {
       setLoadingPrice(true);
       const token = getStaffToken();
-      const response = await fetch('https://api.smitracked.cloud/api/staff/programs', {
+      const response = await fetch('http://localhost:8000/api/staff/programs', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -115,7 +115,7 @@ const ProcessPaymentModal = ({ isOpen, onClose, applicant, onSuccess }) => {
       sessionStorage.removeItem('payment_notes');
 
       // Process cash payment directly
-      const response = await fetch(`https://api.smitracked.cloud/api/staff/applicants/${applicant.id}/process-cash-payment`, {
+      const response = await fetch(`http://localhost:8000/api/staff/applicants/${applicant.id}/process-cash-payment`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -177,7 +177,7 @@ const ProcessPaymentModal = ({ isOpen, onClose, applicant, onSuccess }) => {
       }
       
       // Create payment intent with PayMongo
-      const response = await fetch('https://api.smitracked.cloud/api/payments/intent', {
+      const response = await fetch('http://localhost:8000/api/payments/intent', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

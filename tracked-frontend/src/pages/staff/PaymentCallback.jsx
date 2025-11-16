@@ -31,7 +31,7 @@ const PaymentCallback = () => {
       setMessage('Verifying your payment...');
 
       // Verify payment status
-      const verifyResponse = await fetch(`https://api.smitracked.cloud/api/payments/${paymentId}/verify`, {
+      const verifyResponse = await fetch(`http://localhost:8000/api/payments/${paymentId}/verify`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -46,7 +46,7 @@ const PaymentCallback = () => {
         // Payment successful, now enroll the student
         setMessage('Payment verified! Enrolling student...');
         
-        const enrollResponse = await fetch(`https://api.smitracked.cloud/api/staff/applicants/${applicantId}/process-payment`, {
+        const enrollResponse = await fetch(`http://localhost:8000/api/staff/applicants/${applicantId}/process-payment`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -76,7 +76,7 @@ const PaymentCallback = () => {
           sessionStorage.removeItem('payment_notes');
 
           // Log the action
-          await fetch('https://api.smitracked.cloud/api/staff/actions/log', {
+          await fetch('http://localhost:8000/api/staff/actions/log', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,

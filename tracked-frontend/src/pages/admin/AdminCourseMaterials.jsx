@@ -42,7 +42,7 @@ const AdminCourseMaterials = () => {
   const logAction = async (action, description, level = 'info') => {
     try {
       const token = localStorage.getItem('adminToken');
-      await fetch('https://api.smitracked.cloud/api/log-action', {
+      await fetch('http://localhost:8000/api/log-action', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -76,7 +76,7 @@ const AdminCourseMaterials = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('adminToken');
-      const response = await fetch('https://api.smitracked.cloud/api/trainer/course-materials', {
+      const response = await fetch('http://localhost:8000/api/trainer/course-materials', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -134,7 +134,7 @@ const AdminCourseMaterials = () => {
       const token = localStorage.getItem('adminToken');
       
       // Verify password
-      const verifyResponse = await fetch('https://api.smitracked.cloud/api/admin/verify-password', {
+      const verifyResponse = await fetch('http://localhost:8000/api/admin/verify-password', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -160,7 +160,7 @@ const AdminCourseMaterials = () => {
       }
 
       // Password verified, proceed with deletion by calling backend API
-      const deleteResponse = await fetch(`https://api.smitracked.cloud/api/trainer/course-materials/${materialToDelete.id}`, {
+      const deleteResponse = await fetch(`http://localhost:8000/api/trainer/course-materials/${materialToDelete.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -212,7 +212,7 @@ const AdminCourseMaterials = () => {
       toast.loading('Downloading...', { id: 'download-toast' });
       
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(`https://api.smitracked.cloud/api/trainer/course-materials/${material.id}/download`, {
+      const response = await fetch(`http://localhost:8000/api/trainer/course-materials/${material.id}/download`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -474,7 +474,7 @@ const AdminCourseMaterials = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex gap-2">
                           <a
-                            href={`https://api.smitracked.cloud/api/storage-file/${material.file_path}`}
+                            href={`http://localhost:8000/api/storage-file/${material.file_path}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-green-600 hover:text-green-900 hover:cursor-pointer"

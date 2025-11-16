@@ -71,7 +71,7 @@ const StaffExamManagement = () => {
     try {
       setLoading(true);
       const token = getStaffToken();
-      const response = await fetch('https://api.smitracked.cloud/api/staff/exams', {
+      const response = await fetch('http://localhost:8000/api/staff/exams', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json',
@@ -95,7 +95,7 @@ const StaffExamManagement = () => {
   const fetchPrograms = async () => {
     try {
       const token = getStaffToken();
-      const response = await fetch('https://api.smitracked.cloud/api/staff/programs', {
+      const response = await fetch('http://localhost:8000/api/staff/programs', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json',
@@ -114,7 +114,7 @@ const StaffExamManagement = () => {
   const fetchBatches = async () => {
     try {
       const token = getStaffToken();
-      const response = await fetch('https://api.smitracked.cloud/api/staff/batches', {
+      const response = await fetch('http://localhost:8000/api/staff/batches', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json',
@@ -135,7 +135,7 @@ const StaffExamManagement = () => {
     try {
       setLoading(true);
       const token = getStaffToken();
-      const response = await fetch('https://api.smitracked.cloud/api/staff/exams', {
+      const response = await fetch('http://localhost:8000/api/staff/exams', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -167,7 +167,7 @@ const StaffExamManagement = () => {
     try {
       setLoading(true);
       const token = getStaffToken();
-      const response = await fetch(`https://api.smitracked.cloud/api/staff/exams/${selectedExam.id}`, {
+      const response = await fetch(`http://localhost:8000/api/staff/exams/${selectedExam.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -199,7 +199,7 @@ const StaffExamManagement = () => {
     try {
       setLoading(true);
       const token = getStaffToken();
-      const response = await fetch(`https://api.smitracked.cloud/api/staff/exams/${selectedExam.id}`, {
+      const response = await fetch(`http://localhost:8000/api/staff/exams/${selectedExam.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

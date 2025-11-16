@@ -39,7 +39,7 @@ const Certificates = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('studentToken');
-      const response = await fetch('https://api.smitracked.cloud/api/student/certificates', {
+      const response = await fetch('http://localhost:8000/api/student/certificates', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'

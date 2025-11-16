@@ -49,7 +49,7 @@ const TrainerAssessments = () => {
       setError(null);
       
       const token = localStorage.getItem('trainerToken');
-      const response = await fetch('https://api.smitracked.cloud/api/trainer/tesda-assessments', {
+      const response = await fetch('http://localhost:8000/api/trainer/tesda-assessments', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -80,7 +80,7 @@ const TrainerAssessments = () => {
   const fetchPrograms = async () => {
     try {
       const token = localStorage.getItem('trainerToken');
-      const response = await fetch('https://api.smitracked.cloud/api/trainer/programs', {
+      const response = await fetch('http://localhost:8000/api/trainer/programs', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -98,7 +98,7 @@ const TrainerAssessments = () => {
   const fetchBatches = async () => {
     try {
       const token = localStorage.getItem('trainerToken');
-      const response = await fetch('https://api.smitracked.cloud/api/trainer/batches', {
+      const response = await fetch('http://localhost:8000/api/trainer/batches', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -117,7 +117,7 @@ const TrainerAssessments = () => {
     try {
       const token = localStorage.getItem('trainerToken');
       
-      const response = await fetch('https://api.smitracked.cloud/api/trainer/students', {
+      const response = await fetch('http://localhost:8000/api/trainer/students', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -191,8 +191,8 @@ const TrainerAssessments = () => {
     try {
       const token = localStorage.getItem('trainerToken');
       const url = editingRecord 
-        ? `https://api.smitracked.cloud/api/trainer/tesda-assessments/${editingRecord.id}`
-        : 'https://api.smitracked.cloud/api/trainer/tesda-assessments';
+        ? `http://localhost:8000/api/trainer/tesda-assessments/${editingRecord.id}`
+        : 'http://localhost:8000/api/trainer/tesda-assessments';
       
       const response = await fetch(url, {
         method: editingRecord ? 'PUT' : 'POST',
@@ -225,7 +225,7 @@ const TrainerAssessments = () => {
 
     try {
       const token = localStorage.getItem('trainerToken');
-      const response = await fetch(`https://api.smitracked.cloud/api/trainer/tesda-assessments/${id}`, {
+      const response = await fetch(`http://localhost:8000/api/trainer/tesda-assessments/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
