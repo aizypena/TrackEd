@@ -5,6 +5,7 @@ import Navbar from '../../layouts/applicants/Navbar';
 import { nationalities } from '../../utils/nationalities';
 import { applicationAPI } from '../../services/applicationAPI';
 import { programAPI } from '../../services/programAPI';
+import TermsAndPrivacyPolicy from '../../components/TermsAndPrivacyPolicy';
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ const Signup = () => {
   const [availableBatches, setAvailableBatches] = useState([]);
   const [loadingBatches, setLoadingBatches] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   // Check if user is already logged in
   useEffect(() => {
@@ -317,8 +319,8 @@ const Signup = () => {
   const handleFileChange = (e, documentType) => {
     const file = e.target.files[0];
     
-    // Check file size (10MB limit)
-    if (file && file.size > 10 * 1024 * 1024) {
+    // Check file size (5MB limit)
+    if (file && file.size > 5 * 1024 * 1024) {
       alert('File size must be less than 10MB');
       return;
     }
@@ -336,8 +338,8 @@ const Signup = () => {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
     
-    // Check file size (10MB limit)
-    if (file && file.size > 10 * 1024 * 1024) {
+    // Check file size (5MB limit)
+    if (file && file.size > 5 * 1024 * 1024) {
       alert('File size must be less than 10MB');
       return;
     }
@@ -1120,7 +1122,7 @@ const Signup = () => {
   const renderRequiredDocuments = () => (
     <div className="space-y-6">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">Required Documents</h3>
-      <p className="text-sm text-gray-600 mb-6">Please upload the following required documents (Maximum file size: 10MB each):</p>
+      <p className="text-sm text-gray-600 mb-6">Please upload the following required documents (Maximum file size: 5MB each):</p>
       
       <div className="space-y-6">
         {/* Valid ID Upload */}
@@ -1169,7 +1171,7 @@ const Signup = () => {
                     className="hidden"
                   />
                 </label>
-                <p className="text-xs text-gray-500">PDF, JPG, PNG (Max 10MB)</p>
+                <p className="text-xs text-gray-500">PDF, JPG, PNG (Max 5MB)</p>
               </div>
             )}
           </div>
@@ -1221,7 +1223,7 @@ const Signup = () => {
                     className="hidden"
                   />
                 </label>
-                <p className="text-xs text-gray-500">PDF, JPG, PNG (Max 10MB)</p>
+                <p className="text-xs text-gray-500">PDF, JPG, PNG (Max 5MB)</p>
               </div>
             )}
           </div>
@@ -1273,7 +1275,7 @@ const Signup = () => {
                     className="hidden"
                   />
                 </label>
-                <p className="text-xs text-gray-500">PDF, JPG, PNG (Max 10MB)</p>
+                <p className="text-xs text-gray-500">PDF, JPG, PNG (Max 5MB)</p>
               </div>
             )}
           </div>
@@ -1325,7 +1327,7 @@ const Signup = () => {
                     className="hidden"
                   />
                 </label>
-                <p className="text-xs text-gray-500">JPG, PNG (Max 10MB)</p>
+                <p className="text-xs text-gray-500">JPG, PNG (Max 5MB)</p>
               </div>
             )}
           </div>
@@ -1558,9 +1560,14 @@ const Signup = () => {
                   className="mt-1 h-4 w-4 text-tracked-primary focus:ring-tracked-primary border-gray-300 rounded cursor-pointer"
                 />
                 <span className="ml-3 text-sm text-gray-700">
-                  I hereby declare that all the information provided in this application is true, accurate, and complete to the best of my knowledge. 
-                  I understand that any false or misleading information may result in the rejection of my application or termination from the program. 
-                  I also agree to comply with all the terms and conditions set by SMI Institute Inc. and acknowledge that the submitted documents are genuine and have not been altered or falsified.
+                  By applying to SMI Institute Inc., you agree to our{' '}
+                  <button
+                    type="button"
+                    onClick={() => setShowTermsModal(true)}
+                    className="text-tracked-primary hover:text-tracked-primary-700 hover:cursor-pointer underline font-medium"
+                  >
+                    Terms and Privacy Policy
+                  </button>.
                 </span>
               </label>
             </div>
@@ -1712,6 +1719,9 @@ const Signup = () => {
 
       {/* Confirmation Modal */}
       {showConfirmModal && renderConfirmationModal()}
+      
+      {/* Terms and Privacy Policy Modal */}
+      <TermsAndPrivacyPolicy isOpen={showTermsModal} onClose={() => setShowTermsModal(false)} />
     </div>
   );
 };
