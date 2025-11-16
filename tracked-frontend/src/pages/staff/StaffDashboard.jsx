@@ -30,12 +30,6 @@ const StaffDashboard = () => {
   const [recentApplications, setRecentApplications] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const [upcomingEvents, setUpcomingEvents] = useState([
-    { id: 1, title: 'Welding NCII Assessment', date: '2025-10-10', time: '09:00 AM', type: 'assessment' },
-    { id: 2, title: 'New Batch Orientation', date: '2025-10-12', time: '02:00 PM', type: 'orientation' },
-    { id: 3, title: 'Equipment Maintenance', date: '2025-10-15', time: '10:00 AM', type: 'maintenance' }
-  ]);
-
   // Fetch dashboard data on component mount
   useEffect(() => {
     // Get user data from localStorage
@@ -120,10 +114,12 @@ const StaffDashboard = () => {
   const getStatusDisplay = (status) => {
     const statusMap = {
       'pending': { label: 'Pending', class: 'bg-orange-100 text-orange-800' },
+      'under review': { label: 'Under Review', class: 'bg-blue-100 text-blue-800' },
+      'under_review': { label: 'Under Review', class: 'bg-blue-100 text-blue-800' },
       'approved': { label: 'Approved', class: 'bg-green-100 text-green-800' },
       'rejected': { label: 'Rejected', class: 'bg-red-100 text-red-800' }
     };
-    return statusMap[status] || { label: 'Unknown', class: 'bg-gray-100 text-gray-800' };
+    return statusMap[status] || { label: status ? status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Unknown', class: 'bg-gray-100 text-gray-800' };
   };
 
   // Capitalize first letter of name
@@ -227,7 +223,7 @@ const StaffDashboard = () => {
             <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-500 text-sm font-medium">Low Stock Items</p>
+                  <p className="text-gray-500 text-sm font-medium">Stock Items</p>
                   <h3 className="text-3xl font-bold text-tracked-primary mt-2">{stats.lowStockItems}</h3>
                   <p className="text-xs text-gray-400 mt-1">Needs restocking</p>
                 </div>
@@ -244,10 +240,8 @@ const StaffDashboard = () => {
             </div>
           </div>
 
-          {/* Two Column Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Recent Applications - Takes 2 columns */}
-            <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
+          {/* Recent Applications */}
+          <div className="bg-white rounded-lg shadow-md p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-gray-800">Recent Applications</h2>
                 <Link 
@@ -303,38 +297,6 @@ const StaffDashboard = () => {
                 </div>
               )}
             </div>
-
-            {/* Upcoming Events */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-800">Upcoming Events</h2>
-                <MdCalendarToday className="h-5 w-5 text-gray-400" />
-              </div>
-              <div className="space-y-4">
-                {upcomingEvents.map((event) => (
-                  <div key={event.id} className="border-l-4 border-tracked-secondary pl-4 py-2">
-                    <h3 className="font-semibold text-gray-800 text-sm">{event.title}</h3>
-                    <p className="text-xs text-gray-500 mt-1">{event.date} at {event.time}</p>
-                    <span className={`inline-block mt-2 text-xs px-2 py-1 rounded ${
-                      event.type === 'assessment' 
-                        ? 'bg-blue-100 text-blue-700'
-                        : event.type === 'orientation'
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-orange-100 text-orange-700'
-                    }`}>
-                      {event.type.charAt(0).toUpperCase() + event.type.slice(1)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <Link 
-                to="/staff/training/schedule" 
-                className="text-sm text-tracked-secondary hover:text-tracked-primary mt-4 inline-block font-medium"
-              >
-                View Full Calendar →
-              </Link>
-            </div>
-          </div>
         </div>
       </div>
     </div>

@@ -31,10 +31,26 @@ const AddBatch = ({ isOpen, onClose, batch, programs, onSuccess }) => {
 
   const fetchTrainers = async () => {
     try {
-      const response = await userAPI.getUsers({ role: 'trainer', status: 'active' });
-      if (response.success) {
-        // console.log('Trainers data:', response.data);
-        setTrainers(response.data);
+      // Try to get token from either staff or admin
+      const token = getStaffToken() || localStorage.getItem('adminToken');
+      
+      const response = await fetch('http://localhost:8000/api/users?role=trainer&status=active', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        console.log('Trainers fetched:', data.data);
+        setTrainers(data.data || []);
+      } else {
+        console.error('Failed to fetch trainers:', data.message);
+        toast.error('Failed to load trainers');
       }
     } catch (error) {
       console.error('Error fetching trainers:', error);
@@ -119,7 +135,8 @@ const AddBatch = ({ isOpen, onClose, batch, programs, onSuccess }) => {
       };
       
       // Log the data being sent
-      // console.log('Submitting batch data:', submitData);
+      console.log('Submitting batch data:', submitData);
+      console.log('Trainer ID being sent:', submitData.trainer_id, typeof submitData.trainer_id);
       
       if (batch) {
         response = await batchAPI.update(batch.id, submitData);
@@ -272,20 +289,26 @@ const AddBatch = ({ isOpen, onClose, batch, programs, onSuccess }) => {
             <label className="block text-sm font-medium text-gray-700">Assigned Trainer</label>
             <select
               name="trainer_id"
-              value={formData.trainer_id}
+              value={formData.trainer_id || ''}
               onChange={handleInputChange}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 capitalize"
             >
               <option value="">No trainer assigned</option>
-              {trainers.map(trainer => (
-                <option key={trainer.id} value={trainer.id} className="capitalize">
-                  {trainer.first_name && trainer.last_name 
-                    ? `${trainer.first_name} ${trainer.last_name}` 
-                    : trainer.name || trainer.email}
-                </option>
-              ))}
+              {trainers.length > 0 ? (
+                trainers.map(trainer => (
+                  <option key={trainer.id} value={trainer.id} className="capitalize">
+                    {trainer.first_name && trainer.last_name 
+                      ? `${trainer.first_name} ${trainer.last_name}` 
+                      : trainer.name || trainer.email}
+                  </option>
+                ))
+              ) : (
+                <option value="" disabled>Loading trainers...</option>
+              )}
             </select>
-            <p className="mt-1 text-xs text-gray-500">Optional: Assign a trainer to this batch</p>
+            <p className="mt-1 text-xs text-gray-500">
+              Optional: Assign a trainer to this batch {trainers.length > 0 && `(${trainers.length} available)`}
+            </p>
           </div>
 
           <div>

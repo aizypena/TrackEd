@@ -4456,7 +4456,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
                                 <a href='http://localhost:5173/student/login' style='color: #0066cc;'>http://localhost:5173/student/login</a></p>
                                 
                                 <p style='margin-top: 15px;'><strong>Your Login Details:</strong></p>
-                                <p style='margin: 5px 0;'><strong>Email/Username:</strong> {$recipientEmail}</p>
+                                <p style='margin: 5px 0;'><strong>Username:</strong> {$studentId}</p>
                                 <p style='margin: 5px 0;'><strong>Temporary Password:</strong> <span style='background: #fff; padding: 5px 10px; border: 1px solid #856404; border-radius: 3px; font-family: monospace; font-size: 16px;'>{$tempPassword}</span></p>
                                 
                                 <p class='warning' style='margin-top: 15px;'>⚠️ IMPORTANT: Please change your password immediately after your first login for security purposes.</p>
@@ -4528,11 +4528,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
                             <div class='info-box'>
                                 <h3>CONTACT & SUPPORT</h3>
                                 <p><strong>Training Center Office:</strong><br>
-                                Address: SMI Technical Training Center, 123 Main Street, City, Philippines</p>
+                                Address: Wardley Bldg. San Juan St. Cor. Taft Ave. Brgy 36
+
+Pasay City, Metro Manila 1100</p>
                                 <p><strong>Office Hours:</strong> Monday to Friday, 8:00 AM - 5:00 PM</p>
-                                <p><strong>Contact Numbers:</strong> (02) 1234-5678</p>
-                                <p><strong>Email:</strong> info@smitraining.edu.ph</p>
-                                <p><strong>Technical Support:</strong> support@smitraining.edu.ph</p>
+                                <p><strong>Contact Number:</strong> 09177990724</p>
+                                <p><strong>Email:</strong> smiacedmicenter@gmail.com</p>
+                                <p><strong>Technical Support:</strong> smiacedmicenter@gmail.com</p>
                             </div>
 
                             <p style='margin-top: 25px;'>We are excited to have you join our training program! If you have any questions or concerns, please don't hesitate to reach out to us.</p>
@@ -4544,7 +4546,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
                         <div class='footer'>
                             <p>&copy; 2025 SMI Technical Training Center. All rights reserved.</p>
                             <p>This is an automated message. Please do not reply directly to this email.</p>
-                            <p style='margin-top: 10px;'>For inquiries, please contact us at info@smitraining.edu.ph</p>
+                            <p style='margin-top: 10px;'>For inquiries, please contact us at smiacedmicenter@gmail.com</p>
                         </div>
                     </div>
                 </body>
@@ -4737,7 +4739,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
                             <div class='credentials-box'>
                                 <h3 style='color: #856404; margin-top: 0;'>🔐 LMS Access Credentials</h3>
                                 <p><strong>LMS Portal:</strong> <a href='#'>smitracked.cloud/smi-lms/login</a></p>
-                                <p><strong>Username:</strong> {$applicant->email}</p>
+                                <p><strong>Username:</strong> {$studentId}</p>
                                 <p><strong>Temporary Password:</strong> {$tempPassword}</p>
                                 <p style='margin-bottom: 0; color: #856404; font-size: 13px;'>⚠️ Please change your password upon first login.</p>
                             </div>
@@ -4983,7 +4985,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
                                 <a href='http://localhost:5173/student/login' style='color: #0066cc;'>http://localhost:5173/student/login</a></p>
                                 
                                 <p style='margin-top: 15px;'><strong>Your Login Details:</strong></p>
-                                <p style='margin: 5px 0;'><strong>Email/Username:</strong> {$recipientEmail}</p>
+                                <p style='margin: 5px 0;'><strong>Username:</strong> {$studentId}</p>
                                 <p style='margin: 5px 0;'><strong>Temporary Password:</strong> <span style='background: #fff; padding: 5px 10px; border: 1px solid #856404; border-radius: 3px; font-family: monospace; font-size: 16px;'>{$tempPassword}</span></p>
                                 
                                 <p style='margin-top: 15px; color: #dc2626; font-weight: bold;'>⚠️ IMPORTANT: Please change your password immediately after your first login for security purposes.</p>
@@ -4996,7 +4998,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
                                     <li>Your Student ID is required for all training sessions</li>
                                     <li>Login to the LMS portal and change your password immediately</li>
                                     <li>Check your email and LMS regularly for schedule updates</li>
-                                    <li>Maintain at least 90% attendance throughout the program</li>
+                                    <li>Maintain at least 85% attendance throughout the program</li>
                                 </ul>
                             </div>
 

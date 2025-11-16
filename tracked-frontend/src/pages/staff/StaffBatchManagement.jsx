@@ -498,7 +498,7 @@ const StaffBatchManagement = () => {
         </div>
       </div>
 
-      {/* Add/Edit Batch Modal */}
+      {/* Add Modal */}
       <AddBatch
         isOpen={showAddModal}
         onClose={() => {
