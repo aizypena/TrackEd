@@ -16,6 +16,7 @@ const StaffPermissionsModal = ({ isOpen, onClose, userData, onSave }) => {
       academics: false,
       payments: false
     },
+    programs: false,
     training: {
       enabled: false,
       schedule: false,
@@ -59,6 +60,7 @@ const StaffPermissionsModal = ({ isOpen, onClose, userData, onSave }) => {
           academics: false,
           payments: false
         },
+        programs: false,
         training: {
           enabled: false,
           schedule: false,
@@ -175,9 +177,15 @@ const StaffPermissionsModal = ({ isOpen, onClose, userData, onSave }) => {
       ]
     },
     {
+      id: 'programs',
+      label: 'Program Management',
+      description: 'Manage training programs and courses',
+      type: 'single'
+    },
+    {
       id: 'training',
       label: 'Training & Assessment',
-      description: 'Manage training programs',
+      description: 'Manage training schedules and assessments',
       type: 'group',
       children: [
         { id: 'schedule', label: 'Training Schedule' },

@@ -393,6 +393,34 @@ Route::post('/staff/login', function (Request $request) {
     ]);
 });
 
+// Staff verify password endpoint
+Route::post('/staff/verify-password', function (Request $request) {
+    $request->validate(['password' => 'required|string']);
+    
+    $user = $request->user();
+    
+    // Check if user exists and has staff role
+    if (!$user || $user->role !== 'staff') {
+        return response()->json([
+            'success' => false, 
+            'message' => 'Unauthorized'
+        ], 401);
+    }
+    
+    // Verify password
+    if (!Hash::check($request->password, $user->password)) {
+        return response()->json([
+            'success' => false, 
+            'message' => 'Incorrect password'
+        ], 401);
+    }
+    
+    return response()->json([
+        'success' => true, 
+        'message' => 'Password verified'
+    ]);
+})->middleware('auth:sanctum');
+
 Route::post('/student/login', function (Request $request) {
     $request->validate([
         'student_id' => 'required|string',

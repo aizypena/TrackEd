@@ -16,7 +16,8 @@ import {
   MdLogout,
   MdExpandMore,
   MdChevronRight,
-  MdRefresh
+  MdRefresh,
+  MdLibraryBooks
 } from 'react-icons/md';
 
 const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsCollapsed }) => {
@@ -93,6 +94,11 @@ const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsColla
         { name: 'Academic Records', path: '/staff/students/academics' },
         { name: 'Payment Records', path: '/staff/students/payments' }
       ]
+    },
+    {
+      name: 'Program Management',
+      path: '/staff/programs',
+      icon: <MdLibraryBooks className="h-5 w-5" />
     },
     {
       name: 'Training & Assessment',
@@ -206,6 +212,7 @@ const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsColla
           const permKeyMap = {
             'Application & Enrollment': 'enrollments',
             'Student Records': 'students',
+            'Program Management': 'programs',
             'Training & Assessment': 'training',
             'Inventory Management': 'inventory',
             'Enrollment Trends': 'analytics',
@@ -219,7 +226,7 @@ const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsColla
           
           // Check if permission exists and is enabled
           if (typeof perms[permKey] === 'boolean') {
-            // Simple boolean permission (like analytics)
+            // Simple boolean permission (like analytics, programs)
             return perms[permKey];
           } else if (perms[permKey] && typeof perms[permKey] === 'object' && perms[permKey].enabled === true) {
             // Group permission with sub-items
@@ -257,6 +264,7 @@ const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsColla
             }
             return true;
           } else {
+            // If no specific permission defined, hide it
             return false;
           }
         });
