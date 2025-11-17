@@ -221,6 +221,9 @@ const EditExamModal = ({ isOpen, onClose, onSuccess, examData, batches = [] }) =
     try {
       const quizData = {
         ...formData,
+        duration: parseInt(formData.duration),
+        passing_score: parseInt(formData.passing_score),
+        retake_limit: parseInt(formData.retake_limit),
         questions: questions.map(q => ({
           id: q.id, // Include ID for existing questions
           question: q.question,

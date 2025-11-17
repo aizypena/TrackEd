@@ -7404,6 +7404,16 @@ Pasay City, Metro Manila 1100</p>
                 $exam->latest_percentage = null;
             }
             
+            // Get highest score from all attempts
+            if ($userAttempts->count() > 0) {
+                $highestAttempt = $userAttempts->sortByDesc('percentage')->first();
+                $exam->highest_percentage = $highestAttempt->percentage;
+                $exam->highest_score = $highestAttempt->score;
+            } else {
+                $exam->highest_percentage = null;
+                $exam->highest_score = null;
+            }
+            
             // Remove the attempts relationship from response to keep it clean
             unset($exam->attempts);
             unset($exam->questions);

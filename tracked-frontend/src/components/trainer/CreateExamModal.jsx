@@ -185,6 +185,9 @@ const CreateExamModal = ({ isOpen, onClose, onSuccess, examType = 'written', bat
     try {
       const quizData = {
         ...formData,
+        duration: parseInt(formData.duration),
+        passing_score: parseInt(formData.passing_score),
+        retake_limit: parseInt(formData.retake_limit),
         type: examType,
         questions: questions.map(q => ({
           question: q.question,

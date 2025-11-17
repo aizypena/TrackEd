@@ -60,7 +60,7 @@ const Exams = () => {
           // Determine status based on attempts
           let status = 'available';
           
-          if (exam.has_attempted) {
+          if (exam.attempts_taken > 0) {
             status = 'completed';
           } else if (exam.status === 'active') {
             status = 'available';
@@ -70,17 +70,18 @@ const Exams = () => {
             id: exam.id,
             title: exam.title,
             description: exam.description || 'No description available',
-            courseTitle: exam.batch_id || 'General',
+            courseTitle: exam.course_title || exam.batch_id || 'General',
             type: 'written',
             totalMarks: exam.total_questions * 10, // Assuming 10 points per question
             passingMarks: exam.passing_score || 50,
             timeLimit: exam.time_limit,
             dueDate: exam.date,
             status: status,
-            score: exam.attempt_score,
-            completedDate: exam.attempt_date,
-            attempts: exam.has_attempted ? 1 : 0,
-            maxAttempts: 1,
+            score: exam.highest_percentage, // Use highest_percentage from backend
+            completedDate: exam.updated_at, // Use updated_at as completed date
+            attempts: exam.attempts_taken || 0,
+            maxAttempts: exam.retake_limit || 1,
+            attemptsRemaining: exam.attempts_remaining || 0,
             isOverdue: false,
             feedback: null,
             startedDate: null,
@@ -183,7 +184,7 @@ const Exams = () => {
           <div className="flex items-center justify-between">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
+              className="p-2 rounded-md text-gray-400 hover:cursor-pointer hover:text-gray-500 hover:bg-gray-100"
             >
               <MdMenu className="h-6 w-6" />
             </button>
@@ -300,23 +301,41 @@ const Exams = () => {
                       </div>
 
                       {/* Exam Results */}
-                      {exam.status === 'completed' && exam.score && (
-                        <div className="p-6 bg-gradient-to-r from-green-50 to-emerald-50 border-t border-green-100">
+                      {exam.status === 'completed' && (
+                        <div className={`p-6 border-t ${
+                          exam.score >= exam.passingMarks 
+                            ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-100' 
+                            : 'bg-gradient-to-r from-red-50 to-rose-50 border-red-100'
+                        }`}>
                           <div className="flex justify-between items-start">
                             <div>
                               <div className="flex items-center space-x-2 mb-2">
-                                <MdCheckCircle className="h-5 w-5 text-green-600" />
-                                <span className="text-green-800 font-semibold">Exam Completed</span>
+                                {exam.score >= exam.passingMarks ? (
+                                  <MdCheckCircle className="h-5 w-5 text-green-600" />
+                                ) : (
+                                  <MdWarning className="h-5 w-5 text-red-600" />
+                                )}
+                                <span className={`font-semibold ${
+                                  exam.score >= exam.passingMarks ? 'text-green-800' : 'text-red-800'
+                                }`}>
+                                  Exam Completed
+                                </span>
                               </div>
-                              <div className="text-sm text-green-700">
+                              <div className={`text-sm ${
+                                exam.score >= exam.passingMarks ? 'text-green-700' : 'text-red-700'
+                              }`}>
                                 Completed on {formatDate(exam.completedDate)}
                               </div>
                             </div>
                             <div className="text-right">
-                              <div className="text-2xl font-bold text-green-800">
-                                {exam.score}%
+                              <div className={`text-2xl font-bold ${
+                                exam.score >= exam.passingMarks ? 'text-green-800' : 'text-red-800'
+                              }`}>
+                                {exam.score !== null && exam.score !== undefined ? `${exam.score}%` : 'N/A'}
                               </div>
-                              <div className="text-sm text-green-700">
+                              <div className={`text-sm ${
+                                exam.score >= exam.passingMarks ? 'text-green-700' : 'text-red-700'
+                              }`}>
                                 <span className="font-medium">
                                   {exam.score >= exam.passingMarks ? 'PASSED' : 'FAILED'}
                                 </span>
@@ -325,8 +344,16 @@ const Exams = () => {
                           </div>
                           {exam.feedback && (
                             <div className="mt-4 p-3 bg-white bg-opacity-60 rounded-lg">
-                              <div className="text-sm font-medium text-green-900 mb-1">Instructor Feedback</div>
-                              <p className="text-green-800 text-sm">{exam.feedback}</p>
+                              <div className={`text-sm font-medium mb-1 ${
+                                exam.score >= exam.passingMarks ? 'text-green-900' : 'text-red-900'
+                              }`}>
+                                Instructor Feedback
+                              </div>
+                              <p className={`text-sm ${
+                                exam.score >= exam.passingMarks ? 'text-green-800' : 'text-red-800'
+                              }`}>
+                                {exam.feedback}
+                              </p>
                             </div>
                           )}
                         </div>
@@ -363,6 +390,14 @@ const Exams = () => {
                                 <span className="text-blue-700 font-medium">Ready to begin</span>
                               </div>
                             )}
+                            {exam.status === 'completed' && exam.attemptsRemaining > 0 && (
+                              <div className="flex items-center space-x-2">
+                                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                                <span className="text-orange-700 font-medium">
+                                  {exam.attemptsRemaining} attempt{exam.attemptsRemaining !== 1 ? 's' : ''} remaining
+                                </span>
+                              </div>
+                            )}
                             {exam.status === 'in-progress' && exam.startedDate && (
                               <div className="flex items-center space-x-2">
                                 <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
@@ -376,16 +411,25 @@ const Exams = () => {
                             {exam.status === 'available' && (
                               <button 
                                 onClick={() => navigate(`/smi-lms/take-assessment/${exam.id}`, { state: { source: 'exams' } })}
-                                className="flex items-center px-6 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                                className="flex items-center hover:cursor-pointer px-6 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
                               >
                                 <MdPlayArrow className="h-4 w-4 mr-2" />
                                 Begin Exam
                               </button>
                             )}
+                            {exam.status === 'completed' && exam.attemptsRemaining > 0 && (
+                              <button 
+                                onClick={() => navigate(`/smi-lms/take-assessment/${exam.id}`, { state: { source: 'exams' } })}
+                                className="flex items-center hover:cursor-pointer px-6 py-2.5 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-colors"
+                              >
+                                <MdPlayArrow className="h-4 w-4 mr-2" />
+                                Retake Exam
+                              </button>
+                            )}
                             {exam.status === 'in-progress' && (
                               <button 
                                 onClick={() => navigate(`/smi-lms/take-assessment/${exam.id}`, { state: { source: 'exams' } })}
-                                className="flex items-center px-6 py-2.5 text-sm font-medium text-white bg-yellow-600 rounded-lg hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition-colors"
+                                className="flex items-center hover:cursor-pointer px-6 py-2.5 text-sm font-medium text-white bg-yellow-600 rounded-lg hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition-colors"
                               >
                                 <MdPending className="h-4 w-4 mr-2" />
                                 Continue Exam
