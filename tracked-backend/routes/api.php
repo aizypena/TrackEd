@@ -5136,7 +5136,7 @@ Pasay City, Metro Manila 1100</p>
                     'enrollment_date' => $student->created_at ? $student->created_at->format('Y-m-d') : null,
                     'start_date' => $batch && $batch->start_date ? (is_string($batch->start_date) ? $batch->start_date : $batch->start_date->format('Y-m-d')) : null,
                     'expected_end_date' => $batch && $batch->end_date ? (is_string($batch->end_date) ? $batch->end_date : $batch->end_date->format('Y-m-d')) : null,
-                    'status' => $student->status === 'active' ? 'active' : ($batch && $batch->status === 'finished' ? 'completed' : 'pending'),
+                    'status' => $student->status,
                     'payment_status' => $paymentStatus,
                     'attendance' => $attendancePercentage,
                     'documents' => [
@@ -5157,6 +5157,60 @@ Pasay City, Metro Manila 1100</p>
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch enrollment records',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
+
+    // Update Staff Enrollment
+    Route::put('/staff/enrollments/{id}', function (Request $request, $id) {
+        try {
+            // Validate the request - only enrollment-related fields
+            $validated = $request->validate([
+                'status' => 'required|in:active,inactive,completed,dropped',
+                'program_id' => 'required|exists:programs,id',
+                'batch_id' => 'required|exists:batches,id'
+            ]);
+
+            // Find the student
+            $student = \App\Models\User::where('role', 'student')
+                ->where('id', $id)
+                ->firstOrFail();
+
+            // Get the batch to ensure it belongs to the selected program
+            $batch = \App\Models\Batch::findOrFail($validated['batch_id']);
+            if ($batch->program_id != $validated['program_id']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Selected batch does not belong to the selected program'
+                ], 422);
+            }
+
+            // Update only enrollment information
+            $student->status = $validated['status'];
+            $student->batch_id = $batch->batch_id; // Store the batch_id string
+            $student->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Enrollment updated successfully',
+                'student' => $student
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Student not found'
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update enrollment',
                 'error' => $e->getMessage()
             ], 500);
         }

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import StaffSidebar from '../../layouts/staff/StaffSidebar';
 import StudentDetailModal from '../../components/staff/StudentDetailModal';
+import EditEnrollmentModal from '../../components/staff/EditEnrollmentModal';
 import { getStaffToken } from '../../utils/staffAuth';
 import toast, { Toaster } from 'react-hot-toast';
 import * as XLSX from 'xlsx';
@@ -35,6 +36,8 @@ const StaffEnrollmentsRecord = () => {
   const [batches, setBatches] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedEnrollment, setSelectedEnrollment] = useState(null);
 
   useEffect(() => {
     fetchEnrollments();
@@ -107,10 +110,15 @@ const StaffEnrollmentsRecord = () => {
 
   // Handle edit enrollment
   const handleEditEnrollment = (enrollment) => {
-    // For now, show a toast - we'll implement edit form later
-    toast.info(`Edit functionality for ${enrollment.student_name} coming soon!`);
-    // TODO: Navigate to edit page or open edit modal
-    // navigate(`/staff/enrollments/${enrollment.id}/edit`);
+    setSelectedEnrollment(enrollment);
+    setShowEditModal(true);
+  };
+
+  // Handle update enrollment success
+  const handleUpdateSuccess = () => {
+    fetchEnrollments(); // Refresh the list
+    setShowEditModal(false);
+    setSelectedEnrollment(null);
   };
 
   const fetchEnrollments = async () => {
@@ -127,7 +135,6 @@ const StaffEnrollmentsRecord = () => {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Enrollments data:', data.enrollments); // Debug: Check payment_status values
         setEnrollments(data.enrollments || []);
       } else {
         toast.error('Failed to fetch enrollment records');
@@ -152,7 +159,7 @@ const StaffEnrollmentsRecord = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setPrograms(data.programs || []);
+        setPrograms(data.programs || data.data || data || []);
       }
     } catch (error) {
       console.error('Error fetching programs:', error);
@@ -185,19 +192,24 @@ const StaffEnrollmentsRecord = () => {
         icon: <MdCheckCircle className="h-4 w-4" />,
         label: 'Active'
       },
-      pending: {
-        className: 'bg-orange-100 text-orange-800',
-        icon: <MdPending className="h-4 w-4" />,
-        label: 'Pending'
+      inactive: {
+        className: 'bg-gray-100 text-gray-800',
+        icon: <MdCancel className="h-4 w-4" />,
+        label: 'Inactive'
       },
       completed: {
         className: 'bg-blue-100 text-blue-800',
         icon: <MdSchool className="h-4 w-4" />,
         label: 'Completed'
+      },
+      dropped: {
+        className: 'bg-red-100 text-red-800',
+        icon: <MdCancel className="h-4 w-4" />,
+        label: 'Dropped'
       }
     };
 
-    const config = statusConfig[status] || statusConfig.pending;
+    const config = statusConfig[status] || statusConfig.active;
 
     return (
       <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${config.className}`}>
@@ -356,8 +368,9 @@ const StaffEnrollmentsRecord = () => {
   const stats = {
     total: enrollments.length,
     active: enrollments.filter(e => e.status === 'active').length,
-    pending: enrollments.filter(e => e.status === 'pending').length,
-    completed: enrollments.filter(e => e.status === 'completed').length
+    inactive: enrollments.filter(e => e.status === 'inactive').length,
+    completed: enrollments.filter(e => e.status === 'completed').length,
+    dropped: enrollments.filter(e => e.status === 'dropped').length
   };
 
   return (
@@ -392,7 +405,7 @@ const StaffEnrollmentsRecord = () => {
         {/* Dashboard Content */}
         <div className="container mx-auto p-6">
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
             <div className="bg-white rounded-lg shadow-md p-4">
               <p className="text-sm text-gray-500 font-medium">Total Enrollments</p>
               <p className="text-2xl font-bold text-tracked-primary mt-1">{stats.total}</p>
@@ -402,12 +415,16 @@ const StaffEnrollmentsRecord = () => {
               <p className="text-2xl font-bold text-green-600 mt-1">{stats.active}</p>
             </div>
             <div className="bg-white rounded-lg shadow-md p-4">
-              <p className="text-sm text-gray-500 font-medium">Pending</p>
-              <p className="text-2xl font-bold text-orange-600 mt-1">{stats.pending}</p>
+              <p className="text-sm text-gray-500 font-medium">Inactive</p>
+              <p className="text-2xl font-bold text-gray-600 mt-1">{stats.inactive}</p>
             </div>
             <div className="bg-white rounded-lg shadow-md p-4">
               <p className="text-sm text-gray-500 font-medium">Completed</p>
               <p className="text-2xl font-bold text-blue-600 mt-1">{stats.completed}</p>
+            </div>
+            <div className="bg-white rounded-lg shadow-md p-4">
+              <p className="text-sm text-gray-500 font-medium">Dropped</p>
+              <p className="text-2xl font-bold text-red-600 mt-1">{stats.dropped}</p>
             </div>
           </div>
 
@@ -439,8 +456,9 @@ const StaffEnrollmentsRecord = () => {
                 >
                   <option value="all">All Status</option>
                   <option value="active">Active</option>
-                  <option value="pending">Pending</option>
+                  <option value="inactive">Inactive</option>
                   <option value="completed">Completed</option>
+                  <option value="dropped">Dropped</option>
                 </select>
               </div>
 
@@ -665,6 +683,21 @@ const StaffEnrollmentsRecord = () => {
           }}
           getStatusBadge={getStatusBadge}
           getPaymentBadge={getPaymentBadge}
+        />
+      )}
+
+      {/* Edit Enrollment Modal */}
+      {showEditModal && selectedEnrollment && (
+        <EditEnrollmentModal
+          isOpen={showEditModal}
+          enrollment={selectedEnrollment}
+          programs={programs}
+          batches={batches}
+          onClose={() => {
+            setShowEditModal(false);
+            setSelectedEnrollment(null);
+          }}
+          onUpdate={handleUpdateSuccess}
         />
       )}
     </div>
