@@ -44,6 +44,11 @@ const TrainerSidebar = ({ isOpen, onClose, isCollapsed, setIsCollapsed }) => {
       icon: <MdUpload className="h-5 w-5" />
     },
     {
+      name: 'Students',
+      path: '/trainer-lms/students',
+      icon: <MdSchool className="h-5 w-5" />
+    },
+    {
       name: 'Attendance',
       path: '/trainer-lms/attendance',
       icon: <MdPeopleAlt className="h-5 w-5" />

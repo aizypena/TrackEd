@@ -26,28 +26,28 @@ const TrainerDashboard = () => {
       count: '12',
       description: 'Assessments to be graded',
       icon: <MdAssignment className="h-8 w-8 text-yellow-600" />,
-      path: '/trainer/assessments'
+      path: '/trainer-lms/assessment-management'
     },
     {
       title: 'Course Materials',
       count: '8',
       description: 'Uploaded learning materials',
       icon: <MdUpload className="h-8 w-8 text-green-600" />,
-      path: '/trainer/course-materials'
+      path: '/trainer-lms/course-materials'
     },
     {
-      title: 'Grade Submissions',
+      title: 'Grades',
       count: '15',
       description: 'Pending grade entries',
       icon: <MdGrade className="h-8 w-8 text-purple-600" />,
-      path: '/trainer/grades'
+      path: '/trainer-lms/grades'
     },
     {
       title: 'Certification Requests',
       count: '3',
       description: 'Students ready for certification',
       icon: <MdCheckCircle className="h-8 w-8 text-red-600" />,
-      path: '/trainer/certification'
+      path: '/trainer-lms/certification'
     }
   ];
 

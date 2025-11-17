@@ -12,6 +12,7 @@ import TrainerExams from '../pages/trainers/TrainerExams';
 import TrainerExamDetails from '../pages/trainers/TrainerExamDetails';
 import ProtectedTrainerRoute from '../components/ProtectedTrainerRoute';
 import TrainerAnnouncements from '../pages/trainers/TrainerAnnouncements';
+import TrainerStudents from '../pages/trainers/TrainerStudents';
 
 const TrainerRoutes = () => {
   return (
@@ -110,6 +111,14 @@ const TrainerRoutes = () => {
         element={
           <ProtectedTrainerRoute>
             <TrainerProfile />
+          </ProtectedTrainerRoute>
+        } 
+      />
+      <Route 
+        path="/students" 
+        element={
+          <ProtectedTrainerRoute>
+            <TrainerStudents />
           </ProtectedTrainerRoute>
         } 
       />

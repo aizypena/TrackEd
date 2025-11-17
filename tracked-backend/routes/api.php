@@ -1583,51 +1583,68 @@ Route::middleware(['auth:sanctum'])->group(function () {
     
     // Get students list for TESDA assessments
     Route::get('/trainer/students', function (Request $request) {
-        $trainer = $request->user();
-        
-        if ($trainer->role !== 'trainer') {
+        try {
+            $trainer = $request->user();
+            
+            if ($trainer->role !== 'trainer') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized'
+                ], 403);
+            }
+            
+            // Get batches assigned to this trainer
+            $trainerBatches = DB::table('batches')
+                ->where('trainer_id', $trainer->id)
+                ->pluck('batch_id');
+            
+            // If no batches, return empty array
+            if ($trainerBatches->isEmpty()) {
+                return response()->json([
+                    'success' => true,
+                    'data' => []
+                ]);
+            }
+            
+            // Get students in those batches with batch and program details
+            $students = DB::table('users')
+                ->join('batches', 'users.batch_id', '=', 'batches.batch_id')
+                ->leftJoin('programs', 'batches.program_id', '=', 'programs.id')
+                ->whereIn('users.batch_id', $trainerBatches)
+                ->where('users.role', 'student')
+                ->where('users.status', 'active')
+                ->select(
+                    'users.id',
+                    'users.student_id',
+                    'users.first_name',
+                    'users.middle_name',
+                    'users.last_name',
+                    'users.email',
+                    'users.phone_number',
+                    'users.created_at',
+                    'batches.id as batch_id',
+                    'batches.batch_id as batch_string_id',
+                    'batches.program_id',
+                    'programs.title as program_name'
+                )
+                ->orderBy('users.first_name')
+                ->orderBy('users.last_name')
+                ->get();
+            
+            return response()->json([
+                'success' => true,
+                'data' => $students
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching trainer students: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized'
-            ], 403);
+                'message' => 'Error fetching students',
+                'error' => $e->getMessage()
+            ], 500);
         }
-        
-        // Get batches assigned to this trainer
-        $trainerBatches = DB::table('batches')
-            ->where('trainer_id', $trainer->id)
-            ->pluck('batch_id');
-        
-        // Get students in those batches
-        $students = DB::table('users')
-            ->whereIn('batch_id', $trainerBatches)
-            ->where('role', 'student')
-            ->where('status', 'active')
-            ->select('id', 'student_id', 'first_name', 'last_name', 'batch_id')
-            ->orderBy('first_name')
-            ->orderBy('last_name')
-            ->get();
-        
-        // Add program_id and batch_id mapping
-        $students = $students->map(function ($student) {
-            // Get batch details
-            $batch = DB::table('batches')
-                ->where('batch_id', $student->batch_id)
-                ->first();
-            
-            return [
-                'id' => $student->id,
-                'student_id' => $student->student_id,
-                'first_name' => $student->first_name,
-                'last_name' => $student->last_name,
-                'program_id' => $batch ? $batch->program_id : null,
-                'batch_id' => $batch ? $batch->id : null
-            ];
-        });
-        
-        return response()->json([
-            'success' => true,
-            'data' => $students
-        ]);
     });
 
     // Update Trainer Profile
