@@ -45,15 +45,9 @@ class PayMongoService
                         'attributes' => [
                             'amount' => $amount * 100, // Convert to centavos
                             'payment_method_allowed' => [$normalizedMethod], // Array of allowed methods
-                            'payment_method_options' => [
-                                'card' => [
-                                    'request_three_d_secure' => 'any'
-                                ]
-                            ],
                             'currency' => 'PHP',
                             'description' => $description,
                             'capture_type' => 'automatic',
-                            'statement_descriptor' => 'SMI Institute',
                         ]
                     ]
                 ]);
