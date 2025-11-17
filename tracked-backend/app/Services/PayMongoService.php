@@ -26,9 +26,16 @@ class PayMongoService
     public function createPaymentIntent($amount, $description, $paymentMethod = 'gcash')
     {
         try {
+            // Normalize payment method names for PayMongo API
+            $normalizedMethod = $paymentMethod;
+            if ($paymentMethod === 'maya') {
+                $normalizedMethod = 'paymaya';
+            }
+            
             Log::info('Creating PaymentIntent', [
                 'amount' => $amount,
-                'method' => $paymentMethod,
+                'method' => $normalizedMethod,
+                'original_method' => $paymentMethod,
                 'description' => $description
             ]);
             
@@ -37,7 +44,7 @@ class PayMongoService
                     'data' => [
                         'attributes' => [
                             'amount' => $amount * 100, // Convert to centavos
-                            'payment_method_allowed' => [$paymentMethod], // Array of allowed methods
+                            'payment_method_allowed' => [$normalizedMethod], // Array of allowed methods
                             'payment_method_options' => [
                                 'card' => [
                                     'request_three_d_secure' => 'any'
@@ -60,73 +67,14 @@ class PayMongoService
                 $responseData = $response->json();
                 $data = $responseData['data'];
                 
-                // For CARD payments, create a checkout session
-                if ($paymentMethod === 'card') {
-                    Log::info('Card payment - creating checkout session');
-                    
-                    $checkoutResponse = Http::withBasicAuth($this->secretKey, '')
-                        ->post("{$this->apiUrl}/checkout_sessions", [
-                            'data' => [
-                                'attributes' => [
-                                    'send_email_receipt' => false,
-                                    'show_description' => true,
-                                    'show_line_items' => true,
-                                    'cancel_url' => 'https://smitracked.cloud/staff/payment-callback',
-                                    'success_url' => 'https://smitracked.cloud/staff/payment-callback',
-                                    'line_items' => [
-                                        [
-                                            'currency' => 'PHP',
-                                            'amount' => $amount * 100,
-                                            'description' => $description,
-                                            'name' => 'Enrollment Fee',
-                                            'quantity' => 1,
-                                        ]
-                                    ],
-                                    'payment_method_types' => ['card'],
-                                    'description' => $description,
-                                ]
-                            ]
-                        ]);
-                    
-                    Log::info('Checkout Session Response', [
-                        'status' => $checkoutResponse->status(),
-                        'body' => $checkoutResponse->json()
-                    ]);
-                    
-                    if ($checkoutResponse->successful()) {
-                        $checkoutData = $checkoutResponse->json();
-                        $checkoutUrl = $checkoutData['data']['attributes']['checkout_url'] ?? null;
-                        
-                        Log::info('Checkout URL generated', ['url' => $checkoutUrl]);
-                        
-                        return [
-                            'success' => true,
-                            'data' => $checkoutData,
-                            'redirect_url' => $checkoutUrl,
-                            'payment_intent_id' => $data['id'],
-                            'checkout_session_id' => $checkoutData['data']['id']
-                        ];
-                    } else {
-                        Log::error('Failed to create checkout session', [
-                            'status' => $checkoutResponse->status(),
-                            'error' => $checkoutResponse->json()
-                        ]);
-                        
-                        return [
-                            'success' => false,
-                            'error' => $checkoutResponse->json()
-                        ];
-                    }
-                }
-                
                 // For e-wallets like GCash, PayMaya, GrabPay, we need to attach payment method
-                if (in_array($paymentMethod, ['gcash', 'paymaya', 'grab_pay'])) {
+                if (in_array($normalizedMethod, ['gcash', 'paymaya', 'grab_pay'])) {
                     $paymentIntentId = $data['id'];
                     $clientKey = $data['attributes']['client_key'];
                     
                     Log::info('Creating payment method for e-wallet', [
                         'payment_intent_id' => $paymentIntentId,
-                        'method' => $paymentMethod
+                        'method' => $normalizedMethod
                     ]);
                     
                     // Create payment method
@@ -134,7 +82,7 @@ class PayMongoService
                         ->post("{$this->apiUrl}/payment_methods", [
                             'data' => [
                                 'attributes' => [
-                                    'type' => $paymentMethod,
+                                    'type' => $normalizedMethod,
                                 ]
                             ]
                         ]);

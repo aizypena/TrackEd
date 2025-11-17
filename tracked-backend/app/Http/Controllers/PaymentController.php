@@ -79,9 +79,14 @@ class PaymentController extends Controller
         $request->validate([
             'user_id' => 'required|exists:users,id',
             'batch_id' => 'nullable|exists:batches,batch_id',
-            'payment_method' => 'required|in:gcash,paymaya,card,grab_pay',
+            'payment_method' => 'required|in:gcash,paymaya,maya,grab_pay',
             'amount' => 'nullable|numeric|min:1'
         ]);
+
+        // Normalize maya to paymaya for PayMongo API
+        if ($request->payment_method === 'maya') {
+            $request->merge(['payment_method' => 'paymaya']);
+        }
 
         $user = User::findOrFail($request->user_id);
         $batch = $request->batch_id ? Batch::where('batch_id', $request->batch_id)->with('program')->first() : null;
@@ -192,9 +197,14 @@ class PaymentController extends Controller
         $request->validate([
             'user_id' => 'required|exists:users,id',
             'batch_id' => 'required|exists:batches,batch_id',
-            'payment_method' => 'required|in:gcash,paymaya,grab_pay',
+            'payment_method' => 'required|in:gcash,paymaya,maya,grab_pay',
             'amount' => 'nullable|numeric|min:1'
         ]);
+
+        // Normalize maya to paymaya for PayMongo API
+        if ($request->payment_method === 'maya') {
+            $request->merge(['payment_method' => 'paymaya']);
+        }
 
         $user = User::findOrFail($request->user_id);
         $batch = Batch::where('batch_id', $request->batch_id)->with('program')->first();
