@@ -4571,7 +4571,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
                             <div class='credentials-box'>
                                 <h3 style='color: #856404; margin-top: 0;'>2. LMS LOGIN CREDENTIALS</h3>
                                 <p><strong>Learning Management System (LMS) Portal:</strong><br>
-                                <a href='https://smitracked.cloud/student/login' style='color: #0066cc;'>https://smitracked.cloud/student/login</a></p>
+                                <a href='https://smitracked.cloud/smi-lms/login' style='color: #0066cc;'>https://smitracked.cloud/smi-lms/login</a></p>
                                 
                                 <p style='margin-top: 15px;'><strong>Your Login Details:</strong></p>
                                 <p style='margin: 5px 0;'><strong>Username:</strong> {$studentId}</p>
@@ -5100,7 +5100,7 @@ Pasay City, Metro Manila 1100</p>
                             <div class='credentials-box'>
                                 <h3 style='color: #856404; margin-top: 0;'>LMS LOGIN CREDENTIALS</h3>
                                 <p><strong>Learning Management System (LMS) Portal:</strong><br>
-                                <a href='https://smitracked.cloud/student/login' style='color: #0066cc;'>https://smitracked.cloud/student/login</a></p>
+                                <a href='https://smitracked.cloud/smi-lms/login' style='color: #0066cc;'>https://smitracked.cloud/smi-lms/login</a></p>
                                 
                                 <p style='margin-top: 15px;'><strong>Your Login Details:</strong></p>
                                 <p style='margin: 5px 0;'><strong>Username:</strong> {$studentId}</p>

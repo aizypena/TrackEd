@@ -94,8 +94,8 @@ const Home = () => {
               TESDA Accredited Training Center • Established 2010
             </div>
             <h1 className="text-6xl md:text-7xl font-bold mb-8 leading-tight">
-              SMI Training
-              <span className="block text-yellow-400">Institute</span>
+              SMI INSTITUTE
+              <span className="block text-yellow-400">INC</span>
             </h1>
             <h2 className="text-2xl md:text-3xl font-light mb-8 max-w-4xl mx-auto opacity-90">
               Excellence in Tourism, Hospitality & Culinary Education
