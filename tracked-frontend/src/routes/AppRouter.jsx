@@ -5,6 +5,7 @@ import ForgotPassword from '../pages/ForgotPassword';
 import About from '../pages/About';
 import CourseOffered from '../pages/CourseOffered';
 import FAQ from '../pages/FAQ';
+import ContactUs from '../pages/ContactUs';
 import TermsAndCondition from '../pages/TermsAndCondition';
 import PrivacyPolicy from '../pages/PrivacyPolicy';
 import Application from '../pages/applicants/Application';
@@ -35,6 +36,7 @@ const AppRouter = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/about" element={<About />} />
         <Route path="/courses" element={<CourseOffered />} />
+        <Route path="/contact-us" element={<ContactUs />} />
         <Route path="/faq" element={<FAQ />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path='/terms-and-conditions' element={<TermsAndCondition />} />

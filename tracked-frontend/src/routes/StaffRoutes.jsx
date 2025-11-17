@@ -24,6 +24,7 @@ import StaffAssessmentReports from '../pages/staff/StaffAssessmentReports';
 import StaffInventoryReports from '../pages/staff/StaffInventoryReports';
 import StaffPaymentReports from '../pages/staff/StaffPaymentReports';
 import StaffProgramManagement from '../pages/staff/StaffProgramManagement';
+import StaffContactMessages from '../pages/staff/StaffContactMessages';
 
 const StaffRoutes = () => {
   return (
@@ -81,6 +82,9 @@ const StaffRoutes = () => {
       
       {/* Staff Program Management */}
       <Route path='/programs' element={<ProtectedStaffRoute><StaffProgramManagement /></ProtectedStaffRoute>} />
+      
+      {/* Staff Contact Messages */}
+      <Route path='/contact-messages' element={<ProtectedStaffRoute><StaffContactMessages /></ProtectedStaffRoute>} />
     </Routes>
   );
 };

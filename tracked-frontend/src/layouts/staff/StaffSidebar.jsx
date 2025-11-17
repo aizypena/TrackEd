@@ -17,7 +17,8 @@ import {
   MdExpandMore,
   MdChevronRight,
   MdRefresh,
-  MdLibraryBooks
+  MdLibraryBooks,
+  MdReport
 } from 'react-icons/md';
 
 const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsCollapsed }) => {
@@ -136,6 +137,11 @@ const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsColla
         { name: 'Inventory Reports', path: '/staff/reports/inventory' },
         { name: 'Payment Reports', path: '/staff/reports/payments' }
       ]
+    },
+    {
+      name: 'Contact Messages',
+      path: '/staff/contact-messages',
+      icon: <MdReport className="h-5 w-5" />
     }
   ];
 

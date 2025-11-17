@@ -34,7 +34,7 @@ const About = () => {
       <Navbar />
       
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-tracked-primary to-blue-800 text-white py-16">
+      <div className="bg-tracked-primary text-white py-16">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <img 
             src="/smi-logo.jpg" 

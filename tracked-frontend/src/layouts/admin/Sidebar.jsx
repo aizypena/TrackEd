@@ -105,6 +105,13 @@ function Sidebar({ isOpen, onClose }) {
       ]
     },
     {
+      id: 'contact-messages',
+      name: 'Contact Messages',
+      icon: MdReport,
+      path: '/admin/contact-messages',
+      badge: null
+    },
+    {
       id: 'profile-settings',
       name: 'Profile Settings',
       icon: MdAccountCircle,

@@ -32,6 +32,12 @@ const Navbar = () => {
               Course Offered
             </Link>
             <Link 
+              to="/contact-us" 
+              className="text-gray-700 hover:text-tracked-primary px-3 py-2 text-sm font-medium transition duration-200"
+            >
+              Contact Us
+            </Link>
+            <Link 
               to="/faq" 
               className="text-gray-700 hover:text-tracked-primary px-3 py-2 text-sm font-medium transition duration-200"
             >

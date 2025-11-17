@@ -19,6 +19,7 @@ import InventoryUsage from '../pages/admin/InventoryUsage';
 import StudentList from '../pages/admin/StudentList';
 import SystemSettings from '../pages/admin/SystemSettings';
 import SystemLogs from '../pages/admin/SystemLogs';
+import ContactMessages from '../pages/admin/ContactMessages';
 import AdminProfileSettings from '../pages/admin/AdminProfileSettings';
 import NotFound from '../pages/NotFound';
 
@@ -167,6 +168,14 @@ const AdminRoutes = () => {
         element={
           <ProtectedAdminRoute>
             <SystemLogs />
+          </ProtectedAdminRoute>
+        }
+      />
+      <Route
+        path="/contact-messages"
+        element={
+          <ProtectedAdminRoute>
+            <ContactMessages />
           </ProtectedAdminRoute>
         }
       />

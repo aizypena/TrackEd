@@ -18,6 +18,7 @@ use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\QuizController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\StorageController;
+use App\Http\Controllers\ContactController;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 
@@ -31,6 +32,9 @@ Route::get('/storage-file/{path}', [StorageController::class, 'serve'])->where('
 
 // Application routes
 Route::post('/application', [ApplicationController::class, 'submit']);
+
+// Contact form routes (public - no auth required)
+Route::post('/contact', [ContactController::class, 'store']);
 
 // Public Programs Route (for homepage - no auth required)
 Route::get('/public/programs', function (Request $request) {
@@ -1113,6 +1117,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
             'recentActivities' => $recentActivities
         ]);
     });
+
+    // Admin Contact Messages Routes
+    Route::get('/admin/contact-messages', [ContactController::class, 'index']);
+    Route::patch('/admin/contact-messages/{id}/status', [ContactController::class, 'updateStatus']);
 
     // Admin System Logs Route
     Route::get('/admin/system-logs', function (Request $request) {
@@ -3519,6 +3527,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
     
     // Staff Routes
+    // Staff Contact Messages Routes
+    Route::get('/staff/contact-messages', [ContactController::class, 'index']);
+    Route::patch('/staff/contact-messages/{id}/status', [ContactController::class, 'updateStatus']);
+
     // Get Staff Profile
     Route::get('/staff/profile', function (Request $request) {
         $user = $request->user();
