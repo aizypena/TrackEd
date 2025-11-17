@@ -735,7 +735,7 @@ const CertificationManagement = () => {
 
                   <div className="pt-8 mt-8">
                     <div className="border-t-2 border-gray-800 w-64 mx-auto mb-2"></div>
-                    <p className="text-sm text-gray-700">Authorized Signature</p>
+                    <p className="text-sm text-gray-700">Mr. Rolando S. Luzano</p>
                   </div>
 
                   {/* Official Seal */}
