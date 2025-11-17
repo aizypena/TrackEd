@@ -4895,7 +4895,7 @@ Pasay City, Metro Manila 1100</p>
     // Process Payment and Enroll Student (Non-Voucher Eligible)
     Route::post('/staff/applicants/{id}/process-payment', function (Request $request, $id) {
         $request->validate([
-            'payment_method' => 'required|in:cash,credit_card,debit_card,gcash,maya',
+            'payment_method' => 'required|in:cash,credit_card,debit_card,gcash,maya,paymaya',
             'amount_paid' => 'required|numeric|min:0',
             'reference_number' => 'nullable|string',
             'notes' => 'nullable|string'
