@@ -102,6 +102,24 @@ const TrainerAttendance = () => {
     }
   };
 
+  const getFilteredBatches = () => {
+    if (selectedProgram === 'all') {
+      return batches;
+    }
+    return batches.filter(batch => batch.program_id === parseInt(selectedProgram));
+  };
+
+  const getFilteredPrograms = () => {
+    if (selectedBatch === 'all') {
+      return programs;
+    }
+    const batch = batches.find(b => b.batch_id === selectedBatch);
+    if (batch) {
+      return programs.filter(p => p.id === batch.program_id);
+    }
+    return programs;
+  };
+
   const fetchStudents = async () => {
     try {
       setLoading(true);
@@ -364,13 +382,22 @@ const TrainerAttendance = () => {
               <div className="relative">
                 <select
                   value={selectedProgram}
-                  onChange={(e) => setSelectedProgram(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedProgram(e.target.value);
+                    // Reset batch if it doesn't belong to the selected program
+                    if (e.target.value !== 'all' && selectedBatch !== 'all') {
+                      const batch = batches.find(b => b.batch_id === selectedBatch);
+                      if (batch && batch.program_id !== parseInt(e.target.value)) {
+                        setSelectedBatch('all');
+                      }
+                    }
+                  }}
                   className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md"
                 >
                   <option value="all">All Programs</option>
-                  {programs.map((program) => (
+                  {getFilteredPrograms().map((program) => (
                     <option key={program.id} value={program.id}>
-                      {program.name}
+                      {program.title}
                     </option>
                   ))}
                 </select>
@@ -380,11 +407,20 @@ const TrainerAttendance = () => {
               <div className="relative">
                 <select
                   value={selectedBatch}
-                  onChange={(e) => setSelectedBatch(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedBatch(e.target.value);
+                    // Auto-select program if batch is selected
+                    if (e.target.value !== 'all') {
+                      const batch = batches.find(b => b.batch_id === e.target.value);
+                      if (batch && selectedProgram === 'all') {
+                        setSelectedProgram(batch.program_id.toString());
+                      }
+                    }
+                  }}
                   className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md"
                 >
                   <option value="all">All Batches</option>
-                  {batches.map((batch) => (
+                  {getFilteredBatches().map((batch) => (
                     <option key={batch.batch_id} value={batch.batch_id}>
                       {batch.batch_id} - {batch.program_name}
                     </option>
