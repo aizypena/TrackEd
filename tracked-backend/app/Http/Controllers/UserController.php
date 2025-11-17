@@ -214,7 +214,7 @@ class UserController extends Controller
                     \Illuminate\Support\Facades\Mail::send('emails.student-credentials', [
                         'student' => $user,
                         'password' => $plainPassword,
-                        'loginUrl' => env('FRONTEND_URL', 'http://localhost:5173') . '/student/login'
+                        'loginUrl' => env('FRONTEND_URL', 'https://smitracked.cloud') . '/student/login'
                     ], function ($message) use ($user) {
                         $message->to($user->email)
                                 ->subject('Student Credentials - TrackEd System');

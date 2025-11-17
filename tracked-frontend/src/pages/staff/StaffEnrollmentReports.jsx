@@ -35,7 +35,7 @@ const StaffEnrollmentReports = () => {
         return;
       }
       
-      const response = await fetch('http://localhost:8000/api/staff/programs', {
+      const response = await fetch('https://api.smitracked.cloud/api/staff/programs', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -70,7 +70,7 @@ const StaffEnrollmentReports = () => {
         status: statusFilter
       });
 
-      const response = await fetch(`http://localhost:8000/api/staff/enrollment-report?${params}`, {
+      const response = await fetch(`https://api.smitracked.cloud/api/staff/enrollment-report?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -99,7 +99,7 @@ const StaffEnrollmentReports = () => {
   const logAction = async (action, description) => {
     try {
       const token = getStaffToken();
-      await fetch('http://localhost:8000/api/log-action', {
+      await fetch('https://api.smitracked.cloud/api/log-action', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

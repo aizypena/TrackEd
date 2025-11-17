@@ -178,7 +178,7 @@ const StudentDetailModal = ({ student, onClose, getStatusBadge, getPaymentBadge 
                       <span className="text-sm font-medium text-gray-700">Valid ID</span>
                     </div>
                     <a
-                      href={`http://localhost:8000/api/storage-file/${student.documents.valid_id}`}
+                      href={`https://api.smitracked.cloud/api/storage-file/${student.documents.valid_id}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-3 py-1 bg-tracked-primary text-white text-xs rounded-md hover:bg-tracked-secondary transition-colors"
@@ -196,7 +196,7 @@ const StudentDetailModal = ({ student, onClose, getStatusBadge, getPaymentBadge 
                       <span className="text-sm font-medium text-gray-700">Transcript of Records</span>
                     </div>
                     <a
-                      href={`http://localhost:8000/api/storage-file/${student.documents.transcript}`}
+                      href={`https://api.smitracked.cloud/api/storage-file/${student.documents.transcript}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-3 py-1 bg-tracked-primary text-white text-xs rounded-md hover:bg-tracked-secondary transition-colors"
@@ -214,7 +214,7 @@ const StudentDetailModal = ({ student, onClose, getStatusBadge, getPaymentBadge 
                       <span className="text-sm font-medium text-gray-700">Diploma</span>
                     </div>
                     <a
-                      href={`http://localhost:8000/api/storage-file/${student.documents.diploma}`}
+                      href={`https://api.smitracked.cloud/api/storage-file/${student.documents.diploma}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-3 py-1 bg-tracked-primary text-white text-xs rounded-md hover:bg-tracked-secondary transition-colors"
@@ -232,7 +232,7 @@ const StudentDetailModal = ({ student, onClose, getStatusBadge, getPaymentBadge 
                       <span className="text-sm font-medium text-gray-700">Passport Photo</span>
                     </div>
                     <a
-                      href={`http://localhost:8000/api/storage-file/${student.documents.passport_photo}`}
+                      href={`https://api.smitracked.cloud/api/storage-file/${student.documents.passport_photo}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-3 py-1 bg-tracked-primary text-white text-xs rounded-md hover:bg-tracked-secondary transition-colors"

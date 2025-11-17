@@ -63,7 +63,7 @@ function AddUser() {
   useEffect(() => {
     const fetchPrograms = async () => {
       try {
-        const response = await fetch('http://localhost:8000/api/programs');
+        const response = await fetch('https://api.smitracked.cloud/api/programs');
         if (response.ok) {
           const data = await response.json();
           setAvailablePrograms(data.data || []);
@@ -239,7 +239,7 @@ function AddUser() {
         // Log user creation
         const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
         if (token) {
-          await fetch('http://localhost:8000/api/log-action', {
+          await fetch('https://api.smitracked.cloud/api/log-action', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -267,7 +267,7 @@ function AddUser() {
       try {
         const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
         if (token) {
-          await fetch('http://localhost:8000/api/log-action', {
+          await fetch('https://api.smitracked.cloud/api/log-action', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,

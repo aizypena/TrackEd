@@ -30,7 +30,7 @@ const ApplicantDashboard = () => {
       
       if (token) {
         // Call backend logout endpoint to log the action
-        await fetch('http://localhost:8000/api/logout', {
+        await fetch('https://api.smitracked.cloud/api/logout', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -96,7 +96,7 @@ const ApplicantDashboard = () => {
 
     const fetchCurrentUserData = async (token) => {
       try {
-        const response = await fetch('http://127.0.0.1:8000/api/me', {
+        const response = await fetch('https://api.smitracked.cloud/api/me', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,

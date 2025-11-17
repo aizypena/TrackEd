@@ -43,7 +43,7 @@ const TrainerStudents = () => {
   const fetchTrainerBatches = async () => {
     try {
       const token = getTrainerToken();
-      const response = await fetch('http://localhost:8000/api/trainer/batches', {
+      const response = await fetch('https://api.smitracked.cloud/api/trainer/batches', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -81,7 +81,7 @@ const TrainerStudents = () => {
         return;
       }
       
-      const response = await fetch('http://localhost:8000/api/trainer/students', {
+      const response = await fetch('https://api.smitracked.cloud/api/trainer/students', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',

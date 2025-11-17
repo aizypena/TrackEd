@@ -34,7 +34,7 @@ const AddBatch = ({ isOpen, onClose, batch, programs, onSuccess }) => {
       // Try to get token from either staff or admin
       const token = getStaffToken() || localStorage.getItem('adminToken');
       
-      const response = await fetch('http://localhost:8000/api/users?role=trainer&status=active', {
+      const response = await fetch('https://api.smitracked.cloud/api/users?role=trainer&status=active', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -221,7 +221,7 @@ const AddBatch = ({ isOpen, onClose, batch, programs, onSuccess }) => {
         token = localStorage.getItem('adminToken');
       }
       
-      await fetch('http://localhost:8000/api/log-action', {
+      await fetch('https://api.smitracked.cloud/api/log-action', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

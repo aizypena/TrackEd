@@ -50,7 +50,7 @@ const InventoryUsage = () => {
       if (sortBy) params.append('sort_by', sortBy);
 
       const response = await fetch(
-        `http://localhost:8000/api/admin/inventory/usage?${params}`,
+        `https://api.smitracked.cloud/api/admin/inventory/usage?${params}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,

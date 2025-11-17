@@ -46,7 +46,7 @@ const CoursePrograms = () => {
   const logAction = async (action, description, level = 'info') => {
     try {
       const token = localStorage.getItem('adminToken');
-      await fetch('http://localhost:8000/api/log-action', {
+      await fetch('https://api.smitracked.cloud/api/log-action', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -110,7 +110,7 @@ const CoursePrograms = () => {
       const token = localStorage.getItem('adminToken');
       
       // First verify the admin password
-      const verifyResponse = await fetch('http://localhost:8000/api/admin/verify-password', {
+      const verifyResponse = await fetch('https://api.smitracked.cloud/api/admin/verify-password', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
