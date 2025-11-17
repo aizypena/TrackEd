@@ -2235,6 +2235,67 @@ Route::middleware(['auth:sanctum'])->group(function () {
             ]
         ]);
     });
+
+    // Get attendance summary/history for trainer
+    Route::get('/trainer/attendance/summary', function (Request $request) {
+        $user = $request->user();
+        
+        if ($user->role !== 'trainer') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $batchId = $request->query('batch_id');
+        $programId = $request->query('program_id');
+
+        // Build query for attendance records from trainer's batches
+        $query = DB::table('attendances')
+            ->join('users', 'attendances.user_id', '=', 'users.id')
+            ->join('batches', 'attendances.batch_id', '=', 'batches.batch_id')
+            ->join('programs', 'batches.program_id', '=', 'programs.id')
+            ->where('batches.trainer_id', $user->id)
+            ->where('users.role', 'student');
+
+        if ($batchId && $batchId !== 'all') {
+            $query->where('attendances.batch_id', $batchId);
+        }
+
+        if ($programId && $programId !== 'all') {
+            $query->where('batches.program_id', $programId);
+        }
+
+        $attendanceRecords = $query->select(
+            'attendances.id',
+            'attendances.date',
+            'attendances.status',
+            'attendances.time_in',
+            'attendances.time_out',
+            'attendances.total_hours',
+            'attendances.remarks',
+            'users.student_id',
+            'users.first_name',
+            'users.last_name',
+            'attendances.batch_id',
+            'programs.title as program_name',
+            'batches.program_id'
+        )
+        ->orderBy('attendances.date', 'desc')
+        ->get();
+
+        // Calculate statistics
+        $statistics = [
+            'total' => $attendanceRecords->count(),
+            'present' => $attendanceRecords->where('status', 'present')->count(),
+            'late' => $attendanceRecords->where('status', 'late')->count(),
+            'absent' => $attendanceRecords->where('status', 'absent')->count(),
+            'excused' => $attendanceRecords->where('status', 'excused')->count(),
+        ];
+
+        return response()->json([
+            'success' => true,
+            'data' => $attendanceRecords,
+            'statistics' => $statistics
+        ]);
+    });
     
     // Get trainer's assessment results
     Route::get('/trainer/assessment-results', function (Request $request) {
@@ -7630,6 +7691,19 @@ Pasay City, Metro Manila 1100</p>
         
         // Transform the records
         $formattedRecords = $attendanceRecords->map(function ($record) use ($program, $trainer, $batch) {
+            // Calculate late minutes if applicable
+            $lateMinutes = null;
+            if ($record->status === 'late' && $record->time_in && $batch->schedule_time_start) {
+                try {
+                    $scheduledTime = new \DateTime($record->date . ' ' . $batch->schedule_time_start);
+                    $actualTime = new \DateTime($record->time_in);
+                    $diff = $scheduledTime->diff($actualTime);
+                    $lateMinutes = ($diff->h * 60) + $diff->i;
+                } catch (\Exception $e) {
+                    $lateMinutes = null;
+                }
+            }
+
             return [
                 'id' => $record->id,
                 'date' => $record->date,
@@ -7638,12 +7712,15 @@ Pasay City, Metro Manila 1100</p>
                 'time_out' => $record->time_out,
                 'total_hours' => $record->total_hours,
                 'remarks' => $record->remarks,
+                'reason' => $record->remarks, // For absence reasons
+                'topic' => null, // Can be added if you track topics
+                'lateMinutes' => $lateMinutes,
                 'courseTitle' => $program ? $program->title : 'N/A',
                 'courseCode' => $program ? $program->code : 'N/A',
                 'instructor' => $trainer ? ($trainer->first_name . ' ' . $trainer->last_name) : 'TBA',
                 'location' => 'Training Room',
-                'startTime' => substr($batch->schedule_time_start, 0, 5),
-                'endTime' => substr($batch->schedule_time_end, 0, 5),
+                'startTime' => $batch->schedule_time_start ? substr($batch->schedule_time_start, 0, 5) : '00:00',
+                'endTime' => $batch->schedule_time_end ? substr($batch->schedule_time_end, 0, 5) : '00:00',
             ];
         });
         
