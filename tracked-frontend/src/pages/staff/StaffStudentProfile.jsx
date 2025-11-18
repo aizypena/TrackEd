@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import StaffSidebar from '../../layouts/staff/StaffSidebar';
 import StudentDetailModal from '../../components/staff/StudentDetailModal';
+import EditStudentModal from '../../components/staff/EditStudentModal';
 import { getStaffToken } from '../../utils/staffAuth';
 import toast, { Toaster } from 'react-hot-toast';
 import * as XLSX from 'xlsx';
@@ -36,11 +37,14 @@ const StaffStudentProfile = () => {
   const [programFilter, setProgramFilter] = useState('all');
   const [sortBy, setSortBy] = useState('name');
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [editingStudent, setEditingStudent] = useState(null);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [allPrograms, setAllPrograms] = useState([]);
 
   useEffect(() => {
     fetchStudents();
+    fetchPrograms();
   }, []);
 
   // Function to log system action
@@ -66,6 +70,31 @@ const StaffStudentProfile = () => {
       }
     } catch (error) {
       console.error('Error logging system action:', error);
+    }
+  };
+
+  const fetchPrograms = async () => {
+    try {
+      const token = getStaffToken();
+      const response = await fetch('https://api.smitracked.cloud/api/programs?per_page=all', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Programs API response:', data); // Debug log
+        // Handle different response structures
+        const programsList = data.programs || data.data || data || [];
+        console.log('Programs list:', programsList); // Debug log
+        setAllPrograms(programsList);
+      } else {
+        console.error('Failed to fetch programs:', response.status);
+      }
+    } catch (error) {
+      console.error('Error fetching programs:', error);
     }
   };
 
@@ -186,9 +215,6 @@ const StaffStudentProfile = () => {
       setLoading(false);
     }
   };
-
-  // Get unique programs from students
-  const programs = [...new Set(students.map(s => s.program))].filter(p => p !== 'N/A');
 
   // Export to Excel function
   const handleExportToExcel = async () => {
@@ -458,8 +484,8 @@ const StaffStudentProfile = () => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-tracked-primary focus:border-tracked-primary"
                 >
                   <option value="all">All Programs</option>
-                  {programs.map((program) => (
-                    <option key={program} value={program}>{program}</option>
+                  {allPrograms.map((program) => (
+                    <option key={program.id} value={program.title}>{program.title}</option>
                   ))}
                 </select>
               </div>
@@ -554,19 +580,21 @@ const StaffStudentProfile = () => {
                         <div className="text-sm text-gray-500">{student.batch}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex flex-col gap-1">
-                          {getStatusBadge(student.enrollmentStatus)}
-                          {getPaymentBadge(student.paymentStatus)}
-                        </div>
+                        {getStatusBadge(student.enrollmentStatus)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button
                           onClick={() => setSelectedStudent(student)}
                           className="text-tracked-primary hover:text-tracked-secondary mr-3"
+                          title="View Details"
                         >
                           <MdVisibility className="h-5 w-5 inline" />
                         </button>
-                        <button className="text-blue-600 hover:text-blue-900">
+                        <button 
+                          onClick={() => setEditingStudent(student)}
+                          className="text-blue-600 hover:text-blue-900"
+                          title="Edit Student"
+                        >
                           <MdEdit className="h-5 w-5 inline" />
                         </button>
                       </td>
@@ -590,6 +618,16 @@ const StaffStudentProfile = () => {
         onClose={() => setSelectedStudent(null)}
         getStatusBadge={getStatusBadge}
         getPaymentBadge={getPaymentBadge}
+      />
+
+      {/* Edit Student Modal */}
+      <EditStudentModal
+        student={editingStudent}
+        onClose={() => setEditingStudent(null)}
+        onSuccess={() => {
+          fetchStudents();
+          setEditingStudent(null);
+        }}
       />
 
       {/* Toast Notifications */}

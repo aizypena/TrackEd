@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import StaffSidebar from '../../layouts/staff/StaffSidebar';
+import Sidebar from '../../layouts/admin/Sidebar';
 import AddEditEquipmentModal from '../../components/staff/AddEditEquipmentModal';
 import ViewEquipmentModal from '../../components/staff/ViewEquipmentModal';
 import DeleteConfirmationModal from '../../components/staff/DeleteConfirmationModal';
@@ -8,7 +8,7 @@ import AssignEquipmentModal from '../../components/staff/AssignEquipmentModal';
 import ManageAssignmentsModal from '../../components/staff/ManageAssignmentsModal';
 import MaintenanceModal from '../../components/staff/MaintenanceModal';
 import { equipmentAPI } from '../../services/equipmentAPI';
-import { getStaffToken } from '../../utils/staffAuth';
+import { getAdminToken } from '../../utils/adminAuth';
 import axios from 'axios';
 import { 
   MdMenu,
@@ -30,9 +30,8 @@ import {
   MdAssignmentReturn
 } from 'react-icons/md';
 
-const StaffEquipment = () => {
+const AdminEquipment = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -58,7 +57,6 @@ const StaffEquipment = () => {
     needsMaintenance: 0
   });
 
-  // Fetch equipment on mount and when filters change
   useEffect(() => {
     fetchEquipment();
     fetchCategories();
@@ -69,10 +67,9 @@ const StaffEquipment = () => {
     fetchEquipment();
   }, [searchTerm, categoryFilter, statusFilter, locationFilter, sortBy]);
 
-  // Function to log system action
   const logSystemAction = async (action, description, logLevel = 'info') => {
     try {
-      const token = getStaffToken();
+      const token = getAdminToken();
       const response = await fetch('https://api.smitracked.cloud/api/log-action', {
         method: 'POST',
         headers: {
@@ -113,6 +110,7 @@ const StaffEquipment = () => {
       }
     } catch (error) {
       console.error('Error fetching equipment:', error);
+      setErrorMessage('Failed to load equipment');
     } finally {
       setLoading(false);
     }
@@ -152,7 +150,6 @@ const StaffEquipment = () => {
     setStats(calculated);
   };
 
-  // Auto-hide messages
   useEffect(() => {
     if (successMessage) {
       const timer = setTimeout(() => setSuccessMessage(''), 3000);
@@ -178,36 +175,30 @@ const StaffEquipment = () => {
   };
 
   const handleDeleteEquipment = (item) => {
-    // Open the delete confirmation modal
     setDeletingEquipment(item);
   };
 
   const handleAssignEquipment = (item) => {
-    // Open the assign equipment modal
-    setSelectedEquipment(null); // Close view modal if open
+    setSelectedEquipment(null);
     setAssigningEquipment(item);
   };
 
   const handleManageAssignments = (item) => {
-    // Open the manage assignments modal
-    setSelectedEquipment(null); // Close view modal if open
+    setSelectedEquipment(null);
     setManagingEquipment(item);
   };
 
   const handleMaintenance = (item) => {
-    // Open the maintenance modal
-    setSelectedEquipment(null); // Close view modal if open
+    setSelectedEquipment(null);
     setMaintainingEquipment(item);
   };
 
   const handleCompleteMaintenance = async (item) => {
     try {
-      // Calculate restored availability
       const maintenanceCount = item.maintenance || 0;
       const damagedCount = item.damaged || 0;
       const restoredCount = item.status === 'maintenance' ? maintenanceCount : (item.status === 'damaged' ? damagedCount : 0);
       
-      // Update equipment status to available and restore counts
       const response = await equipmentAPI.update(item.id, {
         ...item,
         status: 'available',
@@ -217,13 +208,12 @@ const StaffEquipment = () => {
       });
 
       if (response.success) {
-        // Get staff user info for logging
-        const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
-        const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
+        const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+        const adminName = adminUser.name || 'Admin';
 
         await logSystemAction(
           'equipment_maintenance_completed',
-          `${staffName} marked maintenance as complete for ${item.equipment_code} (${item.name}) - Status changed from ${item.status} to available, ${restoredCount} unit(s) restored to available`,
+          `${adminName} marked maintenance as complete for ${item.equipment_code} (${item.name}) - Status changed from ${item.status} to available, ${restoredCount} unit(s) restored to available`,
           'info'
         );
 
@@ -231,7 +221,7 @@ const StaffEquipment = () => {
         setSelectedEquipment(null);
         fetchEquipment();
       } else {
-        setErrorMessage(response.message || 'Failed to update equipment status');
+        setErrorMessage(response.data.message || 'Failed to update equipment status');
       }
     } catch (error) {
       console.error('Error completing maintenance:', error);
@@ -243,31 +233,21 @@ const StaffEquipment = () => {
     if (!deletingEquipment) return;
 
     try {
-      // Get the logged-in user's email from localStorage
-      // Check for staff user first, then admin user
-      const staffUserStr = localStorage.getItem('staffUser');
       const adminUserStr = localStorage.getItem('adminUser');
       
-      let user = null;
-      if (staffUserStr) {
-        user = JSON.parse(staffUserStr);
-      } else if (adminUserStr) {
-        user = JSON.parse(adminUserStr);
-      }
-
-      if (!user) {
+      if (!adminUserStr) {
         throw new Error('User session not found. Please log in again.');
       }
       
+      const user = JSON.parse(adminUserStr);
       const email = user.email;
 
       if (!email) {
         throw new Error('User email not found. Please log in again.');
       }
 
-      // Verify the user's password
       const API_URL = 'https://api.smitracked.cloud/api';
-      const loginResponse = await axios.post(`${API_URL}/login`, {
+      const loginResponse = await axios.post(`${API_URL}/admin/login`, {
         email,
         password
       });
@@ -276,17 +256,14 @@ const StaffEquipment = () => {
         throw new Error('Invalid password');
       }
 
-      // If password is valid, proceed with deletion
       const response = await equipmentAPI.delete(deletingEquipment.id);
       if (response.success) {
-        // Get staff user info for logging
-        const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
-        const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
+        const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+        const adminName = adminUser.name || 'Admin';
 
-        // Log the deletion
         await logSystemAction(
           'equipment_deleted',
-          `${staffName} deleted equipment ${deletingEquipment.equipment_code} (${deletingEquipment.name}) - Category: ${deletingEquipment.category}, Quantity: ${deletingEquipment.quantity}`,
+          `${adminName} deleted equipment ${deletingEquipment.equipment_code} (${deletingEquipment.name}) - Category: ${deletingEquipment.category}, Quantity: ${deletingEquipment.quantity}`,
           'warning'
         );
 
@@ -294,16 +271,14 @@ const StaffEquipment = () => {
         setDeletingEquipment(null);
         fetchEquipment();
       } else {
-        throw new Error(response.message || 'Failed to delete equipment');
+        throw new Error(response.data.message || 'Failed to delete equipment');
       }
     } catch (error) {
       console.error('Error deleting equipment:', error);
-      // Re-throw the error so the modal can display it
       throw new Error(error.response?.data?.message || error.message || 'Failed to authenticate or delete equipment');
     }
   };
 
-  // Helper function for status badges (used in grid/list views)
   const getStatusBadge = (status) => {
     const statusConfig = {
       available: {
@@ -343,7 +318,6 @@ const StaffEquipment = () => {
     );
   };
 
-  // Helper function for condition badges (used in grid/list views)
   const getConditionBadge = (condition) => {
     const conditionConfig = {
       excellent: { className: 'bg-green-100 text-green-800', label: 'Excellent' },
@@ -361,7 +335,6 @@ const StaffEquipment = () => {
     );
   };
 
-  // Helper function for currency formatting (used in grid/list views)
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-PH', {
       style: 'currency',
@@ -369,22 +342,15 @@ const StaffEquipment = () => {
     }).format(amount);
   };
 
-  // Filtered equipment is now handled by API, so we just use equipment directly
   const filteredEquipment = equipment;
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <StaffSidebar 
-        isOpen={sidebarOpen} 
-        onClose={() => setSidebarOpen(false)}
-        isCollapsed={sidebarCollapsed}
-        setIsCollapsed={setSidebarCollapsed}
-      />
+    <div className="min-h-screen bg-gray-100 flex">
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
-      {/* Main Content */}
-      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
+      <div className="flex-1 flex flex-col">
         {/* Top Navigation */}
-        <nav className="bg-tracked-primary text-white p-4">
+        <nav className="bg-tracked-primary text-white p-4 shadow-md">
           <div className="container mx-auto flex justify-between items-center">
             <div className="flex items-center gap-4">
               <button
@@ -409,7 +375,7 @@ const StaffEquipment = () => {
         </nav>
         
         {/* Dashboard Content */}
-        <div className="container mx-auto p-6">
+        <div className="flex-1 overflow-auto p-6">
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-white rounded-lg shadow-md p-4">
@@ -550,160 +516,156 @@ const StaffEquipment = () => {
                   <MdRefresh className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
                   Refresh
                 </button>
-                <button className="flex hover:cursor-pointer items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
-                  <MdDownload className="h-5 w-5" />
-                  Export
-                </button>
               </div>
             </div>
           </div>
 
-          {/* List View */}
+          {/* Equipment Table */}
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
             <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Equipment Details
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Category
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Location
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Availability
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Condition
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Value
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredEquipment.length > 0 ? (
-                      filteredEquipment.map((item) => (
-                        <tr key={item.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4">
-                            <div className="text-sm font-medium text-gray-900">{item.name}</div>
-                            <div className="text-xs text-gray-500">{item.equipment_code}</div>
-                            <div className="text-xs text-gray-500 mt-1">{item.brand} - {item.model}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{item.category}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center gap-1 text-sm text-gray-900">
-                              <MdLocationOn className="h-4 w-4 text-gray-400" />
-                              {item.location}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex gap-2 text-xs">
-                              <span className="text-green-600">✓ {item.available}</span>
-                              <span className="text-blue-600">● {item.in_use}</span>
-                              {(item.maintenance + item.damaged) > 0 && (
-                                <span className="text-red-600">⚠ {item.maintenance + item.damaged}</span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {getConditionBadge(item.condition)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {getStatusBadge(item.status)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-semibold text-tracked-primary">{formatCurrency(item.value)}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex gap-2">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Equipment Details
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Category
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Location
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Availability
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Condition
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Value
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredEquipment.length > 0 ? (
+                    filteredEquipment.map((item) => (
+                      <tr key={item.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-medium text-gray-900">{item.name}</div>
+                          <div className="text-xs text-gray-500">{item.equipment_code}</div>
+                          <div className="text-xs text-gray-500 mt-1">{item.brand} - {item.model}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{item.category}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-1 text-sm text-gray-900">
+                            <MdLocationOn className="h-4 w-4 text-gray-400" />
+                            {item.location}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex gap-2 text-xs">
+                            <span className="text-green-600">✓ {item.available}</span>
+                            <span className="text-blue-600">● {item.in_use}</span>
+                            {(item.maintenance + item.damaged) > 0 && (
+                              <span className="text-red-600">⚠ {item.maintenance + item.damaged}</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {getConditionBadge(item.condition)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {getStatusBadge(item.status)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-semibold text-tracked-primary">{formatCurrency(item.value)}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setSelectedEquipment(item)}
+                              className="text-tracked-primary hover:cursor-pointer hover:text-tracked-secondary"
+                              title="View Details"
+                            >
+                              <MdVisibility className="h-5 w-5" />
+                            </button>
+                            {item.available > 0 && item.status !== 'maintenance' && item.status !== 'damaged' && (
                               <button
-                                onClick={() => setSelectedEquipment(item)}
-                                className="text-tracked-primary hover:cursor-pointer hover:text-tracked-secondary"
-                                title="View Details"
+                                onClick={() => handleAssignEquipment(item)}
+                                className="text-blue-600 hover:cursor-pointer hover:text-blue-700"
+                                title="Assign to Batch"
                               >
-                                <MdVisibility className="h-5 w-5" />
+                                <MdAssignment className="h-5 w-5" />
                               </button>
-                              {item.available > 0 && item.status !== 'maintenance' && item.status !== 'damaged' && (
-                                <button
-                                  onClick={() => handleAssignEquipment(item)}
-                                  className="text-blue-600 hover:cursor-pointer hover:text-blue-700"
-                                  title="Assign to Batch"
-                                >
-                                  <MdAssignment className="h-5 w-5" />
-                                </button>
-                              )}
-                              {item.in_use > 0 && (
-                                <button
-                                  onClick={() => handleManageAssignments(item)}
-                                  className="text-purple-600 hover:cursor-pointer hover:text-purple-700"
-                                  title="Return Equipment"
-                                >
-                                  <MdAssignmentReturn className="h-5 w-5" />
-                                </button>
-                              )}
-                              {(item.status === 'maintenance' || item.status === 'damaged') && (
-                                <button
-                                  onClick={() => handleCompleteMaintenance(item)}
-                                  className="text-teal-600 hover:cursor-pointer hover:text-teal-700"
-                                  title="Mark as Complete"
-                                >
-                                  <MdCheckCircle className="h-5 w-5" />
-                                </button>
-                              )}
-                              {item.status !== 'maintenance' && item.status !== 'damaged' && (
-                                <button
-                                  onClick={() => handleMaintenance(item)}
-                                  className="text-orange-600 hover:cursor-pointer hover:text-orange-700"
-                                  title="Record Maintenance"
-                                >
-                                  <MdBuild className="h-5 w-5" />
-                                </button>
-                              )}
+                            )}
+                            {item.in_use > 0 && (
                               <button
-                                onClick={() => handleEditEquipment(item)}
-                                className="text-green-600 hover:cursor-pointer hover:text-green-700"
-                                title="Edit Equipment"
+                                onClick={() => handleManageAssignments(item)}
+                                className="text-purple-600 hover:cursor-pointer hover:text-purple-700"
+                                title="Return Equipment"
                               >
-                                <MdEdit className="h-5 w-5" />
+                                <MdAssignmentReturn className="h-5 w-5" />
                               </button>
+                            )}
+                            {(item.status === 'maintenance' || item.status === 'damaged') && (
                               <button
-                                onClick={() => handleDeleteEquipment(item)}
-                                className="text-red-600 hover:cursor-pointer hover:text-red-700"
-                                title="Delete Equipment"
+                                onClick={() => handleCompleteMaintenance(item)}
+                                className="text-teal-600 hover:cursor-pointer hover:text-teal-700"
+                                title="Mark as Complete"
                               >
-                                <MdDelete className="h-5 w-5" />
+                                <MdCheckCircle className="h-5 w-5" />
                               </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
-                          No equipment found matching your filters.
+                            )}
+                            {item.status !== 'maintenance' && item.status !== 'damaged' && (
+                              <button
+                                onClick={() => handleMaintenance(item)}
+                                className="text-orange-600 hover:cursor-pointer hover:text-orange-700"
+                                title="Record Maintenance"
+                              >
+                                <MdBuild className="h-5 w-5" />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleEditEquipment(item)}
+                              className="text-green-600 hover:cursor-pointer hover:text-green-700"
+                              title="Edit Equipment"
+                            >
+                              <MdEdit className="h-5 w-5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteEquipment(item)}
+                              className="text-red-600 hover:cursor-pointer hover:text-red-700"
+                              title="Delete Equipment"
+                            >
+                              <MdDelete className="h-5 w-5" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
+                        No equipment found matching your filters.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
+          </div>
         </div>
       </div>
 
-      {/* View Equipment Detail Modal */}
+      {/* Modals */}
       <ViewEquipmentModal
         isOpen={!!selectedEquipment}
         onClose={() => setSelectedEquipment(null)}
@@ -715,7 +677,6 @@ const StaffEquipment = () => {
         onCompleteMaintenance={handleCompleteMaintenance}
       />
 
-      {/* Add/Edit Equipment Modal */}
       {showAddModal && (
         <AddEditEquipmentModal
           isOpen={showAddModal}
@@ -727,20 +688,19 @@ const StaffEquipment = () => {
           categories={categories}
           locations={locations}
           onSuccess={async (actionType, equipmentData) => {
-            // Get staff user info for logging
-            const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
-            const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
+            const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+            const adminName = adminUser.name || 'Admin';
 
             if (actionType === 'created') {
               await logSystemAction(
                 'equipment_added',
-                `${staffName} added new equipment ${equipmentData.equipment_code} (${equipmentData.name}) - Category: ${equipmentData.category}, Quantity: ${equipmentData.quantity}, Value: ₱${equipmentData.value}`,
+                `${adminName} added new equipment ${equipmentData.equipment_code} (${equipmentData.name}) - Category: ${equipmentData.category}, Quantity: ${equipmentData.quantity}, Value: ₱${equipmentData.value}`,
                 'info'
               );
             } else if (actionType === 'updated') {
               await logSystemAction(
                 'equipment_updated',
-                `${staffName} updated equipment ${equipmentData.equipment_code} (${equipmentData.name}) - Category: ${equipmentData.category}, Status: ${equipmentData.status}`,
+                `${adminName} updated equipment ${equipmentData.equipment_code} (${equipmentData.name}) - Category: ${equipmentData.category}, Status: ${equipmentData.status}`,
                 'info'
               );
             }
@@ -754,7 +714,6 @@ const StaffEquipment = () => {
         />
       )}
 
-      {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal
         isOpen={!!deletingEquipment}
         onClose={() => setDeletingEquipment(null)}
@@ -762,19 +721,17 @@ const StaffEquipment = () => {
         equipmentName={deletingEquipment?.name}
       />
 
-      {/* Assign Equipment Modal */}
       <AssignEquipmentModal
         isOpen={!!assigningEquipment}
         onClose={() => setAssigningEquipment(null)}
         equipment={assigningEquipment}
         onSuccess={async (assignmentData) => {
-          // Get staff user info for logging
-          const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
-          const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
+          const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+          const adminName = adminUser.name || 'Admin';
 
           await logSystemAction(
             'equipment_assigned',
-            `${staffName} assigned ${assignmentData.quantity}x ${assignmentData.equipmentCode} (${assignmentData.equipmentName}) to batch ${assignmentData.batchName} - Purpose: ${assignmentData.purpose}`,
+            `${adminName} assigned ${assignmentData.quantity}x ${assignmentData.equipmentCode} (${assignmentData.equipmentName}) to batch ${assignmentData.batchName} - Purpose: ${assignmentData.purpose}`,
             'info'
           );
 
@@ -785,19 +742,17 @@ const StaffEquipment = () => {
         onError={(message) => setErrorMessage(message)}
       />
 
-      {/* Manage Assignments Modal */}
       <ManageAssignmentsModal
         isOpen={!!managingEquipment}
         onClose={() => setManagingEquipment(null)}
         equipment={managingEquipment}
         onSuccess={async (returnData) => {
-          // Get staff user info for logging
-          const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
-          const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
+          const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+          const adminName = adminUser.name || 'Admin';
 
           await logSystemAction(
             'equipment_returned',
-            `${staffName} processed return of ${returnData.quantity}x ${returnData.equipmentCode} (${returnData.equipmentName}) from ${returnData.userName} - Condition: ${returnData.returnCondition}${returnData.returnNotes ? `, Notes: ${returnData.returnNotes}` : ''}`,
+            `${adminName} processed return of ${returnData.quantity}x ${returnData.equipmentCode} (${returnData.equipmentName}) from ${returnData.userName} - Condition: ${returnData.returnCondition}${returnData.returnNotes ? `, Notes: ${returnData.returnNotes}` : ''}`,
             'info'
           );
 
@@ -808,19 +763,17 @@ const StaffEquipment = () => {
         onError={(message) => setErrorMessage(message)}
       />
 
-      {/* Maintenance Modal */}
       <MaintenanceModal
         isOpen={!!maintainingEquipment}
         onClose={() => setMaintainingEquipment(null)}
         equipment={maintainingEquipment}
         onSuccess={async (maintenanceData) => {
-          // Get staff user info for logging
-          const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
-          const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
+          const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+          const adminName = adminUser.name || 'Admin';
 
           await logSystemAction(
             'equipment_maintenance',
-            `${staffName} recorded ${maintenanceData.maintenanceType} maintenance for ${maintenanceData.equipmentCode} (${maintenanceData.equipmentName}) - Performed by: ${maintenanceData.performedBy}, Condition after: ${maintenanceData.conditionAfter}${maintenanceData.notes ? `, Notes: ${maintenanceData.notes}` : ''}`,
+            `${adminName} recorded ${maintenanceData.maintenanceType} maintenance for ${maintenanceData.equipmentCode} (${maintenanceData.equipmentName}) - Performed by: ${maintenanceData.performedBy}, Condition after: ${maintenanceData.conditionAfter}${maintenanceData.notes ? `, Notes: ${maintenanceData.notes}` : ''}`,
             'info'
           );
 
@@ -860,4 +813,4 @@ const StaffEquipment = () => {
   );
 };
 
-export default StaffEquipment;
+export default AdminEquipment;

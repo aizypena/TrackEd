@@ -1070,7 +1070,7 @@ const Signup = () => {
               onChange={handleChange}
               className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
             >
-              <option value="">Select relationship</option>
+              <option value="" disabled>Select relationship</option>
               <option value="parent">Parent</option>
               <option value="sibling">Sibling</option>
               <option value="spouse">Spouse</option>

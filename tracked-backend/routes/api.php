@@ -6327,11 +6327,27 @@ Pasay City, Metro Manila 1100</p>
                 ], 401);
             }
             
-            $categories = \App\Models\Equipment::distinct()->pluck('category')->filter()->values();
+            // Get distinct categories from equipment that are actually in use
+            $equipmentCategories = \App\Models\Equipment::distinct()
+                ->pluck('category')
+                ->filter()
+                ->values();
+            
+            // Also get all program names from the programs table
+            $programs = DB::table('programs')
+                ->select('program_name')
+                ->orderBy('program_name')
+                ->pluck('program_name');
+            
+            // Merge and get unique values, sort alphabetically
+            $allCategories = $equipmentCategories->merge($programs)
+                ->unique()
+                ->sort()
+                ->values();
             
             return response()->json([
                 'success' => true,
-                'data' => $categories
+                'data' => $allCategories
             ]);
         } catch (\Exception $e) {
             \Log::error('Equipment categories error: ' . $e->getMessage());
@@ -6395,31 +6411,39 @@ Pasay City, Metro Manila 1100</p>
                 $transactionsQuery->where('equipment.category', $category);
             }
             
-            // Apply type filter (status-based)
-            if ($type && $type !== 'all') {
-                if ($type === 'out') {
-                    $transactionsQuery->where('equipment_assignments.status', 'active');
-                } elseif ($type === 'in') {
-                    $transactionsQuery->where('equipment_assignments.status', 'returned');
-                }
-            }
+            // Note: Type filter will be applied after formatting transactions
+            // because we create both 'in' and 'out' from the same assignment record
             
             // Apply date filter
             if ($dateFilter && $dateFilter !== 'all') {
                 $now = now();
                 switch ($dateFilter) {
                     case 'today':
-                        $transactionsQuery->whereDate('equipment_assignments.assigned_at', $now->toDateString());
+                        $transactionsQuery->where(function($query) use ($now) {
+                            $query->whereDate('equipment_assignments.assigned_at', $now->toDateString())
+                                  ->orWhereDate('equipment_assignments.returned_at', $now->toDateString());
+                        });
                         break;
                     case 'week':
-                        $transactionsQuery->whereBetween('equipment_assignments.assigned_at', [
-                            $now->startOfWeek()->toDateString(),
-                            $now->endOfWeek()->toDateString()
-                        ]);
+                        $weekStart = now()->startOfWeek()->toDateString();
+                        $weekEnd = now()->endOfWeek()->toDateString();
+                        $transactionsQuery->where(function($query) use ($weekStart, $weekEnd) {
+                            $query->whereBetween('equipment_assignments.assigned_at', [$weekStart, $weekEnd])
+                                  ->orWhereBetween('equipment_assignments.returned_at', [$weekStart, $weekEnd]);
+                        });
                         break;
                     case 'month':
-                        $transactionsQuery->whereMonth('equipment_assignments.assigned_at', $now->month)
-                                         ->whereYear('equipment_assignments.assigned_at', $now->year);
+                        $month = $now->month;
+                        $year = $now->year;
+                        $transactionsQuery->where(function($query) use ($month, $year) {
+                            $query->where(function($q) use ($month, $year) {
+                                $q->whereMonth('equipment_assignments.assigned_at', $month)
+                                  ->whereYear('equipment_assignments.assigned_at', $year);
+                            })->orWhere(function($q) use ($month, $year) {
+                                $q->whereMonth('equipment_assignments.returned_at', $month)
+                                  ->whereYear('equipment_assignments.returned_at', $year);
+                            });
+                        });
                         break;
                 }
             }
@@ -6438,18 +6462,17 @@ Pasay City, Metro Manila 1100</p>
             $transactions = $transactionsQuery->get();
             
             // Format transactions for frontend
-            $formattedTransactions = $transactions->map(function($transaction) {
-                $transactionType = $transaction->status === 'returned' ? 'in' : 'out';
-                $transactionDate = $transactionType === 'in' && $transaction->returned_at 
-                    ? $transaction->returned_at 
-                    : $transaction->assigned_at;
-                
-                return [
-                    'id' => $transaction->id,
-                    'transactionCode' => 'TXN-' . date('Y', strtotime($transactionDate)) . '-' . str_pad($transaction->id, 4, '0', STR_PAD_LEFT),
-                    'date' => date('Y-m-d', strtotime($transactionDate)),
-                    'time' => date('h:i A', strtotime($transactionDate)),
-                    'type' => $transactionType,
+            // Each assignment can create TWO transactions: one for stock out, one for stock in (if returned)
+            $formattedTransactions = collect();
+            
+            foreach ($transactions as $transaction) {
+                // Always create a stock out transaction for the initial assignment
+                $formattedTransactions->push([
+                    'id' => $transaction->id . '-out',
+                    'transactionCode' => 'TXN-' . date('Y', strtotime($transaction->assigned_at)) . '-' . str_pad($transaction->id, 4, '0', STR_PAD_LEFT) . '-OUT',
+                    'date' => date('Y-m-d', strtotime($transaction->assigned_at)),
+                    'time' => date('h:i A', strtotime($transaction->assigned_at)),
+                    'type' => 'out',
                     'itemName' => $transaction->equipment_name,
                     'equipmentCode' => $transaction->equipment_code,
                     'brand' => $transaction->brand,
@@ -6460,28 +6483,66 @@ Pasay City, Metro Manila 1100</p>
                     'location' => $transaction->location,
                     'unitPrice' => (float) $transaction->unit_price,
                     'totalAmount' => (float) $transaction->unit_price * $transaction->quantity,
-                    'requestedBy' => $transaction->user_name,
-                    'approvedBy' => $transaction->assigned_by_name ?? 'Admin Staff',
+                    'requestedBy' => $transaction->assigned_by_name ?? 'Admin Staff',
+                    'approvedBy' => 'Admin Staff',
                     'purpose' => $transaction->purpose ?? '-',
-                    'referenceNumber' => $transactionType === 'out' 
-                        ? 'ISU-' . date('Y', strtotime($transaction->assigned_at)) . '-' . str_pad($transaction->id, 3, '0', STR_PAD_LEFT)
-                        : 'RET-' . date('Y', strtotime($transaction->returned_at)) . '-' . str_pad($transaction->id, 3, '0', STR_PAD_LEFT),
-                    'notes' => $transactionType === 'in' 
-                        ? ($transaction->return_notes ?? 'Equipment returned')
-                        : ($transaction->notes ?? 'Equipment issued'),
+                    'referenceNumber' => 'ISU-' . date('Y', strtotime($transaction->assigned_at)) . '-' . str_pad($transaction->id, 3, '0', STR_PAD_LEFT),
+                    'notes' => $transaction->notes ?? 'Equipment issued',
                     'status' => 'completed',
                     'assignedAt' => $transaction->assigned_at,
                     'returnedAt' => $transaction->returned_at,
                     'dueDate' => $transaction->due_date,
-                ];
-            });
+                ]);
+                
+                // If returned, also create a stock in transaction for the return
+                if ($transaction->status === 'returned' && $transaction->returned_at) {
+                    $formattedTransactions->push([
+                        'id' => $transaction->id . '-in',
+                        'transactionCode' => 'TXN-' . date('Y', strtotime($transaction->returned_at)) . '-' . str_pad($transaction->id, 4, '0', STR_PAD_LEFT) . '-IN',
+                        'date' => date('Y-m-d', strtotime($transaction->returned_at)),
+                        'time' => date('h:i A', strtotime($transaction->returned_at)),
+                        'type' => 'in',
+                        'itemName' => $transaction->equipment_name,
+                        'equipmentCode' => $transaction->equipment_code,
+                        'brand' => $transaction->brand,
+                        'model' => $transaction->model,
+                        'category' => $transaction->category,
+                        'quantity' => $transaction->quantity,
+                        'unit' => 'unit',
+                        'location' => $transaction->location,
+                        'unitPrice' => (float) $transaction->unit_price,
+                        'totalAmount' => (float) $transaction->unit_price * $transaction->quantity,
+                        'requestedBy' => $transaction->assigned_by_name ?? 'Admin Staff',
+                        'approvedBy' => 'Admin Staff',
+                        'purpose' => 'Equipment return',
+                        'referenceNumber' => 'RET-' . date('Y', strtotime($transaction->returned_at)) . '-' . str_pad($transaction->id, 3, '0', STR_PAD_LEFT),
+                        'notes' => $transaction->return_notes ?? 'Equipment returned',
+                        'status' => 'completed',
+                        'assignedAt' => $transaction->assigned_at,
+                        'returnedAt' => $transaction->returned_at,
+                        'dueDate' => $transaction->due_date,
+                    ]);
+                }
+            }
+            
+            // Sort transactions by date (newest first by default)
+            $formattedTransactions = $formattedTransactions->sortByDesc(function($transaction) {
+                return strtotime($transaction['date'] . ' ' . $transaction['time']);
+            })->values();
+            
+            // Apply type filter AFTER formatting (since we create both in/out from same record)
+            if ($type && $type !== 'all') {
+                $formattedTransactions = $formattedTransactions->filter(function($transaction) use ($type) {
+                    return $transaction['type'] === $type;
+                })->values();
+            }
             
             // Calculate statistics
             $stats = [
                 'totalTransactions' => $formattedTransactions->count(),
                 'stockOut' => $formattedTransactions->where('type', 'out')->count(),
                 'stockIn' => $formattedTransactions->where('type', 'in')->count(),
-                'totalValue' => $formattedTransactions->where('type', 'out')->sum('totalAmount'),
+                'totalValue' => 0, // Removed as per user request
             ];
             
             return response()->json([
@@ -7019,6 +7080,60 @@ Pasay City, Metro Manila 1100</p>
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch assessment results',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
+
+    // Staff Grades Endpoint
+    Route::get('/staff/grades', function (Request $request) {
+        try {
+            // Get all grades with user information
+            $gradesQuery = DB::table('grades')
+                ->leftJoin('users', 'grades.user_id', '=', 'users.id')
+                ->leftJoin('programs', 'grades.program_id', '=', 'programs.id')
+                ->select(
+                    'grades.*',
+                    'users.student_id',
+                    'users.first_name',
+                    'users.last_name',
+                    'users.email',
+                    'users.batch_id as user_batch_id',
+                    'programs.title as program_title'
+                )
+                ->orderBy('grades.created_at', 'desc');
+
+            // Apply filters if provided
+            if ($request->has('program_id') && $request->program_id !== 'all') {
+                $gradesQuery->where('grades.program_id', $request->program_id);
+            }
+
+            if ($request->has('batch_id') && $request->batch_id !== 'all') {
+                $gradesQuery->where('grades.batch_id', $request->batch_id);
+            }
+
+            if ($request->has('assessment_type') && $request->assessment_type !== 'all') {
+                $gradesQuery->where('grades.assessment_type', $request->assessment_type);
+            }
+
+            $grades = $gradesQuery->get();
+
+            // Get programs and batches for filters using DB
+            $programs = DB::table('programs')->select('id', 'title')->get();
+            $batches = DB::table('batches')->select('id', 'batch_id')->orderBy('batch_id', 'desc')->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $grades,
+                'programs' => $programs,
+                'batches' => $batches
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Staff grades error: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch grades',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -8574,4 +8689,7 @@ Pasay City, Metro Manila 1100</p>
         }
     });
 });
+
+// Public route with custom token authentication
+Route::get('/payments/{id}/receipt', [PaymentController::class, 'downloadReceipt']);
 

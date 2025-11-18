@@ -13,6 +13,7 @@ import {
   MdBarChart,
   MdShowChart,
   MdAssessment,
+  MdEmail,
   MdSecurity,
   MdHistory,
   MdBackup,
@@ -28,6 +29,9 @@ import {
   MdBusiness,
   MdAccountCircle,
   MdFileDownload,
+  MdInventory,
+  MdBuild,
+  MdSwapVert,
 } from 'react-icons/md';
 
 function Sidebar({ isOpen, onClose }) {
@@ -37,6 +41,7 @@ function Sidebar({ isOpen, onClose }) {
   const [expandedMenus, setExpandedMenus] = useState({
     'user-management': true,
     'program-management': true,
+    'inventory-management': true,
     'reports': true,
     'system': true
   });
@@ -83,6 +88,16 @@ function Sidebar({ isOpen, onClose }) {
       ]
     },
     {
+      id: 'inventory-management',
+      name: 'Inventory Management',
+      icon: MdInventory,
+      submenu: [
+        { id: 'equipment', name: 'Equipment', icon: MdInventory, path: '/admin/equipment' },
+        { id: 'stock-transactions', name: 'Stock Transactions', icon: MdSwapVert, path: '/admin/stock-transactions' },
+        // { id: 'maintenance', name: 'Maintenance Records', icon: MdBuild, path: '/admin/maintenance' }
+      ]
+    },
+    {
       id: 'reports',
       name: 'Reports',
       icon: MdAssessment,
@@ -107,7 +122,7 @@ function Sidebar({ isOpen, onClose }) {
     {
       id: 'contact-messages',
       name: 'Contact Messages',
-      icon: MdReport,
+      icon: MdEmail,
       path: '/admin/contact-messages',
       badge: null
     },

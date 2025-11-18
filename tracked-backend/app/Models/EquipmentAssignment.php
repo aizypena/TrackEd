@@ -12,6 +12,7 @@ class EquipmentAssignment extends Model
     protected $fillable = [
         'equipment_id',
         'user_id',
+        'batch_id',
         'quantity',
         'assigned_at',
         'due_date',
@@ -49,5 +50,10 @@ class EquipmentAssignment extends Model
     public function returnedTo()
     {
         return $this->belongsTo(User::class, 'returned_to');
+    }
+
+    public function batch()
+    {
+        return $this->belongsTo(Batch::class);
     }
 }

@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import StaffSidebar from '../../layouts/staff/StaffSidebar';
+import { getStaffToken } from '../../utils/staffAuth';
+import toast, { Toaster } from 'react-hot-toast';
+import * as XLSX from 'xlsx';
 import { 
   MdMenu,
   MdSearch,
@@ -17,7 +20,8 @@ import {
   MdPrint,
   MdAdd,
   MdStar,
-  MdBarChart
+  MdBarChart,
+  MdClose
 } from 'react-icons/md';
 
 const StaffAcademicRecords = () => {
@@ -29,162 +33,175 @@ const StaffAcademicRecords = () => {
   const [performanceFilter, setPerformanceFilter] = useState('all');
   const [sortBy, setSortBy] = useState('name');
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [academicRecords, setAcademicRecords] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [batches, setBatches] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data - replace with actual API calls
-  const [academicRecords, setAcademicRecords] = useState([
-    {
-      id: 1,
-      studentId: 'STU-2025-001',
-      studentName: 'Juan Dela Cruz',
-      program: 'Welding NCII',
-      batch: 'Batch 01-2025',
-      enrollmentDate: '2025-09-15',
-      subjects: [
-        { name: 'Basic Welding Theory', grade: 92, remarks: 'Excellent', status: 'completed' },
-        { name: 'Safety and Health', grade: 95, remarks: 'Outstanding', status: 'completed' },
-        { name: 'Welding Practice', grade: 90, remarks: 'Very Good', status: 'completed' },
-        { name: 'Equipment Handling', grade: 88, remarks: 'Good', status: 'in_progress' }
-      ],
-      overallGrade: 91.25,
-      attendance: 95,
-      assessments: {
-        written: 90,
-        practical: 92,
-        final: 91
-      },
-      status: 'passing',
-      gpa: 3.8
-    },
-    {
-      id: 2,
-      studentId: 'STU-2025-002',
-      studentName: 'Maria Santos',
-      program: 'Automotive Servicing NCII',
-      batch: 'Batch 02-2025',
-      enrollmentDate: '2025-09-20',
-      subjects: [
-        { name: 'Automotive Fundamentals', grade: 88, remarks: 'Good', status: 'completed' },
-        { name: 'Engine Systems', grade: 85, remarks: 'Good', status: 'completed' },
-        { name: 'Electrical Systems', grade: 90, remarks: 'Very Good', status: 'in_progress' },
-        { name: 'Diagnostic Procedures', grade: 87, remarks: 'Good', status: 'in_progress' }
-      ],
-      overallGrade: 87.5,
-      attendance: 88,
-      assessments: {
-        written: 86,
-        practical: 89,
-        final: 0
-      },
-      status: 'passing',
-      gpa: 3.5
-    },
-    {
-      id: 3,
-      studentId: 'STU-2025-003',
-      studentName: 'Pedro Reyes',
-      program: 'Electronics NCII',
-      batch: 'Batch 01-2025',
-      enrollmentDate: '2025-08-10',
-      subjects: [
-        { name: 'Electronics Theory', grade: 96, remarks: 'Outstanding', status: 'completed' },
-        { name: 'Circuit Analysis', grade: 94, remarks: 'Excellent', status: 'completed' },
-        { name: 'Digital Electronics', grade: 95, remarks: 'Excellent', status: 'completed' },
-        { name: 'PCB Design', grade: 97, remarks: 'Outstanding', status: 'completed' }
-      ],
-      overallGrade: 95.5,
-      attendance: 98,
-      assessments: {
-        written: 95,
-        practical: 96,
-        final: 95
-      },
-      status: 'passing',
-      gpa: 4.0
-    },
-    {
-      id: 4,
-      studentId: 'STU-2025-004',
-      studentName: 'Ana Garcia',
-      program: 'Food Processing NCII',
-      batch: 'Batch 03-2025',
-      enrollmentDate: '2025-09-25',
-      subjects: [
-        { name: 'Food Safety', grade: 0, remarks: 'Not Started', status: 'not_started' },
-        { name: 'Processing Methods', grade: 0, remarks: 'Not Started', status: 'not_started' },
-        { name: 'Quality Control', grade: 0, remarks: 'Not Started', status: 'not_started' },
-        { name: 'Packaging', grade: 0, remarks: 'Not Started', status: 'not_started' }
-      ],
-      overallGrade: 0,
-      attendance: 0,
-      assessments: {
-        written: 0,
-        practical: 0,
-        final: 0
-      },
-      status: 'not_started',
-      gpa: 0
-    },
-    {
-      id: 5,
-      studentId: 'STU-2025-005',
-      studentName: 'Roberto Cruz',
-      program: 'Welding NCII',
-      batch: 'Batch 01-2025',
-      enrollmentDate: '2025-08-15',
-      subjects: [
-        { name: 'Basic Welding Theory', grade: 65, remarks: 'Fair', status: 'completed' },
-        { name: 'Safety and Health', grade: 70, remarks: 'Satisfactory', status: 'completed' },
-        { name: 'Welding Practice', grade: 60, remarks: 'Fair', status: 'completed' },
-        { name: 'Equipment Handling', grade: 58, remarks: 'Needs Improvement', status: 'in_progress' }
-      ],
-      overallGrade: 63.25,
-      attendance: 45,
-      assessments: {
-        written: 65,
-        practical: 60,
-        final: 0
-      },
-      status: 'at_risk',
-      gpa: 2.0
+  const gradeCategories = [
+    { id: 'written', label: 'Written Test', weight: 0.2 },
+    { id: 'oral', label: 'Oral Questioning', weight: 0.2 },
+    { id: 'demonstration', label: 'Demonstration', weight: 0.4 },
+    { id: 'observation', label: 'Observation', weight: 0.2 },
+  ];
+
+  useEffect(() => {
+    fetchAcademicRecords();
+  }, []);
+
+  const fetchAcademicRecords = async () => {
+    try {
+      setLoading(true);
+      const token = getStaffToken();
+      
+      // Fetch all students from enrollments endpoint
+      const studentsResponse = await fetch('https://api.smitracked.cloud/api/staff/enrollments', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!studentsResponse.ok) {
+        throw new Error('Failed to fetch students');
+      }
+
+      const studentsData = await studentsResponse.json();
+      const students = studentsData.data || studentsData.enrollments || studentsData || [];
+
+      // Fetch all grades
+      const gradesResponse = await fetch('https://api.smitracked.cloud/api/staff/grades', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!gradesResponse.ok) {
+        throw new Error('Failed to fetch grades');
+      }
+
+      const gradesData = await gradesResponse.json();
+      const grades = gradesData.data || gradesData.grades || gradesData || [];
+      
+      // Set programs and batches for filters
+      if (gradesData.programs) {
+        setPrograms(gradesData.programs);
+      }
+      if (gradesData.batches) {
+        setBatches(gradesData.batches);
+      }
+
+      // Group grades by user
+      const userGradesMap = {};
+      grades.forEach(grade => {
+        const userId = grade.user_id;
+        if (!userGradesMap[userId]) {
+          userGradesMap[userId] = [];
+        }
+        userGradesMap[userId].push(grade);
+      });
+
+      // Create records for all students
+      const records = [];
+      students.forEach(student => {
+        const userGrades = userGradesMap[student.id] || [];
+
+        // Organize grades by assessment type
+        const gradesByType = {
+          written: null,
+          oral: null,
+          demonstration: null,
+          observation: null
+        };
+
+        userGrades.forEach(grade => {
+          const type = grade.assessment_type;
+          if (gradesByType.hasOwnProperty(type)) {
+            gradesByType[type] = parseFloat(grade.percentage || 0);
+          }
+        });
+
+        // Calculate weighted average only if all grades are present
+        let averagePercentage = 0;
+        const allGradesPresent = gradeCategories.every(category => {
+          const grade = gradesByType[category.id];
+          return grade !== null && grade !== undefined;
+        });
+
+        if (allGradesPresent) {
+          let weightedSum = 0;
+          gradeCategories.forEach(category => {
+            const grade = gradesByType[category.id];
+            weightedSum += grade * category.weight;
+          });
+          averagePercentage = weightedSum.toFixed(2);
+        }
+
+        // Calculate overall statistics
+        const passedCount = userGrades.filter(g => g.status === 'passed').length;
+        const failedCount = userGrades.filter(g => g.status === 'failed').length;
+
+        // Determine overall status
+        let status = 'pending';
+        if (userGrades.length > 0) {
+          if (failedCount === 0 && passedCount > 0) {
+            status = 'competent';
+          } else if (failedCount > 0) {
+            status = 'not_competent';
+          }
+        }
+
+        records.push({
+          id: student.id,
+          studentId: student.student_id || 'N/A',
+          studentName: student.name || `${student.first_name || ''} ${student.last_name || ''}`.trim(),
+          program: student.program || 'N/A',
+          batch: student.batch || 'N/A',
+          enrollmentDate: student.enrollment_date || 'N/A',
+          assessmentDate: userGrades[0]?.graded_at || userGrades[0]?.created_at || 'N/A',
+          totalAssessments: userGrades.length,
+          passedAssessments: passedCount,
+          failedAssessments: failedCount,
+          averageScore: averagePercentage,
+          gradesByType: gradesByType,
+          status: status,
+          email: student.email || 'N/A',
+          address: 'N/A',
+          grades: userGrades
+        });
+      });
+
+      setAcademicRecords(records);
+      toast.success('Academic records loaded successfully');
+    } catch (error) {
+      console.error('Error fetching academic records:', error);
+      toast.error('Failed to load academic records');
+    } finally {
+      setLoading(false);
     }
-  ]);
-
-  const programs = [
-    'Welding NCII',
-    'Automotive Servicing NCII',
-    'Electronics NCII',
-    'Food Processing NCII',
-    'Plumbing NCII',
-    'Carpentry NCII'
-  ];
-
-  const batches = [
-    'Batch 01-2025',
-    'Batch 02-2025',
-    'Batch 03-2025',
-    'Batch 04-2025'
-  ];
+  };
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      passing: {
+      competent: {
         className: 'bg-green-100 text-green-800',
         icon: <MdCheckCircle className="h-4 w-4" />,
-        label: 'Passing'
+        label: 'Competent'
       },
-      at_risk: {
+      not_competent: {
         className: 'bg-red-100 text-red-800',
         icon: <MdWarning className="h-4 w-4" />,
-        label: 'At Risk'
+        label: 'Not Competent'
       },
-      not_started: {
+      pending: {
         className: 'bg-gray-100 text-gray-800',
         icon: <MdAssignment className="h-4 w-4" />,
-        label: 'Not Started'
+        label: 'Pending'
       }
     };
 
-    const config = statusConfig[status] || statusConfig.not_started;
+    const config = statusConfig[status] || statusConfig.pending;
 
     return (
       <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${config.className}`}>
@@ -194,63 +211,117 @@ const StaffAcademicRecords = () => {
     );
   };
 
-  const getGradeColor = (grade) => {
-    if (grade >= 90) return 'text-green-600';
-    if (grade >= 80) return 'text-blue-600';
-    if (grade >= 75) return 'text-yellow-600';
-    if (grade > 0) return 'text-red-600';
+  const getGradeColor = (score) => {
+    if (score >= 90) return 'text-green-600';
+    if (score >= 75) return 'text-blue-600';
+    if (score >= 60) return 'text-yellow-600';
+    if (score > 0) return 'text-red-600';
     return 'text-gray-400';
   };
 
-  const getGradeLabel = (grade) => {
-    if (grade >= 90) return 'Excellent';
-    if (grade >= 80) return 'Very Good';
-    if (grade >= 75) return 'Good';
-    if (grade > 0) return 'Needs Improvement';
-    return 'No Grade';
-  };
+  const handleExport = () => {
+    try {
+      // Prepare summary data
+      const summaryData = filteredRecords.map(record => ({
+        'Student ID': record.studentId,
+        'Student Name': record.studentName,
+        'Program': record.program,
+        'Batch': record.batch,
+        'Total Assessments': record.totalAssessments,
+        'Average Score': record.averageScore > 0 ? `${record.averageScore}%` : 'N/A',
+        'Passed': record.passedAssessments,
+        'Failed': record.failedAssessments,
+        'Status': record.status === 'competent' ? 'Competent' : record.status === 'not_competent' ? 'Not Competent' : 'Pending'
+      }));
 
-  const getSubjectStatusBadge = (status) => {
-    const statusConfig = {
-      completed: { className: 'bg-green-100 text-green-700', label: 'Completed' },
-      in_progress: { className: 'bg-blue-100 text-blue-700', label: 'In Progress' },
-      not_started: { className: 'bg-gray-100 text-gray-700', label: 'Not Started' }
-    };
+      // Prepare detailed grades data
+      const detailedData = [];
+      filteredRecords.forEach(record => {
+        if (record.grades && record.grades.length > 0) {
+          record.grades.forEach(grade => {
+            detailedData.push({
+              'Student ID': record.studentId,
+              'Student Name': record.studentName,
+              'Assessment Title': grade.assessment_title,
+              'Assessment Type': grade.assessment_type,
+              'Score': grade.score,
+              'Total Points': grade.total_points,
+              'Percentage': `${grade.percentage}%`,
+              'Passing Score': `${grade.passing_score}%`,
+              'Status': grade.status,
+              'Attempt': grade.attempt_number || 1,
+              'Batch': grade.batch_id || 'N/A',
+              'Graded Date': grade.graded_at ? new Date(grade.graded_at).toLocaleDateString() : 'N/A',
+              'Feedback': grade.feedback || 'N/A'
+            });
+          });
+        }
+      });
 
-    const config = statusConfig[status] || statusConfig.not_started;
+      // Create workbook
+      const wb = XLSX.utils.book_new();
+      
+      // Add summary sheet
+      const summaryWs = XLSX.utils.json_to_sheet(summaryData);
+      XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
+      
+      // Add detailed grades sheet
+      if (detailedData.length > 0) {
+        const detailedWs = XLSX.utils.json_to_sheet(detailedData);
+        XLSX.utils.book_append_sheet(wb, detailedWs, 'Detailed Grades');
+      }
 
-    return (
-      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${config.className}`}>
-        {config.label}
-      </span>
-    );
+      // Generate filename with current date
+      const filename = `Academic_Records_${new Date().toISOString().split('T')[0]}.xlsx`;
+      
+      // Save file
+      XLSX.writeFile(wb, filename);
+      
+      toast.success('Academic records exported successfully');
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      toast.error('Failed to export academic records');
+    }
   };
 
   const filteredRecords = academicRecords
     .filter(record => {
       const matchesSearch = record.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            record.studentId.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesProgram = programFilter === 'all' || record.program === programFilter;
-      const matchesBatch = batchFilter === 'all' || record.batch === batchFilter;
+      
+      // Fix program filter comparison
+      let matchesProgram = programFilter === 'all';
+      if (!matchesProgram && programFilter) {
+        const selectedProgram = programs.find(p => p.id === parseInt(programFilter));
+        matchesProgram = selectedProgram ? record.program === selectedProgram.title : record.program === programFilter;
+      }
+      
+      // Fix batch filter comparison
+      let matchesBatch = batchFilter === 'all';
+      if (!matchesBatch && batchFilter) {
+        const selectedBatch = batches.find(b => b.id === parseInt(batchFilter));
+        matchesBatch = selectedBatch ? record.batch === selectedBatch.batch_id : record.batch === batchFilter;
+      }
+      
       const matchesPerformance = performanceFilter === 'all' || record.status === performanceFilter;
       return matchesSearch && matchesProgram && matchesBatch && matchesPerformance;
     })
     .sort((a, b) => {
       if (sortBy === 'name') {
         return a.studentName.localeCompare(b.studentName);
-      } else if (sortBy === 'grade_high') {
-        return b.overallGrade - a.overallGrade;
-      } else if (sortBy === 'grade_low') {
-        return a.overallGrade - b.overallGrade;
+      } else if (sortBy === 'score_high') {
+        return b.averageScore - a.averageScore;
+      } else if (sortBy === 'score_low') {
+        return a.averageScore - b.averageScore;
       }
       return 0;
     });
 
   const stats = {
     total: academicRecords.length,
-    passing: academicRecords.filter(r => r.status === 'passing').length,
-    atRisk: academicRecords.filter(r => r.status === 'at_risk').length,
-    averageGrade: (academicRecords.reduce((sum, r) => sum + r.overallGrade, 0) / academicRecords.length).toFixed(2)
+    totalAssessments: academicRecords.reduce((sum, r) => sum + r.totalAssessments, 0),
+    passed: academicRecords.reduce((sum, r) => sum + r.passedAssessments, 0),
+    failed: academicRecords.reduce((sum, r) => sum + r.failedAssessments, 0)
   };
 
   return (
@@ -279,10 +350,6 @@ const StaffAcademicRecords = () => {
                 <p className="text-sm text-blue-100">Track student grades and performance</p>
               </div>
             </div>
-            <button className="flex items-center gap-2 px-4 py-2 bg-tracked-secondary hover:bg-opacity-90 rounded-md transition-colors">
-              <MdAdd className="h-5 w-5" />
-              <span className="hidden sm:inline">Add Grade</span>
-            </button>
           </div>
         </nav>
         
@@ -295,16 +362,16 @@ const StaffAcademicRecords = () => {
               <p className="text-2xl font-bold text-tracked-primary mt-1">{stats.total}</p>
             </div>
             <div className="bg-white rounded-lg shadow-md p-4">
-              <p className="text-sm text-gray-500 font-medium">Passing</p>
-              <p className="text-2xl font-bold text-green-600 mt-1">{stats.passing}</p>
+              <p className="text-sm text-gray-500 font-medium">Total Assessments</p>
+              <p className="text-2xl font-bold text-blue-600 mt-1">{stats.totalAssessments}</p>
             </div>
             <div className="bg-white rounded-lg shadow-md p-4">
-              <p className="text-sm text-gray-500 font-medium">At Risk</p>
-              <p className="text-2xl font-bold text-red-600 mt-1">{stats.atRisk}</p>
+              <p className="text-sm text-gray-500 font-medium">Passed</p>
+              <p className="text-2xl font-bold text-green-600 mt-1">{stats.passed}</p>
             </div>
             <div className="bg-white rounded-lg shadow-md p-4">
-              <p className="text-sm text-gray-500 font-medium">Average Grade</p>
-              <p className="text-2xl font-bold text-blue-600 mt-1">{stats.averageGrade}%</p>
+              <p className="text-sm text-gray-500 font-medium">Failed</p>
+              <p className="text-2xl font-bold text-red-600 mt-1">{stats.failed}</p>
             </div>
           </div>
 
@@ -336,7 +403,7 @@ const StaffAcademicRecords = () => {
                 >
                   <option value="all">All Programs</option>
                   {programs.map((program) => (
-                    <option key={program} value={program}>{program}</option>
+                    <option key={program.id} value={program.id}>{program.title}</option>
                   ))}
                 </select>
               </div>
@@ -351,23 +418,23 @@ const StaffAcademicRecords = () => {
                 >
                   <option value="all">All Batches</option>
                   {batches.map((batch) => (
-                    <option key={batch} value={batch}>{batch}</option>
+                    <option key={batch.id} value={batch.id}>{batch.batch_id}</option>
                   ))}
                 </select>
               </div>
 
               {/* Performance Filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Performance</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
                 <select
                   value={performanceFilter}
                   onChange={(e) => setPerformanceFilter(e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-tracked-primary focus:border-tracked-primary"
                 >
                   <option value="all">All Students</option>
-                  <option value="passing">Passing</option>
-                  <option value="at_risk">At Risk</option>
-                  <option value="not_started">Not Started</option>
+                  <option value="competent">Competent</option>
+                  <option value="not_competent">Not Competent</option>
+                  <option value="pending">Pending</option>
                 </select>
               </div>
             </div>
@@ -380,21 +447,24 @@ const StaffAcademicRecords = () => {
                 className="px-4 py-2 border border-gray-300 rounded-md focus:ring-tracked-primary focus:border-tracked-primary"
               >
                 <option value="name">Name (A-Z)</option>
-                <option value="grade_high">Highest Grade</option>
-                <option value="grade_low">Lowest Grade</option>
+                <option value="score_high">Highest Score</option>
+                <option value="score_low">Lowest Score</option>
               </select>
               
-              <button className="flex items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors">
+              <button 
+                onClick={fetchAcademicRecords}
+                disabled={loading}
+                className="flex items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors disabled:opacity-50"
+              >
                 <MdRefresh className="h-5 w-5" />
-                Refresh
+                {loading ? 'Loading...' : 'Refresh'}
               </button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
+              <button 
+                onClick={handleExport}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+              >
                 <MdDownload className="h-5 w-5" />
                 Export
-              </button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors">
-                <MdPrint className="h-5 w-5" />
-                Print
               </button>
             </div>
           </div>
@@ -411,17 +481,14 @@ const StaffAcademicRecords = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Program & Batch
                     </th>
+                    {gradeCategories.map((category) => (
+                      <th key={category.id} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {category.label}
+                        <span className="block text-gray-400">({(category.weight * 100)}%)</span>
+                      </th>
+                    ))}
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Overall Grade
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      GPA
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Attendance
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
+                      Final Grade
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
@@ -429,7 +496,13 @@ const StaffAcademicRecords = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredRecords.length > 0 ? (
+                  {loading ? (
+                    <tr>
+                      <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
+                        Loading academic records...
+                      </td>
+                    </tr>
+                  ) : filteredRecords.length > 0 ? (
                     filteredRecords.map((record) => (
                       <tr key={record.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4">
@@ -440,27 +513,22 @@ const StaffAcademicRecords = () => {
                           <div className="text-sm text-gray-900">{record.program}</div>
                           <div className="text-xs text-gray-500">{record.batch}</div>
                         </td>
+                        {gradeCategories.map((category) => {
+                          const grade = record.gradesByType?.[category.id];
+                          return (
+                            <td key={category.id} className="px-6 py-4 whitespace-nowrap">
+                              <span className="text-sm font-medium text-gray-900">
+                                {grade !== null && grade !== undefined
+                                  ? `${grade}%`
+                                  : '-'}
+                              </span>
+                            </td>
+                          );
+                        })}
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className={`text-2xl font-bold ${getGradeColor(record.overallGrade)}`}>
-                            {record.overallGrade > 0 ? `${record.overallGrade.toFixed(2)}%` : 'N/A'}
+                          <div className="text-sm font-medium text-gray-900">
+                            {record.averageScore > 0 ? `${record.averageScore}%` : 'N/A'}
                           </div>
-                          <div className="text-xs text-gray-500">{getGradeLabel(record.overallGrade)}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-1">
-                            <MdStar className="h-5 w-5 text-yellow-500" />
-                            <span className="text-lg font-semibold text-gray-800">
-                              {record.gpa > 0 ? record.gpa.toFixed(1) : 'N/A'}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className={`text-lg font-semibold ${getGradeColor(record.attendance)}`}>
-                            {record.attendance}%
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {getStatusBadge(record.status)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex gap-2">
@@ -471,25 +539,13 @@ const StaffAcademicRecords = () => {
                             >
                               <MdVisibility className="h-5 w-5" />
                             </button>
-                            <button
-                              className="text-blue-600 hover:text-blue-700"
-                              title="Edit Grades"
-                            >
-                              <MdEdit className="h-5 w-5" />
-                            </button>
-                            <button
-                              className="text-green-600 hover:text-green-700"
-                              title="View Report"
-                            >
-                              <MdBarChart className="h-5 w-5" />
-                            </button>
                           </div>
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
+                      <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
                         No academic records found matching your filters.
                       </td>
                     </tr>
@@ -522,7 +578,7 @@ const StaffAcademicRecords = () => {
       {/* Student Detail Modal */}
       {selectedStudent && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
             <div className="bg-tracked-primary p-6 text-white sticky top-0">
               <div className="flex items-center justify-between">
@@ -544,129 +600,146 @@ const StaffAcademicRecords = () => {
 
             {/* Modal Body */}
             <div className="p-6">
-              {/* Summary Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-blue-50 rounded-lg p-4 text-center">
-                  <p className="text-sm text-blue-600 font-medium">Overall Grade</p>
-                  <p className={`text-3xl font-bold mt-2 ${getGradeColor(selectedStudent.overallGrade)}`}>
-                    {selectedStudent.overallGrade > 0 ? `${selectedStudent.overallGrade.toFixed(2)}%` : 'N/A'}
-                  </p>
-                </div>
-                <div className="bg-yellow-50 rounded-lg p-4 text-center">
-                  <p className="text-sm text-yellow-600 font-medium">GPA</p>
-                  <p className="text-3xl font-bold text-yellow-600 mt-2">
-                    {selectedStudent.gpa > 0 ? selectedStudent.gpa.toFixed(1) : 'N/A'}
-                  </p>
-                </div>
-                <div className="bg-green-50 rounded-lg p-4 text-center">
-                  <p className="text-sm text-green-600 font-medium">Attendance</p>
-                  <p className={`text-3xl font-bold mt-2 ${getGradeColor(selectedStudent.attendance)}`}>
-                    {selectedStudent.attendance}%
-                  </p>
-                </div>
-                <div className="bg-purple-50 rounded-lg p-4 text-center">
-                  <p className="text-sm text-purple-600 font-medium">Subjects</p>
-                  <p className="text-3xl font-bold text-purple-600 mt-2">
-                    {selectedStudent.subjects.length}
-                  </p>
-                </div>
-              </div>
-
-              {/* Assessment Scores */}
+              {/* Student Information */}
               <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                <h3 className="text-lg font-bold text-gray-800 mb-4">Assessment Scores</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-white p-4 rounded-lg border border-gray-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-gray-600">Written Exam</span>
-                      <span className={`text-xl font-bold ${getGradeColor(selectedStudent.assessments.written)}`}>
-                        {selectedStudent.assessments.written > 0 ? `${selectedStudent.assessments.written}%` : 'N/A'}
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className={`h-2 rounded-full ${selectedStudent.assessments.written >= 75 ? 'bg-green-500' : 'bg-red-500'}`}
-                        style={{ width: `${selectedStudent.assessments.written}%` }}
-                      />
-                    </div>
+                <h3 className="text-lg font-bold text-gray-800 mb-4">Student Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500">Student ID</p>
+                    <p className="text-base font-medium text-gray-900">{selectedStudent.studentId}</p>
                   </div>
-                  <div className="bg-white p-4 rounded-lg border border-gray-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-gray-600">Practical Exam</span>
-                      <span className={`text-xl font-bold ${getGradeColor(selectedStudent.assessments.practical)}`}>
-                        {selectedStudent.assessments.practical > 0 ? `${selectedStudent.assessments.practical}%` : 'N/A'}
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className={`h-2 rounded-full ${selectedStudent.assessments.practical >= 75 ? 'bg-green-500' : 'bg-red-500'}`}
-                        style={{ width: `${selectedStudent.assessments.practical}%` }}
-                      />
-                    </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Email</p>
+                    <p className="text-base font-medium text-gray-900">{selectedStudent.email}</p>
                   </div>
-                  <div className="bg-white p-4 rounded-lg border border-gray-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-gray-600">Final Assessment</span>
-                      <span className={`text-xl font-bold ${getGradeColor(selectedStudent.assessments.final)}`}>
-                        {selectedStudent.assessments.final > 0 ? `${selectedStudent.assessments.final}%` : 'Pending'}
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className={`h-2 rounded-full ${selectedStudent.assessments.final >= 75 ? 'bg-green-500' : 'bg-gray-300'}`}
-                        style={{ width: `${selectedStudent.assessments.final}%` }}
-                      />
-                    </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Program</p>
+                    <p className="text-base font-medium text-gray-900">{selectedStudent.program}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Batch</p>
+                    <p className="text-base font-medium text-gray-900">{selectedStudent.batch}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Enrollment Date</p>
+                    <p className="text-base font-medium text-gray-900">
+                      {new Date(selectedStudent.enrollmentDate).toLocaleDateString()}
+                    </p>
                   </div>
                 </div>
               </div>
 
-              {/* Subject Grades */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="text-lg font-bold text-gray-800 mb-4">Subject Grades</h3>
+              {/* Assessment Summary */}
+              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <h3 className="text-lg font-bold text-gray-800 mb-4">Assessment Summary</h3>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="bg-white p-4 rounded-lg border border-gray-200">
+                    <p className="text-sm text-gray-500 mb-2">Total Assessments</p>
+                    <p className="text-3xl font-bold text-blue-600">
+                      {selectedStudent.totalAssessments || 0}
+                    </p>
+                  </div>
+                  <div className="bg-white p-4 rounded-lg border border-gray-200">
+                    <p className="text-sm text-gray-500 mb-2">Average Score</p>
+                    <p className={`text-3xl font-bold ${getGradeColor(selectedStudent.averageScore)}`}>
+                      {selectedStudent.averageScore > 0 ? `${selectedStudent.averageScore}%` : 'N/A'}
+                    </p>
+                  </div>
+                  <div className="bg-white p-4 rounded-lg border border-gray-200">
+                    <p className="text-sm text-gray-500 mb-2">Passed</p>
+                    <p className="text-3xl font-bold text-green-600">
+                      {selectedStudent.passedAssessments || 0}
+                    </p>
+                  </div>
+                  <div className="bg-white p-4 rounded-lg border border-gray-200">
+                    <p className="text-sm text-gray-500 mb-2">Failed</p>
+                    <p className="text-3xl font-bold text-red-600">
+                      {selectedStudent.failedAssessments || 0}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Detailed Grades */}
+              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <h3 className="text-lg font-bold text-gray-800 mb-4">Detailed Grades</h3>
                 <div className="space-y-3">
-                  {selectedStudent.subjects.map((subject, index) => (
-                    <div key={index} className="bg-white p-4 rounded-lg border border-gray-200">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-gray-800">{subject.name}</h4>
-                          <div className="flex items-center gap-2 mt-1">
-                            {getSubjectStatusBadge(subject.status)}
-                            <span className="text-xs text-gray-500">{subject.remarks}</span>
+                  {selectedStudent.grades && selectedStudent.grades.length > 0 ? (
+                    selectedStudent.grades.map((grade, index) => (
+                      <div key={index} className="bg-white p-4 rounded-lg border border-gray-200">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-gray-800 text-lg">{grade.assessment_title}</h4>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                                grade.assessment_type === 'written' ? 'bg-blue-100 text-blue-800' :
+                                grade.assessment_type === 'oral' ? 'bg-purple-100 text-purple-800' :
+                                grade.assessment_type === 'demonstration' ? 'bg-green-100 text-green-800' :
+                                'bg-yellow-100 text-yellow-800'
+                              }`}>
+                                {grade.assessment_type.charAt(0).toUpperCase() + grade.assessment_type.slice(1)}
+                              </span>
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                                grade.status === 'passed' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                              }`}>
+                                {grade.status === 'passed' ? 'Passed' : 'Failed'}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className={`text-3xl font-bold ${getGradeColor(grade.percentage)}`}>
+                              {grade.percentage}%
+                            </span>
+                            <div className="text-xs text-gray-500 mt-1">
+                              {grade.score}/{grade.total_points} points
+                            </div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <span className={`text-3xl font-bold ${getGradeColor(subject.grade)}`}>
-                            {subject.grade > 0 ? `${subject.grade}%` : 'N/A'}
-                          </span>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-500">Passing Score:</span>
+                            <span className="ml-2 font-medium text-gray-900">{grade.passing_score}%</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Graded:</span>
+                            <span className="ml-2 font-medium text-gray-900">
+                              {grade.graded_at ? new Date(grade.graded_at).toLocaleDateString() : 'N/A'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Attempt:</span>
+                            <span className="ml-2 font-medium text-gray-900">#{grade.attempt_number || 1}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Batch:</span>
+                            <span className="ml-2 font-medium text-gray-900">{grade.batch_id || 'N/A'}</span>
+                          </div>
                         </div>
+                        {grade.feedback && (
+                          <div className="mt-3 pt-3 border-t border-gray-200">
+                            <p className="text-sm text-gray-500 mb-1">Feedback:</p>
+                            <p className="text-sm text-gray-900">{grade.feedback}</p>
+                          </div>
+                        )}
                       </div>
-                      {subject.grade > 0 && (
-                        <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                          <div 
-                            className={`h-2 rounded-full ${subject.grade >= 75 ? 'bg-green-500' : 'bg-red-500'}`}
-                            style={{ width: `${subject.grade}%` }}
-                          />
-                        </div>
-                      )}
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      No grades available for this student
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
 
               {/* Action Buttons */}
               <div className="flex gap-2 mt-6 pt-6 border-t border-gray-200">
-                <button className="flex items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors">
-                  <MdEdit className="h-5 w-5" />
-                  Edit Grades
-                </button>
                 <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
                   <MdPrint className="h-5 w-5" />
-                  Print Report Card
+                  Print Certificate
                 </button>
                 <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
                   <MdDownload className="h-5 w-5" />
-                  Download Transcript
+                  Download Report
                 </button>
                 <button 
                   onClick={() => setSelectedStudent(null)}
@@ -679,6 +752,8 @@ const StaffAcademicRecords = () => {
           </div>
         </div>
       )}
+      
+      <Toaster position="top-right" />
     </div>
   );
 };

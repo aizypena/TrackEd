@@ -82,10 +82,8 @@ class EquipmentController extends Controller
             'name' => 'required|string|max:255',
             'category' => 'required|string',
             'brand' => 'required|string',
-            'model' => 'required|string',
             'serial_number' => 'nullable|string',
             'quantity' => 'required|integer|min:1',
-            'location' => 'required|string',
             'status' => 'required|in:available,inUse,maintenance,damaged,retired',
             'condition' => 'required|in:excellent,good,fair,poor',
             'purchase_date' => 'nullable|date',
@@ -98,14 +96,12 @@ class EquipmentController extends Controller
             'name' => $request->name,
             'category' => $request->category,
             'brand' => $request->brand,
-            'model' => $request->model,
             'serial_number' => $request->serial_number,
             'quantity' => $request->quantity,
             'available' => $request->quantity,
             'in_use' => 0,
             'maintenance' => 0,
             'damaged' => 0,
-            'location' => $request->location,
             'status' => $request->status,
             'condition' => $request->condition,
             'purchase_date' => $request->purchase_date,
@@ -132,14 +128,12 @@ class EquipmentController extends Controller
             'name' => 'required|string|max:255',
             'category' => 'required|string',
             'brand' => 'required|string',
-            'model' => 'required|string',
             'serial_number' => 'nullable|string',
             'quantity' => 'required|integer|min:1',
             'available' => 'required|integer|min:0',
             'in_use' => 'required|integer|min:0',
             'maintenance' => 'required|integer|min:0',
             'damaged' => 'required|integer|min:0',
-            'location' => 'required|string',
             'status' => 'required|in:available,inUse,maintenance,damaged,retired',
             'condition' => 'required|in:excellent,good,fair,poor',
             'purchase_date' => 'nullable|date',
@@ -286,7 +280,8 @@ class EquipmentController extends Controller
     public function assignEquipment(Request $request, $id)
     {
         $request->validate([
-            'user_id' => 'required|exists:users,id',
+            'user_id' => 'required_without:batch_id|exists:users,id',
+            'batch_id' => 'required_without:user_id|exists:batches,id',
             'quantity' => 'required|integer|min:1',
             'purpose' => 'nullable|string',
             'due_date' => 'nullable|date',
@@ -306,9 +301,8 @@ class EquipmentController extends Controller
         DB::beginTransaction();
         try {
             // Create assignment record
-            $assignment = EquipmentAssignment::create([
+            $assignmentData = [
                 'equipment_id' => $id,
-                'user_id' => $request->user_id,
                 'quantity' => $request->quantity,
                 'assigned_at' => now(),
                 'due_date' => $request->due_date,
@@ -316,7 +310,17 @@ class EquipmentController extends Controller
                 'purpose' => $request->purpose,
                 'notes' => $request->notes,
                 'assigned_by' => $request->user()->id
-            ]);
+            ];
+            
+            // Add either user_id or batch_id
+            if ($request->has('user_id')) {
+                $assignmentData['user_id'] = $request->user_id;
+            }
+            if ($request->has('batch_id')) {
+                $assignmentData['batch_id'] = $request->batch_id;
+            }
+            
+            $assignment = EquipmentAssignment::create($assignmentData);
 
             // Update equipment counts with safeguards
             $equipment->available = max(0, $equipment->available - $request->quantity);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from '../../layouts/admin/Sidebar';
 import { 
   MdMenu, MdSearch, MdSupervisorAccount,
@@ -8,6 +9,7 @@ import {
 } from 'react-icons/md';
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // Get admin user info from localStorage
@@ -423,7 +425,10 @@ const AdminDashboard = () => {
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg font-semibold text-gray-900">Application Management</h2>
-                  <button className="flex items-center px-3 py-2 text-sm font-medium text-blue-600 bg-blue-100 rounded-lg hover:bg-blue-200 transition-colors">
+                  <button 
+                    onClick={() => navigate('/admin/applications')}
+                    className="flex items-center px-3 hover:cursor-pointer py-2 text-sm font-medium text-blue-600 bg-blue-100 rounded-lg hover:bg-blue-200 transition-colors"
+                  >
                     <MdVisibility className="h-4 w-4 mr-2" />
                     View All
                   </button>
@@ -454,7 +459,12 @@ const AdminDashboard = () => {
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg font-semibold text-gray-900">System Activities</h2>
-                  <button className="text-sm text-blue-600 hover:text-blue-800">View All</button>
+                  <button 
+                    onClick={() => navigate('/admin/system-logs')}
+                    className="text-sm text-blue-600 hover:cursor-pointer hover:text-blue-800"
+                  >
+                    View All
+                  </button>
                 </div>
                 
                 <div className="space-y-4">

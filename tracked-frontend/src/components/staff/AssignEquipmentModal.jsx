@@ -1,28 +1,27 @@
 import { useState, useEffect } from 'react';
-import { MdClose, MdPerson, MdCalendarToday, MdAssignment } from 'react-icons/md';
+import { MdClose, MdPeople, MdCalendarToday, MdAssignment } from 'react-icons/md';
 import axios from 'axios';
+import { getAllBatches } from '../../services/batchService';
 
 const AssignEquipmentModal = ({ isOpen, onClose, equipment, onSuccess, onError }) => {
-  const [users, setUsers] = useState([]);
-  const [filteredUsers, setFilteredUsers] = useState([]);
-  const [selectedUser, setSelectedUser] = useState(null);
+  const [batches, setBatches] = useState([]);
+  const [filteredBatches, setFilteredBatches] = useState([]);
+  const [selectedBatch, setSelectedBatch] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showUserList, setShowUserList] = useState(false);
+  const [showBatchList, setShowBatchList] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [purpose, setPurpose] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
-  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [loadingBatches, setLoadingBatches] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      fetchUsers();
+      fetchBatches();
       // Reset form
-      setSelectedUser(null);
+      setSelectedBatch(null);
       setSearchTerm('');
-      setFilteredUsers([]);
-      setShowUserList(false);
       setQuantity(1);
       setPurpose('');
       setDueDate('');
@@ -31,69 +30,60 @@ const AssignEquipmentModal = ({ isOpen, onClose, equipment, onSuccess, onError }
   }, [isOpen]);
 
   useEffect(() => {
-    // Filter users based on search term
+    // Filter batches based on search term or show all
     if (searchTerm.trim() === '') {
-      setFilteredUsers([]);
-      setShowUserList(false);
+      setFilteredBatches(batches);
     } else {
-      const filtered = users.filter(user => {
+      const filtered = batches.filter(batch => {
         const searchLower = searchTerm.toLowerCase();
+        const batchId = (batch.batch_id || '').toLowerCase();
+        const programName = (batch.program?.program_name || batch.program?.name || '').toLowerCase();
+        const trainerName = (batch.trainer?.first_name + ' ' + batch.trainer?.last_name || '').toLowerCase();
+        
         return (
-          user.name.toLowerCase().includes(searchLower) ||
-          user.email.toLowerCase().includes(searchLower) ||
-          (user.course && user.course.toLowerCase().includes(searchLower)) ||
-          (user.program && user.program.toLowerCase().includes(searchLower))
+          batchId.includes(searchLower) ||
+          programName.includes(searchLower) ||
+          trainerName.includes(searchLower)
         );
       });
-      setFilteredUsers(filtered);
-      setShowUserList(true);
+      setFilteredBatches(filtered);
     }
-  }, [searchTerm, users]);
+  }, [searchTerm, batches]);
 
-  const fetchUsers = async () => {
+  const fetchBatches = async () => {
     try {
-      setLoadingUsers(true);
-      const API_URL = 'https://api.smitracked.cloud/api';
-      const token = localStorage.getItem('staffToken') || localStorage.getItem('adminToken');
+      setLoadingBatches(true);
+      const response = await getAllBatches();
       
-      const response = await axios.get(`${API_URL}/users`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.data.success) {
-        // Filter only students/trainees (exclude applicants)
-        const filteredUsers = response.data.data.filter(user => 
-          user.role === 'student' || user.role === 'trainer' || user.role === 'staff' || user.role === 'admin'
-        );
-        setUsers(filteredUsers);
+      if (response.success) {
+        setBatches(response.data);
       }
     } catch (error) {
-      console.error('Error fetching users:', error);
-      onError('Failed to load users');
+      console.error('Error fetching batches:', error);
+      onError('Failed to load batches');
     } finally {
-      setLoadingUsers(false);
+      setLoadingBatches(false);
     }
   };
 
-  const handleUserSelect = (user) => {
-    setSelectedUser(user);
-    setSearchTerm(user.name);
-    setShowUserList(false);
+  const handleBatchSelect = (batch) => {
+    setSelectedBatch(batch);
+    const batchId = batch.batch_id || 'Unknown Batch';
+    const programName = batch.program?.program_name || batch.program?.name || 'Unknown Program';
+    setSearchTerm(`${batchId} - ${programName}`);
+    setShowBatchList(false);
   };
 
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
-    setSelectedUser(null);
+    setSelectedBatch(null);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!selectedUser) {
-      onError('Please select a user');
+    if (!selectedBatch) {
+      onError('Please select a batch');
       return;
     }
 
@@ -110,7 +100,7 @@ const AssignEquipmentModal = ({ isOpen, onClose, equipment, onSuccess, onError }
       const response = await axios.post(
         `${API_URL}/equipment/${equipment.id}/assign`,
         {
-          user_id: selectedUser.id,
+          batch_id: selectedBatch.id,
           quantity: parseInt(quantity),
           purpose,
           due_date: dueDate || null,
@@ -129,8 +119,8 @@ const AssignEquipmentModal = ({ isOpen, onClose, equipment, onSuccess, onError }
         onSuccess({
           equipmentCode: equipment.equipment_code,
           equipmentName: equipment.name,
-          userId: selectedUser.id,
-          userName: selectedUser.name,
+          batchId: selectedBatch.id,
+          batchName: `${selectedBatch.batch_id} - ${selectedBatch.program?.program_name || selectedBatch.program?.name}`,
           quantity: quantity,
           purpose
         });
@@ -160,7 +150,7 @@ const AssignEquipmentModal = ({ isOpen, onClose, equipment, onSuccess, onError }
               </div>
               <div>
                 <h2 className="text-xl font-bold">Assign Equipment</h2>
-                <p className="text-sm text-blue-100 mt-1">Checkout equipment to a user</p>
+                <p className="text-sm text-blue-100 mt-1">Assign equipment to a batch</p>
               </div>
             </div>
             <button
@@ -182,39 +172,38 @@ const AssignEquipmentModal = ({ isOpen, onClose, equipment, onSuccess, onError }
           </div>
 
           <div className="space-y-4">
-            {/* User Search */}
+            {/* Batch Search */}
             <div className="relative">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                <MdPerson className="inline h-4 w-4 mr-1" />
-                Assign To User <span className="text-red-500">*</span>
+                <MdPeople className="inline h-4 w-4 mr-1" />
+                Assign To Batch <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={searchTerm}
                 onChange={handleSearchChange}
-                onFocus={() => searchTerm && setShowUserList(true)}
-                placeholder="Search by name, email, or program..."
+                onFocus={() => setShowBatchList(true)}
+                placeholder="Search by batch number, program, or trainer..."
                 className={inputClassName}
-                required
-                disabled={loadingUsers}
+                disabled={loadingBatches}
                 autoComplete="off"
               />
               
-              {/* Selected User Display */}
-              {selectedUser && (
+              {/* Selected Batch Display */}
+              {selectedBatch && (
                 <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-blue-900">{selectedUser.name}</p>
-                      <p className="text-sm text-blue-700">{selectedUser.email}</p>
+                      <p className="font-medium text-blue-900">{selectedBatch.batch_id}</p>
+                      <p className="text-sm text-blue-700">{selectedBatch.program?.program_name || selectedBatch.program?.name}</p>
                       <p className="text-xs text-blue-600 mt-1">
-                        {selectedUser.course || selectedUser.program || 'N/A'}
+                        Trainer: {selectedBatch.trainer ? `${selectedBatch.trainer.first_name} ${selectedBatch.trainer.last_name}` : 'Not assigned'}
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => {
-                        setSelectedUser(null);
+                        setSelectedBatch(null);
                         setSearchTerm('');
                       }}
                       className="text-blue-600 hover:text-blue-800"
@@ -226,36 +215,35 @@ const AssignEquipmentModal = ({ isOpen, onClose, equipment, onSuccess, onError }
               )}
 
               {/* Search Results Dropdown */}
-              {showUserList && filteredUsers.length > 0 && !selectedUser && (
+              {showBatchList && !selectedBatch && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                  {filteredUsers.map((user) => (
-                    <button
-                      key={user.id}
-                      type="button"
-                      onClick={() => handleUserSelect(user)}
-                      className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors"
-                    >
-                      <div className="font-medium text-gray-900">{user.name}</div>
-                      <div className="text-sm text-gray-600">{user.email}</div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {user.course || user.program || 'N/A'}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* No Results */}
-              {showUserList && filteredUsers.length === 0 && searchTerm && !selectedUser && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-4 text-center text-gray-500">
-                  No users found matching "{searchTerm}"
+                  {filteredBatches.length > 0 ? (
+                    filteredBatches.map((batch) => (
+                      <button
+                        key={batch.id}
+                        type="button"
+                        onClick={() => handleBatchSelect(batch)}
+                        className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                      >
+                        <div className="font-medium text-gray-900">{batch.batch_id}</div>
+                        <div className="text-sm text-gray-600">{batch.program?.program_name || batch.program?.name}</div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          Trainer: {batch.trainer ? `${batch.trainer.first_name} ${batch.trainer.last_name}` : 'Not assigned'}
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-gray-500">
+                      {searchTerm ? `No batches found matching "${searchTerm}"` : 'No batches available'}
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Loading State */}
-              {loadingUsers && (
+              {loadingBatches && (
                 <div className="mt-2 text-sm text-gray-500">
-                  Loading users...
+                  Loading batches...
                 </div>
               )}
             </div>
@@ -319,15 +307,15 @@ const AssignEquipmentModal = ({ isOpen, onClose, equipment, onSuccess, onError }
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-all duration-200 hover:scale-105 active:scale-95"
+              className="flex-1 px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-all duration-200 hover:scale-105 active:scale-95 hover:cursor-pointer"
               disabled={loading}
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={loading || !selectedUser}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              disabled={loading || !selectedBatch}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 hover:cursor-pointer"
             >
               {loading ? (
                 <>
@@ -340,7 +328,7 @@ const AssignEquipmentModal = ({ isOpen, onClose, equipment, onSuccess, onError }
               ) : (
                 <>
                   <MdAssignment className="h-5 w-5" />
-                  <span>Assign Equipment</span>
+                  <span>Assign to Batch</span>
                 </>
               )}
             </button>

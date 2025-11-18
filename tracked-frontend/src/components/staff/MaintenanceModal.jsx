@@ -121,8 +121,8 @@ const MaintenanceModal = ({ isOpen, onClose, equipment, onSuccess, onError }) =>
                 <p className="font-medium text-gray-900 capitalize">{equipment.condition}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Location</p>
-                <p className="font-medium text-gray-900">{equipment.location}</p>
+                <p className="text-sm text-gray-600">Brand</p>
+                <p className="font-medium text-gray-900">{equipment.brand}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Current Status</p>

@@ -272,9 +272,8 @@ const StaffPaymentRecords = () => {
 
   const stats = {
     totalRevenue: paymentRecords.reduce((sum, r) => sum + r.amountPaid, 0),
-    totalOutstanding: paymentRecords.reduce((sum, r) => sum + r.balance, 0),
-    paidCount: paymentRecords.filter(r => r.paymentStatus === 'paid' || r.paymentStatus === 'voucher').length,
-    unpaidCount: paymentRecords.filter(r => r.paymentStatus === 'unpaid' || r.paymentStatus === 'overdue').length
+    paidCount: paymentRecords.filter(r => r.paymentStatus === 'paid').length,
+    voucherCount: paymentRecords.filter(r => r.paymentStatus === 'voucher').length
   };
 
   return (
@@ -313,7 +312,7 @@ const StaffPaymentRecords = () => {
             <div className="bg-white rounded-lg shadow-md p-4">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-green-100 rounded-full">
-                  <MdAttachMoney className="h-6 w-6 text-green-600" />
+                  <span className="text-2xl font-bold text-green-600">₱</span>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 font-medium">Total Revenue</p>
@@ -324,22 +323,22 @@ const StaffPaymentRecords = () => {
             <div className="bg-white rounded-lg shadow-md p-4">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-blue-100 rounded-full">
-                  <MdCheckCircle className="h-6 w-6 text-blue-600" />
+                  <span className="text-2xl font-bold text-blue-600">₱</span>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 font-medium">Paid/Voucher</p>
+                  <p className="text-sm text-gray-500 font-medium">Paid</p>
                   <p className="text-xl font-bold text-blue-600">{stats.paidCount}</p>
                 </div>
               </div>
             </div>
             <div className="bg-white rounded-lg shadow-md p-4">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-orange-100 rounded-full">
-                  <MdPending className="h-6 w-6 text-orange-600" />
+                <div className="p-3 bg-purple-100 rounded-full">
+                  <span className="text-2xl font-bold text-purple-600">₱</span>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 font-medium">Unpaid/Overdue</p>
-                  <p className="text-xl font-bold text-orange-600">{stats.unpaidCount}</p>
+                  <p className="text-sm text-gray-500 font-medium">Voucher</p>
+                  <p className="text-xl font-bold text-purple-600">{stats.voucherCount}</p>
                 </div>
               </div>
             </div>
@@ -507,16 +506,15 @@ const StaffPaymentRecords = () => {
                               <MdVisibility className="h-5 w-5" />
                             </button>
                             <button
+                              onClick={() => {
+                                const token = getStaffToken();
+                                window.open(`https://api.smitracked.cloud/api/payments/${record.id}/receipt?token=${token}`, '_blank');
+                              }}
                               className="text-green-600 hover:text-green-700"
-                              title="Add Payment"
+                              title="Download Receipt"
+                              disabled={!record.referenceCode}
                             >
-                              <MdPayment className="h-5 w-5" />
-                            </button>
-                            <button
-                              className="text-blue-600 hover:text-blue-700"
-                              title="Print Receipt"
-                            >
-                              <MdReceipt className="h-5 w-5" />
+                              <MdDownload className="h-5 w-5" />
                             </button>
                           </div>
                         </td>

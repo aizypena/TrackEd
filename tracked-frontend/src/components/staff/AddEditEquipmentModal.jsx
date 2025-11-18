@@ -8,10 +8,8 @@ const AddEditEquipmentModal = ({ isOpen, onClose, equipment, categories, locatio
     name: '',
     category: '',
     brand: '',
-    model: '',
     serial_number: '',
-    quantity: 1,
-    location: '',
+    quantity: '',
     status: 'available',
     condition: 'good',
     purchase_date: '',
@@ -33,14 +31,12 @@ const AddEditEquipmentModal = ({ isOpen, onClose, equipment, categories, locatio
         name: equipment.name || '',
         category: equipment.category || '',
         brand: equipment.brand || '',
-        model: equipment.model || '',
         serial_number: equipment.serial_number || '',
-        quantity: equipment.quantity || 1,
-        available: equipment.available || equipment.quantity || 1,
+        quantity: equipment.quantity || '',
+        available: equipment.available || equipment.quantity || 0,
         in_use: equipment.in_use || 0,
         maintenance: equipment.maintenance || 0,
         damaged: equipment.damaged || 0,
-        location: equipment.location || '',
         status: equipment.status || 'available',
         condition: equipment.condition || 'good',
         purchase_date: equipment.purchase_date || '',
@@ -56,10 +52,8 @@ const AddEditEquipmentModal = ({ isOpen, onClose, equipment, categories, locatio
         name: '',
         category: '',
         brand: '',
-        model: '',
         serial_number: '',
-        quantity: 1,
-        location: '',
+        quantity: '',
         status: 'available',
         condition: 'good',
         purchase_date: '',
@@ -76,10 +70,8 @@ const AddEditEquipmentModal = ({ isOpen, onClose, equipment, categories, locatio
     setLoading(true);
 
     try {
-      // Always set quantity to 1
       const submitData = {
-        ...formData,
-        quantity: 1
+        ...formData
       };
 
       let response;
@@ -215,22 +207,6 @@ const AddEditEquipmentModal = ({ isOpen, onClose, equipment, categories, locatio
               />
             </div>
 
-            {/* Model */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Model <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="model"
-                value={formData.model}
-                onChange={handleChange}
-                required
-                className={inputClassName}
-                placeholder="e.g., Power MIG 260"
-              />
-            </div>
-
             {/* Serial Number */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Serial Number</label>
@@ -244,26 +220,21 @@ const AddEditEquipmentModal = ({ isOpen, onClose, equipment, categories, locatio
               />
             </div>
 
-            {/* Location */}
+            {/* Quantity */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Location <span className="text-red-500">*</span>
+                Quantity <span className="text-red-500">*</span>
               </label>
               <input
-                type="text"
-                name="location"
-                value={formData.location}
+                type="number"
+                name="quantity"
+                value={formData.quantity}
                 onChange={handleChange}
                 required
-                list="locations-list"
+                min="1"
                 className={inputClassName}
-                placeholder="e.g., Workshop A"
+                placeholder="e.g., 5"
               />
-              <datalist id="locations-list">
-                {locations.map((loc, index) => (
-                  <option key={index} value={loc} />
-                ))}
-              </datalist>
             </div>
 
             {/* Status */}

@@ -477,18 +477,18 @@ const StaffEnrollmentTrends = () => {
       {/* Main Content with proper sidebar spacing */}
       <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
         {/* Header */}
-        <header className="bg-white shadow-sm">
-          <div className="px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center space-x-4">
+        <header className="bg-tracked-primary text-white p-4">
+          <div className="container mx-auto flex justify-between items-center flex-wrap gap-4">
+            <div className="flex items-center gap-4">
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="lg:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100"
+                className="lg:hidden p-2 -ml-2 rounded-md hover:bg-tracked-primary-dark"
               >
                 <MdMenu className="h-6 w-6" />
               </button>
               <div>
-                <h1 className="text-2xl font-semibold text-gray-900">Enrollment Trends</h1>
-                <p className="text-sm text-gray-500">Analytics and insights about training programs</p>
+                <h1 className="text-xl font-bold">Enrollment Trends</h1>
+                <p className="text-sm text-blue-100">Analytics and insights about training programs</p>
               </div>
             </div>
             <div className="flex items-center space-x-3 flex-wrap gap-2">

@@ -628,4 +628,163 @@ class PaymentController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Download payment receipt as PDF
+     */
+    public function downloadReceipt(Request $request, $id)
+    {
+        try {
+            // Authenticate using token from query parameter if present
+            if ($request->has('token')) {
+                $token = $request->query('token');
+                $accessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
+                
+                if (!$accessToken || !$accessToken->tokenable) {
+                    return response('<html><body><h1>Unauthenticated</h1><p>Invalid or expired token.</p></body></html>')->header('Content-Type', 'text/html');
+                }
+                
+                // Verify user is authenticated
+                $user = $accessToken->tokenable;
+                if (!$user) {
+                    return response('<html><body><h1>Unauthenticated</h1><p>User not found.</p></body></html>')->header('Content-Type', 'text/html');
+                }
+            }
+
+            $payment = Payment::with(['user', 'batch'])->findOrFail($id);
+
+            // Generate receipt HTML
+            $html = $this->generateReceiptHTML($payment);
+
+            // Return HTML with print-friendly CSS
+            return response($html)->header('Content-Type', 'text/html');
+        } catch (\Exception $e) {
+            Log::error('Error generating receipt:', [
+                'payment_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to generate receipt'
+            ], 500);
+        }
+    }
+
+    /**
+     * Generate receipt HTML
+     */
+    private function generateReceiptHTML($payment)
+    {
+        $student = $payment->user;
+        $batch = $payment->batch;
+
+        return "
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <title>Payment Receipt - {$payment->reference_code}</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 40px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { color: #2563eb; margin: 0; }
+        .header p { color: #666; margin: 5px 0; }
+        .receipt-box { border: 2px solid #2563eb; padding: 30px; margin-top: 20px; }
+        .receipt-title { background: #2563eb; color: white; padding: 15px; text-align: center; font-size: 20px; font-weight: bold; margin: -30px -30px 20px -30px; }
+        .info-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
+        .info-row:last-child { border-bottom: none; }
+        .label { color: #666; }
+        .value { font-weight: bold; }
+        .amount-row { margin-top: 20px; padding-top: 20px; border-top: 2px solid #2563eb; }
+        .total-amount { font-size: 24px; color: #10b981; text-align: right; }
+        .footer { text-align: center; margin-top: 40px; color: #666; font-size: 12px; }
+        .no-print { text-align: center; margin-top: 20px; }
+        .no-print button { padding: 10px 20px; font-size: 16px; cursor: pointer; background: #2563eb; color: white; border: none; border-radius: 5px; }
+        .no-print button:hover { background: #1d4ed8; }
+        @media print {
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class='header'>
+        <h1>TrackEd System</h1>
+        <p>SMI INSTITUTE INC.</p>
+        <p>Official Payment Receipt</p>
+    </div>
+
+    <div class='receipt-box'>
+        <div class='receipt-title'>PAYMENT RECEIPT</div>
+        
+        <div class='info-row'>
+            <span class='label'>Receipt Number:</span>
+            <span class='value'>{$payment->reference_code}</span>
+        </div>
+        
+        <div class='info-row'>
+            <span class='label'>Date:</span>
+            <span class='value'>" . date('F d, Y', strtotime($payment->created_at)) . "</span>
+        </div>
+        
+        <div class='info-row'>
+            <span class='label'>Student Name:</span>
+            <span class='value'>{$student->first_name} {$student->last_name}</span>
+        </div>
+        
+        <div class='info-row'>
+            <span class='label'>Student ID:</span>
+            <span class='value'>{$student->student_id}</span>
+        </div>
+        
+        <div class='info-row'>
+            <span class='label'>Batch:</span>
+            <span class='value'>{$payment->batch_id}</span>
+        </div>
+        
+        <div class='info-row'>
+            <span class='label'>Payment Method:</span>
+            <span class='value'>" . strtoupper($payment->payment_method) . "</span>
+        </div>
+        
+        <div class='info-row'>
+            <span class='label'>Payment Status:</span>
+            <span class='value'>" . strtoupper($payment->payment_status) . "</span>
+        </div>
+        
+        <div class='info-row'>
+            <span class='label'>Description:</span>
+            <span class='value'>{$payment->payment_description}</span>
+        </div>
+        
+        <div class='amount-row'>
+            <div class='info-row'>
+                <span class='label' style='font-size: 18px;'>Total Amount:</span>
+                <span class='total-amount'>₱" . number_format($payment->amount, 2) . "</span>
+            </div>
+        </div>
+    </div>
+
+    <div class='footer'>
+        <p>This is an official receipt generated by TrackEd System</p>
+        <p>SMI INSTITUTE INC.</p>
+    </div>
+
+    <div class='no-print'>
+        <button onclick='window.print()'>Print Receipt</button>
+        <button onclick='window.close()' style='margin-left: 10px; background: #6b7280;'>Close</button>
+    </div>
+
+    <script>
+        // Auto-print on load
+        window.onload = function() {
+            setTimeout(function() {
+                window.print();
+            }, 500);
+        };
+    </script>
+</body>
+</html>
+        ";
+    }
 }

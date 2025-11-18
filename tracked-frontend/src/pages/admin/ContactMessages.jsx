@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Sidebar from '../../layouts/admin/Sidebar';
 import { MdMenu, MdSearch, MdVisibility, MdMarkEmailRead, MdReply, MdClose } from 'react-icons/md';
 import toast from 'react-hot-toast';
+import { API_URL } from '../../config/api';
 
 export default function ContactMessages() {
   const [messages, setMessages] = useState([]);
@@ -22,7 +23,7 @@ export default function ContactMessages() {
     setError(null);
     try {
       const token = localStorage.getItem('adminToken');
-      let url = `https://api.smitracked.cloud/api/admin/contact-messages?page=${page}`;
+      let url = `${API_URL}/admin/contact-messages?page=${page}`;
       
       if (statusFilter && statusFilter !== 'all') {
         url += `&status=${statusFilter}`;
@@ -37,15 +38,22 @@ export default function ContactMessages() {
 
       if (!response.ok) throw new Error('Failed to fetch contact messages');
       
-      const data = await response.json();
-      const msgs = data.data || [];
+      const response_data = await response.json();
+      
+      // Handle nested data structure: {success: true, data: {data: [...], current_page: 1, ...}}
+      const paginationData = response_data.data || {};
+      const msgs = Array.isArray(paginationData.data) ? paginationData.data : [];
+      
       setMessages(msgs);
       setFilteredMessages(msgs);
-      setCurrentPage(data.current_page || 1);
-      setTotalPages(data.last_page || 1);
+      setCurrentPage(paginationData.current_page || 1);
+      setTotalPages(paginationData.last_page || 1);
     } catch (err) {
       setError(err.message);
       toast.error('Failed to load contact messages');
+      // Set empty arrays on error
+      setMessages([]);
+      setFilteredMessages([]);
     } finally {
       setLoading(false);
     }
@@ -61,7 +69,8 @@ export default function ContactMessages() {
       setFilteredMessages(messages);
     } else {
       const searchLower = searchTerm.toLowerCase();
-      const filtered = messages.filter(msg => {
+      // Ensure messages is an array before filtering
+      const filtered = Array.isArray(messages) ? messages.filter(msg => {
         const fullName = (msg.full_name || '').toLowerCase();
         const email = (msg.email || '').toLowerCase();
         const subject = (msg.subject || '').toLowerCase();
@@ -71,7 +80,7 @@ export default function ContactMessages() {
                email.includes(searchLower) ||
                subject.includes(searchLower) ||
                message.includes(searchLower);
-      });
+      }) : [];
       setFilteredMessages(filtered);
     }
   }, [searchTerm, messages]);
@@ -80,7 +89,7 @@ export default function ContactMessages() {
   const updateStatus = async (messageId, newStatus) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(`https://api.smitracked.cloud/api/admin/contact-messages/${messageId}/status`, {
+      const response = await fetch(`${API_URL}/admin/contact-messages/${messageId}/status`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -94,19 +103,18 @@ export default function ContactMessages() {
       
       const data = await response.json();
       
-      // Update local state
-      setMessages(prev => prev.map(msg => 
+      // Update local state - ensure arrays exist
+      setMessages(prev => Array.isArray(prev) ? prev.map(msg => 
         msg.id === messageId ? { ...msg, status: newStatus } : msg
-      ));
-      setFilteredMessages(prev => prev.map(msg => 
+      ) : []);
+      setFilteredMessages(prev => Array.isArray(prev) ? prev.map(msg => 
         msg.id === messageId ? { ...msg, status: newStatus } : msg
-      ));
+      ) : []);
       
       if (selectedMessage && selectedMessage.id === messageId) {
         setSelectedMessage({ ...selectedMessage, status: newStatus });
       }
 
-      toast.success(`Message marked as ${newStatus}`);
     } catch (err) {
       toast.error('Failed to update message status');
       console.error(err);
@@ -143,8 +151,6 @@ export default function ContactMessages() {
         return 'bg-blue-100 text-blue-800';
       case 'read':
         return 'bg-yellow-100 text-yellow-800';
-      case 'replied':
-        return 'bg-green-100 text-green-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -164,65 +170,68 @@ export default function ContactMessages() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Main Content */}
-      <div className="flex-1 md:ml-64">
+      <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-white shadow-sm sticky top-0 z-10">
-          <div className="flex items-center justify-between px-4 py-4">
-            <div className="flex items-center">
+        <header className="bg-white shadow-sm">
+          <div className="px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+            <div className="flex items-center space-x-4">
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="md:hidden mr-4 text-gray-600 hover:text-gray-900"
+                className="lg:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100"
               >
-                <MdMenu className="w-6 h-6" />
+                <MdMenu className="h-6 w-6" />
               </button>
-              <h1 className="text-2xl font-semibold text-gray-800">Contact Messages</h1>
+              <div>
+                <h1 className="text-2xl font-semibold text-gray-900">Contact Messages</h1>
+                <p className="text-sm text-gray-500">View and manage customer inquiries</p>
+              </div>
             </div>
           </div>
-        </div>
+        </header>
 
-        {/* Content */}
-        <div className="p-6">
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
           {/* Filters and Search */}
-          <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Search */}
-              <div className="relative">
-                <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="Search by name, email, subject, or message..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0 sm:space-x-4">
+              <div className="flex-1 min-w-0 max-w-md">
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <MdSearch className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    placeholder="Search by name, email, subject, or message..."
+                  />
+                </div>
               </div>
-
-              {/* Status Filter */}
-              <div>
+              <div className="flex items-center">
                 <select
                   value={statusFilter}
                   onChange={(e) => {
                     setStatusFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="all">All Status</option>
                   <option value="new">New</option>
                   <option value="read">Read</option>
-                  <option value="replied">Replied</option>
                 </select>
               </div>
             </div>
           </div>
 
           {/* Messages Table */}
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
             {loading ? (
               <div className="flex justify-center items-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -295,29 +304,11 @@ export default function ContactMessages() {
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <button
                               onClick={() => handleViewMessage(message)}
-                              className="text-blue-600 hover:text-blue-900 mr-3"
+                              className="text-blue-600 hover:text-blue-900"
                               title="View Details"
                             >
                               <MdVisibility className="w-5 h-5" />
                             </button>
-                            {message.status === 'new' && (
-                              <button
-                                onClick={() => updateStatus(message.id, 'read')}
-                                className="text-yellow-600 hover:text-yellow-900 mr-3"
-                                title="Mark as Read"
-                              >
-                                <MdMarkEmailRead className="w-5 h-5" />
-                              </button>
-                            )}
-                            {message.status === 'read' && (
-                              <button
-                                onClick={() => updateStatus(message.id, 'replied')}
-                                className="text-green-600 hover:text-green-900"
-                                title="Mark as Replied"
-                              >
-                                <MdReply className="w-5 h-5" />
-                              </button>
-                            )}
                           </td>
                         </tr>
                       ))}
@@ -375,12 +366,12 @@ export default function ContactMessages() {
               </>
             )}
           </div>
-        </div>
+        </main>
       </div>
 
       {/* Message Detail Modal */}
       {showDetailModal && selectedMessage && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 backdrop-blur-sm bg-white/30 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
@@ -437,34 +428,6 @@ export default function ContactMessages() {
                   <div className="bg-gray-50 rounded-lg p-4">
                     <p className="text-gray-900 whitespace-pre-wrap">{selectedMessage.message}</p>
                   </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex gap-3 pt-4 border-t border-gray-200">
-                  {selectedMessage.status === 'new' && (
-                    <button
-                      onClick={() => updateStatus(selectedMessage.id, 'read')}
-                      className="flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
-                    >
-                      <MdMarkEmailRead className="w-5 h-5" />
-                      Mark as Read
-                    </button>
-                  )}
-                  {selectedMessage.status === 'read' && (
-                    <button
-                      onClick={() => updateStatus(selectedMessage.id, 'replied')}
-                      className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                    >
-                      <MdReply className="w-5 h-5" />
-                      Mark as Replied
-                    </button>
-                  )}
-                  <a
-                    href={`mailto:${selectedMessage.email}?subject=Re: ${selectedMessage.subject}`}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Reply via Email
-                  </a>
                 </div>
               </div>
             </div>

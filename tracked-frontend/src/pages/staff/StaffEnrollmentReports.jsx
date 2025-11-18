@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import StaffSidebar from '../../layouts/staff/StaffSidebar';
 import { getStaffToken } from '../../utils/staffAuth';
 import toast, { Toaster } from 'react-hot-toast';
-import { MdMenu } from 'react-icons/md';
+import { MdMenu, MdDownload } from 'react-icons/md';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -350,6 +350,15 @@ const StaffEnrollmentReports = () => {
                 <p className="text-sm text-blue-100">Generate and export enrollment reports</p>
               </div>
             </div>
+            {reportData && (
+              <button
+                onClick={exportToCSV}
+                className="flex items-center gap-2 px-4 py-2 bg-white text-tracked-primary rounded-lg hover:bg-blue-50 transition-colors font-medium"
+              >
+                <MdDownload className="h-5 w-5" />
+                Export to Excel
+              </button>
+            )}
           </div>
         </nav>
         
@@ -456,23 +465,6 @@ const StaffEnrollmentReports = () => {
               >
                 {loading ? 'Generating...' : 'Generate Report'}
               </button>
-              
-              {reportData && (
-                <>
-                  <button
-                    onClick={exportToCSV}
-                    className="px-6 py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors"
-                  >
-                    Export to CSV
-                  </button>
-                  <button
-                    onClick={exportToPDF}
-                    className="px-6 py-2.5 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors"
-                  >
-                    Export to PDF
-                  </button>
-                </>
-              )}
             </div>
           </div>
 

@@ -8,7 +8,6 @@ import {
   MdCalendarToday,
   MdEdit,
   MdPrint,
-  MdLocationOn,
   MdAssignment
 } from 'react-icons/md';
 
@@ -97,7 +96,7 @@ const ViewEquipmentModal = ({ isOpen, onClose, equipment, onEdit, onAssign, onMa
             <div className="flex-1">
               <h2 className="text-2xl font-bold mb-2">{equipment.name}</h2>
               <p className="text-blue-100">{equipment.equipment_code}</p>
-              <p className="text-blue-100 mt-1">{equipment.brand} - {equipment.model}</p>
+              <p className="text-blue-100 mt-1">{equipment.brand}</p>
               <div className="flex gap-2 mt-3">
                 {getStatusBadge(equipment.status)}
                 {getConditionBadge(equipment.condition)}
@@ -119,10 +118,6 @@ const ViewEquipmentModal = ({ isOpen, onClose, equipment, onEdit, onAssign, onMa
             <div className="bg-gray-50 rounded-lg p-4">
               <p className="text-sm text-gray-600 mb-1">Category</p>
               <p className="text-lg font-bold text-gray-800">{equipment.category}</p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-sm text-gray-600 mb-1">Location</p>
-              <p className="text-lg font-bold text-gray-800">{equipment.location}</p>
             </div>
             <div className="bg-gray-50 rounded-lg p-4">
               <p className="text-sm text-gray-600 mb-1">Serial Number</p>
@@ -202,22 +197,7 @@ const ViewEquipmentModal = ({ isOpen, onClose, equipment, onEdit, onAssign, onMa
 
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-2 pt-6 border-t border-gray-200">
-            {equipment.available > 0 && equipment.status !== 'maintenance' && equipment.status !== 'damaged' && (
-              <button 
-                onClick={() => onAssign(equipment)}
-                className="flex hover:cursor-pointer items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-all duration-200 hover:scale-105 active:scale-95"
-              >
-                <MdAssignment className="h-5 w-5" />
-                Assign to User
-              </button>
-            )}
-            {equipment.available > 0 && (equipment.status === 'maintenance' || equipment.status === 'damaged') && (
-              <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-500 rounded-md border border-gray-300">
-                <MdWarning className="h-5 w-5" />
-                <span className="text-sm">Cannot assign - Equipment under {equipment.status === 'maintenance' ? 'maintenance' : 'repair (damaged)'}</span>
-              </div>
-            )}
-            {equipment.in_use > 0 && (
+            {/* {equipment.in_use > 0 && (
               <button 
                 onClick={() => onManageAssignments(equipment)}
                 className="flex hover:cursor-pointer items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-all duration-200 hover:scale-105 active:scale-95"
@@ -225,7 +205,7 @@ const ViewEquipmentModal = ({ isOpen, onClose, equipment, onEdit, onAssign, onMa
                 <MdCheckCircle className="h-5 w-5" />
                 Manage Checkouts ({equipment.in_use})
               </button>
-            )}
+            )} */}
             {(equipment.status === 'maintenance' || equipment.status === 'damaged') && (
               <button 
                 onClick={() => onCompleteMaintenance(equipment)}
@@ -235,13 +215,6 @@ const ViewEquipmentModal = ({ isOpen, onClose, equipment, onEdit, onAssign, onMa
                 Mark as Complete
               </button>
             )}
-            <button 
-              onClick={() => onMaintenance(equipment)}
-              className="flex hover:cursor-pointer items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-all duration-200 hover:scale-105 active:scale-95"
-            >
-              <MdBuild className="h-5 w-5" />
-              Record Maintenance
-            </button>
             <button 
               onClick={onClose}
               className="ml-auto hover:cursor-pointer px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-all duration-200 hover:scale-105 active:scale-95"

@@ -434,6 +434,79 @@ const StaffStockTransactions = () => {
     }).format(Math.abs(amount));
   };
 
+  const handleExport = () => {
+    if (filteredTransactions.length === 0) {
+      alert('No transactions to export');
+      return;
+    }
+
+    // Prepare CSV headers
+    const headers = [
+      'Transaction Code',
+      'Date',
+      'Time',
+      'Type',
+      'Item Name',
+      'Equipment Code',
+      'Brand',
+      'Model',
+      'Category',
+      'Quantity',
+      'Unit',
+      'Location',
+      'Unit Price',
+      'Total Amount',
+      'Requested By',
+      'Approved By',
+      'Purpose',
+      'Reference Number',
+      'Notes'
+    ];
+
+    // Prepare CSV rows
+    const rows = filteredTransactions.map(transaction => [
+      transaction.transactionCode || '',
+      transaction.date || '',
+      transaction.time || '',
+      transaction.type === 'in' ? 'Stock In' : transaction.type === 'out' ? 'Stock Out' : 'Adjustment',
+      transaction.itemName || '',
+      transaction.equipmentCode || '',
+      transaction.brand || '',
+      transaction.model || '',
+      transaction.category || '',
+      transaction.quantity || '',
+      transaction.unit || '',
+      transaction.location || '',
+      transaction.unitPrice || '',
+      transaction.totalAmount || '',
+      transaction.requestedBy || '',
+      transaction.approvedBy || '',
+      transaction.purpose || '',
+      transaction.referenceNumber || '',
+      transaction.notes || ''
+    ]);
+
+    // Combine headers and rows
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    const timestamp = new Date().toISOString().split('T')[0];
+    link.setAttribute('href', url);
+    link.setAttribute('download', `stock_transactions_${timestamp}.csv`);
+    link.style.visibility = 'hidden';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Filtering and sorting handled by backend API
   const filteredTransactions = transactions;
 
@@ -469,7 +542,7 @@ const StaffStockTransactions = () => {
         {/* Dashboard Content */}
         <div className="container mx-auto p-6">
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-white rounded-lg shadow-md p-4">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-blue-100 rounded-full">
@@ -500,17 +573,6 @@ const StaffStockTransactions = () => {
                 <div>
                   <p className="text-sm text-gray-500 font-medium">Stock Out</p>
                   <p className="text-xl font-bold text-purple-600">{stats.stockOut}</p>
-                </div>
-              </div>
-            </div>
-            <div className="bg-white rounded-lg shadow-md p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-orange-100 rounded-full">
-                  <MdTrendingUp className="h-6 w-6 text-orange-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 font-medium">Total Value In</p>
-                  <p className="text-xl font-bold text-orange-600">{formatCurrency(stats.totalValue)}</p>
                 </div>
               </div>
             </div>
@@ -545,22 +607,6 @@ const StaffStockTransactions = () => {
                   <option value="all">All Types</option>
                   <option value="in">Stock In</option>
                   <option value="out">Stock Out</option>
-                  <option value="adjustment">Adjustment</option>
-                </select>
-              </div>
-
-              {/* Category Filter */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                <select
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-tracked-primary focus:border-tracked-primary"
-                >
-                  <option value="all">All Categories</option>
-                  {categories.map((category) => (
-                    <option key={category} value={category}>{category}</option>
-                  ))}
                 </select>
               </div>
 
@@ -589,7 +635,6 @@ const StaffStockTransactions = () => {
                 >
                   <option value="newest">Newest First</option>
                   <option value="oldest">Oldest First</option>
-                  <option value="amount">Amount (High to Low)</option>
                   <option value="item">Item Name (A-Z)</option>
                 </select>
               </div>
@@ -605,13 +650,13 @@ const StaffStockTransactions = () => {
                 <MdRefresh className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
                 Refresh
               </button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
+              <button 
+                onClick={handleExport}
+                disabled={loading || filteredTransactions.length === 0}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 <MdDownload className="h-5 w-5" />
                 Export
-              </button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors">
-                <MdPrint className="h-5 w-5" />
-                Print
               </button>
             </div>
           </div>
@@ -696,18 +741,6 @@ const StaffStockTransactions = () => {
                             >
                               <MdVisibility className="h-5 w-5" />
                             </button>
-                            <button
-                              className="text-blue-600 hover:text-blue-700"
-                              title="Edit Transaction"
-                            >
-                              <MdEdit className="h-5 w-5" />
-                            </button>
-                            <button
-                              className="text-green-600 hover:text-green-700"
-                              title="Print Receipt"
-                            >
-                              <MdPrint className="h-5 w-5" />
-                            </button>
                           </div>
                         </td>
                       </tr>
@@ -746,8 +779,8 @@ const StaffStockTransactions = () => {
 
       {/* Transaction Detail Modal */}
       {selectedTransaction && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto animate-slideUp shadow-2xl">
             {/* Modal Header */}
             <div className="bg-tracked-primary p-6 text-white sticky top-0">
               <div className="flex items-start justify-between">
@@ -776,7 +809,7 @@ const StaffStockTransactions = () => {
                   Equipment Information
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
+                  <div className="col-span-2">
                     <p className="text-sm text-gray-600 mb-1">Item Name</p>
                     <p className="text-lg font-bold text-gray-800">{selectedTransaction.itemName}</p>
                   </div>
@@ -786,23 +819,15 @@ const StaffStockTransactions = () => {
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Brand</p>
-                    <p className="text-base font-semibold text-gray-800">{selectedTransaction.brand}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">Model</p>
-                    <p className="text-base font-semibold text-gray-800">{selectedTransaction.model}</p>
+                    <p className="text-base font-semibold text-gray-800">{selectedTransaction.brand || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Category</p>
                     <p className="text-base font-semibold text-gray-800">{selectedTransaction.category}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Location</p>
-                    <p className="text-base font-semibold text-gray-800">{selectedTransaction.location}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">Condition</p>
-                    <p className="text-base font-semibold text-gray-800 capitalize">{selectedTransaction.condition}</p>
+                    <p className="text-sm text-gray-600 mb-1">Status</p>
+                    <p className="text-base font-semibold text-gray-800 capitalize">{selectedTransaction.status}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Quantity</p>
@@ -857,7 +882,7 @@ const StaffStockTransactions = () => {
               <div className="bg-tracked-primary bg-opacity-10 rounded-lg p-4 mb-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Total Amount</p>
+                    <p className="text-sm text-white mb-1">Total Amount</p>
                     <p className={`text-3xl font-bold ${
                       selectedTransaction.totalAmount > 0 ? 'text-green-600' : 'text-red-600'
                     }`}>
@@ -865,8 +890,8 @@ const StaffStockTransactions = () => {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-gray-600 mb-1">Unit Price × Quantity</p>
-                    <p className="text-lg text-gray-700">
+                    <p className="text-sm text-white mb-1">Unit Price × Quantity</p>
+                    <p className="text-lg text-white">
                       {formatCurrency(selectedTransaction.unitPrice)} × {Math.abs(selectedTransaction.quantity)}
                     </p>
                   </div>
@@ -880,28 +905,6 @@ const StaffStockTransactions = () => {
                   <p className="text-gray-800">{selectedTransaction.notes}</p>
                 </div>
               )}
-
-              {/* Action Buttons */}
-              <div className="flex gap-2 pt-6 border-t border-gray-200">
-                <button className="flex items-center gap-2 px-4 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors">
-                  <MdEdit className="h-5 w-5" />
-                  Edit Transaction
-                </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
-                  <MdPrint className="h-5 w-5" />
-                  Print Receipt
-                </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-                  <MdDownload className="h-5 w-5" />
-                  Download PDF
-                </button>
-                <button 
-                  onClick={() => setSelectedTransaction(null)}
-                  className="ml-auto px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
-                >
-                  Close
-                </button>
-              </div>
             </div>
           </div>
         </div>

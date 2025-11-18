@@ -19,7 +19,7 @@ const TrainerDashboard = () => {
       count: '24',
       description: 'Currently enrolled students',
       icon: <MdPeople className="h-8 w-8 text-blue-600" />,
-      path: '/trainer/attendance'
+      path: '/trainer-lms/students'
     },
     {
       title: 'Pending Assessments',

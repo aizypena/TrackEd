@@ -17,6 +17,8 @@ import EnrollmentReports from '../pages/admin/EnrollmentReports';
 import AdminAssessmentResults from '../pages/admin/AdminAssessmentResults';
 import InventoryUsage from '../pages/admin/InventoryUsage';
 import StudentList from '../pages/admin/StudentList';
+import AdminEquipment from '../pages/admin/AdminEquipment';
+import AdminStockTransactions from '../pages/admin/AdminStockTransactions';
 import SystemSettings from '../pages/admin/SystemSettings';
 import SystemLogs from '../pages/admin/SystemLogs';
 import ContactMessages from '../pages/admin/ContactMessages';
@@ -150,6 +152,24 @@ const AdminRoutes = () => {
         element={
           <ProtectedAdminRoute>
             <AdminCourseMaterials />
+          </ProtectedAdminRoute>
+        }
+      />
+
+      {/* Inventory Management */}
+      <Route
+        path="/equipment"
+        element={
+          <ProtectedAdminRoute>
+            <AdminEquipment />
+          </ProtectedAdminRoute>
+        }
+      />
+      <Route
+        path="/stock-transactions"
+        element={
+          <ProtectedAdminRoute>
+            <AdminStockTransactions />
           </ProtectedAdminRoute>
         }
       />

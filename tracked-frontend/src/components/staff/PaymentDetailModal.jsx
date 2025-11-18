@@ -90,7 +90,7 @@ const PaymentDetailModal = ({ student, onClose }) => {
         {/* Modal Body */}
         <div className="p-6">
           {/* Payment Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div className="bg-blue-50 rounded-lg p-4">
               <p className="text-sm text-blue-600 font-medium">Total Fee</p>
               <p className="text-2xl font-bold text-blue-800 mt-2">{formatCurrency(student.totalFee)}</p>
@@ -109,14 +109,6 @@ const PaymentDetailModal = ({ student, onClose }) => {
                   {((student.amountPaid / student.totalFee) * 100).toFixed(1)}% paid
                 </p>
               </div>
-            </div>
-            <div className={`rounded-lg p-4 ${student.balance > 0 ? 'bg-red-50' : 'bg-green-50'}`}>
-              <p className={`text-sm font-medium ${student.balance > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                Balance
-              </p>
-              <p className={`text-2xl font-bold mt-2 ${student.balance > 0 ? 'text-red-800' : 'text-green-800'}`}>
-                {formatCurrency(student.balance)}
-              </p>
             </div>
           </div>
 
@@ -149,10 +141,6 @@ const PaymentDetailModal = ({ student, onClose }) => {
                         <div className="text-xl font-bold text-green-600">
                           {formatCurrency(transaction.amount)}
                         </div>
-                        <button className="mt-2 text-xs text-tracked-primary hover:text-tracked-secondary flex items-center gap-1">
-                          <MdReceipt className="h-3 w-3" />
-                          Print Receipt
-                        </button>
                       </div>
                     </div>
                   </div>
@@ -174,16 +162,6 @@ const PaymentDetailModal = ({ student, onClose }) => {
                 Record Payment
               </button>
             )}
-            <button className="flex hover:cursor-pointer items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-              <MdDownload className="h-5 w-5" />
-              Download Statement
-            </button>
-            <button 
-              onClick={onClose}
-              className="ml-auto hover:cursor-pointer px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
-            >
-              Close
-            </button>
           </div>
         </div>
       </div>

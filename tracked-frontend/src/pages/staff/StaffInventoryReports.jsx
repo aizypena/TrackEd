@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import StaffSidebar from '../../layouts/staff/StaffSidebar';
 import { getStaffToken } from '../../utils/staffAuth';
 import toast, { Toaster } from 'react-hot-toast';
-import { MdMenu } from 'react-icons/md';
+import { MdMenu, MdDownload } from 'react-icons/md';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -311,22 +311,31 @@ const StaffInventoryReports = () => {
       
       <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
         {/* Header */}
-        <div className="bg-white shadow-sm border-b border-gray-200">
-          <div className="flex items-center justify-between px-4 py-4">
-            <div className="flex items-center space-x-4">
+        <nav className="bg-tracked-primary text-white p-4">
+          <div className="container mx-auto flex justify-between items-center">
+            <div className="flex items-center gap-4">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden p-2 rounded-md text-gray-600 hover:bg-gray-100"
+                className="lg:hidden p-2 -ml-2 rounded-md hover:bg-tracked-primary-dark"
               >
                 <MdMenu className="h-6 w-6" />
               </button>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Inventory Reports</h1>
-                <p className="text-sm text-gray-600">Generate and export equipment inventory reports</p>
+                <h1 className="text-xl font-bold">Inventory Reports</h1>
+                <p className="text-sm text-blue-100">Generate and export equipment inventory reports</p>
               </div>
             </div>
+            {reportData && (
+              <button
+                onClick={exportToCSV}
+                className="flex items-center gap-2 px-4 py-2 bg-white text-tracked-primary rounded-lg hover:bg-blue-50 transition-colors font-medium"
+              >
+                <MdDownload className="h-5 w-5" />
+                Export to Excel
+              </button>
+            )}
           </div>
-        </div>
+        </nav>
 
         {/* Main Content */}
         <div className="p-6">
@@ -424,27 +433,10 @@ const StaffInventoryReports = () => {
               <button
                 onClick={generateReport}
                 disabled={loading}
-                className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-2.5 bg-tracked-primary text-white font-medium rounded-lg hover:bg-tracked-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? 'Generating...' : 'Generate Report'}
               </button>
-              
-              {reportData && (
-                <>
-                  <button
-                    onClick={exportToCSV}
-                    className="px-6 py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700"
-                  >
-                    Export to CSV
-                  </button>
-                  <button
-                    onClick={exportToPDF}
-                    className="px-6 py-2.5 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700"
-                  >
-                    Export to PDF
-                  </button>
-                </>
-              )}
             </div>
           </div>
 

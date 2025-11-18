@@ -37,14 +37,20 @@ export default function StaffContactMessages() {
 
       if (!response.ok) throw new Error('Failed to fetch contact messages');
       
-      const data = await response.json();
-      const msgs = data.data || [];
+      const response_data = await response.json();
+      
+      // Handle nested pagination structure
+      const paginationData = response_data.data || {};
+      const msgs = Array.isArray(paginationData.data) ? paginationData.data : [];
+      
       setMessages(msgs);
       setFilteredMessages(msgs);
-      setCurrentPage(data.current_page || 1);
-      setTotalPages(data.last_page || 1);
+      setCurrentPage(paginationData.current_page || 1);
+      setTotalPages(paginationData.last_page || 1);
     } catch (err) {
       setError(err.message);
+      setMessages([]);
+      setFilteredMessages([]);
       toast.error('Failed to load contact messages');
     } finally {
       setLoading(false);
@@ -57,6 +63,11 @@ export default function StaffContactMessages() {
 
   // Filter messages based on search term
   useEffect(() => {
+    if (!Array.isArray(messages)) {
+      setFilteredMessages([]);
+      return;
+    }
+    
     if (!searchTerm.trim()) {
       setFilteredMessages(messages);
     } else {
@@ -94,13 +105,13 @@ export default function StaffContactMessages() {
       
       const data = await response.json();
       
-      // Update local state
-      setMessages(prev => prev.map(msg => 
+      // Update local state with array safety
+      setMessages(prev => Array.isArray(prev) ? prev.map(msg => 
         msg.id === messageId ? { ...msg, status: newStatus } : msg
-      ));
-      setFilteredMessages(prev => prev.map(msg => 
+      ) : []);
+      setFilteredMessages(prev => Array.isArray(prev) ? prev.map(msg => 
         msg.id === messageId ? { ...msg, status: newStatus } : msg
-      ));
+      ) : []);
       
       if (selectedMessage && selectedMessage.id === messageId) {
         setSelectedMessage({ ...selectedMessage, status: newStatus });
@@ -231,7 +242,7 @@ export default function StaffContactMessages() {
               <div className="text-center py-12">
                 <p className="text-red-600">{error}</p>
               </div>
-            ) : filteredMessages.length === 0 ? (
+            ) : !Array.isArray(filteredMessages) || filteredMessages.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-gray-500">No contact messages found</p>
               </div>
@@ -265,7 +276,7 @@ export default function StaffContactMessages() {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {filteredMessages.map((message) => (
+                      {Array.isArray(filteredMessages) && filteredMessages.map((message) => (
                         <tr key={message.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900">
@@ -295,29 +306,11 @@ export default function StaffContactMessages() {
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <button
                               onClick={() => handleViewMessage(message)}
-                              className="text-blue-600 hover:text-blue-900 mr-3"
+                              className="text-blue-600 hover:text-blue-900"
                               title="View Details"
                             >
                               <MdVisibility className="w-5 h-5" />
                             </button>
-                            {message.status === 'new' && (
-                              <button
-                                onClick={() => updateStatus(message.id, 'read')}
-                                className="text-yellow-600 hover:text-yellow-900 mr-3"
-                                title="Mark as Read"
-                              >
-                                <MdMarkEmailRead className="w-5 h-5" />
-                              </button>
-                            )}
-                            {message.status === 'read' && (
-                              <button
-                                onClick={() => updateStatus(message.id, 'replied')}
-                                className="text-green-600 hover:text-green-900"
-                                title="Mark as Replied"
-                              >
-                                <MdReply className="w-5 h-5" />
-                              </button>
-                            )}
                           </td>
                         </tr>
                       ))}

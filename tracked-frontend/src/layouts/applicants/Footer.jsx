@@ -17,7 +17,7 @@ export default function Footer() {
                   className="h-12 w-auto mr-4 rounded-lg"
                 />
                 <div>
-                  <h3 className="text-2xl font-bold">SMI Training Institute</h3>
+                  <h3 className="text-2xl font-bold">SMI Institute Inc.</h3>
                   <p className="text-blue-400 font-medium">TESDA Accredited Training Center</p>
                 </div>
               </div>
@@ -73,7 +73,7 @@ export default function Footer() {
           <div className="border-t border-gray-800 py-8">
             <div className="flex flex-col lg:flex-row justify-between items-center space-y-4 lg:space-y-0">
               <div className="text-gray-400 text-center lg:text-left">
-                <p className="text-lg">© 2025 SMI Training Institute. All rights reserved.</p>
+                <p className="text-lg">© 2025 SMI Institutee Inc. All rights reserved.</p>
                 <p className="text-sm mt-1">Regulated by TESDA</p>
               </div>
               <div className="flex flex-wrap justify-center lg:justify-end space-x-8 text-sm">

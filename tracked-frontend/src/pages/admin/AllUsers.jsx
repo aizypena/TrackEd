@@ -920,9 +920,6 @@ function AllUsers() {
                         title="Delete">
                         <MdDelete className="h-5 w-5" />
                       </button>
-                      <button className="text-gray-600 hover:cursor-pointer hover:text-gray-900" title="More">
-                        <MdMoreVert className="h-5 w-5" />
-                      </button>
                     </div>
                   </td>
                 </tr>
