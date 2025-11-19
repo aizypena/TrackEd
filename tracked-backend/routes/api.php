@@ -33,6 +33,17 @@ Route::get('/storage-file/{path}', [StorageController::class, 'serve'])->where('
 // Application routes
 Route::post('/application', [ApplicationController::class, 'submit']);
 
+// Email validation route (public - no auth required)
+Route::post('/check-email', function (Request $request) {
+    $request->validate([
+        'email' => 'required|email'
+    ]);
+    
+    $exists = User::where('email', $request->email)->exists();
+    
+    return response()->json(['exists' => $exists]);
+});
+
 // Contact form routes (public - no auth required)
 Route::post('/contact', [ContactController::class, 'store']);
 
@@ -503,9 +514,80 @@ Route::post('/student/login', function (Request $request) {
             'emergency_contact' => $user->emergency_contact,
             'emergency_phone' => $user->emergency_phone,
             'emergency_relationship' => $user->emergency_relationship,
+            'password_changed_at' => $user->password_changed_at,
         ]
     ]);
 });
+
+// Student Change Password (First Login)
+Route::post('/student/change-password', function (Request $request) {
+    $request->validate([
+        'current_password' => 'required|string',
+        'new_password' => 'required|string|min:8',
+        'new_password_confirmation' => 'required|string|min:8',
+    ]);
+
+    // Get authenticated student user
+    $user = $request->user();
+
+    if (!$user || $user->role !== 'student') {
+        return response()->json([
+            'success' => false,
+            'message' => 'Unauthorized'
+        ], 401);
+    }
+
+    // Verify current password
+    if (!Hash::check($request->current_password, $user->password)) {
+        // Log failed attempt
+        DB::table('system_logs')->insert([
+            'user_id' => $user->id,
+            'action' => 'student_password_change_failed',
+            'description' => 'Failed password change attempt for student: ' . $user->student_id . ' (incorrect current password)',
+            'log_level' => 'warning',
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'created_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Current password is incorrect'
+        ], 400);
+    }
+
+    // Verify new password matches confirmation
+    if ($request->new_password !== $request->new_password_confirmation) {
+        return response()->json([
+            'success' => false,
+            'message' => 'New password and confirmation do not match'
+        ], 400);
+    }
+
+    // Update password and set password_changed_at timestamp
+    $user->password = Hash::make($request->new_password);
+    $user->password_changed_at = now();
+    $user->save();
+
+    // Log successful password change
+    DB::table('system_logs')->insert([
+        'user_id' => $user->id,
+        'action' => 'student_password_changed',
+        'description' => 'Student successfully changed password: ' . $user->student_id . ' (' . $user->email . ')',
+        'log_level' => 'info',
+        'ip_address' => $request->ip(),
+        'user_agent' => $request->userAgent(),
+        'created_at' => now(),
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Password changed successfully',
+        'user' => [
+            'password_changed_at' => $user->password_changed_at->toISOString()
+        ]
+    ]);
+})->middleware('auth:sanctum');
 
 // Student Forgot Password
 Route::post('/student/forgot-password', function (Request $request) {
@@ -1205,7 +1287,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Get all applicants (users with role 'applicant')
         $applications = \App\Models\User::where('role', 'applicant')
             ->orderBy('created_at', 'desc')
-            ->select('id', 'first_name', 'last_name', 'email', 'phone_number', 'course_program', 'application_status', 'status', 'created_at', 'valid_id_path', 'transcript_path', 'diploma_path', 'passport_photo_path')
+            ->select('id', 'first_name', 'last_name', 'email', 'phone_number', 'course_program', 'application_status', 'status', 'voucher_eligible', 'created_at', 'valid_id_path', 'transcript_path', 'diploma_path', 'passport_photo_path')
             ->get();
         
         // Format program names and convert to array
@@ -1239,6 +1321,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 'course_program' => $program_title,
                 'application_status' => $app->application_status,
                 'status' => $app->status,
+                'voucher_eligible' => (int) $app->voucher_eligible,
                 'created_at' => $app->created_at,
                 'valid_id' => $app->valid_id_path,
                 'transcript' => $app->transcript_path,
@@ -3806,7 +3889,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Get all applicants (users with role 'applicant')
         $applications = \App\Models\User::where('role', 'applicant')
             ->orderBy('created_at', 'desc')
-            ->select('id', 'first_name', 'last_name', 'email', 'phone_number', 'course_program', 'application_status', 'status', 'created_at', 'valid_id_path', 'transcript_path', 'diploma_path', 'passport_photo_path')
+            ->select('id', 'first_name', 'last_name', 'email', 'phone_number', 'course_program', 'application_status', 'status', 'voucher_eligible', 'created_at', 'valid_id_path', 'transcript_path', 'diploma_path', 'passport_photo_path')
             ->get();
         
         // Format program names

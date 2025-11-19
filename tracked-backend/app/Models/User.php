@@ -56,6 +56,7 @@ class User extends Authenticatable
         'occupation',
         'work_experience',
         'course_program',
+        'password_changed_at',
         'valid_id_path',
         'transcript_path',
         'diploma_path',
@@ -119,8 +120,8 @@ class User extends Authenticatable
             'application_reviewed_at' => 'datetime',
             'certifications' => 'array',
             'assigned_programs' => 'array',
-            'voucher_eligible' => 'boolean',
             'approved_at' => 'datetime',
+            'password_changed_at' => 'datetime',
         ];
     }
     

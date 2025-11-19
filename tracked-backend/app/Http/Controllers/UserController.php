@@ -29,13 +29,26 @@ class UserController extends Controller
                 'has_passportPhoto' => $request->hasFile('passportPhoto'),
             ]);
 
-            // Validate request
-            $validated = $request->validate([
+            // Debug: Log all incoming request data
+            Log::info('=== USER CREATION REQUEST START ===');
+            Log::info('Request method: ' . $request->method());
+            Log::info('All request data:', $request->all());
+            Log::info('Has password field:', ['has' => $request->has('password')]);
+            Log::info('Password value:', ['value' => $request->input('password', 'NOT_SET')]);
+            
+            // First validate role to determine password requirements
+            $request->validate([
+                'role' => 'required|string|in:student,applicant,admin,instructor,staff,trainer',
+            ]);
+
+            Log::info('Role validated successfully', ['role' => $request->role]);
+
+            // Build validation rules dynamically based on role
+            $validationRules = [
                 'first_name' => 'required|string|max:255',
                 'last_name' => 'required|string|max:255',
                 'middle_name' => 'nullable|string|max:255',
                 'email' => 'required|string|email|max:255|unique:users',
-                'password' => 'required|string|min:8',
                 'phone_number' => ['required', 'string', 'regex:/^9\d{9}$/'],
                 'emergency_phone' => ['nullable', 'string', 'regex:/^9\d{9}$/'],
                 'emergency_contact' => 'nullable|string|max:255',
@@ -75,7 +88,19 @@ class UserController extends Controller
                 'diploma' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240', // 10MB max
                 'passportPhoto' => 'nullable|file|mimes:jpg,jpeg,png|max:10240', // 10MB max
                 'profile_picture' => 'nullable|file|mimes:jpg,jpeg,png|max:2048', // 2MB max
-            ]);
+            ];
+
+            // Add password validation based on role
+            if ($request->role === 'student') {
+                // Password is optional for students (will be auto-generated)
+                $validationRules['password'] = 'nullable|string|min:8';
+            } else {
+                // Password is required for all other roles
+                $validationRules['password'] = 'required|string|min:8';
+            }
+
+            // Validate request
+            $validated = $request->validate($validationRules);
 
             // Handle file uploads for each document type
             $validIdPath = null;
@@ -127,9 +152,9 @@ class UserController extends Controller
                 Log::info('Passport photo uploaded', ['path' => $passportPhotoPath]);
             }
 
-            // Generate student_id if this is a student and flag is set
+            // Generate student_id automatically for all students
             $studentId = null;
-            if ($request->role === 'student' && $request->generate_student_id === 'true') {
+            if ($request->role === 'student') {
                 $year = date('Y');
                 $lastStudent = User::where('role', 'student')
                     ->where('student_id', 'like', "STU-{$year}-%")
@@ -148,8 +173,13 @@ class UserController extends Controller
                 Log::info('Generated student_id', ['student_id' => $studentId]);
             }
 
-            // Store plain password for email before hashing
+            // Generate password for students if not provided (same pattern as enrollment)
             $plainPassword = $request->password;
+            if ($request->role === 'student' && !$plainPassword) {
+                // Generate password using same pattern as enrollment: SMI + year + 4 random digits
+                $plainPassword = 'SMI' . date('Y') . substr(str_shuffle('0123456789'), 0, 4);
+                Log::info('Auto-generated password for student', ['email' => $request->email, 'student_id' => $studentId]);
+            }
 
             // Create user
             $user = User::create([
@@ -208,8 +238,8 @@ class UserController extends Controller
                 }
             }
 
-            // Send credentials email if requested
-            if ($request->role === 'student' && $request->send_credentials_email === 'true') {
+            // Send credentials email for students (always when created by admin)
+            if ($request->role === 'student') {
                 try {
                     \Illuminate\Support\Facades\Mail::send('emails.student-credentials', [
                         'student' => $user,
@@ -217,7 +247,7 @@ class UserController extends Controller
                         'loginUrl' => env('FRONTEND_URL', 'https://smitracked.cloud') . '/student/login'
                     ], function ($message) use ($user) {
                         $message->to($user->email)
-                                ->subject('Student Credentials - TrackEd System');
+                                ->subject('Student Account Created - TrackEd System');
                     });
                     
                     Log::info('Student credentials email sent', ['user_id' => $user->id, 'email' => $user->email]);
@@ -227,6 +257,25 @@ class UserController extends Controller
                         'error' => $e->getMessage()
                     ]);
                     // Don't fail the whole request if email fails
+                }
+            } elseif ($request->send_credentials_email === 'true') {
+                // For other roles with send_credentials_email flag
+                try {
+                    \Illuminate\Support\Facades\Mail::send('emails.student-credentials', [
+                        'student' => $user,
+                        'password' => $plainPassword,
+                        'loginUrl' => env('FRONTEND_URL', 'https://smitracked.cloud') . '/student/login'
+                    ], function ($message) use ($user) {
+                        $message->to($user->email)
+                                ->subject('Account Credentials - TrackEd System');
+                    });
+                    
+                    Log::info('Credentials email sent', ['user_id' => $user->id, 'email' => $user->email]);
+                } catch (\Exception $e) {
+                    Log::error('Failed to send credentials email', [
+                        'user_id' => $user->id,
+                        'error' => $e->getMessage()
+                    ]);
                 }
             }
 

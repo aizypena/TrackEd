@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class UserController extends Controller
 {
@@ -190,34 +191,37 @@ class UserController extends Controller
         
         // Log incoming request for debugging
         Log::info('User creation request received', [
-            'role' => $request->role,
+            'role' => $request->input('role', 'not_provided'),
             'has_validId' => $request->hasFile('validId'),
             'has_transcript' => $request->hasFile('transcript'),
             'has_diploma' => $request->hasFile('diploma'),
             'has_passportPhoto' => $request->hasFile('passportPhoto'),
         ]);
 
-        $validated = $request->validate([
+        // First validate role so we can use it
+        $request->validate([
+            'role' => 'required|in:applicant,student,trainer,staff,admin',
+        ]);
+
+        // Build validation rules dynamically based on role
+        $validationRules = [
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'middle_name' => 'nullable|string|max:255',
             'email' => 'required|email|unique:users,email',
             'phone_number' => 'required|string|max:20',
-            'password' => 'required|string|min:6',
-            'role' => 'required|in:applicant,student,trainer,staff,admin',
-            'status' => 'required|in:active,inactive,suspended,pending',
             'address' => 'nullable|string',
             'date_of_birth' => 'nullable|date',
             'place_of_birth' => 'nullable|string|max:255',
             'gender' => 'nullable|in:male,female,other',
             'nationality' => 'nullable|string|max:255',
-            'marital_status' => 'nullable|in:single,married,divorced,widowed',
+            'marital_status' => 'nullable|in:single,married,divorced,widowed,separated',
             'education_level' => 'nullable|string|max:255',
             'field_of_study' => 'nullable|string|max:255',
             'institution_name' => 'nullable|string|max:255',
             'graduation_year' => 'nullable|integer|min:1950|max:2030',
             'gpa' => 'nullable|numeric|min:0|max:4',
-            'employment_status' => 'nullable|in:employed,unemployed,self_employed,student',
+            'employment_status' => 'nullable|in:employed,unemployed,self_employed,student,self-employed',
             'occupation' => 'nullable|string|max:255',
             'work_experience' => 'nullable|string',
             'course_program' => 'nullable|string|max:255',
@@ -225,12 +229,29 @@ class UserController extends Controller
             'emergency_phone' => 'nullable|string|max:20',
             'emergency_relationship' => 'nullable|string|max:255',
             'permissions' => 'nullable|array',
+            // Student-specific fields
+            'batch_id' => $request->role === 'student' ? 'required|exists:batches,batch_id' : 'nullable|exists:batches,batch_id',
             // Document validation
             'validId' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
             'transcript' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
             'diploma' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
             'passportPhoto' => 'nullable|file|mimes:jpg,jpeg,png|max:10240',
-        ]);
+        ];
+
+        // Add password validation based on role
+        if ($request->role === 'student') {
+            // Password is optional for students (will be auto-generated)
+            $validationRules['password'] = 'nullable|string|min:6';
+        } else {
+            // Password is required for all other roles
+            $validationRules['password'] = 'required|string|min:6';
+        }
+
+        // Validate request
+        $validated = $request->validate($validationRules);
+        
+        // Add role back to validated data (it was validated separately)
+        $validated['role'] = $request->role;
 
         // Handle document file uploads
         $validIdPath = null;
@@ -340,6 +361,36 @@ class UserController extends Controller
                 }
             }
 
+            // Auto-generate student ID for students
+            $plainPassword = null;
+            if ($validated['role'] === 'student') {
+                // Generate student ID: STU-YYYY-XXXX (e.g., STU-2025-0001)
+                $year = date('Y');
+                $lastStudent = User::where('role', 'student')
+                    ->where('student_id', 'like', "STU-{$year}-%")
+                    ->orderBy('student_id', 'desc')
+                    ->first();
+                
+                if ($lastStudent && preg_match('/STU-\d{4}-(\d{4})/', $lastStudent->student_id, $matches)) {
+                    $nextNumber = intval($matches[1]) + 1;
+                } else {
+                    $nextNumber = 1;
+                }
+                
+                $validated['student_id'] = sprintf('STU-%s-%04d', $year, $nextNumber);
+                
+                // Auto-generate password: SMI + Year + 4 random digits
+                if (!isset($validated['password']) || empty($validated['password'])) {
+                    $plainPassword = 'SMI' . $year . str_pad(rand(0, 9999), 4, '0', STR_PAD_LEFT);
+                    $validated['password'] = $plainPassword;
+                    
+                    Log::info('Auto-generated credentials for student', [
+                        'student_id' => $validated['student_id'],
+                        'email' => $validated['email']
+                    ]);
+                }
+            }
+
             // Hash the password
             $validated['password'] = bcrypt($validated['password']);
 
@@ -349,13 +400,51 @@ class UserController extends Controller
             $validated['diploma_path'] = $diplomaPath;
             $validated['passport_photo_path'] = $passportPhotoPath;
 
-            // Set application_status for applicants
+            // Set application_status based on role
             if ($validated['role'] === 'applicant') {
                 $validated['application_status'] = 'pending';
+            } elseif ($validated['role'] === 'student') {
+                // Students created by admin are automatically approved
+                $validated['application_status'] = 'approved';
+                $validated['approved_at'] = now();
             }
 
             // Create the user
             $user = User::create($validated);
+            
+            // Send credentials email to students
+            if ($user->role === 'student' && $plainPassword) {
+                try {
+                    // Get program name if course_program exists
+                    $programName = 'N/A';
+                    if ($user->course_program) {
+                        $program = \App\Models\Program::find($user->course_program);
+                        $programName = $program ? $program->title : 'N/A';
+                    }
+                    
+                    Mail::send('emails.student-credentials', [
+                        'user' => $user,
+                        'password' => $plainPassword,
+                        'studentId' => $user->student_id,
+                        'programName' => $programName,
+                        'batchCode' => $user->batch_id ?? 'N/A',
+                    ], function ($message) use ($user) {
+                        $message->to($user->email)
+                                ->subject('Your Student Account Credentials - SMI Training Center');
+                    });
+                    
+                    Log::info('Credentials email sent to student', [
+                        'email' => $user->email,
+                        'student_id' => $user->student_id
+                    ]);
+                } catch (\Exception $mailError) {
+                    Log::error('Failed to send credentials email', [
+                        'error' => $mailError->getMessage(),
+                        'email' => $user->email
+                    ]);
+                    // Don't fail the user creation if email fails
+                }
+            }
 
             Log::info('User created successfully', [
                 'user_id' => $user->id,

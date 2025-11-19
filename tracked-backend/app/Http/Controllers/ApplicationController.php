@@ -50,38 +50,46 @@ class ApplicationController extends Controller
                 'passportPhoto' => 'required|file|mimes:jpg,jpeg,png|max:25600',
             ]);
             
-            // Determine if applicant should be waitlisted based on program batch availability
-            $isWaitlisted = false;
+            // Determine voucher eligibility and waitlist status based on available vouchers
             $programId = $validated['courseProgram'];
+            $voucherEligible = 0; // Default: not eligible
+            $isWaitlisted = false;
             
-            // Get all active/ongoing batches for this program
+            // Get all batches for this program
             $batches = \App\Models\Batch::where('program_id', $programId)
                 ->whereIn('status', ['active', 'ongoing'])
                 ->get();
             
             if ($batches->isEmpty()) {
-                // No batches available for this program - waitlist
+                // No batches available - waitlist
                 $isWaitlisted = true;
+                $voucherEligible = 2; // Waitlisted
             } else {
-                // Check if all batches are full
-                $hasAvailableSlot = false;
+                // Check for available vouchers across all batches
+                $totalAvailableVouchers = 0;
                 
                 foreach ($batches as $batch) {
-                    $currentStudents = User::where('batch_id', $batch->batch_id)
-                        ->where('role', 'student')
-                        ->whereIn('status', ['active', 'inactive'])
-                        ->count();
+                    // Get vouchers for this batch
+                    $vouchers = DB::table('vouchers')
+                        ->where('batch_id', $batch->batch_id)
+                        ->whereIn('status', ['active', 'pending'])
+                        ->get();
                     
-                    $maxStudents = $batch->max_students ?? 0;
-                    
-                    if ($currentStudents < $maxStudents) {
-                        $hasAvailableSlot = true;
-                        break;
+                    foreach ($vouchers as $voucher) {
+                        $available = $voucher->quantity - $voucher->used_count;
+                        if ($available > 0) {
+                            $totalAvailableVouchers += $available;
+                        }
                     }
                 }
                 
-                // If no batch has available slots, applicant goes to waitlist
-                if (!$hasAvailableSlot) {
+                // Set eligibility based on voucher availability
+                if ($totalAvailableVouchers > 0) {
+                    $voucherEligible = 1; // Eligible - vouchers available
+                    $isWaitlisted = false;
+                } else {
+                    // No vouchers available - waitlist
+                    $voucherEligible = 2; // Waitlisted - no vouchers
                     $isWaitlisted = true;
                 }
             }
@@ -128,8 +136,8 @@ class ApplicationController extends Controller
             
             Log::info('Document paths to be saved', $documentPaths);
 
-            // Create user with application data
-            $user = User::create([
+            // Log the exact data being sent to User::create()
+            $userData = [
                 'first_name' => $validated['firstName'],
                 'last_name' => $validated['lastName'],
                 'middle_name' => $validated['middleName'] ?? null,
@@ -138,7 +146,8 @@ class ApplicationController extends Controller
                 'password' => bcrypt($validated['password']),
                 'role' => 'applicant',
                 'status' => 'active',
-                'application_status' => $isWaitlisted ? 'waitlisted' : 'pending',
+                'application_status' => 'pending', // Always set to pending; waitlist status tracked via voucher_eligible
+                'voucher_eligible' => $voucherEligible,
                 'date_of_birth' => $validated['birthDate'],
                 'place_of_birth' => $validated['placeOfBirth'] ?? null,
                 'gender' => $validated['gender'],
@@ -148,28 +157,27 @@ class ApplicationController extends Controller
                 'emergency_contact' => $validated['emergencyContact'],
                 'emergency_relationship' => $validated['emergencyRelationship'] ?? null,
                 'emergency_phone' => $validated['emergencyPhone'],
-                
-                // Education fields
                 'education_level' => $validated['education'],
                 'institution_name' => $validated['school'],
                 'course_program' => $validated['courseProgram'],
-                
-                // Employment fields
                 'employment_status' => $validated['employmentStatus'] ?? null,
                 'occupation' => $validated['occupation'] ?? null,
-                
-                // Document paths
                 'valid_id_path' => $documentPaths['validId_path'] ?? null,
                 'transcript_path' => $documentPaths['transcript_path'] ?? null,
                 'diploma_path' => $documentPaths['diploma_path'] ?? null,
                 'passport_photo_path' => $documentPaths['passportPhoto_path'] ?? null,
-                
-                // Application metadata
                 'application_submitted_at' => now(),
-            ]);
+            ];
+            
+            Log::info('Attempting to create user with data:', array_keys($userData));
+
+            // Create user with application data
+            $user = User::create($userData);
 
             // Log successful application submission
-            $statusMessage = $isWaitlisted ? 'waitlisted (no available slots)' : 'pending (slots available)';
+            $eligibilityStatus = $voucherEligible === 1 ? 'eligible (vouchers available)' : 
+                                ($voucherEligible === 2 ? 'waitlisted (no vouchers available)' : 'not eligible');
+            $statusMessage = $isWaitlisted ? "waitlisted - {$eligibilityStatus}" : "pending - {$eligibilityStatus}";
             DB::table('system_logs')->insert([
                 'user_id' => $user->id,
                 'action' => 'application_submitted',
