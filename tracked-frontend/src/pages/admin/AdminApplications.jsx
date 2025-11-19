@@ -149,6 +149,21 @@ export default function AdminApplications() {
     return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
   };
 
+  // Get voucher eligibility badge
+  const getVoucherEligibilityBadge = (voucherEligible) => {
+    // Convert to number in case it comes as string from API
+    const eligibilityValue = parseInt(voucherEligible) || 0;
+    
+    const eligibilityConfig = {
+      0: { color: 'bg-gray-100 text-gray-800', text: 'Not Eligible' },
+      1: { color: 'bg-green-100 text-green-800', text: 'Eligible' },
+      2: { color: 'bg-orange-100 text-orange-800', text: 'Waitlisted' }
+    };
+    
+    const config = eligibilityConfig[eligibilityValue] || eligibilityConfig[0];
+    return config;
+  };
+
   // Handle edit applicant
   const handleEditApplicant = async (applicantId) => {
     try {
@@ -374,6 +389,7 @@ export default function AdminApplications() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Program</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Voucher Eligibility</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
@@ -381,7 +397,7 @@ export default function AdminApplications() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredApplications.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="text-center py-8 text-gray-500">
+                      <td colSpan={7} className="text-center py-8 text-gray-500">
                         {searchTerm ? 'No applications match your search.' : 'No applications found.'}
                       </td>
                     </tr>
@@ -414,6 +430,11 @@ export default function AdminApplications() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(app.application_status)}`}>
                             {formatStatus(app.application_status)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getVoucherEligibilityBadge(app.voucher_eligible).color}`}>
+                            {getVoucherEligibilityBadge(app.voucher_eligible).text}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

@@ -12,6 +12,7 @@ import Certificates from '../pages/lms/Certificates';
 import ProfileSettings from '../pages/lms/ProfileSettings';
 import ForgotPassword from '../pages/lms/ForgotPassword';
 import ResetPassword from '../pages/lms/ResetPassword';
+import ChangePassword from '../pages/lms/ChangePassword';
 import Exams from '../pages/lms/Exams';
 import ExamResults from '../pages/lms/ExamResults';
 import ExamResultDetail from '../pages/lms/ExamResultDetail';
@@ -29,6 +30,16 @@ const StudentRoutes = () => {
       <Route 
         path="/reset-password" 
         element={<ResetPassword />} 
+      />
+      
+      {/* Change Password - requires authentication */}
+      <Route 
+        path="/change-password" 
+        element={
+          <ProtectedStudentRoute>
+            <ChangePassword />
+          </ProtectedStudentRoute>
+        } 
       />
       
       <Route 

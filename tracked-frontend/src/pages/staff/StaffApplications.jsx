@@ -197,6 +197,19 @@ const StaffApplications = () => {
 
   const programs = allPrograms;
 
+  const getVoucherEligibilityBadge = (voucherEligible) => {
+    const eligibilityValue = parseInt(voucherEligible) || 0;
+    
+    const eligibilityConfig = {
+      0: { color: 'bg-gray-100 text-gray-800', text: 'Not Eligible' },
+      1: { color: 'bg-green-100 text-green-800', text: 'Eligible' },
+      2: { color: 'bg-orange-100 text-orange-800', text: 'Waitlisted' }
+    };
+    
+    const config = eligibilityConfig[eligibilityValue] || eligibilityConfig[0];
+    return config;
+  };
+
   const getStatusBadge = (status) => {
     const statusConfig = {
       pending: {
@@ -435,6 +448,9 @@ const StaffApplications = () => {
                       Documents
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Voucher Eligibility
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -469,6 +485,11 @@ const StaffApplications = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${getVoucherEligibilityBadge(app.voucher_eligible).color}`}>
+                            {getVoucherEligibilityBadge(app.voucher_eligible).text}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
                           {getStatusBadge(app.application_status)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -488,7 +509,7 @@ const StaffApplications = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
+                      <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
                         No applications found matching your filters.
                       </td>
                     </tr>

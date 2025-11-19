@@ -64,7 +64,16 @@ const StudentLogin = () => {
         // Store auth data
         localStorage.setItem('studentToken', data.token);
         localStorage.setItem('studentUser', JSON.stringify(data.user));
-        navigate('/smi-lms/dashboard');
+        
+        // Check if password needs to be changed (first login with generated password)
+        if (data.user && !data.user.password_changed_at) {
+          navigate('/smi-lms/change-password', { 
+            state: { firstLogin: true },
+            replace: true 
+          });
+        } else {
+          navigate('/smi-lms/dashboard');
+        }
       } else {
         setError(data.message || 'Invalid credentials. Please try again.');
       }
