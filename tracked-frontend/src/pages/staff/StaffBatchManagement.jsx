@@ -227,7 +227,8 @@ const StaffBatchManagement = () => {
     totalBatches: batches.length,
     activeBatches: batches.filter(b => b.status === 'ongoing').length,
     totalStudents: batches.reduce((sum, b) => sum + (b.enrolled_students_count || 0), 0),
-    completedBatches: batches.filter(b => b.status === 'finished').length
+    completedBatches: batches.filter(b => b.status === 'finished').length,
+    totalVouchers: batches.reduce((sum, b) => sum + (b.voucher_available || 0), 0)
   };
 
   return (
@@ -269,7 +270,7 @@ const StaffBatchManagement = () => {
         {/* Dashboard Content */}
         <div className="container mx-auto p-6">
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
             <div className="bg-white rounded-lg shadow-md p-4">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-blue-100 rounded-full">
@@ -300,6 +301,17 @@ const StaffBatchManagement = () => {
                 <div>
                   <p className="text-sm text-gray-500 font-medium">Total Students</p>
                   <p className="text-xl font-bold text-purple-600">{stats.totalStudents}</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-lg shadow-md p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-amber-100 rounded-full">
+                  <MdAssignment className="h-6 w-6 text-amber-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 font-medium">Total Vouchers</p>
+                  <p className="text-xl font-bold text-amber-600">{stats.totalVouchers}</p>
                 </div>
               </div>
             </div>
@@ -400,6 +412,9 @@ const StaffBatchManagement = () => {
                       Enrollment
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Vouchers
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -410,13 +425,13 @@ const StaffBatchManagement = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {loading ? (
                     <tr>
-                      <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
+                      <td colSpan="8" className="px-6 py-4 text-center text-gray-500">
                         Loading batches...
                       </td>
                     </tr>
                   ) : batches.length === 0 ? (
                     <tr>
-                      <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
+                      <td colSpan="8" className="px-6 py-4 text-center text-gray-500">
                         No batches found.
                       </td>
                     </tr>
@@ -463,6 +478,32 @@ const StaffBatchManagement = () => {
                               style={{ width: `${((batch.enrolled_students_count || 0) / batch.max_students) * 100}%` }}
                             ></div>
                           </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {batch.voucher_quantity > 0 ? (
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {batch.voucher_used_count || 0}/{batch.voucher_quantity}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {batch.voucher_available || 0} available
+                              </div>
+                              <div className="w-24 bg-gray-200 rounded-full h-2.5 mt-1">
+                                <div
+                                  className={`h-2.5 rounded-full ${
+                                    ((batch.voucher_used_count || 0) / batch.voucher_quantity) >= 0.95
+                                      ? 'bg-red-500'
+                                      : ((batch.voucher_used_count || 0) / batch.voucher_quantity) >= 0.80
+                                      ? 'bg-yellow-500'
+                                      : 'bg-green-600'
+                                  }`}
+                                  style={{ width: `${((batch.voucher_used_count || 0) / batch.voucher_quantity) * 100}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-gray-400 italic">No vouchers</span>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(batch.status)}`}>

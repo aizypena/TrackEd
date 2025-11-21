@@ -6,7 +6,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use App\Models\User;
+use App\Mail\ApplicationSubmittedNotification;
 
 class ApplicationController extends Controller
 {
@@ -173,6 +175,27 @@ class ApplicationController extends Controller
 
             // Create user with application data
             $user = User::create($userData);
+
+            // Send application confirmation email
+            try {
+                $program = \App\Models\Program::find($validated['courseProgram']);
+                $programName = $program ? $program->title : 'Unknown Program';
+                
+                Mail::to($user->email)->send(new ApplicationSubmittedNotification($user, $programName));
+                
+                Log::info('Application submitted email sent', [
+                    'applicant_id' => $user->id,
+                    'applicant_email' => $user->email,
+                    'program' => $programName
+                ]);
+            } catch (\Exception $mailError) {
+                // Don't fail application submission if email fails
+                Log::error('Failed to send application submitted email', [
+                    'applicant_id' => $user->id,
+                    'applicant_email' => $user->email,
+                    'error' => $mailError->getMessage()
+                ]);
+            }
 
             // Log successful application submission
             $eligibilityStatus = $voucherEligible === 1 ? 'eligible (vouchers available)' : 

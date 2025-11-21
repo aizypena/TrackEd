@@ -149,15 +149,45 @@ export default function AdminApplications() {
     return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
   };
 
-  // Get voucher eligibility badge
-  const getVoucherEligibilityBadge = (voucherEligible) => {
+  // Calculate days since application was created
+  const calculateDaysSince = (createdAt) => {
+    if (!createdAt) return 0;
+    const created = new Date(createdAt);
+    const now = new Date();
+    const diffTime = Math.abs(now - created);
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  // Get voucher eligibility badge with day counter
+  const getVoucherEligibilityBadge = (voucherEligible, createdAt) => {
     // Convert to number in case it comes as string from API
     const eligibilityValue = parseInt(voucherEligible) || 0;
+    const daysSince = calculateDaysSince(createdAt);
+    const daysRemaining = Math.max(0, 3 - daysSince);
     
     const eligibilityConfig = {
-      0: { color: 'bg-gray-100 text-gray-800', text: 'Not Eligible' },
-      1: { color: 'bg-green-100 text-green-800', text: 'Eligible' },
-      2: { color: 'bg-orange-100 text-orange-800', text: 'Waitlisted' }
+      0: { 
+        color: 'bg-gray-100 text-gray-800', 
+        text: 'Not Eligible',
+        showCounter: false
+      },
+      1: { 
+        color: daysSince >= 3 
+          ? 'bg-red-100 text-red-800' 
+          : daysRemaining === 1 
+            ? 'bg-yellow-100 text-yellow-800' 
+            : 'bg-green-100 text-green-800', 
+        text: daysSince >= 3 
+          ? `Eligible (Expired)` 
+          : `Eligible (${daysRemaining}d left)`,
+        showCounter: true
+      },
+      2: { 
+        color: 'bg-orange-100 text-orange-800', 
+        text: 'Waitlisted',
+        showCounter: false
+      }
     };
     
     const config = eligibilityConfig[eligibilityValue] || eligibilityConfig[0];
@@ -433,8 +463,8 @@ export default function AdminApplications() {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getVoucherEligibilityBadge(app.voucher_eligible).color}`}>
-                            {getVoucherEligibilityBadge(app.voucher_eligible).text}
+                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getVoucherEligibilityBadge(app.voucher_eligible, app.created_at).color}`}>
+                            {getVoucherEligibilityBadge(app.voucher_eligible, app.created_at).text}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

@@ -6031,7 +6031,30 @@ Pasay City, Metro Manila 1100</p>
                 ], 401);
             }
             
-            $batches = \App\Models\Batch::orderBy('batch_id', 'desc')->get();
+            $batches = \App\Models\Batch::with(['program', 'trainer', 'students'])
+                ->orderBy('batch_id', 'desc')
+                ->get();
+            
+            // Add voucher information to each batch (matching admin format)
+            $batches->each(function ($batch) {
+                $batch->enrolled_students_count = $batch->students()->count();
+                
+                $voucher = DB::table('vouchers')
+                    ->where('batch_id', $batch->batch_id)
+                    ->first();
+                
+                if ($voucher) {
+                    $batch->voucher_quantity = $voucher->quantity;
+                    $batch->voucher_used_count = $voucher->used_count;
+                    $batch->voucher_available = $voucher->quantity - $voucher->used_count;
+                    $batch->voucher_status = $voucher->status;
+                } else {
+                    $batch->voucher_quantity = 0;
+                    $batch->voucher_used_count = 0;
+                    $batch->voucher_available = 0;
+                    $batch->voucher_status = null;
+                }
+            });
             
             \Log::info('Batches fetched: ' . $batches->count() . ' batches found');
             

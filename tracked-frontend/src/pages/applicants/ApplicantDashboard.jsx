@@ -23,6 +23,7 @@ const ApplicantDashboard = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(null);
   const [user, setUser] = useState(null);
   const [applicationStatus, setApplicationStatus] = useState('pending');
+  const [voucherEligibility, setVoucherEligibility] = useState(null);
 
   const handleLogout = async () => {
     try {
@@ -30,7 +31,7 @@ const ApplicantDashboard = () => {
       
       if (token) {
         // Call backend logout endpoint to log the action
-        await fetch('https://api.smitracked.cloud/api/logout', {
+        await fetch('http://localhost:8000/api/logout', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -96,7 +97,7 @@ const ApplicantDashboard = () => {
 
     const fetchCurrentUserData = async (token) => {
       try {
-        const response = await fetch('https://api.smitracked.cloud/api/me', {
+        const response = await fetch('http://localhost:8000/api/user', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -105,25 +106,33 @@ const ApplicantDashboard = () => {
         });
 
         if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.user) {
+          const userData = await response.json();
+          if (userData) {
             // Update user data with fresh information from API
             const updatedUserData = {
-              id: data.user.id,
-              email: data.user.email,
-              name: data.user.full_name,
-              role: data.user.role,
-              created_at: data.user.created_at,
-              application_status: data.user.application_status
+              id: userData.id,
+              email: userData.email,
+              name: userData.full_name || `${userData.first_name} ${userData.last_name}`,
+              role: userData.role,
+              created_at: userData.created_at,
+              application_status: userData.application_status,
+              status: userData.status,
+              voucher_eligible: userData.voucher_eligible
             };
             
             // Update localStorage with fresh data
             localStorage.setItem('userData', JSON.stringify(updatedUserData));
             setUser(updatedUserData);
             
-            // Update application status
-            if (data.user.application_status) {
-              setApplicationStatus(data.user.application_status);
+            // Update voucher eligibility (0 = not eligible, 1 = eligible, 2 = waitlisted)
+            setVoucherEligibility(userData.voucher_eligible);
+            
+            // Update application status - prioritize application_status over status field
+            // Check if user is waitlisted via status field
+            if (userData.status === 'waitlisted') {
+              setApplicationStatus('waitlisted');
+            } else if (userData.application_status) {
+              setApplicationStatus(userData.application_status);
             }
           }
         } else {
@@ -167,6 +176,36 @@ const ApplicantDashboard = () => {
   };
 
   const statusDisplay = getStatusDisplay(applicationStatus);
+
+  // Function to get voucher eligibility display
+  const getVoucherEligibilityDisplay = (eligibility) => {
+    switch (eligibility) {
+      case 1:
+        return { 
+          color: 'bg-green-600 text-white border-green-600', 
+          text: 'Eligible', 
+          icon: <FaCheckCircle />,
+          textColor: 'text-green-700'
+        };
+      case 2:
+        return { 
+          color: 'bg-orange-600 text-white border-orange-600', 
+          text: 'Waitlisted', 
+          icon: <FaClipboardList />,
+          textColor: 'text-orange-700'
+        };
+      case 0:
+      default:
+        return { 
+          color: 'bg-gray-600 text-white border-gray-600', 
+          text: 'Not Eligible', 
+          icon: <FaTimesCircle />,
+          textColor: 'text-gray-700'
+        };
+    }
+  };
+
+  const voucherDisplay = getVoucherEligibilityDisplay(voucherEligibility);
 
   // Function to properly capitalize name
   const formatName = (name) => {
@@ -223,13 +262,21 @@ const ApplicantDashboard = () => {
           </div>
           
           <div className="p-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               <div className="text-center group">
                 <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-tracked-primary text-white text-3xl mb-4 transition-transform group-hover:scale-105 shadow-lg border-2 border-tracked-primary">
                   {statusDisplay.icon}
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Current Status</h3>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Application Status</h3>
                 <p className="text-lg font-semibold text-gray-700">{statusDisplay.text}</p>
+              </div>
+
+              <div className="text-center group">
+                <div className={`inline-flex items-center justify-center w-20 h-20 rounded-2xl ${voucherDisplay.color} text-3xl mb-4 transition-transform group-hover:scale-105 shadow-lg border-2`}>
+                  {voucherDisplay.icon}
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Voucher Status</h3>
+                <p className={`text-lg font-semibold ${voucherDisplay.textColor}`}>{voucherDisplay.text}</p>
               </div>
               
               <div className="text-center group">
@@ -255,23 +302,54 @@ const ApplicantDashboard = () => {
               </div>
             </div>
             
-            <div className="mt-8 p-6 bg-gradient-to-r from-gray-50 to-blue-50/50 rounded-xl border border-gray-100">
-              <div className="flex items-start space-x-4">
-                <div className="flex-shrink-0">
-                  <div className="w-10 h-10 bg-tracked-primary rounded-full flex items-center justify-center">
-                    <FaInfoCircle className="text-white text-xl" />
+            <div className="mt-8 space-y-4">
+              <div className="p-6 bg-gradient-to-r from-gray-50 to-blue-50/50 rounded-xl border border-gray-100">
+                <div className="flex items-start space-x-4">
+                  <div className="flex-shrink-0">
+                    <div className="w-10 h-10 bg-tracked-primary rounded-full flex items-center justify-center">
+                      <FaInfoCircle className="text-white text-xl" />
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-bold text-gray-900 mb-2">Application Status Information</h4>
+                    <p className="text-gray-700 leading-relaxed">
+                      {applicationStatus === 'approved' && 'Congratulations! Your application has been approved. You now have full access to all student features and can begin your learning journey with SMI Institute.'}
+                      {applicationStatus === 'rejected' && 'We regret to inform you that your application was not approved at this time. Please contact our admissions office for detailed feedback and information about reapplication opportunities.'}
+                      {applicationStatus === 'under_review' && 'Your application is currently under careful review by our admissions committee. We typically complete our review process within 5-7 business days. You will receive an email notification once a decision is made.'}
+                      {applicationStatus === 'waitlisted' && 'Your application has been placed on the waitlist. This means that while your application meets our requirements, all available slots in your selected training batch are currently full. You will be automatically enrolled when a slot becomes available. We will notify you via email if your status changes.'}
+                      {applicationStatus === 'pending' && 'Thank you for submitting your application to SMI Institute. Your application has been received and will be reviewed by our admissions team. We appreciate your patience during this process.'}
+                    </p>
                   </div>
                 </div>
-                <div>
-                  <h4 className="text-lg font-bold text-gray-900 mb-2">Status Information</h4>
-                  <p className="text-gray-700 leading-relaxed">
-                    {applicationStatus === 'approved' && 'Congratulations! Your application has been approved. You now have full access to all student features and can begin your learning journey with SMI Institute.'}
-                    {applicationStatus === 'rejected' && 'We regret to inform you that your application was not approved at this time. Please contact our admissions office for detailed feedback and information about reapplication opportunities.'}
-                    {applicationStatus === 'under_review' && 'Your application is currently under careful review by our admissions committee. We typically complete our review process within 5-7 business days. You will receive an email notification once a decision is made.'}
-                    {applicationStatus === 'pending' && 'Thank you for submitting your application to SMI Institute. Your application has been received and will be reviewed by our admissions team. We appreciate your patience during this process.'}
-                  </p>
-                </div>
               </div>
+
+              {voucherEligibility !== null && (
+                <div className={`p-6 rounded-xl border ${
+                  voucherEligibility === 1 ? 'bg-gradient-to-r from-green-50 to-emerald-50/50 border-green-200' :
+                  voucherEligibility === 2 ? 'bg-gradient-to-r from-orange-50 to-amber-50/50 border-orange-200' :
+                  'bg-gradient-to-r from-gray-50 to-slate-50/50 border-gray-200'
+                }`}>
+                  <div className="flex items-start space-x-4">
+                    <div className="flex-shrink-0">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        voucherEligibility === 1 ? 'bg-green-600' :
+                        voucherEligibility === 2 ? 'bg-orange-600' :
+                        'bg-gray-600'
+                      }`}>
+                        {voucherDisplay.icon && <span className="text-white text-xl">{voucherDisplay.icon}</span>}
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-bold text-gray-900 mb-2">Voucher Eligibility Information</h4>
+                      <p className="text-gray-700 leading-relaxed">
+                        {voucherEligibility === 1 && 'Great news! You are currently eligible for a training voucher. Vouchers are issued on a first-come, first-served basis and are subject to availability. Please note that voucher eligibility expires after 3 days if not claimed.'}
+                        {voucherEligibility === 2 && 'You are currently on the voucher waitlist. While vouchers are not immediately available, you will be automatically promoted to eligible status when a voucher slot becomes available. We will notify you via email when this happens.'}
+                        {voucherEligibility === 0 && 'Your application is not currently eligible for a training voucher. Voucher eligibility is determined based on batch availability and program requirements. Please contact our admissions office if you have questions about voucher eligibility.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
