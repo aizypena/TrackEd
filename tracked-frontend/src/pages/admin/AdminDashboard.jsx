@@ -343,7 +343,6 @@ const AdminDashboard = () => {
                 <div>
                   <p className="text-sm font-medium text-gray-600">Total Applicants</p>
                   <p className="text-2xl font-bold text-gray-900">{dashboardStats.totalApplicants.toLocaleString()}</p>
-                  <p className="text-xs text-green-600 mt-1">+{dashboardStats.enrollmentGrowth}% growth</p>
                 </div>
                 <div className="p-3 bg-blue-100 rounded-lg">
                   <MdPeople className="h-6 w-6 text-blue-600" />
@@ -357,7 +356,6 @@ const AdminDashboard = () => {
                 <div>
                   <p className="text-sm font-medium text-gray-600">Active Applications</p>
                   <p className="text-2xl font-bold text-gray-900">{dashboardStats.activeApplications}</p>
-                  <p className="text-xs text-blue-600 mt-1">{dashboardStats.pendingApplications} pending review</p>
                 </div>
                 <div className="p-3 bg-green-100 rounded-lg">
                   <MdAssignment className="h-6 w-6 text-green-600" />
@@ -371,7 +369,6 @@ const AdminDashboard = () => {
                 <div>
                   <p className="text-sm font-medium text-gray-600">TESDA Vouchers</p>
                   <p className="text-2xl font-bold text-gray-900">{dashboardStats.tesdaVouchers}</p>
-                  <p className="text-xs text-purple-600 mt-1">{dashboardStats.eligibleApplicants} eligible</p>
                 </div>
                 <div className="p-3 bg-purple-100 rounded-lg">
                   <MdCardGiftcard className="h-6 w-6 text-purple-600" />

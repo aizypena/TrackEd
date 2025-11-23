@@ -7,6 +7,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class UpdateVoucherEligibility extends Command
 {
@@ -22,7 +23,7 @@ class UpdateVoucherEligibility extends Command
      *
      * @var string
      */
-    protected $description = 'Update voucher eligibility: eligible->waitlisted after 3 days, promote next not-eligible to eligible';
+    protected $description = 'Update voucher eligibility: delete expired eligible after 3 days, promote first waitlisted to eligible';
 
     /**
      * Execute the console command.
@@ -44,40 +45,56 @@ class UpdateVoucherEligibility extends Command
         $this->info("Found {$expiredEligible->count()} applicants with expired eligibility.");
         $this->info('');
 
-        $waitlistedCount = 0;
+        $deletedCount = 0;
         $promotedCount = 0;
 
         foreach ($expiredEligible as $applicant) {
             $programId = $applicant->course_program;
+            $applicantName = "{$applicant->first_name} {$applicant->last_name}";
+            $applicantId = $applicant->id;
             
-            // Mark as waitlisted
-            $applicant->update(['voucher_eligible' => 2]);
-            $waitlistedCount++;
+            // Delete uploaded files
+            $filesToDelete = [
+                $applicant->valid_id_path,
+                $applicant->transcript_path,
+                $applicant->diploma_path,
+                $applicant->passport_photo_path
+            ];
+
+            foreach ($filesToDelete as $filePath) {
+                if ($filePath && Storage::disk('public')->exists($filePath)) {
+                    Storage::disk('public')->delete($filePath);
+                }
+            }
             
-            $this->info("✓ Marked applicant #{$applicant->id} ({$applicant->first_name} {$applicant->last_name}) as waitlisted.");
-            
-            Log::info("Voucher eligibility expired", [
-                'applicant_id' => $applicant->id,
-                'applicant_name' => "{$applicant->first_name} {$applicant->last_name}",
+            // Log before deleting
+            Log::info("Voucher eligibility expired - Applicant deleted", [
+                'applicant_id' => $applicantId,
+                'applicant_name' => $applicantName,
                 'program_id' => $programId,
-                'action' => 'marked_as_waitlisted',
+                'action' => 'deleted_expired_eligible',
                 'expired_at' => Carbon::now()->toDateTimeString()
             ]);
             
             // Log to system_logs table
             DB::table('system_logs')->insert([
-                'user_id' => $applicant->id,
-                'action' => 'voucher_eligibility_expired',
-                'description' => "Applicant {$applicant->first_name} {$applicant->last_name} (ID: {$applicant->id}) voucher eligibility expired after 3 days. Marked as waitlisted.",
-                'log_level' => 'info',
+                'user_id' => $applicantId,
+                'action' => 'voucher_eligibility_expired_deleted',
+                'description' => "Applicant {$applicantName} (ID: {$applicantId}) voucher eligibility expired after 3 days. Applicant record and files deleted.",
+                'log_level' => 'warning',
                 'created_at' => Carbon::now(),
-                'updated_at' => Carbon::now(),
             ]);
             
-            // Find next not-eligible applicant for the same program and promote them
+            // Delete the applicant record
+            $applicant->delete();
+            $deletedCount++;
+            
+            $this->warn("✗ Deleted applicant #{$applicantId} ({$applicantName}) - expired eligibility.");
+            
+            // Find first waitlisted applicant for the same program and promote them to eligible
             $nextApplicant = User::where('role', 'applicant')
                 ->where('application_status', 'pending')
-                ->where('voucher_eligible', 0)
+                ->where('voucher_eligible', 2) // Changed from 0 to 2 (waitlisted)
                 ->where('course_program', $programId)
                 ->orderBy('created_at', 'asc')
                 ->first();
@@ -101,22 +118,21 @@ class UpdateVoucherEligibility extends Command
                 DB::table('system_logs')->insert([
                     'user_id' => $nextApplicant->id,
                     'action' => 'voucher_eligibility_promoted',
-                    'description' => "Applicant {$nextApplicant->first_name} {$nextApplicant->last_name} (ID: {$nextApplicant->id}) promoted to eligible status for program {$programId}. Replaced applicant ID: {$applicant->id}",
+                    'description' => "Applicant {$nextApplicant->first_name} {$nextApplicant->last_name} (ID: {$nextApplicant->id}) promoted to eligible status for program {$programId}. Replaced deleted applicant ID: {$applicantId}",
                     'log_level' => 'info',
                     'created_at' => Carbon::now(),
-                    'updated_at' => Carbon::now(),
                 ]);
                 
                 // TODO: Send email notification to the newly eligible applicant
                 // Uncomment when email template is ready
                 // Mail::to($nextApplicant->email)->send(new VoucherEligibleNotification($nextApplicant));
             } else {
-                $this->info("No not-eligible applicants found for program {$programId}.");
+                $this->info("No waitlisted applicants found for program {$programId}.");
                 
                 Log::info("No replacement found", [
                     'program_id' => $programId,
-                    'action' => 'no_eligible_replacement',
-                    'expired_applicant_id' => $applicant->id
+                    'action' => 'no_waitlisted_replacement',
+                    'deleted_applicant_id' => $applicantId
                 ]);
             }
         }
@@ -129,10 +145,27 @@ class UpdateVoucherEligibility extends Command
         $this->info('╔═══════════════════════════════════════╗');
         $this->info('║           SUMMARY REPORT              ║');
         $this->info('╠═══════════════════════════════════════╣');
-        $this->info("║ Marked as Waitlisted:  {$waitlistedCount} applicant(s)  ║");
+        $this->info("║ Deleted Expired:       {$deletedCount} applicant(s)  ║");
         $this->info("║ Promoted to Eligible:  {$promotedCount} applicant(s)  ║");
         $this->info('╚═══════════════════════════════════════╝');
         $this->info('');
+        
+        // Log batch summary to system_logs
+        if ($deletedCount > 0 || $promotedCount > 0) {
+            DB::table('system_logs')->insert([
+                'user_id' => null,
+                'action' => 'voucher_eligibility_batch_update',
+                'description' => "Automated voucher eligibility batch update completed. Deleted: {$deletedCount} expired applicant(s), Promoted: {$promotedCount} waitlisted applicant(s) to eligible.",
+                'log_level' => 'info',
+                'created_at' => Carbon::now(),
+            ]);
+            
+            Log::info("Voucher eligibility batch update summary", [
+                'deleted_count' => $deletedCount,
+                'promoted_count' => $promotedCount,
+                'completed_at' => Carbon::now()->toDateTimeString()
+            ]);
+        }
         
         return Command::SUCCESS;
     }
