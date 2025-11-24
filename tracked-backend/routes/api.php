@@ -1176,7 +1176,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         $usedVouchers = DB::table('vouchers')->sum('used_count');
         $availableVouchers = $totalVouchers - $usedVouchers;
         $eligibleApplicants = \App\Models\User::where('role', 'applicant')
-            ->where('voucher_eligibility', 'eligible')
+            ->where('voucher_eligible', 1)
             ->count();
         
         // Get active batches count
