@@ -97,6 +97,7 @@ class EquipmentController extends Controller
             'name' => $request->name,
             'category' => $request->category,
             'brand' => $request->brand,
+            'model' => $request->model ?? 'N/A',
             'serial_number' => $request->serial_number,
             'quantity' => $request->quantity,
             'available' => $request->quantity,
