@@ -27,6 +27,37 @@ Route::get('/test', function () {
     return response()->json(['message' => 'API is working!']);
 });
 
+// Database diagnostic route
+Route::get('/db-check', function () {
+    try {
+        $tables = DB::select('SHOW TABLES');
+        $tableNames = array_map(function($table) {
+            $table = (array) $table;
+            return array_values($table)[0];
+        }, $tables);
+        
+        $equipmentExists = in_array('equipment', $tableNames);
+        
+        $result = [
+            'database_connected' => true,
+            'tables_count' => count($tableNames),
+            'equipment_table_exists' => $equipmentExists,
+            'all_tables' => $tableNames
+        ];
+        
+        if ($equipmentExists) {
+            $result['equipment_columns'] = DB::select('SHOW COLUMNS FROM equipment');
+        }
+        
+        return response()->json($result);
+    } catch (\Exception $e) {
+        return response()->json([
+            'database_connected' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
+
 // Storage file serving (no auth required for viewing documents)
 Route::get('/storage-file/{path}', [StorageController::class, 'serve'])->where('path', '.*');
 
@@ -631,7 +662,7 @@ Route::post('/student/forgot-password', function (Request $request) {
     );
 
     // Create reset URL
-    $resetUrl = 'https://smitracked.cloud/smi-lms/reset-password?token=' . $token . '&email=' . urlencode($request->email);
+    $resetUrl = 'http://localhost:5173/smi-lms/reset-password?token=' . $token . '&email=' . urlencode($request->email);
 
     // Log successful password reset request
     DB::table('system_logs')->insert([
@@ -4654,7 +4685,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
                             <div class='credentials-box'>
                                 <h3 style='color: #856404; margin-top: 0;'>2. LMS LOGIN CREDENTIALS</h3>
                                 <p><strong>Learning Management System (LMS) Portal:</strong><br>
-                                <a href='https://smitracked.cloud/smi-lms/login' style='color: #0066cc;'>https://smitracked.cloud/smi-lms/login</a></p>
+                                <a href='http://localhost:5173/smi-lms/login' style='color: #0066cc;'>http://localhost:5173/smi-lms/login</a></p>
                                 
                                 <p style='margin-top: 15px;'><strong>Your Login Details:</strong></p>
                                 <p style='margin: 5px 0;'><strong>Username:</strong> {$studentId}</p>
@@ -5183,7 +5214,7 @@ Pasay City, Metro Manila 1100</p>
                             <div class='credentials-box'>
                                 <h3 style='color: #856404; margin-top: 0;'>LMS LOGIN CREDENTIALS</h3>
                                 <p><strong>Learning Management System (LMS) Portal:</strong><br>
-                                <a href='https://smitracked.cloud/smi-lms/login' style='color: #0066cc;'>https://smitracked.cloud/smi-lms/login</a></p>
+                                <a href='http://localhost:5173/smi-lms/login' style='color: #0066cc;'>http://localhost:5173/smi-lms/login</a></p>
                                 
                                 <p style='margin-top: 15px;'><strong>Your Login Details:</strong></p>
                                 <p style='margin: 5px 0;'><strong>Username:</strong> {$studentId}</p>

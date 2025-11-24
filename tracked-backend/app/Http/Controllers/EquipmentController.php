@@ -88,7 +88,8 @@ class EquipmentController extends Controller
             'condition' => 'required|in:excellent,good,fair,poor',
             'purchase_date' => 'nullable|date',
             'value' => 'required|numeric|min:0',
-            'description' => 'nullable|string'
+            'description' => 'nullable|string',
+            'location' => 'nullable|string'
         ]);
 
         $equipment = Equipment::create([
@@ -108,7 +109,8 @@ class EquipmentController extends Controller
             'last_maintenance' => $request->last_maintenance,
             'next_maintenance' => $request->next_maintenance,
             'value' => $request->value,
-            'description' => $request->description
+            'description' => $request->description,
+            'location' => $request->location ?? 'Main Storage'
         ]);
 
         return response()->json([

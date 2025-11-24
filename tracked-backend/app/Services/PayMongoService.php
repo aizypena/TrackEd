@@ -102,7 +102,7 @@ class PayMongoService
                                     'attributes' => [
                                         'payment_method' => $paymentMethodId,
                                         'client_key' => $clientKey,
-                                        'return_url' => 'https://smitracked.cloud/staff/payment-callback',
+                                        'return_url' => 'http://localhost:5173/staff/payment-callback',
                                     ]
                                 ]
                             ]);
