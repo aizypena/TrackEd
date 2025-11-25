@@ -37,7 +37,7 @@ const AssignEquipmentModal = ({ isOpen, onClose, equipment, onSuccess, onError }
       const filtered = batches.filter(batch => {
         const searchLower = searchTerm.toLowerCase();
         const batchId = (batch.batch_id || '').toLowerCase();
-        const programName = (batch.program?.program_name || batch.program?.name || '').toLowerCase();
+        const programName = (batch.program?.title || '').toLowerCase();
         const trainerName = (batch.trainer?.first_name + ' ' + batch.trainer?.last_name || '').toLowerCase();
         
         return (
@@ -69,7 +69,7 @@ const AssignEquipmentModal = ({ isOpen, onClose, equipment, onSuccess, onError }
   const handleBatchSelect = (batch) => {
     setSelectedBatch(batch);
     const batchId = batch.batch_id || 'Unknown Batch';
-    const programName = batch.program?.program_name || batch.program?.name || 'Unknown Program';
+    const programName = batch.program?.title || 'Unknown Program';
     setSearchTerm(`${batchId} - ${programName}`);
     setShowBatchList(false);
   };
@@ -120,7 +120,7 @@ const AssignEquipmentModal = ({ isOpen, onClose, equipment, onSuccess, onError }
           equipmentCode: equipment.equipment_code,
           equipmentName: equipment.name,
           batchId: selectedBatch.id,
-          batchName: `${selectedBatch.batch_id} - ${selectedBatch.program?.program_name || selectedBatch.program?.name}`,
+          batchName: `${selectedBatch.batch_id} - ${selectedBatch.program?.title}`,
           quantity: quantity,
           purpose
         });
@@ -195,7 +195,7 @@ const AssignEquipmentModal = ({ isOpen, onClose, equipment, onSuccess, onError }
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium text-blue-900">{selectedBatch.batch_id}</p>
-                      <p className="text-sm text-blue-700">{selectedBatch.program?.program_name || selectedBatch.program?.name}</p>
+                      <p className="text-sm text-blue-700">{selectedBatch.program?.title}</p>
                       <p className="text-xs text-blue-600 mt-1">
                         Trainer: {selectedBatch.trainer ? `${selectedBatch.trainer.first_name} ${selectedBatch.trainer.last_name}` : 'Not assigned'}
                       </p>
@@ -226,7 +226,7 @@ const AssignEquipmentModal = ({ isOpen, onClose, equipment, onSuccess, onError }
                         className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors"
                       >
                         <div className="font-medium text-gray-900">{batch.batch_id}</div>
-                        <div className="text-sm text-gray-600">{batch.program?.program_name || batch.program?.name}</div>
+                        <div className="text-sm text-gray-600">{batch.program?.title}</div>
                         <div className="text-xs text-gray-500 mt-1">
                           Trainer: {batch.trainer ? `${batch.trainer.first_name} ${batch.trainer.last_name}` : 'Not assigned'}
                         </div>

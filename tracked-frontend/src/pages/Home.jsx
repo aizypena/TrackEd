@@ -102,7 +102,7 @@ const Home = () => {
             </h2>
             <p className="text-xl text-blue-100 mb-12 max-w-3xl mx-auto leading-relaxed">
               Transform your career with industry-leading certification programs designed by experienced professionals. 
-              Join over 1,200 successful graduates who have built thriving careers in the hospitality industry.
+              Join over 8,000 successful graduates who have built thriving careers in the hospitality industry.
             </p>
             <div className="flex flex-col sm:flex-row gap-6 justify-center">
               <Link 
@@ -125,7 +125,7 @@ const Home = () => {
           {/* Statistics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
             <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-              <div className="text-4xl font-bold text-yellow-400 mb-2">1,200+</div>
+              <div className="text-4xl font-bold text-yellow-400 mb-2">8,000+ </div>
               <div className="text-sm text-blue-100 font-medium">Successful Graduates</div>
             </div>
             <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
