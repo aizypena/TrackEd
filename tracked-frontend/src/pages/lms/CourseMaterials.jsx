@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Sidebar from '../../layouts/lms/Sidebar';
 import { getStudentToken, getStudentUser } from '../../utils/studentAuth';
+import DocumentViewer from '../../components/DocumentViewer';
 import { 
   MdDownload, 
   MdMenu, 
@@ -11,8 +12,7 @@ import {
   MdFolder,
   MdImage,
   MdFilterList,
-  MdVisibility,
-  MdClose
+  MdVisibility
 } from 'react-icons/md';
 
 const CourseMaterials = () => {
@@ -23,9 +23,8 @@ const CourseMaterials = () => {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [viewerOpen, setViewerOpen] = useState(false);
-  const [viewerUrl, setViewerUrl] = useState('');
-  const [viewerType, setViewerType] = useState('');
   const [currentMaterial, setCurrentMaterial] = useState(null);
+  const [loadingDocument, setLoadingDocument] = useState(false);
 
   // Fetch user data and materials on mount
   useEffect(() => {
@@ -148,6 +147,9 @@ const CourseMaterials = () => {
   };
 
   const handleView = async (id, material) => {
+    setLoadingDocument(true);
+    setViewerOpen(true);
+    
     try {
       const token = getStudentToken();
       const response = await fetch(`https://api.smitracked.cloud/api/student/course-materials/${id}/download`, {
@@ -160,38 +162,28 @@ const CourseMaterials = () => {
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
-        const format = material.format?.toLowerCase();
         
-        // Check if it's a viewable document type
-        if (['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx'].includes(format)) {
-          setCurrentMaterial(material);
-          setViewerType(format);
-          setViewerUrl(url);
-          setViewerOpen(true);
-        } else {
-          // For other file types, open in new tab
-          window.open(url, '_blank');
-          setTimeout(() => {
-            window.URL.revokeObjectURL(url);
-          }, 100);
-        }
+        // Set material with blob URL
+        setCurrentMaterial({
+          ...material,
+          fileUrl: url
+        });
       } else {
         console.error('View failed');
         alert('Failed to view material. Please try again.');
+        setViewerOpen(false);
       }
     } catch (error) {
       console.error('Error viewing material:', error);
       alert('Failed to view material. Please try again.');
+      setViewerOpen(false);
+    } finally {
+      setLoadingDocument(false);
     }
   };
 
   const closeViewer = () => {
-    if (viewerUrl) {
-      window.URL.revokeObjectURL(viewerUrl);
-    }
     setViewerOpen(false);
-    setViewerUrl('');
-    setViewerType('');
     setCurrentMaterial(null);
   };
 
@@ -352,90 +344,13 @@ const CourseMaterials = () => {
       </div>
 
       {/* Document Viewer Modal */}
-      {viewerOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
-          <div className="relative w-full h-full max-w-7xl max-h-[95vh] m-4 bg-white rounded-lg shadow-2xl flex flex-col">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50 rounded-t-lg">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  {getFileIcon(currentMaterial?.format, currentMaterial?.type)}
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    {currentMaterial?.title}
-                  </h3>
-                  <p className="text-sm text-gray-500">
-                    {currentMaterial?.format?.toUpperCase()} • {formatFileSize(currentMaterial?.size)}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={closeViewer}
-                className="p-2 hover:bg-gray-200 rounded-full transition-colors"
-                title="Close viewer"
-              >
-                <MdClose className="h-6 w-6 text-gray-600" />
-              </button>
-            </div>
-
-            {/* Modal Body - Document Viewer */}
-            <div className="flex-1 overflow-hidden bg-gray-100">
-              {viewerType === 'pdf' ? (
-                <iframe
-                  src={viewerUrl}
-                  className="w-full h-full border-0"
-                  title="PDF Viewer"
-                />
-              ) : ['doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx'].includes(viewerType) ? (
-                <div className="w-full h-full flex flex-col items-center justify-center bg-white p-8">
-                  <div className="max-w-md text-center">
-                    <div className="mb-6">
-                      {getFileIcon(currentMaterial?.format, currentMaterial?.type)}
-                    </div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                      Office Document Preview
-                    </h3>
-                    <p className="text-gray-600 mb-6">
-                      This is a {currentMaterial?.format?.toUpperCase()} file. To view it, please download the file and open it with Microsoft Office or a compatible application.
-                    </p>
-                    <button
-                      onClick={() => handleDownload(currentMaterial?.id)}
-                      className="w-full flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md"
-                    >
-                      <MdDownload className="h-5 w-5 mr-2" />
-                      Download to View
-                    </button>
-                    <p className="text-xs text-gray-500 mt-4">
-                      Supported viewers: Microsoft Office, LibreOffice, Google Docs (after download)
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <iframe
-                  src={viewerUrl}
-                  className="w-full h-full border-0"
-                  title="Document Viewer"
-                />
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="flex items-center justify-between p-4 border-t border-gray-200 bg-gray-50 rounded-b-lg">
-              <p className="text-sm text-gray-600">
-                {currentMaterial?.description || 'No description available'}
-              </p>
-              <button
-                onClick={() => handleDownload(currentMaterial?.id)}
-                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <MdDownload className="h-5 w-5 mr-2" />
-                Download
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DocumentViewer
+        isOpen={viewerOpen}
+        onClose={closeViewer}
+        document={currentMaterial}
+        onDownload={handleDownload}
+        loading={loadingDocument}
+      />
     </div>
   );
 };

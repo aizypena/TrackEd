@@ -208,7 +208,7 @@ const AdminEquipment = () => {
       });
 
       if (response.success) {
-        const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+        const adminUser = JSON.parse(sessionStorage.getItem('adminUser') || '{}');
         const adminName = adminUser.name || 'Admin';
 
         await logSystemAction(
@@ -233,7 +233,7 @@ const AdminEquipment = () => {
     if (!deletingEquipment) return;
 
     try {
-      const adminUserStr = localStorage.getItem('adminUser');
+      const adminUserStr = sessionStorage.getItem('adminUser');
       
       if (!adminUserStr) {
         throw new Error('User session not found. Please log in again.');
@@ -258,7 +258,7 @@ const AdminEquipment = () => {
 
       const response = await equipmentAPI.delete(deletingEquipment.id);
       if (response.success) {
-        const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+        const adminUser = JSON.parse(sessionStorage.getItem('adminUser') || '{}');
         const adminName = adminUser.name || 'Admin';
 
         await logSystemAction(
@@ -688,7 +688,7 @@ const AdminEquipment = () => {
           categories={categories}
           locations={locations}
           onSuccess={async (actionType, equipmentData) => {
-            const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+            const adminUser = JSON.parse(sessionStorage.getItem('adminUser') || '{}');
             const adminName = adminUser.name || 'Admin';
 
             if (actionType === 'created') {
@@ -726,7 +726,7 @@ const AdminEquipment = () => {
         onClose={() => setAssigningEquipment(null)}
         equipment={assigningEquipment}
         onSuccess={async (assignmentData) => {
-          const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+          const adminUser = JSON.parse(sessionStorage.getItem('adminUser') || '{}');
           const adminName = adminUser.name || 'Admin';
 
           await logSystemAction(
@@ -747,7 +747,7 @@ const AdminEquipment = () => {
         onClose={() => setManagingEquipment(null)}
         equipment={managingEquipment}
         onSuccess={async (returnData) => {
-          const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+          const adminUser = JSON.parse(sessionStorage.getItem('adminUser') || '{}');
           const adminName = adminUser.name || 'Admin';
 
           await logSystemAction(
@@ -768,7 +768,7 @@ const AdminEquipment = () => {
         onClose={() => setMaintainingEquipment(null)}
         equipment={maintainingEquipment}
         onSuccess={async (maintenanceData) => {
-          const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+          const adminUser = JSON.parse(sessionStorage.getItem('adminUser') || '{}');
           const adminName = adminUser.name || 'Admin';
 
           await logSystemAction(

@@ -34,7 +34,7 @@ const AdminAssessmentResults = () => {
   // Fetch all programs
   const fetchPrograms = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = sessionStorage.getItem('adminToken');
       const response = await fetch('https://api.smitracked.cloud/api/public/programs', {
         headers: {
           'Accept': 'application/json'
@@ -55,7 +55,7 @@ const AdminAssessmentResults = () => {
   // Fetch all batches
   const fetchBatches = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = sessionStorage.getItem('adminToken');
       const response = await fetch('https://api.smitracked.cloud/api/staff/batches', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -78,7 +78,7 @@ const AdminAssessmentResults = () => {
   const fetchAssessmentResults = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('adminToken');
+      const token = sessionStorage.getItem('adminToken');
       
       if (!token) {
         toast.error('Authentication required');

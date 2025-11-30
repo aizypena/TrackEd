@@ -1,8 +1,20 @@
 import './App.css'
 import AppRouter from './routes/AppRouter'
 import { Toaster } from 'react-hot-toast'
+import { useEffect } from 'react'
+import { startTabSession } from './utils/tabSessionManager'
 
 function App() {
+  // Initialize tab session management
+  useEffect(() => {
+    const session = startTabSession();
+    return () => {
+      if (session && session.cleanup) {
+        session.cleanup();
+      }
+    };
+  }, []);
+
   return (
     <>
       <AppRouter />

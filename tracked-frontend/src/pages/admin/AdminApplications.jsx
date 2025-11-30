@@ -25,7 +25,7 @@ export default function AdminApplications() {
       setError(null);
       try {
         // Use admin token for authentication
-        const token = localStorage.getItem('adminToken');
+        const token = sessionStorage.getItem('adminToken');
         const response = await fetch('https://api.smitracked.cloud/api/admin/applications', {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -69,7 +69,7 @@ export default function AdminApplications() {
   // Log action helper
   const logAction = async (action, description, level = 'info') => {
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = sessionStorage.getItem('adminToken');
       await fetch('https://api.smitracked.cloud/api/log-action', {
         method: 'POST',
         headers: {
@@ -91,7 +91,7 @@ export default function AdminApplications() {
   // Handle view documents
   const handleViewDocuments = async (applicantId) => {
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = sessionStorage.getItem('adminToken');
       const response = await fetch(`https://api.smitracked.cloud/api/admin/applicants/${applicantId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -197,7 +197,7 @@ export default function AdminApplications() {
   // Handle edit applicant
   const handleEditApplicant = async (applicantId) => {
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = sessionStorage.getItem('adminToken');
       const response = await fetch(`https://api.smitracked.cloud/api/admin/applicants/${applicantId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -239,7 +239,7 @@ export default function AdminApplications() {
     }
 
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = sessionStorage.getItem('adminToken');
       
       // First verify the admin password
       const verifyResponse = await fetch('https://api.smitracked.cloud/api/admin/verify-password', {
@@ -304,7 +304,7 @@ export default function AdminApplications() {
   const handleUpdateApplicant = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = sessionStorage.getItem('adminToken');
       const response = await fetch(`https://api.smitracked.cloud/api/admin/applicants/${selectedApplicant.id}`, {
         method: 'PUT',
         headers: {

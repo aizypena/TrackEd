@@ -22,7 +22,7 @@ export default function ContactMessages() {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = sessionStorage.getItem('adminToken');
       let url = `${API_URL}/admin/contact-messages?page=${page}`;
       
       if (statusFilter && statusFilter !== 'all') {
@@ -88,7 +88,7 @@ export default function ContactMessages() {
   // Update message status
   const updateStatus = async (messageId, newStatus) => {
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = sessionStorage.getItem('adminToken');
       const response = await fetch(`${API_URL}/admin/contact-messages/${messageId}/status`, {
         method: 'PATCH',
         headers: {

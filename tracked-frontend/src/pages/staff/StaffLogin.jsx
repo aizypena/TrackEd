@@ -20,8 +20,8 @@ const StaffLogin = () => {
 
   // Check if staff is already logged in
   useEffect(() => {
-    const staffToken = localStorage.getItem('staffToken');
-    const staffUser = localStorage.getItem('staffUser');
+    const staffToken = sessionStorage.getItem('staffToken');
+    const staffUser = sessionStorage.getItem('staffUser');
     
     if (staffToken && staffUser) {
       const user = JSON.parse(staffUser);
@@ -30,8 +30,8 @@ const StaffLogin = () => {
         navigate('/staff/dashboard', { replace: true });
       } else {
         // Clear invalid stored data
-        localStorage.removeItem('staffToken');
-        localStorage.removeItem('staffUser');
+        sessionStorage.removeItem('staffToken');
+        sessionStorage.removeItem('staffUser');
       }
     }
   }, [navigate]);
@@ -73,14 +73,14 @@ const StaffLogin = () => {
         if (data.user.role !== 'staff') {
           setError('Access denied. This login is for staff members only.');
           // Clear any stored data
-          localStorage.removeItem('staffToken');
-          localStorage.removeItem('staffUser');
+          sessionStorage.removeItem('staffToken');
+          sessionStorage.removeItem('staffUser');
           return;
         }
         
         // Store auth data for staff users only
-        localStorage.setItem('staffToken', data.token);
-        localStorage.setItem('staffUser', JSON.stringify(data.user));
+        sessionStorage.setItem('staffToken', data.token);
+        sessionStorage.setItem('staffUser', JSON.stringify(data.user));
         
         // Redirect to staff dashboard
         navigate('/staff/dashboard');

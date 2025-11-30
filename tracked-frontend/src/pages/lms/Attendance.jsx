@@ -52,7 +52,7 @@ const Attendance = () => {
     try {
       setLoading(true);
       setError(null);
-      const token = localStorage.getItem('studentToken');
+      const token = sessionStorage.getItem('studentToken');
       
       const response = await fetch('https://api.smitracked.cloud/api/student/attendance', {
         headers: {

@@ -21,7 +21,7 @@ export default function StaffContactMessages() {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('staffToken');
+      const token = sessionStorage.getItem('staffToken');
       let url = `https://api.smitracked.cloud/api/staff/contact-messages?page=${page}`;
       
       if (statusFilter && statusFilter !== 'all') {
@@ -90,7 +90,7 @@ export default function StaffContactMessages() {
   // Update message status
   const updateStatus = async (messageId, newStatus) => {
     try {
-      const token = localStorage.getItem('staffToken');
+      const token = sessionStorage.getItem('staffToken');
       const response = await fetch(`https://api.smitracked.cloud/api/staff/contact-messages/${messageId}/status`, {
         method: 'PATCH',
         headers: {

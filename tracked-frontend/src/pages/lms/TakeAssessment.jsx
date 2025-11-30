@@ -58,7 +58,7 @@ const TakeAssessment = () => {
     try {
       setLoading(true);
       setError(null);
-      const token = localStorage.getItem('studentToken');
+      const token = sessionStorage.getItem('studentToken');
 
       // Fetch quiz details with questions
       const quizResponse = await fetch(`https://api.smitracked.cloud/api/quizzes/${id}`, {
@@ -94,7 +94,7 @@ const TakeAssessment = () => {
 
   const startAttempt = async (quizId) => {
     try {
-      const token = localStorage.getItem('studentToken');
+      const token = sessionStorage.getItem('studentToken');
       const response = await fetch('https://api.smitracked.cloud/api/quiz-attempts/start', {
         method: 'POST',
         headers: {
@@ -137,7 +137,7 @@ const TakeAssessment = () => {
 
   const submitQuiz = async (isAutoSubmit = false) => {
     try {
-      const token = localStorage.getItem('studentToken');
+      const token = sessionStorage.getItem('studentToken');
       
       // Prepare answers in the format expected by backend
       const formattedAnswers = Object.keys(answers).map((questionId) => ({

@@ -50,7 +50,7 @@ const BatchManagement = () => {
   // Log action helper
   const logAction = async (action, description, level = 'info') => {
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = sessionStorage.getItem('adminToken');
       await fetch('https://api.smitracked.cloud/api/log-action', {
         method: 'POST',
         headers: {
@@ -149,7 +149,7 @@ const BatchManagement = () => {
 
     try {
       // Verify password first
-      const token = localStorage.getItem('adminToken');
+      const token = sessionStorage.getItem('adminToken');
       const verifyResponse = await fetch('https://api.smitracked.cloud/api/admin/verify-password', {
         method: 'POST',
         headers: {

@@ -1,35 +1,34 @@
 // Program related API endpoints
 import { API_URL as API_BASE_URL } from '../config/api';
 
-// Get token from localStorage (check staff, admin, or general token)
+// Get token from sessionStorage (check staff, admin, or general token)
 const getAuthToken = () => {
-  return localStorage.getItem('adminToken') || 
-         localStorage.getItem('staffToken') || 
-         localStorage.getItem('token') || 
-         localStorage.getItem('userToken') ||
+  return sessionStorage.getItem('adminToken') || 
+         sessionStorage.getItem('staffToken') || 
+         sessionStorage.getItem('token') || 
          sessionStorage.getItem('userToken');
 };
 
 // Check if user is actually logged in with valid session
 const isAuthenticated = () => {
   // Check for admin session
-  const adminToken = localStorage.getItem('adminToken');
-  const adminUser = localStorage.getItem('adminUser');
+  const adminToken = sessionStorage.getItem('adminToken');
+  const adminUser = sessionStorage.getItem('adminUser');
   if (adminToken && adminUser) return true;
   
   // Check for staff session
-  const staffToken = localStorage.getItem('staffToken');
-  const staffUser = localStorage.getItem('staffUser');
+  const staffToken = sessionStorage.getItem('staffToken');
+  const staffUser = sessionStorage.getItem('staffUser');
   if (staffToken && staffUser) return true;
   
   // Check for trainer session
-  const trainerToken = localStorage.getItem('trainerToken');
-  const trainerUser = localStorage.getItem('trainerUser');
+  const trainerToken = sessionStorage.getItem('trainerToken');
+  const trainerUser = sessionStorage.getItem('trainerUser');
   if (trainerToken && trainerUser) return true;
   
   // Check for applicant/student session
-  const userToken = localStorage.getItem('userToken') || sessionStorage.getItem('userToken');
-  const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
+  const userToken = sessionStorage.getItem('userToken');
+  const userData = sessionStorage.getItem('userData');
   if (userToken && userData) return true;
   
   return false;

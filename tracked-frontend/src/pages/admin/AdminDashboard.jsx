@@ -13,8 +13,8 @@ const AdminDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // Get admin user info from localStorage
-  const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
-  const adminToken = localStorage.getItem('adminToken');
+  const adminUser = JSON.parse(sessionStorage.getItem('adminUser') || '{}');
+  const adminToken = sessionStorage.getItem('adminToken');
   
   const [dashboardStats, setDashboardStats] = useState({
     totalApplicants: 0,
@@ -282,7 +282,8 @@ const AdminDashboard = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('adminToken');
+    sessionStorage.removeItem('adminToken');
+    sessionStorage.removeItem('adminUser');
     window.location.href = '/admin/login';
   };
 

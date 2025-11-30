@@ -46,7 +46,7 @@ function AllUsers() {
   const [error, setError] = useState(null);
 
   // Get admin user info from localStorage
-  const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+  const adminUser = JSON.parse(sessionStorage.getItem('adminUser') || '{}');
 
   // Fetch users from API
   const fetchUsers = async () => {
@@ -165,7 +165,7 @@ function AllUsers() {
       setIsViewModalOpen(true);
       
       // Log user view action
-      const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
+      const token = sessionStorage.getItem('adminToken') || JSON.parse(sessionStorage.getItem('adminUser') || '{}').token;
       if (token) {
         await fetch('https://api.smitracked.cloud/api/log-action', {
           method: 'POST',
@@ -310,7 +310,7 @@ function AllUsers() {
     
     // Log user edit intent
     try {
-      const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
+      const token = sessionStorage.getItem('adminToken') || JSON.parse(sessionStorage.getItem('adminUser') || '{}').token;
       if (token) {
         await fetch('https://api.smitracked.cloud/api/log-action', {
           method: 'POST',
@@ -340,7 +340,7 @@ function AllUsers() {
         const updatedUser = response.data;
         
         // Log user update
-        const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
+        const token = sessionStorage.getItem('adminToken') || JSON.parse(sessionStorage.getItem('adminUser') || '{}').token;
         if (token) {
           await fetch('https://api.smitracked.cloud/api/log-action', {
             method: 'POST',
@@ -376,7 +376,7 @@ function AllUsers() {
       
       // Log failed update attempt
       try {
-        const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
+        const token = sessionStorage.getItem('adminToken') || JSON.parse(sessionStorage.getItem('adminUser') || '{}').token;
         if (token) {
           await fetch('https://api.smitracked.cloud/api/log-action', {
             method: 'POST',
@@ -474,7 +474,7 @@ function AllUsers() {
                   const verifyResponse = await fetch('https://api.smitracked.cloud/api/admin/verify-password', {
                     method: 'POST',
                     headers: {
-                      'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+                      'Authorization': `Bearer ${sessionStorage.getItem('adminToken')}`,
                       'Content-Type': 'application/json',
                       'Accept': 'application/json',
                     },
@@ -489,7 +489,7 @@ function AllUsers() {
                     
                     // Log failed password verification
                     try {
-                      const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
+                      const token = sessionStorage.getItem('adminToken') || JSON.parse(sessionStorage.getItem('adminUser') || '{}').token;
                       if (token) {
                         await fetch('https://api.smitracked.cloud/api/log-action', {
                           method: 'POST',
@@ -521,7 +521,7 @@ function AllUsers() {
                   
                   if (response.success) {
                     // Log user deletion
-                    const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
+                    const token = sessionStorage.getItem('adminToken') || JSON.parse(sessionStorage.getItem('adminUser') || '{}').token;
                     if (token) {
                       await fetch('https://api.smitracked.cloud/api/log-action', {
                         method: 'POST',
@@ -552,7 +552,7 @@ function AllUsers() {
                   
                   // Log failed deletion attempt
                   try {
-                    const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
+                    const token = sessionStorage.getItem('adminToken') || JSON.parse(sessionStorage.getItem('adminUser') || '{}').token;
                     if (token) {
                       await fetch('https://api.smitracked.cloud/api/log-action', {
                         method: 'POST',

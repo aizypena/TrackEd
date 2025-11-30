@@ -55,7 +55,7 @@ function Sidebar({ isOpen, onClose }) {
   };
 
   // Get admin user info from localStorage
-  const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+  const adminUser = JSON.parse(sessionStorage.getItem('adminUser') || '{}');
 
   // Menu structure based on TrackEd system requirements
   const menuItems = [
@@ -152,8 +152,8 @@ function Sidebar({ isOpen, onClose }) {
 
   // Handle logout
   const handleLogout = () => {
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('adminUser');
+    sessionStorage.removeItem('adminToken');
+    sessionStorage.removeItem('adminUser');
     navigate('/admin/login', { replace: true });
   };
 

@@ -2,8 +2,8 @@ import { API_URL as API_BASE_URL } from '../config/api';
 
 // Get auth token from localStorage
 const getAuthToken = () => {
-  const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
-  const adminToken = localStorage.getItem('adminToken');
+  const adminUser = JSON.parse(sessionStorage.getItem('adminUser') || '{}');
+  const adminToken = sessionStorage.getItem('adminToken');
   
   // console.log('Admin user from localStorage:', adminUser);
   // console.log('Admin token from localStorage:', adminToken);

@@ -46,7 +46,7 @@ const StaffProgramManagement = () => {
   // Log action helper
   const logAction = async (action, description, level = 'info') => {
     try {
-      const token = localStorage.getItem('staffToken');
+      const token = sessionStorage.getItem('staffToken');
       await fetch('https://api.smitracked.cloud/api/log-action', {
         method: 'POST',
         headers: {
@@ -108,7 +108,7 @@ const StaffProgramManagement = () => {
     }
 
     try {
-      const token = localStorage.getItem('staffToken');
+      const token = sessionStorage.getItem('staffToken');
       
       // First verify the staff password
       const verifyResponse = await fetch('https://api.smitracked.cloud/api/staff/verify-password', {

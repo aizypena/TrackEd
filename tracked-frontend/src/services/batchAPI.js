@@ -3,7 +3,7 @@ import { API_URL as API_BASE_URL } from '../config/api';
 
 // Get token from localStorage (check staff, admin, or general token)
 const getAuthToken = () => {
-  return localStorage.getItem('staffToken') || localStorage.getItem('adminToken') || localStorage.getItem('token');
+  return sessionStorage.getItem('staffToken') || sessionStorage.getItem('adminToken') || sessionStorage.getItem('token');
 };
 
 export const batchAPI = {

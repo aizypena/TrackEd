@@ -2,7 +2,7 @@ import { API_URL as API_BASE_URL } from '../config/api';
 
 // Get auth token from localStorage or sessionStorage
 const getAuthToken = () => {
-  const token = localStorage.getItem('userToken') || sessionStorage.getItem('userToken');
+  const token = sessionStorage.getItem('userToken');
   
   if (!token) {
     console.warn('No authentication token found. User needs to login again.');

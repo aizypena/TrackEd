@@ -22,8 +22,6 @@ const TrainingPrograms = () => {
   const [selectedProgram, setSelectedProgram] = useState(null);
 
   const handleLogout = () => {
-    localStorage.removeItem('userToken');
-    localStorage.removeItem('userData');
     sessionStorage.removeItem('userToken');
     sessionStorage.removeItem('userData');
     navigate('/');
@@ -32,8 +30,8 @@ const TrainingPrograms = () => {
   useEffect(() => {
     const checkAuth = () => {
       try {
-        const token = localStorage.getItem('userToken') || sessionStorage.getItem('userToken');
-        const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
+        const token = sessionStorage.getItem('userToken');
+        const userData = sessionStorage.getItem('userData');
         
         if (token && userData) {
           const parsedUser = JSON.parse(userData);
@@ -42,8 +40,6 @@ const TrainingPrograms = () => {
             setUser(parsedUser);
             setIsAuthenticated(true);
           } else {
-            localStorage.removeItem('userToken');
-            localStorage.removeItem('userData');
             sessionStorage.removeItem('userToken');
             sessionStorage.removeItem('userData');
             setIsAuthenticated(false);

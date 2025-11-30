@@ -3,9 +3,9 @@ import { API_URL as API_BASE_URL } from '../config/api';
 
 // Get authentication token (support multiple roles)
 const getAuthToken = () => {
-  return localStorage.getItem('trainerToken') || 
-         localStorage.getItem('adminToken') || 
-         localStorage.getItem('staffToken');
+  return sessionStorage.getItem('trainerToken') || 
+         sessionStorage.getItem('adminToken') || 
+         sessionStorage.getItem('staffToken');
 };
 
 // Get all batches assigned to the authenticated trainer

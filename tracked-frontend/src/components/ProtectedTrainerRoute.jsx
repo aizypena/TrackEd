@@ -3,8 +3,8 @@ import { Navigate } from 'react-router-dom';
 
 const ProtectedTrainerRoute = ({ children }) => {
   // Check if trainer is logged in by looking for the trainer token in localStorage
-  const trainerToken = localStorage.getItem('trainerToken');
-  const trainerUser = localStorage.getItem('trainerUser');
+  const trainerToken = sessionStorage.getItem('trainerToken');
+  const trainerUser = sessionStorage.getItem('trainerUser');
   
   // If no token or user data exists, redirect to trainer login
   if (!trainerToken || !trainerUser) {

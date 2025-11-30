@@ -37,6 +37,55 @@ ChartJS.register(
 );
 
 const ArimaForecasting = () => {
+    // AI Interpretation State
+    const [aiInterpretation, setAIInterpretation] = useState('');
+    const [loadingAI, setLoadingAI] = useState(false);
+    const GEMINI_API_KEY = 'AIzaSyB7A9T0XK_OA--i2Hh8KkLntuzfj0O-NR4';
+
+    // Generate AI Interpretation
+    const generateAIInterpretation = async () => {
+      setLoadingAI(true);
+      try {
+        // Prepare prompt with forecast summary
+        const summary = `You are an educational data analyst. Analyze the following ARIMA forecast results and provide a clear, actionable interpretation in markdown format.\n\nForecast Summary:\n- Program: ${selectedProgram}\n- Periods Forecasted: ${forecastPeriods}\n- Trend: ${forecastData.stats?.trend}\n- Average Growth Rate: ${forecastData.stats?.avgGrowthRate}%\n- Next Period Prediction: ${forecastData.forecast?.[0]?.enrollment || 0}\n- Range: ${forecastData.forecast?.[0]?.lower_bound || 0} - ${forecastData.forecast?.[0]?.upper_bound || 0}\n- Confidence: ${forecastData.forecast?.[0]?.confidence || 0}%\n\nPlease provide:\n1. **Trend Analysis**: What is the overall direction?\n2. **Forecast Reliability**: How confident is the prediction?\n3. **Actionable Recommendations**: 2-3 steps for program managers.\nFormat your response with markdown headings (##) and bullet points.`;
+
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    {
+                      text: summary
+                    }
+                  ]
+                }
+              ]
+            })
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const interpretation = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Unable to generate interpretation';
+        setAIInterpretation(interpretation);
+        toast.success('AI interpretation generated successfully');
+      } catch (error) {
+        console.error('Error generating AI interpretation:', error);
+        toast.error('Failed to generate AI interpretation: ' + error.message);
+        setAIInterpretation('Failed to generate interpretation. Please try again.');
+      } finally {
+        setLoadingAI(false);
+      }
+    };
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [forecastPeriods, setForecastPeriods] = useState(6);
   const [selectedProgram, setSelectedProgram] = useState('all');
@@ -68,7 +117,7 @@ const ArimaForecasting = () => {
   const fetchForecast = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('adminToken');
+      const token = sessionStorage.getItem('adminToken');
       const response = await fetch(`${API_URL}/admin/arima-forecast`, {
         method: 'POST',
         headers: {
@@ -405,47 +454,48 @@ const ArimaForecasting = () => {
             )}
           </div>
 
-          {/* Forecast Table and Insights */}
+          {/* Forecast Table and Insights - side by side */}
           {!loading && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Forecast Details</h3>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Period</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Predicted</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Range</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Confidence</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {(forecastData.forecast || []).map((data, index) => (
-                        <tr key={index}>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                            {formatDate(data.date)}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-blue-600">
-                            {data.enrollment || 0}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                            {data.lower_bound || 0} - {data.upper_bound || 0}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                            {data.confidence || 0}%
-                          </td>
+            <>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Forecast Details</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Period</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Predicted</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Range</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Confidence</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {(forecastData.forecast || []).map((data, index) => (
+                          <tr key={index}>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                              {formatDate(data.date)}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-blue-600">
+                              {data.enrollment || 0}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                              {data.lower_bound || 0} - {data.upper_bound || 0}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                              {data.confidence || 0}%
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-6">
                 <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Key Insights</h3>
                   <div className="space-y-3">
+                    {/* ...existing Key Insights code... */}
                     {/* Selected Program Info */}
                     <div className="flex items-start space-x-3">
                       <MdCalendarToday className="h-5 w-5 text-indigo-600 mt-0.5" />
@@ -456,7 +506,7 @@ const ArimaForecasting = () => {
                         </p>
                       </div>
                     </div>
-
+                    {/* ...rest of Key Insights code unchanged... */}
                     {/* Forecast Period Info */}
                     <div className="flex items-start space-x-3">
                       <MdSchedule className="h-5 w-5 text-purple-600 mt-0.5" />
@@ -468,7 +518,6 @@ const ArimaForecasting = () => {
                         </p>
                       </div>
                     </div>
-
                     {/* Trend Analysis with actual growth rate */}
                     <div className="flex items-start space-x-3">
                       <MdTrendingUp className={`h-5 w-5 mt-0.5 ${
@@ -482,7 +531,6 @@ const ArimaForecasting = () => {
                           {(() => {
                             const avgGrowth = forecastData.stats?.avgGrowthRate || 0;
                             const trend = forecastData.stats?.trend || 'stable';
-                            
                             if (trend === 'increasing') {
                               return `Enrollment is projected to increase by ${Math.abs(avgGrowth).toFixed(1)}% on average`;
                             } else if (trend === 'decreasing') {
@@ -494,7 +542,6 @@ const ArimaForecasting = () => {
                         </p>
                       </div>
                     </div>
-
                     {/* Growth rate alert - Show for significant changes (positive or negative) */}
                     {Math.abs(forecastData.stats?.avgGrowthRate || 0) > 10 && (
                       <div className="flex items-start space-x-3">
@@ -513,7 +560,6 @@ const ArimaForecasting = () => {
                         </div>
                       </div>
                     )}
-
                     {/* Forecast range insight */}
                     {forecastData.forecast?.length > 0 && (
                       <div className="flex items-start space-x-3">
@@ -531,7 +577,6 @@ const ArimaForecasting = () => {
                         </div>
                       </div>
                     )}
-
                     {/* Confidence level insight */}
                     {forecastData.forecast?.length > 0 && (
                       <div className="flex items-start space-x-3">
@@ -551,7 +596,6 @@ const ArimaForecasting = () => {
                         </div>
                       </div>
                     )}
-
                     {/* Data source */}
                     <div className="flex items-start space-x-3">
                       <MdCalendarToday className="h-5 w-5 text-indigo-600 mt-0.5" />
@@ -567,7 +611,55 @@ const ArimaForecasting = () => {
                   </div>
                 </div>
               </div>
-            </div>
+              {/* AI Interpretation Panel - full width below */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 mt-6 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">AI Interpretation</h3>
+                  <button
+                    onClick={generateAIInterpretation}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={loadingAI || loading}
+                  >
+                    {loadingAI ? 'Analyzing...' : aiInterpretation ? 'Refresh Analysis' : 'Generate Analysis'}
+                  </button>
+                </div>
+                {loadingAI ? (
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <p className="text-gray-700 font-medium">Analyzing forecast with AI...</p>
+                  </div>
+                ) : aiInterpretation ? (
+                  <div className="prose prose-sm max-w-none text-gray-800" style={{ maxHeight: '300px', overflowY: 'auto' }}
+                    dangerouslySetInnerHTML={{
+                      __html: aiInterpretation
+                        // Headings
+                        .replace(/##\s*(.*?)(\n|$)/g, '<h2 class="text-lg font-bold text-blue-700 mt-4 mb-2">$1</h2>')
+                        .replace(/###\s*(.*?)(\n|$)/g, '<h3 class="text-base font-semibold text-blue-600 mt-3 mb-2">$1</h3>')
+                        // Bold
+                        .replace(/\*\*(.*?)\*\*/g, '<strong class="text-gray-900">$1</strong>')
+                        // Numbered lists
+                        .replace(/\n(\d+\.\s)/g, '<br/><span class="font-bold">$1</span>')
+                        // Bullet points
+                        .replace(/^\* (.*?)$/gm, '<li class="ml-4 mb-1 text-sm">$1</li>')
+                        // Sub-bullets
+                        .replace(/^\s*\* (.*?)$/gm, '<li class="ml-8 mb-1 text-sm list-disc">$1</li>')
+                        // Paragraph breaks
+                        .replace(/\n{2,}/g, '<br/><br/>')
+                        // Wrap lists in <ul>
+                        .replace(/(<li.*?<\/li>\n?)+/g, '<ul class="list-disc pl-5 space-y-1 mb-3">$&</ul>')
+                        // Remove stray hashes
+                        .replace(/^#+\s*/gm, '')
+                    }}
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <h4 className="text-base font-medium text-gray-900 mb-2">No Analysis Yet</h4>
+                    <p className="text-sm text-gray-600 mb-2 max-w-md">
+                      Click "Generate Analysis" to get AI-powered insights about the forecast, trends, and recommendations.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </>
           )}
         </main>
       </div>
@@ -575,6 +667,6 @@ const ArimaForecasting = () => {
       <Toaster position="top-right" />
     </div>
   );
-};
+}
 
 export default ArimaForecasting;

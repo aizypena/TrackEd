@@ -62,7 +62,7 @@ function AddUser() {
   });
 
   // Get admin user info from localStorage
-  const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+  const adminUser = JSON.parse(sessionStorage.getItem('adminUser') || '{}');
 
   // Fetch available programs on component mount
   useEffect(() => {
@@ -360,7 +360,7 @@ function AddUser() {
         }
         
         // Log user creation
-        const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
+        const token = sessionStorage.getItem('adminToken') || JSON.parse(sessionStorage.getItem('adminUser') || '{}').token;
         if (token) {
           await fetch('https://api.smitracked.cloud/api/log-action', {
             method: 'POST',
@@ -386,7 +386,7 @@ function AddUser() {
       
       // Log failed creation attempt
       try {
-        const token = localStorage.getItem('adminToken') || JSON.parse(localStorage.getItem('adminUser') || '{}').token;
+        const token = sessionStorage.getItem('adminToken') || JSON.parse(sessionStorage.getItem('adminUser') || '{}').token;
         if (token) {
           await fetch('https://api.smitracked.cloud/api/log-action', {
             method: 'POST',

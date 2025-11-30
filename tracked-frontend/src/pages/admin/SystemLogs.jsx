@@ -34,7 +34,7 @@ const SystemLogs = () => {
     last_page: 1,
   });
   
-  const adminToken = localStorage.getItem('adminToken');
+  const adminToken = sessionStorage.getItem('adminToken');
 
   // Fetch logs from API
   const fetchLogs = async (page = 1) => {

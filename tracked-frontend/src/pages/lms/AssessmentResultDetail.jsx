@@ -36,7 +36,7 @@ const AssessmentResultDetail = () => {
       setLoading(true);
       setError(null);
       
-      const token = localStorage.getItem('studentToken');
+      const token = sessionStorage.getItem('studentToken');
       if (!token) {
         navigate('/login');
         return;

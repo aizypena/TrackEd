@@ -16,7 +16,7 @@ import Sidebar from '../../layouts/admin/Sidebar';
 
 function AdminProfileSettings() {
   // Get admin user info from localStorage
-  const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+  const adminUser = JSON.parse(sessionStorage.getItem('adminUser') || '{}');
 
   // State for form data
   const [formData, setFormData] = useState({
@@ -43,7 +43,7 @@ function AdminProfileSettings() {
   // Function to log system action
   const logSystemAction = async (action, description, logLevel = 'info') => {
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = sessionStorage.getItem('adminToken');
       const response = await fetch('https://api.smitracked.cloud/api/log-action', {
         method: 'POST',
         headers: {
@@ -103,7 +103,7 @@ function AdminProfileSettings() {
     const loadingToast = toast.loading('Updating profile...');
 
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = sessionStorage.getItem('adminToken');
       
       const response = await fetch('https://api.smitracked.cloud/api/admin/profile', {
         method: 'PUT',
@@ -146,7 +146,7 @@ function AdminProfileSettings() {
           last_name: formData.lastName,
           phone_number: formData.phone
         };
-        localStorage.setItem('adminUser', JSON.stringify(updatedUser));
+        sessionStorage.setItem('adminUser', JSON.stringify(updatedUser));
         
         toast.success('Profile updated successfully!', {
           id: loadingToast,
@@ -232,7 +232,7 @@ function AdminProfileSettings() {
     const loadingToast = toast.loading('Updating password...');
 
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = sessionStorage.getItem('adminToken');
       
       const response = await fetch('https://api.smitracked.cloud/api/admin/password', {
         method: 'PUT',

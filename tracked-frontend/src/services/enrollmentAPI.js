@@ -2,7 +2,7 @@ import { API_URL } from '../config/api';
 
 // Get admin auth headers
 const getAdminAuthHeaders = () => {
-  const token = localStorage.getItem('adminToken');
+  const token = sessionStorage.getItem('adminToken');
   return {
     'Content-Type': 'application/json',
     'Accept': 'application/json',

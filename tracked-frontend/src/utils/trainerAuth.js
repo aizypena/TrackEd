@@ -7,7 +7,7 @@
  * @returns {string|null} The trainer authentication token
  */
 export const getTrainerToken = () => {
-  return localStorage.getItem('trainerToken');
+  return sessionStorage.getItem('trainerToken');
 };
 
 /**
@@ -15,7 +15,7 @@ export const getTrainerToken = () => {
  * @returns {object|null} The trainer user object
  */
 export const getTrainerUser = () => {
-  const userStr = localStorage.getItem('trainerUser');
+  const userStr = sessionStorage.getItem('trainerUser');
   if (!userStr) return null;
   
   try {
@@ -46,8 +46,8 @@ export const isTrainerAuthenticated = () => {
  * @param {object} user - The user data
  */
 export const setTrainerAuth = (token, user) => {
-  localStorage.setItem('trainerToken', token);
-  localStorage.setItem('trainerUser', JSON.stringify(user));
+  sessionStorage.setItem('trainerToken', token);
+  sessionStorage.setItem('trainerUser', JSON.stringify(user));
 };
 
 /**
@@ -55,11 +55,11 @@ export const setTrainerAuth = (token, user) => {
  * @returns {void}
  */
 export const trainerLogout = () => {
-  localStorage.removeItem('trainerToken');
-  localStorage.removeItem('trainerUser');
+  sessionStorage.removeItem('trainerToken');
+  sessionStorage.removeItem('trainerUser');
   // Also remove old token format for backwards compatibility
-  localStorage.removeItem('user');
-  localStorage.removeItem('token');
+  sessionStorage.removeItem('user');
+  sessionStorage.removeItem('token');
   
   // Redirect to trainer login page
   window.location.href = '/trainer-lms/login';

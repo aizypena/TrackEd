@@ -3,7 +3,7 @@ import { API_URL as API_BASE_URL } from '../config/api';
 
 // Get token from localStorage (admin uses 'adminToken')
 const getAuthToken = () => {
-  return localStorage.getItem('adminToken') || localStorage.getItem('token');
+  return sessionStorage.getItem('adminToken') || sessionStorage.getItem('token');
 };
 
 export const voucherAPI = {

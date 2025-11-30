@@ -93,7 +93,7 @@ const UploadMaterial = ({ isOpen, onClose, material, programs, materialTypes, on
       }
 
       // Get auth token
-      const token = localStorage.getItem('adminToken');
+      const token = sessionStorage.getItem('adminToken');
       
       // Make API call
       const endpoint = material 

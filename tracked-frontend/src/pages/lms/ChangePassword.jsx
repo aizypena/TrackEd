@@ -35,7 +35,7 @@ const ChangePassword = () => {
 
   // Check if user is logged in
   useEffect(() => {
-    const studentToken = localStorage.getItem('studentToken');
+    const studentToken = sessionStorage.getItem('studentToken');
     if (!studentToken) {
       navigate('/smi-lms/login', { replace: true });
     }
@@ -130,7 +130,7 @@ const ChangePassword = () => {
     }
 
     try {
-      const token = localStorage.getItem('studentToken');
+      const token = sessionStorage.getItem('studentToken');
       const response = await fetch(`${API_URL}/student/change-password`, {
         method: 'POST',
         headers: {
@@ -149,9 +149,9 @@ const ChangePassword = () => {
       
       if (response.ok) {
         // Update stored user data with password_changed_at
-        const studentUser = JSON.parse(localStorage.getItem('studentUser'));
+        const studentUser = JSON.parse(sessionStorage.getItem('studentUser'));
         studentUser.password_changed_at = new Date().toISOString();
-        localStorage.setItem('studentUser', JSON.stringify(studentUser));
+        sessionStorage.setItem('studentUser', JSON.stringify(studentUser));
         
         toast.success('Password changed successfully!');
         

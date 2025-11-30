@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../layouts/admin/Sidebar';
 import UploadMaterial from '../../components/admin/UploadMaterial';
+import DocumentViewer from '../../components/DocumentViewer';
 import { programAPI } from '../../services/programAPI';
 import toast, { Toaster } from 'react-hot-toast';
 import {
@@ -37,11 +38,14 @@ const AdminCourseMaterials = () => {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [materialToDelete, setMaterialToDelete] = useState(null);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [currentMaterial, setCurrentMaterial] = useState(null);
+  const [loadingDocument, setLoadingDocument] = useState(false);
 
   // Log action helper
   const logAction = async (action, description, level = 'info') => {
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = sessionStorage.getItem('adminToken');
       await fetch('https://api.smitracked.cloud/api/log-action', {
         method: 'POST',
         headers: {
@@ -75,7 +79,7 @@ const AdminCourseMaterials = () => {
   const fetchMaterials = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('adminToken');
+      const token = sessionStorage.getItem('adminToken');
       const response = await fetch('https://api.smitracked.cloud/api/trainer/course-materials', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -131,7 +135,7 @@ const AdminCourseMaterials = () => {
     }
 
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = sessionStorage.getItem('adminToken');
       
       // Verify password
       const verifyResponse = await fetch('https://api.smitracked.cloud/api/admin/verify-password', {
@@ -207,12 +211,58 @@ const AdminCourseMaterials = () => {
     setMaterialToDelete(null);
   };
 
-  const handleDownloadMaterial = async (material) => {
+  const handleViewMaterial = async (material) => {
+    setLoadingDocument(true);
+    setViewerOpen(true);
+    
+    try {
+      const token = sessionStorage.getItem('adminToken');
+      const response = await fetch(`https://api.smitracked.cloud/api/trainer/course-materials/${material.id}/download`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        
+        // Set material with blob URL
+        setCurrentMaterial({
+          ...material,
+          fileUrl: url,
+          title: material.title,
+          format: material.file_type,
+          size: material.file_size,
+          uploaded_at: material.created_at,
+          description: material.description
+        });
+      } else {
+        toast.error('Failed to load material');
+        setViewerOpen(false);
+      }
+    } catch (error) {
+      console.error('Error viewing material:', error);
+      toast.error('Failed to load material');
+      setViewerOpen(false);
+    } finally {
+      setLoadingDocument(false);
+    }
+  };
+
+  const closeViewer = () => {
+    setViewerOpen(false);
+    setCurrentMaterial(null);
+  };
+
+  const handleDownloadMaterial = async (materialId) => {
     try {
       toast.loading('Downloading...', { id: 'download-toast' });
       
-      const token = localStorage.getItem('adminToken');
-      const response = await fetch(`https://api.smitracked.cloud/api/trainer/course-materials/${material.id}/download`, {
+      const material = materials.find(m => m.id === materialId) || currentMaterial;
+      const token = sessionStorage.getItem('adminToken');
+      const response = await fetch(`https://api.smitracked.cloud/api/trainer/course-materials/${materialId}/download`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -224,7 +274,7 @@ const AdminCourseMaterials = () => {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = material.title || 'download';
+        link.download = material?.title || 'download';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -233,7 +283,7 @@ const AdminCourseMaterials = () => {
         // Log download action
         await logAction(
           'material_downloaded',
-          `Downloaded course material: ${material.title} (${material.program?.title || 'Unknown'})`,
+          `Downloaded course material: ${material?.title} (${material?.program?.title || 'Unknown'})`,
           'info'
         );
         
@@ -473,17 +523,15 @@ const AdminCourseMaterials = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex gap-2">
-                          <a
-                            href={`https://api.smitracked.cloud/api/storage-file/${material.file_path}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <button
+                            onClick={() => handleViewMaterial(material)}
                             className="text-green-600 hover:text-green-900 hover:cursor-pointer"
                             title="View"
                           >
                             <MdVisibility className="h-5 w-5" />
-                          </a>
+                          </button>
                           <button
-                            onClick={() => handleDownloadMaterial(material)}
+                            onClick={() => handleDownloadMaterial(material.id)}
                             className="text-blue-600 hover:text-blue-900 hover:cursor-pointer"
                             title="Download"
                           >
@@ -618,6 +666,15 @@ const AdminCourseMaterials = () => {
           </div>
         </div>
       )}
+
+      {/* Document Viewer Modal */}
+      <DocumentViewer
+        isOpen={viewerOpen}
+        onClose={closeViewer}
+        document={currentMaterial}
+        onDownload={handleDownloadMaterial}
+        loading={loadingDocument}
+      />
 
       {/* Toast Container */}
       <Toaster position="top-right" />

@@ -11,8 +11,8 @@ function FAQ() {
   useEffect(() => {
     const checkExistingAuth = () => {
       try {
-        const token = localStorage.getItem('userToken') || sessionStorage.getItem('userToken');
-        const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
+        const token = sessionStorage.getItem('userToken') || sessionStorage.getItem('userToken');
+        const userData = sessionStorage.getItem('userData') || sessionStorage.getItem('userData');
         
         if (token && userData) {
           const parsedUser = JSON.parse(userData);

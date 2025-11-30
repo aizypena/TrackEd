@@ -7,7 +7,7 @@
  * @returns {string|null} The staff authentication token
  */
 export const getStaffToken = () => {
-  return localStorage.getItem('staffToken');
+  return sessionStorage.getItem('staffToken');
 };
 
 /**
@@ -15,7 +15,7 @@ export const getStaffToken = () => {
  * @returns {object|null} The staff user object
  */
 export const getStaffUser = () => {
-  const userStr = localStorage.getItem('staffUser');
+  const userStr = sessionStorage.getItem('staffUser');
   if (!userStr) return null;
   
   try {
@@ -46,8 +46,8 @@ export const isStaffAuthenticated = () => {
  * @param {object} user - The user data
  */
 export const setStaffAuth = (token, user) => {
-  localStorage.setItem('staffToken', token);
-  localStorage.setItem('staffUser', JSON.stringify(user));
+  sessionStorage.setItem('staffToken', token);
+  sessionStorage.setItem('staffUser', JSON.stringify(user));
 };
 
 /**
@@ -55,8 +55,8 @@ export const setStaffAuth = (token, user) => {
  * @returns {void}
  */
 export const staffLogout = () => {
-  localStorage.removeItem('staffToken');
-  localStorage.removeItem('staffUser');
+  sessionStorage.removeItem('staffToken');
+  sessionStorage.removeItem('staffUser');
   
   // Redirect to staff login page
   window.location.href = '/staff/login';

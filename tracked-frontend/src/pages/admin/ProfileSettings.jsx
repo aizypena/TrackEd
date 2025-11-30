@@ -19,7 +19,7 @@ function ProfileSettings() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    const userData = JSON.parse(localStorage.getItem('adminUser') || '{}');
+    const userData = JSON.parse(sessionStorage.getItem('adminUser') || '{}');
     console.log('Admin User Data:', userData); // Debug log
     setAdminUser(userData);
     
@@ -73,7 +73,7 @@ function ProfileSettings() {
   // Function to log system action
   const logSystemAction = async (action, description, logLevel = 'info') => {
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = sessionStorage.getItem('adminToken');
       const response = await fetch('https://api.smitracked.cloud/api/log-action', {
         method: 'POST',
         headers: {
@@ -157,7 +157,7 @@ function ProfileSettings() {
         phone_number: formData.phone,
         address: formData.address,
       };
-      localStorage.setItem('adminUser', JSON.stringify(updatedUser));
+      sessionStorage.setItem('adminUser', JSON.stringify(updatedUser));
       setAdminUser(updatedUser);
 
       toast.success('Profile updated successfully!');

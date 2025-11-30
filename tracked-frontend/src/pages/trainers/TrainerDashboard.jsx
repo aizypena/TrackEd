@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import TrainerSidebar from '../../layouts/trainer/TrainerSidebar';
 import { 
   MdPeople, 
@@ -92,15 +93,15 @@ const TrainerDashboard = () => {
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">{card.title}</h3>
                 <p className="text-sm text-gray-600 mb-4">{card.description}</p>
-                <a
-                  href={card.path}
+                <Link
+                  to={card.path}
                   className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-800"
                 >
                   View Details
                   <svg className="w-4 h-4 ml-1" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
                   </svg>
-                </a>
+                </Link>
               </div>
             ))}
           </div>

@@ -23,8 +23,8 @@ const AdminLogin = () => {
 
   // Check if admin is already logged in
   useEffect(() => {
-    const adminToken = localStorage.getItem('adminToken');
-    const adminUser = localStorage.getItem('adminUser');
+    const adminToken = sessionStorage.getItem('adminToken');
+    const adminUser = sessionStorage.getItem('adminUser');
     
     if (adminToken && adminUser) {
       navigate('/admin/dashboard', { replace: true });
@@ -65,8 +65,8 @@ const AdminLogin = () => {
       
       if (response.ok && data.token) {
         // Store auth data
-        localStorage.setItem('adminToken', data.token);
-        localStorage.setItem('adminUser', JSON.stringify(data.user));
+        sessionStorage.setItem('adminToken', data.token);
+        sessionStorage.setItem('adminUser', JSON.stringify(data.user));
         
         // Backend already logs the login, so we just navigate
         navigate('/admin/dashboard');

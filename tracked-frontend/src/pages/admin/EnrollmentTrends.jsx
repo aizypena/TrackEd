@@ -10,6 +10,8 @@ import {
   MdDownload,
   MdFilterList,
   MdPayment,
+  MdAutoAwesome,
+  MdClose,
 } from 'react-icons/md';
 import {
   Chart as ChartJS,
@@ -45,6 +47,9 @@ const EnrollmentTrends = () => {
   const [loading, setLoading] = useState(false);
   const [viewType, setViewType] = useState('quarterly'); // weekly, monthly, quarterly, yearly
   const [selectedProgram, setSelectedProgram] = useState('all');
+  const [showAIInterpretation, setShowAIInterpretation] = useState(false);
+  const [aiInterpretation, setAIInterpretation] = useState('');
+  const [loadingAI, setLoadingAI] = useState(false);
   
   const [trendsData, setTrendsData] = useState({
     quarterlyData: {},
@@ -68,7 +73,7 @@ const EnrollmentTrends = () => {
   const fetchTrendsData = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('adminToken');
+      const token = sessionStorage.getItem('adminToken');
       
       if (!token) {
         toast.error('Authentication required');
@@ -648,6 +653,117 @@ const EnrollmentTrends = () => {
     toast.success('Data exported successfully');
   };
 
+  const generateAIInterpretation = async () => {
+    if (filteredPeriods.length === 0) {
+      toast.error('No data available for interpretation');
+      return;
+    }
+
+    setLoadingAI(true);
+    setShowAIInterpretation(true);
+    
+    try {
+      const dataForProgram = getDataByViewType(selectedProgram);
+      const growthRate = calculateGrowthRate();
+      
+      // Prepare data summary for AI
+      const dataSummary = {
+        viewType: viewType,
+        timeRange: timeRange,
+        selectedProgram: selectedProgram,
+        totalPrograms: trendsData.stats?.totalPrograms || 0,
+        totalEnrollments: trendsData.stats?.totalEnrollments || 0,
+        avgPerProgram: trendsData.stats?.avgPerProgram || 0,
+        growthRate: growthRate,
+        periods: filteredPeriods,
+        enrollmentData: filteredPeriods.map(p => ({
+          period: p,
+          enrollments: dataForProgram[p] || 0
+        })),
+        topPrograms: Object.entries(filteredProgramTotals)
+          .slice(0, 5)
+          .map(([name, total]) => ({ name, total })),
+        voucherStats: {
+          withVoucher: trendsData.voucherStats?.withVoucher || 0,
+          withoutVoucher: trendsData.voucherStats?.withoutVoucher || 0,
+          voucherPercentage: trendsData.voucherStats?.voucherPercentage || 0,
+          paidPercentage: trendsData.voucherStats?.paidPercentage || 0
+        }
+      };
+
+      const prompt = `You are an educational data analyst. Analyze the following enrollment trends data and provide a comprehensive interpretation in a professional, actionable format.
+
+Data Summary:
+- View Type: ${dataSummary.viewType}
+- Time Range: ${dataSummary.timeRange}
+- Selected Program: ${dataSummary.selectedProgram}
+- Total Programs: ${dataSummary.totalPrograms}
+- Total Enrollments: ${dataSummary.totalEnrollments.toLocaleString()}
+- Average per Program: ${dataSummary.avgPerProgram}
+- Growth Rate: ${dataSummary.growthRate}%
+
+Enrollment Trends (${dataSummary.viewType}):
+${dataSummary.enrollmentData.map(d => `${d.period}: ${d.enrollments} enrollments`).join('\n')}
+
+Top Programs:
+${dataSummary.topPrograms.map((p, i) => `${i + 1}. ${p.name}: ${p.total.toLocaleString()} enrollments`).join('\n')}
+
+Payment Distribution:
+- With Voucher: ${dataSummary.voucherStats.withVoucher.toLocaleString()} (${dataSummary.voucherStats.voucherPercentage}%)
+- Self-Paid: ${dataSummary.voucherStats.withoutVoucher.toLocaleString()} (${dataSummary.voucherStats.paidPercentage}%)
+
+Please provide:
+1. **Overall Trend Analysis**: What's the general direction of enrollments?
+2. **Key Patterns**: Identify any seasonal patterns, peaks, or dips
+3. **Growth Assessment**: Evaluate the ${dataSummary.growthRate}% growth rate
+4. **Program Performance**: Insights about program popularity
+5. **Payment Insights**: Analysis of voucher vs self-paid distribution
+6. **Recommendations**: 3-5 actionable recommendations for improving enrollments
+
+Format your response with clear sections using markdown headings (##) and bullet points for readability.`;
+
+      const API_KEY = 'AIzaSyB7A9T0XK_OA--i2Hh8KkLntuzfj0O-NR4';
+      
+      // Using the correct endpoint for Generative Language API
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    text: prompt
+                  }
+                ]
+              }
+            ]
+          })
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const interpretation = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Unable to generate interpretation';
+      
+      setAIInterpretation(interpretation);
+      toast.success('AI interpretation generated successfully');
+    } catch (error) {
+      console.error('Error generating AI interpretation:', error);
+      toast.error('Failed to generate AI interpretation: ' + error.message);
+      setAIInterpretation('Failed to generate interpretation. Please try again.');
+    } finally {
+      setLoadingAI(false);
+    }
+  };
+
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
@@ -834,48 +950,8 @@ const EnrollmentTrends = () => {
           </div>
 
           {/* Charts Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 gap-6">
-            {/* Popular Programs Chart */}
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              {loading ? (
-                <div className="flex items-center justify-center h-[400px]">
-                  <div className="text-center">
-                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-                    <p className="text-gray-600">Loading chart data...</p>
-                  </div>
-                </div>
-              ) : Object.keys(trendsData.programTotals || {}).length === 0 ? (
-                <div className="flex items-center justify-center h-[400px]">
-                  <p className="text-gray-500">No program data available</p>
-                </div>
-              ) : (
-                <div style={{ height: '400px' }}>
-                  <Bar data={popularPrograms} options={barOptions} />
-                </div>
-              )}
-            </div>
-
-            {/* Enrollment Trends Chart */}
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              {loading ? (
-                <div className="flex items-center justify-center h-[400px]">
-                  <div className="text-center">
-                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-                    <p className="text-gray-600">Loading chart data...</p>
-                  </div>
-                </div>
-              ) : filteredPeriods.length === 0 ? (
-                <div className="flex items-center justify-center h-[400px]">
-                  <p className="text-gray-500">No enrollment data available</p>
-                </div>
-              ) : (
-                <div style={{ height: '400px' }}>
-                  <Line data={enrollmentTrends} options={lineOptions} />
-                </div>
-              )}
-            </div>
-
-            {/* Voucher Payment Distribution Chart */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            {/* Payment Method Distribution Chart */}
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
               {loading ? (
                 <div className="flex items-center justify-center h-[400px]">
@@ -911,6 +987,7 @@ const EnrollmentTrends = () => {
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Key Insights</h3>
               <div className="space-y-4">
+                {/* ...existing Key Insights code... */}
                 <div className="flex items-start space-x-3">
                   <div className="flex-shrink-0">
                     <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
@@ -926,7 +1003,7 @@ const EnrollmentTrends = () => {
                     </p>
                   </div>
                 </div>
-
+                {/* ...rest of Key Insights code unchanged... */}
                 <div className="flex items-start space-x-3">
                   <div className="flex-shrink-0">
                     <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">
@@ -1000,10 +1077,58 @@ const EnrollmentTrends = () => {
               </div>
             </div>
           </div>
-        </main>
-      </div>
 
-      <Toaster position="top-right" />
+          {/* AI Interpretation Panel - full width below */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 mt-6 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">AI Interpretation</h3>
+              <button
+                onClick={generateAIInterpretation}
+                className="px-4 py-2 bg-blue-600 hover:cursor-pointer text-white rounded-lg hover:bg-blue-700 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={loadingAI || loading}
+              >
+                {loadingAI ? 'Analyzing...' : aiInterpretation ? 'Refresh Analysis' : 'Generate Analysis'}
+              </button>
+            </div>
+            {loadingAI ? (
+              <div className="flex flex-col items-center justify-center py-8">
+                <p className="text-gray-700 font-medium">Analyzing enrollment trends with AI...</p>
+              </div>
+            ) : aiInterpretation ? (
+              <div className="prose prose-sm max-w-none text-gray-800" style={{ maxHeight: '300px', overflowY: 'auto' }}
+                dangerouslySetInnerHTML={{ 
+                  __html: aiInterpretation
+                    // Headings
+                    .replace(/##\s*(.*?)(\n|$)/g, '<h2 class="text-lg font-bold text-blue-700 mt-4 mb-2">$1</h2>')
+                    .replace(/###\s*(.*?)(\n|$)/g, '<h3 class="text-base font-semibold text-blue-600 mt-3 mb-2">$1</h3>')
+                    // Bold
+                    .replace(/\*\*(.*?)\*\*/g, '<strong class="text-gray-900">$1</strong>')
+                    // Numbered lists
+                    .replace(/\n(\d+\.\s)/g, '<br/><span class="font-bold">$1</span>')
+                    // Bullet points
+                    .replace(/^\* (.*?)$/gm, '<li class="ml-4 mb-1 text-sm">$1</li>')
+                    // Sub-bullets
+                    .replace(/^\s*\* (.*?)$/gm, '<li class="ml-8 mb-1 text-sm list-disc">$1</li>')
+                    // Paragraph breaks
+                    .replace(/\n{2,}/g, '<br/><br/>')
+                    // Wrap lists in <ul>
+                    .replace(/(<li.*?<\/li>\n?)+/g, '<ul class="list-disc pl-5 space-y-1 mb-3">$&</ul>')
+                    // Remove stray hashes
+                    .replace(/^#+\s*/gm, '')
+                }}
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <h4 className="text-base font-medium text-gray-900 mb-2">No Analysis Yet</h4>
+                <p className="text-sm text-gray-600 mb-2 max-w-md">
+                  Click "Generate Analysis" to get AI-powered insights about enrollment trends, patterns, and actionable recommendations.
+                </p>
+              </div>
+            )}
+          </div>
+        </main>
+        <Toaster position="top-right" />
+      </div>
     </div>
   );
 };

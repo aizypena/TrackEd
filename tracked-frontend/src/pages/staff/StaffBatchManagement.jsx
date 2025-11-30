@@ -139,7 +139,7 @@ const StaffBatchManagement = () => {
       const response = await batchAPI.delete(batchId);
       if (response.success) {
         // Get staff user info for logging
-        const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
+        const staffUser = JSON.parse(sessionStorage.getItem('staffUser') || '{}');
         const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
 
         // Log the deletion
@@ -167,7 +167,7 @@ const StaffBatchManagement = () => {
         setShowStudentsModal(true);
 
         // Get staff user info for logging
-        const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
+        const staffUser = JSON.parse(sessionStorage.getItem('staffUser') || '{}');
         const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
 
         // Log the view action

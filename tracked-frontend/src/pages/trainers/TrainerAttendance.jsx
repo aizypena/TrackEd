@@ -66,7 +66,7 @@ const TrainerAttendance = () => {
 
   const fetchBatches = async () => {
     try {
-      const token = localStorage.getItem('trainerToken');
+      const token = sessionStorage.getItem('trainerToken');
       const response = await fetch('https://api.smitracked.cloud/api/trainer/batches', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -85,7 +85,7 @@ const TrainerAttendance = () => {
 
   const fetchPrograms = async () => {
     try {
-      const token = localStorage.getItem('trainerToken');
+      const token = sessionStorage.getItem('trainerToken');
       const response = await fetch('https://api.smitracked.cloud/api/trainer/assigned-programs', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -124,7 +124,7 @@ const TrainerAttendance = () => {
     try {
       setLoading(true);
       setError(null);
-      const token = localStorage.getItem('trainerToken');
+      const token = sessionStorage.getItem('trainerToken');
       
       const params = new URLSearchParams({
         date: selectedDate,
@@ -163,7 +163,7 @@ const TrainerAttendance = () => {
     try {
       setLoading(true);
       setError(null);
-      const token = localStorage.getItem('trainerToken');
+      const token = sessionStorage.getItem('trainerToken');
       
       const params = new URLSearchParams();
       
@@ -249,7 +249,7 @@ const TrainerAttendance = () => {
   const handleAttendanceChange = async (student, status) => {
     try {
       setSaving(true);
-      const token = localStorage.getItem('trainerToken');
+      const token = sessionStorage.getItem('trainerToken');
 
       const response = await fetch('https://api.smitracked.cloud/api/trainer/attendance/mark', {
         method: 'POST',

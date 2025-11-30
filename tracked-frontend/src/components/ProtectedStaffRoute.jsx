@@ -3,8 +3,8 @@ import { Navigate } from 'react-router-dom';
 
 const ProtectedStaffRoute = ({ children }) => {
   // Check if staff is logged in by looking for the staff token in localStorage
-  const staffToken = localStorage.getItem('staffToken');
-  const staffUser = localStorage.getItem('staffUser');
+  const staffToken = sessionStorage.getItem('staffToken');
+  const staffUser = sessionStorage.getItem('staffUser');
   
   // If no token or user data exists, redirect to staff login
   if (!staffToken || !staffUser) {
@@ -16,14 +16,14 @@ const ProtectedStaffRoute = ({ children }) => {
     const user = JSON.parse(staffUser);
     if (user.role !== 'staff' && user.role !== 'trainer') {
       // Invalid role, clear storage and redirect
-      localStorage.removeItem('staffToken');
-      localStorage.removeItem('staffUser');
+      sessionStorage.removeItem('staffToken');
+      sessionStorage.removeItem('staffUser');
       return <Navigate to="/staff/login" replace />;
     }
   } catch (error) {
     // Invalid user data, clear storage and redirect
-    localStorage.removeItem('staffToken');
-    localStorage.removeItem('staffUser');
+    sessionStorage.removeItem('staffToken');
+    sessionStorage.removeItem('staffUser');
     return <Navigate to="/staff/login" replace />;
   }
   

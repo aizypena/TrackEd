@@ -218,7 +218,7 @@ const StaffEquipment = () => {
 
       if (response.success) {
         // Get staff user info for logging
-        const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
+        const staffUser = JSON.parse(sessionStorage.getItem('staffUser') || '{}');
         const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
 
         await logSystemAction(
@@ -245,8 +245,8 @@ const StaffEquipment = () => {
     try {
       // Get the logged-in user's email from localStorage
       // Check for staff user first, then admin user
-      const staffUserStr = localStorage.getItem('staffUser');
-      const adminUserStr = localStorage.getItem('adminUser');
+      const staffUserStr = sessionStorage.getItem('staffUser');
+      const adminUserStr = sessionStorage.getItem('adminUser');
       
       let user = null;
       if (staffUserStr) {
@@ -280,7 +280,7 @@ const StaffEquipment = () => {
       const response = await equipmentAPI.delete(deletingEquipment.id);
       if (response.success) {
         // Get staff user info for logging
-        const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
+        const staffUser = JSON.parse(sessionStorage.getItem('staffUser') || '{}');
         const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
 
         // Log the deletion
@@ -728,7 +728,7 @@ const StaffEquipment = () => {
           locations={locations}
           onSuccess={async (actionType, equipmentData) => {
             // Get staff user info for logging
-            const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
+            const staffUser = JSON.parse(sessionStorage.getItem('staffUser') || '{}');
             const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
 
             if (actionType === 'created') {
@@ -769,7 +769,7 @@ const StaffEquipment = () => {
         equipment={assigningEquipment}
         onSuccess={async (assignmentData) => {
           // Get staff user info for logging
-          const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
+          const staffUser = JSON.parse(sessionStorage.getItem('staffUser') || '{}');
           const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
 
           await logSystemAction(
@@ -792,7 +792,7 @@ const StaffEquipment = () => {
         equipment={managingEquipment}
         onSuccess={async (returnData) => {
           // Get staff user info for logging
-          const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
+          const staffUser = JSON.parse(sessionStorage.getItem('staffUser') || '{}');
           const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
 
           await logSystemAction(
@@ -815,7 +815,7 @@ const StaffEquipment = () => {
         equipment={maintainingEquipment}
         onSuccess={async (maintenanceData) => {
           // Get staff user info for logging
-          const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
+          const staffUser = JSON.parse(sessionStorage.getItem('staffUser') || '{}');
           const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
 
           await logSystemAction(

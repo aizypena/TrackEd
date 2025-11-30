@@ -35,7 +35,7 @@ const TrainerGrades = () => {
     try {
       setLoading(true);
       setError(null);
-      const token = localStorage.getItem('trainerToken');
+      const token = sessionStorage.getItem('trainerToken');
       
       if (!token) {
         setError('Authentication token not found. Please log in again.');
@@ -53,8 +53,8 @@ const TrainerGrades = () => {
 
       // Handle authentication errors
       if (response.status === 401) {
-        localStorage.removeItem('trainerToken');
-        localStorage.removeItem('trainerUser');
+        sessionStorage.removeItem('trainerToken');
+        sessionStorage.removeItem('trainerUser');
         setError('Your session has expired. Please log in again.');
         setLoading(false);
         return;
@@ -138,7 +138,7 @@ const TrainerGrades = () => {
     
     try {
       setSaving(true);
-      const token = localStorage.getItem('trainerToken');
+      const token = sessionStorage.getItem('trainerToken');
       
       const response = await fetch('https://api.smitracked.cloud/api/trainer/grades/update', {
         method: 'POST',

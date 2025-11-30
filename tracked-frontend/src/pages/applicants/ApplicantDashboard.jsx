@@ -27,7 +27,7 @@ const ApplicantDashboard = () => {
 
   const handleLogout = async () => {
     try {
-      const token = localStorage.getItem('userToken') || sessionStorage.getItem('userToken');
+      const token = sessionStorage.getItem('userToken') || sessionStorage.getItem('userToken');
       
       if (token) {
         // Call backend logout endpoint to log the action
@@ -43,9 +43,7 @@ const ApplicantDashboard = () => {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      // Clear local storage and redirect regardless of API call result
-      localStorage.removeItem('userToken');
-      localStorage.removeItem('userData');
+      // Clear session storage and redirect regardless of API call result
       sessionStorage.removeItem('userToken');
       sessionStorage.removeItem('userData');
       navigate('/');
@@ -55,8 +53,8 @@ const ApplicantDashboard = () => {
   useEffect(() => {
     const checkAuth = () => {
       try {
-        const token = localStorage.getItem('userToken') || sessionStorage.getItem('userToken');
-        const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
+        const token = sessionStorage.getItem('userToken');
+        const userData = sessionStorage.getItem('userData');
         
         if (token && userData) {
           const parsedUser = JSON.parse(userData);
@@ -76,8 +74,6 @@ const ApplicantDashboard = () => {
               setApplicationStatus('pending');
             }
           } else {
-            localStorage.removeItem('userToken');
-            localStorage.removeItem('userData');
             sessionStorage.removeItem('userToken');
             sessionStorage.removeItem('userData');
             setIsAuthenticated(false);
@@ -87,8 +83,6 @@ const ApplicantDashboard = () => {
         }
       } catch (error) {
         console.error('Error checking authentication:', error);
-        localStorage.removeItem('userToken');
-        localStorage.removeItem('userData');
         sessionStorage.removeItem('userToken');
         sessionStorage.removeItem('userData');
         setIsAuthenticated(false);
@@ -121,7 +115,7 @@ const ApplicantDashboard = () => {
             };
             
             // Update localStorage with fresh data
-            localStorage.setItem('userData', JSON.stringify(updatedUserData));
+            sessionStorage.setItem('userData', JSON.stringify(updatedUserData));
             setUser(updatedUserData);
             
             // Update voucher eligibility (0 = not eligible, 1 = eligible, 2 = waitlisted)

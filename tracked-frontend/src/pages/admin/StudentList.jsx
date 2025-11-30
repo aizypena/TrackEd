@@ -34,7 +34,7 @@ const StudentList = () => {
   const fetchStudents = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('adminToken');
+      const token = sessionStorage.getItem('adminToken');
       
       if (!token) {
         toast.error('Authentication required');

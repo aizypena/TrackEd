@@ -7,7 +7,7 @@
  * @returns {string|null} The student authentication token
  */
 export const getStudentToken = () => {
-  return localStorage.getItem('studentToken');
+  return sessionStorage.getItem('studentToken');
 };
 
 /**
@@ -15,7 +15,7 @@ export const getStudentToken = () => {
  * @returns {object|null} The student user object
  */
 export const getStudentUser = () => {
-  const userStr = localStorage.getItem('studentUser');
+  const userStr = sessionStorage.getItem('studentUser');
   if (!userStr) return null;
   
   try {
@@ -46,8 +46,8 @@ export const isStudentAuthenticated = () => {
  * @param {object} user - The user data
  */
 export const setStudentAuth = (token, user) => {
-  localStorage.setItem('studentToken', token);
-  localStorage.setItem('studentUser', JSON.stringify(user));
+  sessionStorage.setItem('studentToken', token);
+  sessionStorage.setItem('studentUser', JSON.stringify(user));
 };
 
 /**
@@ -55,8 +55,8 @@ export const setStudentAuth = (token, user) => {
  * @returns {void}
  */
 export const studentLogout = () => {
-  localStorage.removeItem('studentToken');
-  localStorage.removeItem('studentUser');
+  sessionStorage.removeItem('studentToken');
+  sessionStorage.removeItem('studentUser');
   
   // Redirect to student login page
   window.location.href = '/smi-lms/login';

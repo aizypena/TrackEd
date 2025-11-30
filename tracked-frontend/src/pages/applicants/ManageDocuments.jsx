@@ -1,6 +1,7 @@
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import documentAPI from '../../services/documentAPI';
+import DocumentViewer from '../../components/DocumentViewer';
 import { 
   FaArrowLeft,
   FaUpload,
@@ -26,8 +27,6 @@ const ManageDocuments = () => {
   const [loadingDocumentView, setLoadingDocumentView] = useState(false);
 
   const handleLogout = () => {
-    localStorage.removeItem('userToken');
-    localStorage.removeItem('userData');
     sessionStorage.removeItem('userToken');
     sessionStorage.removeItem('userData');
     navigate('/');
@@ -36,8 +35,8 @@ const ManageDocuments = () => {
   useEffect(() => {
     const checkAuth = () => {
       try {
-        const token = localStorage.getItem('userToken') || sessionStorage.getItem('userToken');
-        const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
+        const token = sessionStorage.getItem('userToken');
+        const userData = sessionStorage.getItem('userData');
         
         if (token && userData) {
           const parsedUser = JSON.parse(userData);
@@ -46,8 +45,6 @@ const ManageDocuments = () => {
             setUser(parsedUser);
             setIsAuthenticated(true);
           } else {
-            localStorage.removeItem('userToken');
-            localStorage.removeItem('userData');
             sessionStorage.removeItem('userToken');
             sessionStorage.removeItem('userData');
             setIsAuthenticated(false);
@@ -222,7 +219,9 @@ const ManageDocuments = () => {
       // Update the document with the fetched URL
       const docWithUrl = {
         ...doc,
-        fileUrl: fileUrl
+        fileUrl: fileUrl,
+        title: doc.name,
+        format: doc.name?.split('.').pop()
       };
       
       setViewingDocument(docWithUrl);
@@ -236,12 +235,31 @@ const ManageDocuments = () => {
   };
 
   const handleCloseViewModal = () => {
-    // Revoke the blob URL to free up memory
-    if (viewingDocument?.fileUrl) {
-      URL.revokeObjectURL(viewingDocument.fileUrl);
-    }
     setShowViewModal(false);
     setViewingDocument(null);
+  };
+
+  const handleDocumentDownload = async (docType) => {
+    try {
+      const fileUrl = await documentAPI.getDocumentViewUrl(docType);
+      const doc = documents.find(d => d.type === docType);
+      
+      // Create download link
+      const a = document.createElement('a');
+      a.href = fileUrl;
+      a.download = doc?.name || 'document';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      // Cleanup
+      setTimeout(() => {
+        URL.revokeObjectURL(fileUrl);
+      }, 100);
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      alert('Failed to download document: ' + error.message);
+    }
   };
 
   return (
@@ -403,108 +421,13 @@ const ManageDocuments = () => {
       </div>
 
       {/* View Document Modal */}
-      {showViewModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
-          <div className="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col animate-slideUp">
-            {/* Modal Header */}
-            <div className="bg-gradient-to-r from-tracked-primary to-indigo-900 px-6 py-5 rounded-t-xl flex items-start justify-between">
-              <div className="flex-1 pr-4">
-                <h3 className="text-2xl font-bold text-white mb-2 leading-tight">
-                  {viewingDocument ? viewingDocument.name : 'Loading...'}
-                </h3>
-                {viewingDocument && (
-                  <div className="text-white/90 text-sm">
-                    <span className="font-medium">Size: {viewingDocument.size}</span>
-                    <span className="mx-2">•</span>
-                    <span className="font-medium">Uploaded: {viewingDocument.uploadDate}</span>
-                    <span className="mx-2">•</span>
-                    <span className="font-medium capitalize">{viewingDocument.status}</span>
-                  </div>
-                )}
-              </div>
-              <button
-                onClick={handleCloseViewModal}
-                className="text-white hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center transition-colors flex-shrink-0"
-              >
-                <span className="text-2xl leading-none">×</span>
-              </button>
-            </div>
-
-            {/* Modal Content - Document Preview */}
-            <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
-              <div className="bg-white rounded-lg shadow-inner p-4 min-h-[500px] flex items-center justify-center">
-                {loadingDocumentView ? (
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-tracked-primary mx-auto mb-4"></div>
-                    <p className="text-gray-600">Loading document...</p>
-                  </div>
-                ) : viewingDocument?.fileType?.startsWith('image/') ? (
-                  <img
-                    src={viewingDocument.fileUrl}
-                    alt={viewingDocument.name}
-                    className="max-w-full max-h-[600px] object-contain rounded-lg shadow-lg"
-                  />
-                ) : viewingDocument?.fileType === 'application/pdf' ? (
-                  <iframe
-                    src={viewingDocument.fileUrl}
-                    className="w-full h-[600px] rounded-lg border-2 border-gray-200"
-                    title={viewingDocument.name}
-                  />
-                ) : viewingDocument ? (
-                  <div className="text-center">
-                    <div className="text-6xl mb-4 text-gray-400">
-                      {getFileIcon(viewingDocument.name)}
-                    </div>
-                    <h4 className="text-xl font-bold text-gray-900 mb-2">
-                      {viewingDocument.name}
-                    </h4>
-                    <p className="text-gray-600 mb-4">
-                      Preview not available for this file type
-                    </p>
-                    <a
-                      href={viewingDocument.fileUrl}
-                      download={viewingDocument.name}
-                      className="inline-flex items-center px-6 py-3 bg-tracked-primary hover:bg-indigo-900 text-white rounded-lg font-medium transition-colors"
-                    >
-                      Download File
-                    </a>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            {viewingDocument && (
-              <div className="border-t border-gray-200 px-6 py-4 bg-gray-50 rounded-b-xl">
-                <div className="flex justify-between items-center">
-                  <div className="text-sm text-gray-600">
-                    Document Type: <span className="font-medium text-gray-900 capitalize">
-                      {viewingDocument.type.replace(/_/g, ' ')}
-                    </span>
-                  </div>
-                  <div className="flex space-x-3">
-                    {viewingDocument.fileUrl && (
-                      <a
-                        href={viewingDocument.fileUrl}
-                        download={viewingDocument.name}
-                        className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-                      >
-                        Download
-                      </a>
-                    )}
-                    <button
-                      onClick={handleCloseViewModal}
-                      className="px-6 py-2.5 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
-                    >
-                      Close
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      <DocumentViewer
+        isOpen={showViewModal}
+        onClose={handleCloseViewModal}
+        document={viewingDocument}
+        onDownload={handleDocumentDownload}
+        loading={loadingDocumentView}
+      />
     </div>
   );
 };

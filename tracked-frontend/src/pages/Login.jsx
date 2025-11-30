@@ -17,8 +17,8 @@ const Login = () => {
   useEffect(() => {
     const checkExistingAuth = () => {
       try {
-        const token = localStorage.getItem('userToken') || sessionStorage.getItem('userToken');
-        const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
+        const token = sessionStorage.getItem('userToken');
+        const userData = sessionStorage.getItem('userData');
         
         if (token && userData) {
           const parsedUser = JSON.parse(userData);
@@ -92,8 +92,8 @@ const Login = () => {
             application_status: data.user.application_status
           };
 
-          localStorage.setItem('userToken', data.token);
-          localStorage.setItem('userData', JSON.stringify(userData));
+          sessionStorage.setItem('userToken', data.token);
+          sessionStorage.setItem('userData', JSON.stringify(userData));
           
           // Navigate to applicant dashboard
           navigate('/applicant/dashboard');

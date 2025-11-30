@@ -21,7 +21,7 @@ const ViewExamModal = ({ isOpen, onClose, examData }) => {
 
     try {
       setLoadingStudents(true);
-      const token = localStorage.getItem('trainerToken');
+      const token = sessionStorage.getItem('trainerToken');
       const response = await axios.get(
         `https://api.smitracked.cloud/api/quizzes/${examData.id}/students`,
         {

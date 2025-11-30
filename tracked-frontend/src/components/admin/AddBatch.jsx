@@ -32,7 +32,7 @@ const AddBatch = ({ isOpen, onClose, batch, programs, onSuccess }) => {
   const fetchTrainers = async () => {
     try {
       // Try to get token from either staff or admin
-      const token = getStaffToken() || localStorage.getItem('adminToken');
+      const token = getStaffToken() || sessionStorage.getItem('adminToken');
       
       const response = await fetch('https://api.smitracked.cloud/api/users?role=trainer&status=active', {
         method: 'GET',
@@ -148,7 +148,7 @@ const AddBatch = ({ isOpen, onClose, batch, programs, onSuccess }) => {
 
       if (response.success) {
         // Get staff user info for logging
-        const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
+        const staffUser = JSON.parse(sessionStorage.getItem('staffUser') || '{}');
         const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
         
         // Get program name for better logging
@@ -218,7 +218,7 @@ const AddBatch = ({ isOpen, onClose, batch, programs, onSuccess }) => {
       // Try to get staff token first, fallback to admin token
       let token = getStaffToken();
       if (!token) {
-        token = localStorage.getItem('adminToken');
+        token = sessionStorage.getItem('adminToken');
       }
       
       await fetch('https://api.smitracked.cloud/api/log-action', {

@@ -237,7 +237,7 @@ const TrainerExams = () => {
   const handleConfirmDelete = async (password) => {
     try {
       // Verify password first
-      const token = localStorage.getItem('trainerToken');
+      const token = sessionStorage.getItem('trainerToken');
       const verifyResponse = await axios.post(
         'https://api.smitracked.cloud/api/trainer/verify-password',
         { password },

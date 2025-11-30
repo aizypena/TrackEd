@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import StaffSidebar from '../../layouts/staff/StaffSidebar';
+import DocumentViewer from '../../components/DocumentViewer';
 import { getStaffToken } from '../../utils/staffAuth';
 import toast, { Toaster } from 'react-hot-toast';
 import { API_URL, STORAGE_URL } from '../../config/api';
@@ -25,6 +26,9 @@ const StaffDocumentManagement = () => {
   const [loading, setLoading] = useState(true);
   const [documents, setDocuments] = useState([]);
   const [categorizedDocuments, setCategorizedDocuments] = useState({});
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [currentDocument, setCurrentDocument] = useState(null);
+  const [loadingDocument, setLoadingDocument] = useState(false);
 
   useEffect(() => {
     fetchDocuments();
@@ -94,26 +98,77 @@ const StaffDocumentManagement = () => {
     setSearchTerm('');
   };
 
-  const handleViewDocument = (doc) => {
-    // Construct the full URL to the document
-    const fileUrl = `${STORAGE_URL}/${doc.file_path}`;
-    // Open in new tab
-    window.open(fileUrl, '_blank');
-  };
-
-  const handleDownloadDocument = async (doc) => {
+  const handleViewDocument = async (doc) => {
+    setLoadingDocument(true);
+    setViewerOpen(true);
+    
     try {
-      // Get staff user info for logging
-      const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
-      const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
-
       const token = getStaffToken();
       const downloadUrl = `${API_URL}/staff/document/download?path=${encodeURIComponent(doc.file_path)}`;
+      
+      const response = await fetch(downloadUrl, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      });
+      
+      if (!response.ok) {
+        toast.error('Failed to load document');
+        setViewerOpen(false);
+        return;
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      
+      // Extract file extension from file path
+      const fileExtension = doc.file_path?.split('.').pop()?.toLowerCase() || '';
+      
+      // Set document with blob URL
+      setCurrentDocument({
+        id: doc.id,
+        fileUrl: url,
+        title: doc.file_name || `${doc.document_type} - ${doc.applicant_name}`,
+        name: doc.file_name,
+        format: fileExtension,
+        size: doc.file_size,
+        uploadDate: doc.created_at,
+        description: `${doc.document_type} for ${doc.applicant_name} (${doc.student_id})`
+      });
+    } catch (error) {
+      console.error('Error viewing document:', error);
+      toast.error('Failed to load document');
+      setViewerOpen(false);
+    } finally {
+      setLoadingDocument(false);
+    }
+  };
+
+  const closeViewer = () => {
+    setViewerOpen(false);
+    setCurrentDocument(null);
+  };
+
+  const handleDownloadDocument = async (docId) => {
+    try {
+      // Get staff user info for logging
+      const staffUser = JSON.parse(sessionStorage.getItem('staffUser') || '{}');
+      const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
+
+      // Find the document from state or use current document
+      const doc = documents.find(d => d.id === docId) || currentDocument;
+      if (!doc) {
+        toast.error('Document not found');
+        return;
+      }
+
+      const token = getStaffToken();
+      const downloadUrl = `${API_URL}/staff/document/download?path=${encodeURIComponent(doc.file_path || '')}`;
       
       // Create a temporary link and trigger download
       const link = document.createElement('a');
       link.href = downloadUrl;
-      link.download = doc.file_name || 'download';
+      link.download = doc.file_name || doc.name || 'download';
       
       // Set authorization header by adding it to the URL won't work, so we'll open in iframe
       // Alternative: Use fetch to get the file with auth, then download
@@ -140,7 +195,7 @@ const StaffDocumentManagement = () => {
       // Log the download action
       await logSystemAction(
         'document_downloaded',
-        `${staffName} downloaded ${doc.document_type} for ${doc.applicant_name} (Student ID: ${doc.student_id})`,
+        `${staffName} downloaded ${doc.document_type || 'document'} for ${doc.applicant_name || 'applicant'} (Student ID: ${doc.student_id || 'N/A'})`,
         'info'
       );
 
@@ -358,12 +413,12 @@ const StaffDocumentManagement = () => {
                       <div className="flex gap-2 mt-4">
                         <button
                           onClick={() => handleViewDocument(doc)}
-                          className="flex-1 px-3 py-2 bg-tracked-primary text-white rounded-md hover:bg-tracked-secondary transition-colors text-sm"
+                          className="flex-1 px-3 py-2 bg-tracked-primary hover:cursor-pointer text-white rounded-md hover:bg-tracked-secondary transition-colors text-sm"
                         >
                           View
                         </button>
                         <button
-                          onClick={() => handleDownloadDocument(doc)}
+                          onClick={() => handleDownloadDocument(doc.id)}
                           className="flex-1 px-3 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-sm"
                         >
                           Download
@@ -406,6 +461,15 @@ const StaffDocumentManagement = () => {
           )}
         </div>
       </div>
+
+      {/* Document Viewer Modal */}
+      <DocumentViewer
+        isOpen={viewerOpen}
+        onClose={closeViewer}
+        document={currentDocument}
+        onDownload={handleDownloadDocument}
+        loading={loadingDocument}
+      />
 
       {/* Toast Notifications */}
       <Toaster

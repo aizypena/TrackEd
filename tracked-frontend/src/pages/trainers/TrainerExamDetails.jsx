@@ -51,7 +51,7 @@ const TrainerExamDetails = () => {
 
     try {
       setLoadingStudents(true);
-      const token = localStorage.getItem('trainerToken');
+      const token = sessionStorage.getItem('trainerToken');
       const response = await axios.get(
         `https://api.smitracked.cloud/api/quizzes/${examId}/students`,
         {

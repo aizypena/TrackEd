@@ -2,7 +2,7 @@ import axios from 'axios';
 import { API_URL } from '../config/api';
 
 const getAuthHeader = () => {
-  const token = localStorage.getItem('trainerToken') || localStorage.getItem('adminToken') || localStorage.getItem('staffToken');
+  const token = sessionStorage.getItem('trainerToken') || sessionStorage.getItem('adminToken') || sessionStorage.getItem('staffToken');
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 

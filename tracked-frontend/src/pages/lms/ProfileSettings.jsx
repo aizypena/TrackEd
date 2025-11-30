@@ -62,7 +62,7 @@ const ProfileSettings = () => {
 
   const fetchUserProfile = async () => {
     try {
-      const token = localStorage.getItem('studentToken');
+      const token = sessionStorage.getItem('studentToken');
       const response = await fetch('https://api.smitracked.cloud/api/user', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -91,7 +91,7 @@ const ProfileSettings = () => {
         });
         
         // Update localStorage with fresh data
-        localStorage.setItem('studentUser', JSON.stringify(userData));
+        sessionStorage.setItem('studentUser', JSON.stringify(userData));
         setUser(userData);
       }
     } catch (error) {
@@ -146,7 +146,7 @@ const ProfileSettings = () => {
     const loadingToast = toast.loading('Updating profile...');
 
     try {
-      const token = localStorage.getItem('studentToken');
+      const token = sessionStorage.getItem('studentToken');
       const response = await fetch('https://api.smitracked.cloud/api/student/profile', {
         method: 'PUT',
         headers: {
@@ -186,7 +186,7 @@ const ProfileSettings = () => {
           emergency_phone: userProfile.emergencyPhone,
           emergency_relationship: userProfile.emergencyRelationship
         };
-        localStorage.setItem('studentUser', JSON.stringify(updatedUser));
+        sessionStorage.setItem('studentUser', JSON.stringify(updatedUser));
         setUser(updatedUser);
       } else {
         toast.error(data.message || 'Failed to update profile');
@@ -218,7 +218,7 @@ const ProfileSettings = () => {
     const loadingToast = toast.loading('Updating password...');
 
     try {
-      const token = localStorage.getItem('studentToken');
+      const token = sessionStorage.getItem('studentToken');
       const response = await fetch('https://api.smitracked.cloud/api/student/password', {
         method: 'PUT',
         headers: {

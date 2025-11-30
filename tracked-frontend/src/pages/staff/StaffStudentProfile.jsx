@@ -222,7 +222,7 @@ const StaffStudentProfile = () => {
 
     try {
       // Get staff user info for logging
-      const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
+      const staffUser = JSON.parse(sessionStorage.getItem('staffUser') || '{}');
       const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
 
       // Prepare data for export

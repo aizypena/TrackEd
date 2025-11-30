@@ -7,7 +7,7 @@
  * @returns {string|null} The admin authentication token
  */
 export const getAdminToken = () => {
-  return localStorage.getItem('adminToken');
+  return sessionStorage.getItem('adminToken');
 };
 
 /**
@@ -15,7 +15,7 @@ export const getAdminToken = () => {
  * @returns {object|null} The admin user object
  */
 export const getAdminUser = () => {
-  const userStr = localStorage.getItem('adminUser');
+  const userStr = sessionStorage.getItem('adminUser');
   if (!userStr) return null;
   
   try {
@@ -46,8 +46,8 @@ export const isAdminAuthenticated = () => {
  * @param {object} user - The user data
  */
 export const setAdminAuth = (token, user) => {
-  localStorage.setItem('adminToken', token);
-  localStorage.setItem('adminUser', JSON.stringify(user));
+  sessionStorage.setItem('adminToken', token);
+  sessionStorage.setItem('adminUser', JSON.stringify(user));
 };
 
 /**
@@ -55,8 +55,8 @@ export const setAdminAuth = (token, user) => {
  * @returns {void}
  */
 export const adminLogout = () => {
-  localStorage.removeItem('adminToken');
-  localStorage.removeItem('adminUser');
+  sessionStorage.removeItem('adminToken');
+  sessionStorage.removeItem('adminUser');
   
   // Redirect to admin login page
   window.location.href = '/admin/login';

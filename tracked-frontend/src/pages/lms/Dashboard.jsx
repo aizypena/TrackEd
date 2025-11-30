@@ -48,7 +48,7 @@ const StudentDashboard = () => {
   const fetchStudentSchedule = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('studentToken');
+      const token = sessionStorage.getItem('studentToken');
       
       const response = await fetch(`${API_URL}/student/schedule`, {
         headers: {
@@ -89,7 +89,7 @@ const StudentDashboard = () => {
   const fetchPendingAssessments = async () => {
     try {
       setLoadingAssessments(true);
-      const token = localStorage.getItem('studentToken');
+      const token = sessionStorage.getItem('studentToken');
       
       const response = await fetch(`${API_URL}/student/pending-assessments`, {
         headers: {
@@ -117,7 +117,7 @@ const StudentDashboard = () => {
   const fetchRecentMaterials = async () => {
     try {
       setLoadingMaterials(true);
-      const token = localStorage.getItem('studentToken');
+      const token = sessionStorage.getItem('studentToken');
       
       const response = await fetch(`${API_URL}/student/recent-materials`, {
         headers: {
@@ -145,7 +145,7 @@ const StudentDashboard = () => {
   const fetchAnnouncements = async () => {
     try {
       setLoadingAnnouncements(true);
-      const token = localStorage.getItem('studentToken');
+      const token = sessionStorage.getItem('studentToken');
       
       const response = await fetch(`${API_URL}/student/announcements`, {
         headers: {

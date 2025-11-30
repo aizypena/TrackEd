@@ -3,8 +3,8 @@ import { Navigate } from 'react-router-dom';
 
 const ProtectedAdminRoute = ({ children }) => {
   // Check if admin is logged in by looking for the admin token in localStorage
-  const adminToken = localStorage.getItem('adminToken');
-  const adminUser = localStorage.getItem('adminUser');
+  const adminToken = sessionStorage.getItem('adminToken');
+  const adminUser = sessionStorage.getItem('adminUser');
   
   // If no token or user data exists, redirect to admin login
   if (!adminToken || !adminUser) {

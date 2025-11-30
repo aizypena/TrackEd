@@ -152,7 +152,7 @@ const StaffApplicantView = () => {
 
       if (response.ok) {
         // Get staff user info
-        const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
+        const staffUser = JSON.parse(sessionStorage.getItem('staffUser') || '{}');
         const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
         
         // Format status for display
@@ -209,7 +209,7 @@ const StaffApplicantView = () => {
         const data = await response.json();
         
         // Get staff user info
-        const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
+        const staffUser = JSON.parse(sessionStorage.getItem('staffUser') || '{}');
         const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
         
         // Log the enrollment
@@ -762,7 +762,7 @@ const StaffApplicantView = () => {
         applicant={applicant}
         onSuccess={async (updatedStudent) => {
           // Get staff user info
-          const staffUser = JSON.parse(localStorage.getItem('staffUser') || '{}');
+          const staffUser = JSON.parse(sessionStorage.getItem('staffUser') || '{}');
           const staffName = `${staffUser.first_name || ''} ${staffUser.last_name || ''}`.trim() || 'Staff';
           
           // Log the approval and enrollment

@@ -20,8 +20,8 @@ const StudentLogin = () => {
 
   // Check if student is already logged in
   useEffect(() => {
-    const studentToken = localStorage.getItem('studentToken');
-    const studentUser = localStorage.getItem('studentUser');
+    const studentToken = sessionStorage.getItem('studentToken');
+    const studentUser = sessionStorage.getItem('studentUser');
     
     if (studentToken && studentUser) {
       navigate('/smi-lms/dashboard', { replace: true });
@@ -62,8 +62,8 @@ const StudentLogin = () => {
       
       if (response.ok && data.token) {
         // Store auth data
-        localStorage.setItem('studentToken', data.token);
-        localStorage.setItem('studentUser', JSON.stringify(data.user));
+        sessionStorage.setItem('studentToken', data.token);
+        sessionStorage.setItem('studentUser', JSON.stringify(data.user));
         
         // Check if password needs to be changed (first login with generated password)
         if (data.user && !data.user.password_changed_at) {
