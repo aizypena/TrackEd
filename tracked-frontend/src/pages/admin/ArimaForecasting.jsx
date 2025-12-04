@@ -40,42 +40,36 @@ const ArimaForecasting = () => {
     // AI Interpretation State
     const [aiInterpretation, setAIInterpretation] = useState('');
     const [loadingAI, setLoadingAI] = useState(false);
-    const GEMINI_API_KEY = 'AIzaSyB7A9T0XK_OA--i2Hh8KkLntuzfj0O-NR4';
 
     // Generate AI Interpretation
     const generateAIInterpretation = async () => {
       setLoadingAI(true);
       try {
         // Prepare prompt with forecast summary
-        const summary = `You are an educational data analyst. Analyze the following ARIMA forecast results and provide a clear, actionable interpretation in markdown format.\n\nForecast Summary:\n- Program: ${selectedProgram}\n- Periods Forecasted: ${forecastPeriods}\n- Trend: ${forecastData.stats?.trend}\n- Average Growth Rate: ${forecastData.stats?.avgGrowthRate}%\n- Next Period Prediction: ${forecastData.forecast?.[0]?.enrollment || 0}\n- Range: ${forecastData.forecast?.[0]?.lower_bound || 0} - ${forecastData.forecast?.[0]?.upper_bound || 0}\n- Confidence: ${forecastData.forecast?.[0]?.confidence || 0}%\n\nPlease provide:\n1. **Trend Analysis**: What is the overall direction?\n2. **Forecast Reliability**: How confident is the prediction?\n3. **Actionable Recommendations**: 2-3 steps for program managers.\nFormat your response with markdown headings (##) and bullet points.`;
+        const prompt = `You are an educational data analyst. Analyze the following ARIMA forecast results and provide a clear, actionable interpretation in markdown format.\n\nForecast Summary:\n- Program: ${selectedProgram}\n- Periods Forecasted: ${forecastPeriods}\n- Trend: ${forecastData.stats?.trend}\n- Average Growth Rate: ${forecastData.stats?.avgGrowthRate}%\n- Next Period Prediction: ${forecastData.forecast?.[0]?.enrollment || 0}\n- Range: ${forecastData.forecast?.[0]?.lower_bound || 0} - ${forecastData.forecast?.[0]?.upper_bound || 0}\n- Confidence: ${forecastData.forecast?.[0]?.confidence || 0}%\n\nPlease provide:\n1. **Trend Analysis**: What is the overall direction?\n2. **Forecast Reliability**: How confident is the prediction?\n3. **Actionable Recommendations**: 2-3 steps for program managers.\nFormat your response with markdown headings (##) and bullet points.`;
 
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              contents: [
-                {
-                  parts: [
-                    {
-                      text: summary
-                    }
-                  ]
-                }
-              ]
-            })
-          }
-        );
+        const token = sessionStorage.getItem('adminToken');
+        
+        // Call backend API to generate interpretation (API key is stored securely in backend .env)
+        const response = await fetch('http://localhost:8000/api/admin/ai-interpretation', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            prompt: prompt
+          })
+        });
 
         if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || `API error: ${response.status}`);
         }
 
         const data = await response.json();
-        const interpretation = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Unable to generate interpretation';
+        const interpretation = data.interpretation || 'Unable to generate interpretation';
         setAIInterpretation(interpretation);
         toast.success('AI interpretation generated successfully');
       } catch (error) {
