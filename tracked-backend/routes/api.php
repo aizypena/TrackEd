@@ -19,6 +19,7 @@ use App\Http\Controllers\QuizController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\StorageController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\AIController;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 
@@ -247,6 +248,9 @@ Route::post('/admin/verify-password', function (Request $request) {
         'message' => 'Password verified'
     ]);
 })->middleware('auth:sanctum');
+
+// Admin AI Interpretation endpoint
+Route::post('/admin/ai-interpretation', [AIController::class, 'generateInterpretation'])->middleware('auth:sanctum');
 
 // Trainer password verification endpoint
 Route::post('/trainer/verify-password', function (Request $request) {
