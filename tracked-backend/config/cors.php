@@ -2,11 +2,11 @@
 
 return [
 
-    'paths' => ['api/*', 'sanctum/csrf-cookie'],
+    'paths' => ['api/*', 'sanctum/csrf-cookie', 'storage/*'],
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['http://localhost:8000', 'https://smitracked.cloud', 'http://127.0.0.1:5173', 'https://www.smitracked.cloud', 'https://smitracked.cloud', 'https://smitracked.cloud'],
+    'allowed_origins' => ['http://localhost:8000', 'http://localhost:5173', 'http://127.0.0.1:5173', 'https://www.smitracked.cloud'],
 
     'allowed_origins_patterns' => [],
 

@@ -662,7 +662,7 @@ Route::post('/student/forgot-password', function (Request $request) {
     );
 
     // Create reset URL
-    $resetUrl = 'https://smitracked.cloud/smi-lms/reset-password?token=' . $token . '&email=' . urlencode($request->email);
+    $resetUrl = 'http://localhost:5173/smi-lms/reset-password?token=' . $token . '&email=' . urlencode($request->email);
 
     // Log successful password reset request
     DB::table('system_logs')->insert([
@@ -4079,6 +4079,47 @@ Route::middleware(['auth:sanctum'])->group(function () {
         ]);
     });
 
+    // Serve applicant document securely
+    Route::get('/staff/applicants/{id}/document/{type}', function (Request $request, $id, $type) {
+        $applicant = \App\Models\User::where('id', $id)->first();
+        
+        if (!$applicant) {
+            return response()->json(['error' => 'Applicant not found'], 404);
+        }
+        
+        // Map document type to field
+        $docFields = [
+            'valid_id' => 'valid_id_path',
+            'transcript' => 'transcript_path',
+            'diploma' => 'diploma_path',
+            'passport_photo' => 'passport_photo_path'
+        ];
+        
+        if (!isset($docFields[$type])) {
+            return response()->json(['error' => 'Invalid document type'], 400);
+        }
+        
+        $field = $docFields[$type];
+        $filePath = $applicant->$field;
+        
+        if (!$filePath) {
+            return response()->json(['error' => 'Document not found'], 404);
+        }
+        
+        $fullPath = storage_path('app/public/' . $filePath);
+        
+        if (!file_exists($fullPath)) {
+            return response()->json(['error' => 'File not found'], 404);
+        }
+        
+        $mimeType = mime_content_type($fullPath);
+        
+        return response()->file($fullPath, [
+            'Content-Type' => $mimeType,
+            'Access-Control-Allow-Origin' => '*'
+        ]);
+    });
+
     // Update applicant status
     Route::put('/staff/applicants/{id}/status', function (Request $request, $id) {
         $request->validate([
@@ -4685,7 +4726,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
                             <div class='credentials-box'>
                                 <h3 style='color: #856404; margin-top: 0;'>2. LMS LOGIN CREDENTIALS</h3>
                                 <p><strong>Learning Management System (LMS) Portal:</strong><br>
-                                <a href='https://smitracked.cloud/smi-lms/login' style='color: #0066cc;'>https://smitracked.cloud/smi-lms/login</a></p>
+                                <a href='http://localhost:5173/smi-lms/login' style='color: #0066cc;'>http://localhost:5173/smi-lms/login</a></p>
                                 
                                 <p style='margin-top: 15px;'><strong>Your Login Details:</strong></p>
                                 <p style='margin: 5px 0;'><strong>Username:</strong> {$studentId}</p>
@@ -5214,7 +5255,7 @@ Pasay City, Metro Manila 1100</p>
                             <div class='credentials-box'>
                                 <h3 style='color: #856404; margin-top: 0;'>LMS LOGIN CREDENTIALS</h3>
                                 <p><strong>Learning Management System (LMS) Portal:</strong><br>
-                                <a href='https://smitracked.cloud/smi-lms/login' style='color: #0066cc;'>https://smitracked.cloud/smi-lms/login</a></p>
+                                <a href='http://localhost:5173/smi-lms/login' style='color: #0066cc;'>http://localhost:5173/smi-lms/login</a></p>
                                 
                                 <p style='margin-top: 15px;'><strong>Your Login Details:</strong></p>
                                 <p style='margin: 5px 0;'><strong>Username:</strong> {$studentId}</p>

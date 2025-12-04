@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import TrainerSidebar from '../../layouts/trainer/TrainerSidebar';
+import OnboardingTour from '../../components/trainer/OnboardingTour';
 import { 
   MdPeople, 
   MdAssignment, 
@@ -13,6 +14,16 @@ import {
 const TrainerDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Check for first login to show onboarding tour
+  useEffect(() => {
+    const onboardingCompleted = localStorage.getItem('trainerOnboardingCompleted');
+    if (!onboardingCompleted) {
+      // Small delay to ensure sidebar is rendered
+      setTimeout(() => setShowOnboarding(true), 500);
+    }
+  }, []);
 
   const dashboardCards = [
     {
@@ -54,6 +65,15 @@ const TrainerDashboard = () => {
 
   return (
     <div className="relative min-h-screen bg-gray-100">
+      {/* Onboarding Tour - Shows on first login */}
+      {showOnboarding && (
+        <OnboardingTour 
+          onComplete={() => setShowOnboarding(false)}
+          sidebarExpanded={!isCollapsed}
+          setSidebarExpanded={(expanded) => setIsCollapsed(!expanded)}
+        />
+      )}
+
       <TrainerSidebar 
         isOpen={sidebarOpen} 
         onClose={() => setSidebarOpen(false)}

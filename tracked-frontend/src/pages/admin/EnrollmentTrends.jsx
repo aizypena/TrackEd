@@ -80,7 +80,7 @@ const EnrollmentTrends = () => {
         return;
       }
       
-      const response = await fetch('https://api.smitracked.cloud/api/admin/enrollment-trends', {
+      const response = await fetch('http://localhost:8000/api/admin/enrollment-trends', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -368,7 +368,7 @@ const EnrollmentTrends = () => {
 
   // Voucher payment distribution
   const voucherDistribution = {
-    labels: ['With Voucher', 'Self-Paid'],
+    labels: ['With Voucher', 'Walk-In'],
     datasets: [
       {
         data: [
@@ -710,14 +710,14 @@ ${dataSummary.topPrograms.map((p, i) => `${i + 1}. ${p.name}: ${p.total.toLocale
 
 Payment Distribution:
 - With Voucher: ${dataSummary.voucherStats.withVoucher.toLocaleString()} (${dataSummary.voucherStats.voucherPercentage}%)
-- Self-Paid: ${dataSummary.voucherStats.withoutVoucher.toLocaleString()} (${dataSummary.voucherStats.paidPercentage}%)
+- Walk-In: ${dataSummary.voucherStats.withoutVoucher.toLocaleString()} (${dataSummary.voucherStats.paidPercentage}%)
 
 Please provide:
 1. **Overall Trend Analysis**: What's the general direction of enrollments?
 2. **Key Patterns**: Identify any seasonal patterns, peaks, or dips
 3. **Growth Assessment**: Evaluate the ${dataSummary.growthRate}% growth rate
 4. **Program Performance**: Insights about program popularity
-5. **Payment Insights**: Analysis of voucher vs self-paid distribution
+5. **Payment Insights**: Analysis of voucher vs walk-in distribution
 6. **Recommendations**: 3-5 actionable recommendations for improving enrollments
 
 Format your response with clear sections using markdown headings (##) and bullet points for readability.`;
@@ -918,7 +918,7 @@ Format your response with clear sections using markdown headings (##) and bullet
             <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-lg shadow-sm border border-green-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-green-900">Self-Paid</p>
+                  <p className="text-sm font-medium text-green-900">Walk-In</p>
                   <p className="text-2xl font-semibold text-green-700">
                     {loading ? '...' : trendsData.voucherStats?.withoutVoucher?.toLocaleString() || 0}
                   </p>
@@ -1069,7 +1069,7 @@ Format your response with clear sections using markdown headings (##) and bullet
                     <h4 className="text-sm font-medium text-gray-900">Payment Distribution</h4>
                     <p className="text-sm text-gray-500">
                       {loading ? 'Loading...' : trendsData.voucherStats?.total > 0
-                        ? `${trendsData.voucherStats.voucherPercentage}% (${trendsData.voucherStats.withVoucher.toLocaleString()}) use vouchers, ${trendsData.voucherStats.paidPercentage}% (${trendsData.voucherStats.withoutVoucher.toLocaleString()}) are self-paid`
+                        ? `${trendsData.voucherStats.voucherPercentage}% (${trendsData.voucherStats.withVoucher.toLocaleString()}) use vouchers, ${trendsData.voucherStats.paidPercentage}% (${trendsData.voucherStats.withoutVoucher.toLocaleString()}) are walk-in`
                         : 'No payment data available'}
                     </p>
                   </div>

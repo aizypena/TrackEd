@@ -42,7 +42,7 @@ const ExamResults = () => {
       setLoading(true);
       setError(null);
       const token = sessionStorage.getItem('studentToken');
-      const response = await fetch('https://api.smitracked.cloud/api/student/quiz-results', {
+      const response = await fetch('http://localhost:8000/api/student/quiz-results', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',

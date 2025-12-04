@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Sidebar from '../../layouts/lms/Sidebar';
+import OnboardingTour from '../../components/lms/OnboardingTour';
 import { getStudentUser } from '../../utils/studentAuth';
 import { API_URL } from '../../config/api';
 import { 
@@ -32,12 +33,20 @@ const StudentDashboard = () => {
   const [loadingMaterials, setLoadingMaterials] = useState(true);
   const [announcements, setAnnouncements] = useState([]);
   const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     // Get user data from localStorage
     const userData = getStudentUser();
     if (userData) {
       setUser(userData);
+      
+      // Check if this is first login (onboarding not completed)
+      const onboardingCompleted = localStorage.getItem('onboardingCompleted');
+      if (!onboardingCompleted) {
+        // Small delay to ensure sidebar is rendered
+        setTimeout(() => setShowOnboarding(true), 500);
+      }
       fetchStudentSchedule();
       fetchPendingAssessments();
       fetchRecentMaterials();
@@ -219,6 +228,15 @@ const StudentDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Onboarding Tour - Shows on first login */}
+      {showOnboarding && (
+        <OnboardingTour 
+          onComplete={() => setShowOnboarding(false)}
+          sidebarExpanded={!sidebarCollapsed}
+          setSidebarExpanded={(expanded) => setSidebarCollapsed(!expanded)}
+        />
+      )}
+
       {/* Sidebar */}
       <Sidebar 
         user={user} 

@@ -52,7 +52,7 @@ const AdminLogin = () => {
     }
 
     try {
-      const response = await fetch('https://api.smitracked.cloud/api/admin/login', {
+      const response = await fetch('http://localhost:8000/api/admin/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

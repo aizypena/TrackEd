@@ -73,7 +73,7 @@ const EditStudentModal = ({ student, onClose, onSuccess }) => {
         gender: formData.gender.toLowerCase()
       };
       
-      const response = await fetch(`https://api.smitracked.cloud/api/users/${student.id}`, {
+      const response = await fetch(`http://localhost:8000/api/users/${student.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

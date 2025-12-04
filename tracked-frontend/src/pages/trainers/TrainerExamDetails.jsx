@@ -53,7 +53,7 @@ const TrainerExamDetails = () => {
       setLoadingStudents(true);
       const token = sessionStorage.getItem('trainerToken');
       const response = await axios.get(
-        `https://api.smitracked.cloud/api/quizzes/${examId}/students`,
+        `http://localhost:8000/api/quizzes/${examId}/students`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,

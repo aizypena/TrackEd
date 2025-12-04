@@ -39,7 +39,7 @@ const CourseMaterials = () => {
         const token = getStudentToken();
         
         // Fetch course materials
-        const materialsResponse = await fetch('https://api.smitracked.cloud/api/student/course-materials', {
+        const materialsResponse = await fetch('http://localhost:8000/api/student/course-materials', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -107,7 +107,7 @@ const CourseMaterials = () => {
   const handleDownload = async (id) => {
     try {
       const token = getStudentToken();
-      const response = await fetch(`https://api.smitracked.cloud/api/student/course-materials/${id}/download`, {
+      const response = await fetch(`http://localhost:8000/api/student/course-materials/${id}/download`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -152,7 +152,7 @@ const CourseMaterials = () => {
     
     try {
       const token = getStudentToken();
-      const response = await fetch(`https://api.smitracked.cloud/api/student/course-materials/${id}/download`, {
+      const response = await fetch(`http://localhost:8000/api/student/course-materials/${id}/download`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'

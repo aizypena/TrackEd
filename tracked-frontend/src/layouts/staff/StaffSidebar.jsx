@@ -74,12 +74,14 @@ const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsColla
     {
       name: 'Dashboard',
       path: '/staff/dashboard',
-      icon: <MdDashboard className="h-5 w-5" />
+      icon: <MdDashboard className="h-5 w-5" />,
+      tourId: 'dashboard'
     },
     {
       name: 'Application & Enrollment',
       path: '/staff/enrollments',
       icon: <MdPeople className="h-5 w-5" />,
+      tourId: 'enrollments',
       subItems: [
         { name: 'Applications', path: '/staff/enrollments/applications' },
         { name: 'Enrollment Records', path: '/staff/enrollments/records' },
@@ -90,6 +92,7 @@ const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsColla
       name: 'Student Records',
       path: '/staff/students',
       icon: <MdSchool className="h-5 w-5" />,
+      tourId: 'students',
       subItems: [
         { name: 'Student Profiles', path: '/staff/students/profiles' },
         { name: 'Academic Records', path: '/staff/students/academics' },
@@ -99,12 +102,14 @@ const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsColla
     {
       name: 'Program Management',
       path: '/staff/programs',
-      icon: <MdLibraryBooks className="h-5 w-5" />
+      icon: <MdLibraryBooks className="h-5 w-5" />,
+      tourId: 'programs'
     },
     {
       name: 'Training & Assessment',
       path: '/staff/training',
       icon: <MdAssignment className="h-5 w-5" />,
+      tourId: 'training',
       subItems: [
         { name: 'Training Schedule', path: '/staff/training/schedule' },
         { name: 'Batch Management', path: '/staff/training/batches' },
@@ -116,6 +121,7 @@ const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsColla
       name: 'Inventory Management',
       path: '/staff/inventory',
       icon: <MdInventory className="h-5 w-5" />,
+      tourId: 'inventory',
       subItems: [
         { name: 'Equipment', path: '/staff/inventory/equipment' },
         { name: 'Stock Transactions', path: '/staff/inventory/transactions' }
@@ -124,12 +130,14 @@ const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsColla
     {
       name: 'Enrollment Trends',
       path: '/staff/analytics/enrollment',
-      icon: <MdAnalytics className="h-5 w-5" />
+      icon: <MdAnalytics className="h-5 w-5" />,
+      tourId: 'analytics'
     },
     {
       name: 'Reports',
       path: '/staff/reports',
       icon: <MdDescription className="h-5 w-5" />,
+      tourId: 'reports',
       subItems: [
         { name: 'Enrollment Reports', path: '/staff/reports/enrollment' },
         { name: 'Student Reports', path: '/staff/reports/students' },
@@ -141,7 +149,8 @@ const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsColla
     {
       name: 'Contact Messages',
       path: '/staff/contact-messages',
-      icon: <MdReport className="h-5 w-5" />
+      icon: <MdReport className="h-5 w-5" />,
+      tourId: 'contact-messages'
     }
   ];
 
@@ -385,6 +394,7 @@ const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsColla
                 <>
                   <button
                     onClick={() => toggleSection(item.name)}
+                    data-tour={item.tourId}
                     className={`
                       w-full flex items-center justify-between px-3 py-2 rounded-md transition-colors text-left hover:cursor-pointer
                       ${isActivePath(item.path) 
@@ -428,6 +438,7 @@ const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsColla
                 // Regular link (Dashboard)
                 <Link
                   to={item.path}
+                  data-tour={item.tourId}
                   className={`
                     flex items-center px-3 py-2 rounded-md transition-colors hover:cursor-pointer
                     ${isActivePath(item.path) 
@@ -449,6 +460,7 @@ const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsColla
         <div className="p-4 border-t border-tracked-primary-dark">
           <Link
             to="/staff/profile"
+            data-tour="profile"
             className="flex items-center px-3 py-2 text-blue-100 rounded-md hover:bg-tracked-secondary hover:bg-opacity-90 hover:text-white hover:cursor-pointer"
           >
             <MdPerson className="h-5 w-5" />

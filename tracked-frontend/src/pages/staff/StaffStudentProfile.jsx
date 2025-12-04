@@ -51,7 +51,7 @@ const StaffStudentProfile = () => {
   const logSystemAction = async (action, description, logLevel = 'info') => {
     try {
       const token = getStaffToken();
-      const response = await fetch('https://api.smitracked.cloud/api/log-action', {
+      const response = await fetch('http://localhost:8000/api/log-action', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -76,7 +76,7 @@ const StaffStudentProfile = () => {
   const fetchPrograms = async () => {
     try {
       const token = getStaffToken();
-      const response = await fetch('https://api.smitracked.cloud/api/programs?per_page=all', {
+      const response = await fetch('http://localhost:8000/api/programs?per_page=all', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -105,13 +105,13 @@ const StaffStudentProfile = () => {
       
       // Fetch both students and payment records
       const [studentsResponse, paymentsResponse] = await Promise.all([
-        fetch('https://api.smitracked.cloud/api/users?role=student&per_page=all', {
+        fetch('http://localhost:8000/api/users?role=student&per_page=all', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Accept': 'application/json'
           }
         }),
-        fetch('https://api.smitracked.cloud/api/payments', {
+        fetch('http://localhost:8000/api/payments', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Accept': 'application/json'

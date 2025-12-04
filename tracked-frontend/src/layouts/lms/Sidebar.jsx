@@ -27,22 +27,26 @@ const Sidebar = ({ user, isOpen, onClose, sidebarOpen, setSidebarOpen }) => {
     {
       name: 'Dashboard',
       path: '/smi-lms/dashboard',
-      icon: <MdDashboard className="h-5 w-5" />
+      icon: <MdDashboard className="h-5 w-5" />,
+      tourId: 'dashboard'
     },
     {
       name: 'Class Schedule',
       path: '/smi-lms/schedule',
-      icon: <MdSchedule className="h-5 w-5" />
+      icon: <MdSchedule className="h-5 w-5" />,
+      tourId: 'schedule'
     },
     {
       name: 'Attendance',
       path: '/smi-lms/attendance',
-      icon: <MdFactCheck className="h-5 w-5" />
+      icon: <MdFactCheck className="h-5 w-5" />,
+      tourId: 'attendance'
     },
     {
       name: 'Course Materials',
       path: '/smi-lms/course-materials',
-      icon: <MdFolder className="h-5 w-5" />
+      icon: <MdFolder className="h-5 w-5" />,
+      tourId: 'course-materials'
     },
     // {
     //   name: 'Courses',
@@ -52,7 +56,8 @@ const Sidebar = ({ user, isOpen, onClose, sidebarOpen, setSidebarOpen }) => {
     {
       name: 'Exams',
       path: '/smi-lms/exams',
-      icon: <MdAssignment className="h-5 w-5" />
+      icon: <MdAssignment className="h-5 w-5" />,
+      tourId: 'exams'
     },
     // {
     //   name: 'Exam Results',
@@ -67,12 +72,14 @@ const Sidebar = ({ user, isOpen, onClose, sidebarOpen, setSidebarOpen }) => {
     {
       name: 'Assessment Results',
       path: '/smi-lms/assessment-results',
-      icon: <MdGrade className="h-5 w-5" />
+      icon: <MdGrade className="h-5 w-5" />,
+      tourId: 'assessments'
     },
     {
       name: 'Certificates',
       path: '/smi-lms/certificates',
-      icon: <MdWorkspacePremium className="h-5 w-5" />
+      icon: <MdWorkspacePremium className="h-5 w-5" />,
+      tourId: 'certificates'
     }
   ];
 
@@ -172,6 +179,7 @@ const Sidebar = ({ user, isOpen, onClose, sidebarOpen, setSidebarOpen }) => {
               <Link
                 key={item.name}
                 to={item.path}
+                data-tour={item.tourId}
                 className={`
                   flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors relative
                   ${isActivePath(item.path)
@@ -211,6 +219,7 @@ const Sidebar = ({ user, isOpen, onClose, sidebarOpen, setSidebarOpen }) => {
             <div className="space-y-2">
               <Link
                 to="/smi-lms/profile"
+                data-tour="profile"
                 className="flex items-center px-3 py-2 text-sm font-medium text-blue-100 rounded-md hover:text-white hover:bg-tracked-primary-dark transition-colors"
               >
                 <MdPerson className="mr-3 h-4 w-4" />

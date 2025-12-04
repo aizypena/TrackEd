@@ -29,7 +29,7 @@ const StaffAssessmentResults = () => {
   // Fetch all programs
   const fetchPrograms = async () => {
     try {
-      const response = await fetch('https://api.smitracked.cloud/api/public/programs', {
+      const response = await fetch('http://localhost:8000/api/public/programs', {
         headers: {
           'Accept': 'application/json'
         }
@@ -50,7 +50,7 @@ const StaffAssessmentResults = () => {
   const fetchBatches = async () => {
     try {
       const token = getStaffToken();
-      const response = await fetch('https://api.smitracked.cloud/api/staff/batches', {
+      const response = await fetch('http://localhost:8000/api/staff/batches', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -84,7 +84,7 @@ const StaffAssessmentResults = () => {
       if (programFilter !== 'all') params.append('program_id', programFilter);
       if (batchFilter !== 'all') params.append('batch_id', batchFilter);
       
-      const response = await fetch(`https://api.smitracked.cloud/api/staff/assessment-results?${params}`, {
+      const response = await fetch(`http://localhost:8000/api/staff/assessment-results?${params}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

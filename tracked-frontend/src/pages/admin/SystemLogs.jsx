@@ -52,7 +52,7 @@ const SystemLogs = () => {
       if (dateRange.end) params.append('end_date', dateRange.end);
       if (searchQuery) params.append('search', searchQuery);
 
-      const response = await fetch(`https://api.smitracked.cloud/api/admin/system-logs?${params}`, {
+      const response = await fetch(`http://localhost:8000/api/admin/system-logs?${params}`, {
         headers: {
           'Authorization': `Bearer ${adminToken}`,
           'Content-Type': 'application/json',

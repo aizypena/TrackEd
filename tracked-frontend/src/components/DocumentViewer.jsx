@@ -58,12 +58,26 @@ const DocumentViewer = ({
     }
   };
 
-  const formatFileSize = (bytes) => {
-    if (!bytes) return 'N/A';
+  const formatFileSize = (sizeValue) => {
+    // Handle pre-formatted string sizes like "1.5 MB", "500 KB"
+    if (typeof sizeValue === 'string' && /^\d+(\.\d+)?\s*(B|KB|MB|GB)$/i.test(sizeValue.trim())) {
+      return sizeValue.trim();
+    }
+    
+    // Handle numeric byte values
+    const bytes = Number(sizeValue);
+    if (!bytes || bytes <= 0 || isNaN(bytes)) return null;
+    
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  // Get file size from document (supports both 'size' and 'file_size' properties)
+  const getDocumentFileSize = (doc) => {
+    if (!doc) return null;
+    return formatFileSize(doc.size) || formatFileSize(doc.file_size) || null;
   };
 
   const getFileType = (format) => {
@@ -95,39 +109,10 @@ const DocumentViewer = ({
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
       <div className="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col animate-slideUp">
         {/* Modal Header */}
-        <div className="bg-tracked-primary px-6 py-5 rounded-t-xl flex items-start justify-between">
-          <div className="flex-1 pr-4">
-            <h3 className="text-2xl font-bold text-white mb-2 leading-tight">
-              {document?.title || document?.name || 'Document Viewer'}
-            </h3>
-            {document && (
-              <div className="text-white/90 text-sm">
-                <span className="font-medium">
-                  {document.format?.toUpperCase() || 'FILE'}
-                </span>
-                {document.size && (
-                  <>
-                    <span className="mx-2">•</span>
-                    <span className="font-medium">Size: {formatFileSize(document.size)}</span>
-                  </>
-                )}
-                {document.uploaded_at && (
-                  <>
-                    <span className="mx-2">•</span>
-                    <span className="font-medium">
-                      {new Date(document.uploaded_at).toLocaleDateString()}
-                    </span>
-                  </>
-                )}
-                {document.uploadDate && (
-                  <>
-                    <span className="mx-2">•</span>
-                    <span className="font-medium">Uploaded: {document.uploadDate}</span>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
+        <div className="bg-tracked-primary px-6 py-4 rounded-t-xl flex items-center justify-between">
+          <h3 className="text-xl font-bold text-white">
+            Document Viewer
+          </h3>
           <button
             onClick={handleClose}
             className="text-white hover:bg-white/20 hover:cursor-pointer rounded-full w-8 h-8 flex items-center justify-center transition-colors flex-shrink-0"
@@ -219,8 +204,15 @@ const DocumentViewer = ({
         {document && (
           <div className="border-t border-gray-200 px-6 py-4 bg-gray-50 rounded-b-xl">
             <div className="flex justify-between items-center">
-              <div className="text-sm text-gray-600">
-                {document.description || 'No description available'}
+              <div className="text-sm text-gray-600 flex items-center space-x-4">
+                {document.format && (
+                  <span className="bg-gray-200 px-2 py-1 rounded font-medium text-gray-700">
+                    {document.format.toUpperCase()}
+                  </span>
+                )}
+                {getDocumentFileSize(document) && (
+                  <span>Size: {getDocumentFileSize(document)}</span>
+                )}
               </div>
               <div className="flex space-x-3">
                 {onDownload && (

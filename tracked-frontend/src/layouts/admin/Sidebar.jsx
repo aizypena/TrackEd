@@ -64,12 +64,14 @@ function Sidebar({ isOpen, onClose }) {
       name: 'Dashboard Overview',
       icon: MdDashboard,
       path: '/admin/dashboard',
-      badge: null
+      badge: null,
+      tourId: 'dashboard'
     },
     {
       id: 'user-management',
       name: 'User Management',
       icon: MdPeople,
+      tourId: 'user-management',
       submenu: [
         { id: 'all-users', name: 'All Users', icon: MdPeople, path: '/admin/all-users' },
         { id: 'applications', name: 'Applications', icon: MdAssignment, path: '/admin/applications' },
@@ -80,6 +82,7 @@ function Sidebar({ isOpen, onClose }) {
       id: 'program-management',
       name: 'Program Management',
       icon: MdBook,
+      tourId: 'program-management',
       submenu: [
         { id: 'courses', name: 'Course Programs', icon: MdLocalLibrary, path: '/admin/course-programs' },
         { id: 'batches', name: 'Batch Management', icon: MdGroup, path: '/admin/batch-management' },
@@ -91,6 +94,7 @@ function Sidebar({ isOpen, onClose }) {
       id: 'inventory-management',
       name: 'Inventory Management',
       icon: MdInventory,
+      tourId: 'inventory-management',
       submenu: [
         { id: 'equipment', name: 'Equipment', icon: MdInventory, path: '/admin/equipment' },
         { id: 'stock-transactions', name: 'Stock Transactions', icon: MdSwapVert, path: '/admin/stock-transactions' },
@@ -101,6 +105,7 @@ function Sidebar({ isOpen, onClose }) {
       id: 'reports',
       name: 'Reports',
       icon: MdAssessment,
+      tourId: 'reports',
       submenu: [
         // { id: 'enrollment-reports', name: 'Enrollment Reports', icon: MdSchool, path: '/admin/enrollment-reports' },
         { id: 'enrollment-trends', name: 'Enrollment Trends', icon: MdTrendingUp, path: '/admin/enrollment-trends' },
@@ -114,6 +119,7 @@ function Sidebar({ isOpen, onClose }) {
       id: 'system',
       name: 'System Management',
       icon: MdSettings,
+      tourId: 'system',
       submenu: [
         { id: 'system-settings', name: 'System Settings', icon: MdSettings, path: '/admin/system-settings' },
         { id: 'system-logs', name: 'System Logs', icon: MdHistory, path: '/admin/system-logs' }
@@ -124,14 +130,16 @@ function Sidebar({ isOpen, onClose }) {
       name: 'Contact Messages',
       icon: MdEmail,
       path: '/admin/contact-messages',
-      badge: null
+      badge: null,
+      tourId: 'contact-messages'
     },
     {
       id: 'profile-settings',
       name: 'Profile Settings',
       icon: MdAccountCircle,
       path: '/admin/profile-settings',
-      badge: null
+      badge: null,
+      tourId: 'profile-settings'
     },
     // {
     //   id: 'backup-restore',
@@ -225,6 +233,7 @@ function Sidebar({ isOpen, onClose }) {
               <div key={item.id}>
                 {/* Main Menu Item */}
                 <div
+                  data-tour={item.tourId}
                   className={`
                     flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-200
                     cursor-pointer

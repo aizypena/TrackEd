@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import StaffSidebar from '../../layouts/staff/StaffSidebar';
+import OnboardingTour from '../../components/staff/OnboardingTour';
 import { getStaffToken, getStaffUser } from '../../utils/staffAuth';
 import { 
   MdMenu, 
@@ -19,6 +20,7 @@ const StaffDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [user, setUser] = useState(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const [stats, setStats] = useState({
     pendingApplications: 0,
@@ -36,12 +38,19 @@ const StaffDashboard = () => {
     const userData = getStaffUser();
     setUser(userData);
 
+    // Check for first login to show onboarding tour
+    const onboardingCompleted = localStorage.getItem('staffOnboardingCompleted');
+    if (!onboardingCompleted) {
+      // Small delay to ensure sidebar is rendered
+      setTimeout(() => setShowOnboarding(true), 500);
+    }
+
     const fetchDashboardData = async () => {
       try {
         const token = getStaffToken();
         
         // Fetch recent applications
-        const applicationsResponse = await fetch('https://api.smitracked.cloud/api/staff/recent-applications', {
+        const applicationsResponse = await fetch('http://localhost:8000/api/staff/recent-applications', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -50,7 +59,7 @@ const StaffDashboard = () => {
         });
 
         // Fetch enrollments to get active students count
-        const enrollmentsResponse = await fetch('https://api.smitracked.cloud/api/staff/enrollments', {
+        const enrollmentsResponse = await fetch('http://localhost:8000/api/staff/enrollments', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -130,6 +139,15 @@ const StaffDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
+      {/* Onboarding Tour - Shows on first login */}
+      {showOnboarding && (
+        <OnboardingTour 
+          onComplete={() => setShowOnboarding(false)}
+          sidebarExpanded={!sidebarCollapsed}
+          setSidebarExpanded={(expanded) => setSidebarCollapsed(!expanded)}
+        />
+      )}
+
       <StaffSidebar 
         user={user}
         isOpen={sidebarOpen} 

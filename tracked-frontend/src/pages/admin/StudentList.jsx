@@ -41,7 +41,7 @@ const StudentList = () => {
         return;
       }
 
-      const response = await fetch('https://api.smitracked.cloud/api/admin/students', {
+      const response = await fetch('http://localhost:8000/api/admin/students', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'

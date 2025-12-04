@@ -113,7 +113,7 @@ const Signup = () => {
 
       try {
         setLoadingBatches(true);
-        const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.smitracked.cloud';
+        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
         const API_URL = `${API_BASE_URL}/api`;
         
         const response = await fetch(`${API_URL}/public/batches/${formData.courseProgram}`);
@@ -379,7 +379,7 @@ const Signup = () => {
   // Check if email already exists
   const checkEmailExists = async (email) => {
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.smitracked.cloud';
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const response = await fetch(`${API_BASE_URL}/api/check-email`, {
         method: 'POST',
         headers: {

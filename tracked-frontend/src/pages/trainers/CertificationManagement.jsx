@@ -46,7 +46,7 @@ const CertificationManagement = () => {
     setLoading(true);
     try {
       const token = sessionStorage.getItem('trainerToken');
-      const response = await fetch('https://api.smitracked.cloud/api/trainer/certification/students', {
+      const response = await fetch('http://localhost:8000/api/trainer/certification/students', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -80,7 +80,7 @@ const CertificationManagement = () => {
 
     try {
       const token = sessionStorage.getItem('trainerToken');
-      const response = await fetch('https://api.smitracked.cloud/api/trainer/certification/generate', {
+      const response = await fetch('http://localhost:8000/api/trainer/certification/generate', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -318,9 +318,10 @@ const CertificationManagement = () => {
     
     const matchesProgram = selectedProgram === 'all' || student.program_id === parseInt(selectedProgram);
     const matchesSection = selectedSection === 'all' || student.batch_id === selectedSection;
+    const matchesStatus = selectedStatus === 'all' || student.certification?.status === selectedStatus;
     const matchesSearch = student.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          student.student_id?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesProgram && matchesSection && matchesSearch;
+    return matchesProgram && matchesSection && matchesStatus && matchesSearch;
   });
 
   const getStatusColor = (status) => {
@@ -563,7 +564,7 @@ const CertificationManagement = () => {
                         <h4 className="text-sm font-medium text-gray-900">Certification Requirements</h4>
                         <div className="space-y-3">
                           <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <span className="text-sm text-gray-700">Minimum Attendance (85%)</span>
+                            <span className="text-sm text-gray-700">Minimum Attendance (100%)</span>
                             {getRequirementIcon(student.certification.requirements.attendance)}
                           </div>
                           <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -634,7 +635,7 @@ const CertificationManagement = () => {
 
       {/* Confirmation Modal */}
       {showConfirmModal && studentToGenerate && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-6 shadow-xl">
             <div className="flex items-center justify-center w-12 h-12 mx-auto bg-yellow-100 rounded-full mb-4">
               <MdWarning className="h-6 w-6 text-yellow-600" />
@@ -673,8 +674,8 @@ const CertificationManagement = () => {
 
       {/* Certificate Preview Modal */}
       {showPreview && previewStudent && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
             {/* Modal Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <h2 className="text-xl font-semibold text-gray-900">Certificate Preview</h2>
@@ -758,12 +759,6 @@ const CertificationManagement = () => {
                 Download/Print Certificate
               </button>
               <div className="flex gap-3">
-                <button
-                  onClick={() => setShowPreview(false)}
-                  className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                >
-                  Close
-                </button>
                 {!previewStudent?.certificate && (
                   <button
                     onClick={handleGenerateCertificateFromPreview}
@@ -780,6 +775,12 @@ const CertificationManagement = () => {
                     Certificate Already Issued
                   </div>
                 )}
+                <button
+                  onClick={() => setShowPreview(false)}
+                  className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  Close
+                </button>
               </div>
             </div>
           </div>

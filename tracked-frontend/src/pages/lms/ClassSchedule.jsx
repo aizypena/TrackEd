@@ -43,7 +43,7 @@ const ClassSchedule = () => {
       setLoading(true);
       const token = sessionStorage.getItem('studentToken');
       
-      const response = await fetch('https://api.smitracked.cloud/api/student/schedule', {
+      const response = await fetch('http://localhost:8000/api/student/schedule', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',

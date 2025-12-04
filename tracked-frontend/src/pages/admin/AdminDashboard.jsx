@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../../layouts/admin/Sidebar';
+import OnboardingTour from '../../components/admin/OnboardingTour';
 import { 
   MdMenu, MdSearch, MdSupervisorAccount,
   MdPeople, MdAssignment, MdCardGiftcard, MdTrendingUp, MdShowChart,
@@ -11,6 +12,7 @@ import {
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   
   // Get admin user info from localStorage
   const adminUser = JSON.parse(sessionStorage.getItem('adminUser') || '{}');
@@ -40,11 +42,20 @@ const AdminDashboard = () => {
 
   const [recentActivities, setRecentActivities] = useState([]);
 
+  // Check for first login to show onboarding tour
+  useEffect(() => {
+    const onboardingCompleted = localStorage.getItem('adminOnboardingCompleted');
+    if (!onboardingCompleted) {
+      // Small delay to ensure sidebar is rendered
+      setTimeout(() => setShowOnboarding(true), 500);
+    }
+  }, []);
+
   // Fetch dashboard statistics from API
   useEffect(() => {
     const fetchDashboardStats = async () => {
       try {
-        const response = await fetch('https://api.smitracked.cloud/api/admin/dashboard-stats', {
+        const response = await fetch('http://localhost:8000/api/admin/dashboard-stats', {
           headers: {
             'Authorization': `Bearer ${adminToken}`,
             'Content-Type': 'application/json',
@@ -85,7 +96,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchSystemLogs = async () => {
       try {
-        const response = await fetch('https://api.smitracked.cloud/api/admin/system-logs?per_page=3', {
+        const response = await fetch('http://localhost:8000/api/admin/system-logs?per_page=3', {
           headers: {
             'Authorization': `Bearer ${adminToken}`,
             'Content-Type': 'application/json',
@@ -178,7 +189,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchArimaForecast = async () => {
       try {
-        const response = await fetch('https://api.smitracked.cloud/api/admin/arima-forecast', {
+        const response = await fetch('http://localhost:8000/api/admin/arima-forecast', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${adminToken}`,
@@ -289,6 +300,11 @@ const AdminDashboard = () => {
 
   return (
     <div className="flex h-screen bg-gray-50">
+      {/* Onboarding Tour - Shows on first login */}
+      {showOnboarding && (
+        <OnboardingTour onComplete={() => setShowOnboarding(false)} />
+      )}
+
       {/* Sidebar - Desktop: Always visible, Mobile: Toggle */}
       <div className="hidden lg:block">
         <Sidebar 

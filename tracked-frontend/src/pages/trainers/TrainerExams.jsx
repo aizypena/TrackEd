@@ -239,7 +239,7 @@ const TrainerExams = () => {
       // Verify password first
       const token = sessionStorage.getItem('trainerToken');
       const verifyResponse = await axios.post(
-        'https://api.smitracked.cloud/api/trainer/verify-password',
+        'http://localhost:8000/api/trainer/verify-password',
         { password },
         {
           headers: {

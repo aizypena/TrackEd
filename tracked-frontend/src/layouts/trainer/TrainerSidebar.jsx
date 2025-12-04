@@ -31,47 +31,56 @@ const TrainerSidebar = ({ isOpen, onClose, isCollapsed, setIsCollapsed }) => {
     {
       name: 'Dashboard',
       path: '/trainer-lms/dashboard',
-      icon: <MdDashboard className="h-5 w-5" />
+      icon: <MdDashboard className="h-5 w-5" />,
+      tourId: 'dashboard'
     },
     {
       name: 'Announcements',
       path: '/trainer-lms/announcements',
-      icon: <MdCampaign className="h-5 w-5" />
+      icon: <MdCampaign className="h-5 w-5" />,
+      tourId: 'announcements'
     },
     {
       name: 'Course Materials',
       path: '/trainer-lms/course-materials',
-      icon: <MdUpload className="h-5 w-5" />
+      icon: <MdUpload className="h-5 w-5" />,
+      tourId: 'course-materials'
     },
     {
       name: 'Students',
       path: '/trainer-lms/students',
-      icon: <MdSchool className="h-5 w-5" />
+      icon: <MdSchool className="h-5 w-5" />,
+      tourId: 'students'
     },
     {
       name: 'Attendance',
       path: '/trainer-lms/attendance',
-      icon: <MdPeopleAlt className="h-5 w-5" />
+      icon: <MdPeopleAlt className="h-5 w-5" />,
+      tourId: 'attendance'
     },
     {
       name: 'Exam Management',
       path: '/trainer-lms/exams',
-      icon: <MdBook className="h-5 w-5" />
+      icon: <MdBook className="h-5 w-5" />,
+      tourId: 'exams'
     },
     {
       name: 'Grade Management',
       path: '/trainer-lms/grades',
-      icon: <MdGrade className="h-5 w-5" />
+      icon: <MdGrade className="h-5 w-5" />,
+      tourId: 'grades'
     },
     {
       name: 'Assessments',
       path: '/trainer-lms/assessment-management',
-      icon: <MdAssignment className="h-5 w-5" />
+      icon: <MdAssignment className="h-5 w-5" />,
+      tourId: 'assessments'
     },
     {
       name: 'Certification',
       path: '/trainer-lms/certification',
       icon: <MdVerified className="h-5 w-5" />,
+      tourId: 'certification'
     }
   ];
 
@@ -164,6 +173,7 @@ const TrainerSidebar = ({ isOpen, onClose, isCollapsed, setIsCollapsed }) => {
               <Link
                 key={item.name}
                 to={item.path}
+                data-tour={item.tourId}
                 className={`
                   flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors relative
                   ${isActivePath(item.path)
@@ -203,6 +213,7 @@ const TrainerSidebar = ({ isOpen, onClose, isCollapsed, setIsCollapsed }) => {
             <div className="space-y-2">
               <Link
                 to="/trainer-lms/profile"
+                data-tour="profile"
                 className="flex items-center px-3 py-2 text-sm font-medium text-blue-100 rounded-md hover:text-white hover:bg-tracked-primary-dark transition-colors"
               >
                 <MdPerson className="mr-3 h-4 w-4" />

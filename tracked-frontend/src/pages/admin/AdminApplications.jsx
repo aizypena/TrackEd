@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Sidebar from '../../layouts/admin/Sidebar';
+import DocumentViewer from '../../components/DocumentViewer';
 import { MdMenu, MdVisibility, MdDescription, MdImage, MdPictureAsPdf, MdEdit, MdDelete, MdSearch } from 'react-icons/md';
 import toast from 'react-hot-toast';
 
@@ -17,6 +18,9 @@ export default function AdminApplications() {
   const [deletePassword, setDeletePassword] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredApplications, setFilteredApplications] = useState([]);
+  const [showDocumentViewer, setShowDocumentViewer] = useState(false);
+  const [currentDocument, setCurrentDocument] = useState(null);
+  const [loadingDocument, setLoadingDocument] = useState(false);
 
   // Fetch applications from API
   useEffect(() => {
@@ -26,7 +30,7 @@ export default function AdminApplications() {
       try {
         // Use admin token for authentication
         const token = sessionStorage.getItem('adminToken');
-        const response = await fetch('https://api.smitracked.cloud/api/admin/applications', {
+        const response = await fetch('http://localhost:8000/api/admin/applications', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Accept': 'application/json'
@@ -70,7 +74,7 @@ export default function AdminApplications() {
   const logAction = async (action, description, level = 'info') => {
     try {
       const token = sessionStorage.getItem('adminToken');
-      await fetch('https://api.smitracked.cloud/api/log-action', {
+      await fetch('http://localhost:8000/api/log-action', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -92,7 +96,7 @@ export default function AdminApplications() {
   const handleViewDocuments = async (applicantId) => {
     try {
       const token = sessionStorage.getItem('adminToken');
-      const response = await fetch(`https://api.smitracked.cloud/api/admin/applicants/${applicantId}`, {
+      const response = await fetch(`http://localhost:8000/api/admin/applicants/${applicantId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -125,6 +129,64 @@ export default function AdminApplications() {
     if (lower.includes('pdf')) return <MdPictureAsPdf className="w-5 h-5" />;
     if (lower.includes('image') || lower.includes('jpg') || lower.includes('png')) return <MdImage className="w-5 h-5" />;
     return <MdDescription className="w-5 h-5" />;
+  };
+
+  // Handle view single document in DocumentViewer
+  const handleViewSingleDocument = async (docPath, docLabel) => {
+    if (!docPath) return;
+    
+    setLoadingDocument(true);
+    setShowDocumentViewer(true);
+    
+    try {
+      const token = sessionStorage.getItem('adminToken');
+      const response = await fetch(`http://localhost:8000/api/storage-file/${docPath}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch document');
+      
+      const blob = await response.blob();
+      const fileUrl = URL.createObjectURL(blob);
+      
+      // Get file extension from path
+      const extension = docPath.split('.').pop()?.toLowerCase() || '';
+      
+      setCurrentDocument({
+        name: docLabel,
+        title: docLabel,
+        format: extension,
+        fileUrl: fileUrl,
+        size: blob.size
+      });
+    } catch (error) {
+      console.error('Error loading document:', error);
+      toast.error('Failed to load document');
+      setShowDocumentViewer(false);
+    } finally {
+      setLoadingDocument(false);
+    }
+  };
+
+  const handleDownloadDocument = () => {
+    if (currentDocument?.fileUrl) {
+      const link = document.createElement('a');
+      link.href = currentDocument.fileUrl;
+      link.download = currentDocument.name || 'document';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
+  const handleCloseDocumentViewer = () => {
+    if (currentDocument?.fileUrl) {
+      URL.revokeObjectURL(currentDocument.fileUrl);
+    }
+    setShowDocumentViewer(false);
+    setCurrentDocument(null);
   };
 
   const getStatusBadge = (status) => {
@@ -198,7 +260,7 @@ export default function AdminApplications() {
   const handleEditApplicant = async (applicantId) => {
     try {
       const token = sessionStorage.getItem('adminToken');
-      const response = await fetch(`https://api.smitracked.cloud/api/admin/applicants/${applicantId}`, {
+      const response = await fetch(`http://localhost:8000/api/admin/applicants/${applicantId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -242,7 +304,7 @@ export default function AdminApplications() {
       const token = sessionStorage.getItem('adminToken');
       
       // First verify the admin password
-      const verifyResponse = await fetch('https://api.smitracked.cloud/api/admin/verify-password', {
+      const verifyResponse = await fetch('http://localhost:8000/api/admin/verify-password', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -266,7 +328,7 @@ export default function AdminApplications() {
       }
 
       // If password is correct, proceed with deletion
-      const deleteResponse = await fetch(`https://api.smitracked.cloud/api/admin/applicants/${applicantToDelete.id}`, {
+      const deleteResponse = await fetch(`http://localhost:8000/api/admin/applicants/${applicantToDelete.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -305,7 +367,7 @@ export default function AdminApplications() {
     e.preventDefault();
     try {
       const token = sessionStorage.getItem('adminToken');
-      const response = await fetch(`https://api.smitracked.cloud/api/admin/applicants/${selectedApplicant.id}`, {
+      const response = await fetch(`http://localhost:8000/api/admin/applicants/${selectedApplicant.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -575,15 +637,13 @@ export default function AdminApplications() {
                         )}
                       </div>
                       {selectedApplicant.valid_id ? (
-                        <a
-                          href={`https://api.smitracked.cloud/api/storage-file/${selectedApplicant.valid_id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 rounded text-sm hover:bg-blue-100 transition-colors"
+                        <button
+                          onClick={() => handleViewSingleDocument(selectedApplicant.valid_id, 'Valid ID')}
+                          className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 rounded text-sm hover:bg-blue-100 hover:cursor-pointer transition-colors"
                         >
                           <MdVisibility className="w-4 h-4 mr-1" />
                           View Document
-                        </a>
+                        </button>
                       ) : (
                         <span className="text-sm text-gray-400">No document uploaded</span>
                       )}
@@ -601,15 +661,13 @@ export default function AdminApplications() {
                         )}
                       </div>
                       {selectedApplicant.transcript ? (
-                        <a
-                          href={`https://api.smitracked.cloud/api/storage-file/${selectedApplicant.transcript}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 rounded text-sm hover:bg-blue-100 transition-colors"
+                        <button
+                          onClick={() => handleViewSingleDocument(selectedApplicant.transcript, 'Transcript of Records')}
+                          className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 rounded text-sm hover:bg-blue-100 hover:cursor-pointer transition-colors"
                         >
                           <MdVisibility className="w-4 h-4 mr-1" />
                           View Document
-                        </a>
+                        </button>
                       ) : (
                         <span className="text-sm text-gray-400">No document uploaded</span>
                       )}
@@ -627,15 +685,13 @@ export default function AdminApplications() {
                         )}
                       </div>
                       {selectedApplicant.diploma ? (
-                        <a
-                          href={`https://api.smitracked.cloud/api/storage-file/${selectedApplicant.diploma}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 rounded text-sm hover:bg-blue-100 transition-colors"
+                        <button
+                          onClick={() => handleViewSingleDocument(selectedApplicant.diploma, 'Diploma/Certificate')}
+                          className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 rounded text-sm hover:bg-blue-100 hover:cursor-pointer transition-colors"
                         >
                           <MdVisibility className="w-4 h-4 mr-1" />
                           View Document
-                        </a>
+                        </button>
                       ) : (
                         <span className="text-sm text-gray-400">No document uploaded</span>
                       )}
@@ -653,15 +709,13 @@ export default function AdminApplications() {
                         )}
                       </div>
                       {selectedApplicant.passport_photo ? (
-                        <a
-                          href={`https://api.smitracked.cloud/api/storage-file/${selectedApplicant.passport_photo}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 rounded text-sm hover:bg-blue-100 transition-colors"
+                        <button
+                          onClick={() => handleViewSingleDocument(selectedApplicant.passport_photo, 'Passport Photo')}
+                          className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 rounded text-sm hover:bg-blue-100 hover:cursor-pointer transition-colors"
                         >
                           <MdVisibility className="w-4 h-4 mr-1" />
                           View Document
-                        </a>
+                        </button>
                       ) : (
                         <span className="text-sm text-gray-400">No document uploaded</span>
                       )}
@@ -849,6 +903,15 @@ export default function AdminApplications() {
             </div>
           </div>
         )}
+
+        {/* Document Viewer Modal */}
+        <DocumentViewer
+          isOpen={showDocumentViewer}
+          onClose={handleCloseDocumentViewer}
+          document={currentDocument}
+          onDownload={handleDownloadDocument}
+          loading={loadingDocument}
+        />
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   MdClose,
   MdPerson,
@@ -12,9 +13,70 @@ import {
   MdPending,
   MdWarning
 } from 'react-icons/md';
+import DocumentViewer from '../DocumentViewer';
 
 const StudentDetailModal = ({ student, onClose, getStatusBadge, getPaymentBadge }) => {
+  const [showDocumentViewer, setShowDocumentViewer] = useState(false);
+  const [currentDocument, setCurrentDocument] = useState(null);
+  const [loadingDocument, setLoadingDocument] = useState(false);
+
   if (!student) return null;
+
+  const handleViewDocument = async (docPath, docLabel) => {
+    if (!docPath) return;
+    
+    setLoadingDocument(true);
+    setShowDocumentViewer(true);
+    
+    try {
+      const token = sessionStorage.getItem('auth_token');
+      const response = await fetch(`http://localhost:8000/api/storage-file/${docPath}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch document');
+      
+      const blob = await response.blob();
+      const fileUrl = URL.createObjectURL(blob);
+      
+      // Get file extension from path
+      const extension = docPath.split('.').pop()?.toLowerCase() || '';
+      
+      setCurrentDocument({
+        name: docLabel,
+        title: docLabel,
+        format: extension,
+        fileUrl: fileUrl,
+        size: blob.size
+      });
+    } catch (error) {
+      console.error('Error loading document:', error);
+      setShowDocumentViewer(false);
+    } finally {
+      setLoadingDocument(false);
+    }
+  };
+
+  const handleDownloadDocument = () => {
+    if (currentDocument?.fileUrl) {
+      const link = document.createElement('a');
+      link.href = currentDocument.fileUrl;
+      link.download = currentDocument.name || 'document';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
+  const handleCloseDocumentViewer = () => {
+    if (currentDocument?.fileUrl) {
+      URL.revokeObjectURL(currentDocument.fileUrl);
+    }
+    setShowDocumentViewer(false);
+    setCurrentDocument(null);
+  };
 
   return (
     <div className="fixed inset-0 backdrop-blur-md z-50 flex items-center justify-center p-4">
@@ -133,36 +195,6 @@ const StudentDetailModal = ({ student, onClose, getStatusBadge, getPaymentBadge 
               </div>
             </div>
 
-            {/* Academic Performance */}
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <MdAssignment className="h-5 w-5 text-tracked-primary" />
-                Academic Performance
-              </h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Attendance Rate</span>
-                  <span className="text-2xl font-bold text-tracked-primary">{student.attendance}%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-tracked-primary h-2 rounded-full" 
-                    style={{ width: `${student.attendance}%` }}
-                  />
-                </div>
-                <div className="flex items-center justify-between mt-4">
-                  <span className="text-sm text-gray-600">Overall Grade</span>
-                  <span className="text-2xl font-bold text-tracked-secondary">{student.overallGrade}%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-tracked-secondary h-2 rounded-full" 
-                    style={{ width: `${student.overallGrade}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-
             {/* Documents */}
             <div className="bg-gray-50 rounded-lg p-4 md:col-span-2">
               <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -177,14 +209,12 @@ const StudentDetailModal = ({ student, onClose, getStatusBadge, getPaymentBadge 
                       <MdCheckCircle className="h-5 w-5 text-green-500" />
                       <span className="text-sm font-medium text-gray-700">Valid ID</span>
                     </div>
-                    <a
-                      href={`https://api.smitracked.cloud/api/storage-file/${student.documents.valid_id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-3 py-1 bg-tracked-primary text-white text-xs rounded-md hover:bg-tracked-secondary transition-colors"
+                    <button
+                      onClick={() => handleViewDocument(student.documents.valid_id, 'Valid ID')}
+                      className="px-3 py-1 bg-tracked-primary text-white text-xs rounded-md hover:bg-tracked-secondary hover:cursor-pointer transition-colors"
                     >
                       View
-                    </a>
+                    </button>
                   </div>
                 )}
                 
@@ -195,14 +225,12 @@ const StudentDetailModal = ({ student, onClose, getStatusBadge, getPaymentBadge 
                       <MdCheckCircle className="h-5 w-5 text-green-500" />
                       <span className="text-sm font-medium text-gray-700">Transcript of Records</span>
                     </div>
-                    <a
-                      href={`https://api.smitracked.cloud/api/storage-file/${student.documents.transcript}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-3 py-1 bg-tracked-primary text-white text-xs rounded-md hover:bg-tracked-secondary transition-colors"
+                    <button
+                      onClick={() => handleViewDocument(student.documents.transcript, 'Transcript of Records')}
+                      className="px-3 py-1 bg-tracked-primary text-white text-xs rounded-md hover:bg-tracked-secondary hover:cursor-pointer transition-colors"
                     >
                       View
-                    </a>
+                    </button>
                   </div>
                 )}
                 
@@ -213,14 +241,12 @@ const StudentDetailModal = ({ student, onClose, getStatusBadge, getPaymentBadge 
                       <MdCheckCircle className="h-5 w-5 text-green-500" />
                       <span className="text-sm font-medium text-gray-700">Diploma</span>
                     </div>
-                    <a
-                      href={`https://api.smitracked.cloud/api/storage-file/${student.documents.diploma}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-3 py-1 bg-tracked-primary text-white text-xs rounded-md hover:bg-tracked-secondary transition-colors"
+                    <button
+                      onClick={() => handleViewDocument(student.documents.diploma, 'Diploma')}
+                      className="px-3 py-1 bg-tracked-primary text-white text-xs rounded-md hover:bg-tracked-secondary hover:cursor-pointer transition-colors"
                     >
                       View
-                    </a>
+                    </button>
                   </div>
                 )}
                 
@@ -231,14 +257,12 @@ const StudentDetailModal = ({ student, onClose, getStatusBadge, getPaymentBadge 
                       <MdCheckCircle className="h-5 w-5 text-green-500" />
                       <span className="text-sm font-medium text-gray-700">Passport Photo</span>
                     </div>
-                    <a
-                      href={`https://api.smitracked.cloud/api/storage-file/${student.documents.passport_photo}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-3 py-1 bg-tracked-primary text-white text-xs rounded-md hover:bg-tracked-secondary transition-colors"
+                    <button
+                      onClick={() => handleViewDocument(student.documents.passport_photo, 'Passport Photo')}
+                      className="px-3 py-1 bg-tracked-primary text-white text-xs rounded-md hover:bg-tracked-secondary hover:cursor-pointer transition-colors"
                     >
                       View
-                    </a>
+                    </button>
                   </div>
                 )}
                 
@@ -253,6 +277,15 @@ const StudentDetailModal = ({ student, onClose, getStatusBadge, getPaymentBadge 
           </div>
         </div>
       </div>
+
+      {/* Document Viewer Modal */}
+      <DocumentViewer
+        isOpen={showDocumentViewer}
+        onClose={handleCloseDocumentViewer}
+        document={currentDocument}
+        onDownload={handleDownloadDocument}
+        loading={loadingDocument}
+      />
     </div>
   );
 };

@@ -40,7 +40,7 @@ const StaffApplications = () => {
   const logSystemAction = async (action, description, logLevel = 'info') => {
     try {
       const token = getStaffToken();
-      const response = await fetch('https://api.smitracked.cloud/api/log-action', {
+      const response = await fetch('http://localhost:8000/api/log-action', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -66,7 +66,7 @@ const StaffApplications = () => {
     try {
       setLoading(true);
       const token = getStaffToken();
-      const response = await fetch('https://api.smitracked.cloud/api/staff/applications', {
+      const response = await fetch('http://localhost:8000/api/staff/applications', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -496,8 +496,6 @@ const StaffApplications = () => {
                           <div className="flex gap-2">
                             <Link
                               to={`/staff/enrollments/applications/${app.id}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
                               className="text-tracked-primary hover:text-tracked-secondary"
                               title="View Details"
                             >

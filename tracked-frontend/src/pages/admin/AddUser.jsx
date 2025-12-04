@@ -68,7 +68,7 @@ function AddUser() {
   useEffect(() => {
     const fetchPrograms = async () => {
       try {
-        const response = await fetch('https://api.smitracked.cloud/api/programs');
+        const response = await fetch('http://localhost:8000/api/programs');
         if (response.ok) {
           const data = await response.json();
           setAvailablePrograms(data.data || []);
@@ -88,7 +88,7 @@ function AddUser() {
     setLoadingBatches(true);
     setAvailableBatches([]);
     try {
-      const response = await fetch(`https://api.smitracked.cloud/api/public/batches/${programId}`);
+      const response = await fetch(`http://localhost:8000/api/public/batches/${programId}`);
       if (response.ok) {
         const data = await response.json();
         setAvailableBatches(data.data || []);
@@ -362,7 +362,7 @@ function AddUser() {
         // Log user creation
         const token = sessionStorage.getItem('adminToken') || JSON.parse(sessionStorage.getItem('adminUser') || '{}').token;
         if (token) {
-          await fetch('https://api.smitracked.cloud/api/log-action', {
+          await fetch('http://localhost:8000/api/log-action', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -388,7 +388,7 @@ function AddUser() {
       try {
         const token = sessionStorage.getItem('adminToken') || JSON.parse(sessionStorage.getItem('adminUser') || '{}').token;
         if (token) {
-          await fetch('https://api.smitracked.cloud/api/log-action', {
+          await fetch('http://localhost:8000/api/log-action', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,

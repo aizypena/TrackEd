@@ -54,7 +54,7 @@ const Attendance = () => {
       setError(null);
       const token = sessionStorage.getItem('studentToken');
       
-      const response = await fetch('https://api.smitracked.cloud/api/student/attendance', {
+      const response = await fetch('http://localhost:8000/api/student/attendance', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',

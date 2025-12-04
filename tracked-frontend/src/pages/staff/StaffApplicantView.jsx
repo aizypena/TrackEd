@@ -4,6 +4,7 @@ import StaffSidebar from '../../layouts/staff/StaffSidebar';
 import ApproveApplicantModal from '../../components/staff/ApproveApplicantModal';
 import StatusChangeModal from '../../components/staff/StatusChangeModal';
 import ProcessPaymentModal from '../../components/staff/ProcessPaymentModal';
+import DocumentViewer from '../../components/DocumentViewer';
 import { getStaffToken } from '../../utils/staffAuth';
 import toast, { Toaster } from 'react-hot-toast';
 import { API_URL, STORAGE_URL } from '../../config/api';
@@ -37,6 +38,9 @@ const StaffApplicantView = () => {
   const [showEnrollConfirm, setShowEnrollConfirm] = useState(false);
   const [enrolling, setEnrolling] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showDocumentViewer, setShowDocumentViewer] = useState(false);
+  const [currentDocument, setCurrentDocument] = useState(null);
+  const [loadingDocument, setLoadingDocument] = useState(false);
 
   useEffect(() => {
     fetchApplicantDetails();
@@ -246,6 +250,85 @@ const StaffApplicantView = () => {
     // Just refresh the applicant details
     setShowPaymentModal(false);
     fetchApplicantDetails();
+  };
+
+  // Handle viewing document
+  const handleViewDocument = async (docType, docLabel) => {
+    if (!docType) return;
+    
+    setLoadingDocument(true);
+    setShowDocumentViewer(true);
+    
+    try {
+      const token = getStaffToken();
+      const response = await fetch(`${API_URL}/staff/applicants/${id}/document/${docType}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      });
+      
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        
+        // Get file extension from content type
+        const contentType = response.headers.get('content-type') || '';
+        let extension = '';
+        if (contentType.includes('pdf')) extension = 'pdf';
+        else if (contentType.includes('png')) extension = 'png';
+        else if (contentType.includes('jpeg') || contentType.includes('jpg')) extension = 'jpg';
+        else if (contentType.includes('gif')) extension = 'gif';
+        
+        setCurrentDocument({
+          title: docLabel,
+          name: docLabel,
+          fileUrl: url,
+          format: extension,
+          docType: docType
+        });
+      } else {
+        toast.error('Failed to load document');
+        setShowDocumentViewer(false);
+      }
+    } catch (error) {
+      console.error('Error loading document:', error);
+      toast.error('Error loading document');
+      setShowDocumentViewer(false);
+    } finally {
+      setLoadingDocument(false);
+    }
+  };
+
+  // Handle document download
+  const handleDownloadDocument = async () => {
+    if (!currentDocument?.docType) return;
+    
+    try {
+      const token = getStaffToken();
+      const response = await fetch(`${API_URL}/staff/applicants/${id}/document/${currentDocument.docType}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      });
+      
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${currentDocument.title || 'document'}.${currentDocument.format || 'file'}`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        toast.success('Document downloaded successfully');
+      } else {
+        toast.error('Failed to download document');
+      }
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      toast.error('Error downloading document');
+    }
   };
 
   const capitalizeName = (name) => {
@@ -527,10 +610,10 @@ const StaffApplicantView = () => {
                 <h3 className="text-lg font-bold text-gray-800 mb-4">Submitted Documents</h3>
                 <div className="space-y-3">
                   {[
-                    { label: 'Valid ID', path: applicant.valid_id_path },
-                    { label: 'Transcript of Records', path: applicant.transcript_path },
-                    { label: 'Diploma', path: applicant.diploma_path },
-                    { label: 'Passport Photo', path: applicant.passport_photo_path }
+                    { label: 'Valid ID', path: applicant.valid_id_path, type: 'valid_id' },
+                    { label: 'Transcript of Records', path: applicant.transcript_path, type: 'transcript' },
+                    { label: 'Diploma', path: applicant.diploma_path, type: 'diploma' },
+                    { label: 'Passport Photo', path: applicant.passport_photo_path, type: 'passport_photo' }
                   ].map((doc, index) => (
                     <div key={index} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                       <div className="flex items-center gap-2">
@@ -542,15 +625,13 @@ const StaffApplicantView = () => {
                         <span className="text-sm font-medium text-gray-700">{doc.label}</span>
                       </div>
                       {doc.path && (
-                        <a
-                          href={`${STORAGE_URL}/${doc.path}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-tracked-primary hover:text-tracked-secondary"
+                        <button
+                          onClick={() => handleViewDocument(doc.type, doc.label)}
+                          className="text-tracked-primary hover:text-tracked-secondary hover:cursor-pointer"
                           title="View Document"
                         >
                           <MdVisibility className="h-5 w-5" />
-                        </a>
+                        </button>
                       )}
                     </div>
                   ))}
@@ -783,6 +864,18 @@ const StaffApplicantView = () => {
         onClose={() => setShowPaymentModal(false)}
         applicant={applicant}
         onSuccess={handleProcessPayment}
+      />
+
+      {/* Document Viewer Modal */}
+      <DocumentViewer
+        isOpen={showDocumentViewer}
+        onClose={() => {
+          setShowDocumentViewer(false);
+          setCurrentDocument(null);
+        }}
+        document={currentDocument}
+        onDownload={handleDownloadDocument}
+        loading={loadingDocument}
       />
       
       {/* Toast Notifications */}

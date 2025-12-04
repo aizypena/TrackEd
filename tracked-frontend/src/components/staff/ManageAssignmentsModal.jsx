@@ -19,7 +19,7 @@ const ManageAssignmentsModal = ({ isOpen, onClose, equipment, onSuccess, onError
   const fetchActiveAssignments = async () => {
     try {
       setLoading(true);
-      const API_URL = 'https://api.smitracked.cloud/api';
+      const API_URL = 'http://localhost:8000/api';
       const token = sessionStorage.getItem('staffToken') || sessionStorage.getItem('adminToken');
 
       const response = await axios.get(
@@ -46,7 +46,7 @@ const ManageAssignmentsModal = ({ isOpen, onClose, equipment, onSuccess, onError
   const handleReturn = async (assignmentId) => {
     setReturningId(assignmentId);
     try {
-      const API_URL = 'https://api.smitracked.cloud/api';
+      const API_URL = 'http://localhost:8000/api';
       const token = sessionStorage.getItem('staffToken') || sessionStorage.getItem('adminToken');
 
       const response = await axios.post(

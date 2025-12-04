@@ -133,7 +133,7 @@ function ViewUser({ user, isOpen, onClose }) {
                   <div className="flex items-center justify-between text-sm p-2 bg-white rounded border border-gray-200">
                     <span className="text-gray-700">Valid ID</span>
                     <a
-                      href={`https://api.smitracked.cloud/api/storage-file/${user.valid_id_path}`}
+                      href={`http://localhost:8000/api/storage-file/${user.valid_id_path}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:text-blue-800 underline"
@@ -146,7 +146,7 @@ function ViewUser({ user, isOpen, onClose }) {
                   <div className="flex items-center justify-between text-sm p-2 bg-white rounded border border-gray-200">
                     <span className="text-gray-700">Transcript of Records</span>
                     <a
-                      href={`https://api.smitracked.cloud/api/storage-file/${user.transcript_path}`}
+                      href={`http://localhost:8000/api/storage-file/${user.transcript_path}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:text-blue-800 underline"
@@ -159,7 +159,7 @@ function ViewUser({ user, isOpen, onClose }) {
                   <div className="flex items-center justify-between text-sm p-2 bg-white rounded border border-gray-200">
                     <span className="text-gray-700">Diploma/Certificate</span>
                     <a
-                      href={`https://api.smitracked.cloud/api/storage-file/${user.diploma_path}`}
+                      href={`http://localhost:8000/api/storage-file/${user.diploma_path}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:text-blue-800 underline"
@@ -172,7 +172,7 @@ function ViewUser({ user, isOpen, onClose }) {
                   <div className="flex items-center justify-between text-sm p-2 bg-white rounded border border-gray-200">
                     <span className="text-gray-700">2x2 Passport Photo</span>
                     <a
-                      href={`https://api.smitracked.cloud/api/storage-file/${user.passport_photo_path}`}
+                      href={`http://localhost:8000/api/storage-file/${user.passport_photo_path}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:text-blue-800 underline"
