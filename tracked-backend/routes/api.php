@@ -8388,6 +8388,90 @@ Pasay City, Metro Manila 1100</p>
         ]);
     });
 
+    // Get all certificates for admin
+    Route::get('/admin/certificates', function (Request $request) {
+        $user = $request->user();
+        
+        if (!in_array($user->role, ['admin', 'administrator'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Only admins can access this endpoint.'
+            ], 403);
+        }
+
+        try {
+            // Get all certificates with related data
+            $certificates = DB::table('certificates')
+                ->leftJoin('users as students', 'certificates.user_id', '=', 'students.id')
+                ->leftJoin('programs', 'certificates.program_id', '=', 'programs.id')
+                ->leftJoin('users as issuers', 'certificates.issued_by', '=', 'issuers.id')
+                ->select(
+                    'certificates.*',
+                    'students.first_name as student_first_name',
+                    'students.last_name as student_last_name',
+                    'students.email as student_email',
+                    'programs.title as program_name',
+                    'programs.id as program_id',
+                    'issuers.first_name as issuer_first_name',
+                    'issuers.last_name as issuer_last_name'
+                )
+                ->orderBy('certificates.issued_date', 'desc')
+                ->get();
+
+            // Format certificates
+            $formattedCertificates = $certificates->map(function ($cert) {
+                return [
+                    'id' => $cert->id,
+                    'certificate_number' => $cert->certificate_number,
+                    'user_id' => $cert->user_id,
+                    'student_name' => trim(($cert->student_first_name ?? '') . ' ' . ($cert->student_last_name ?? '')),
+                    'student_email' => $cert->student_email,
+                    'program_id' => $cert->program_id,
+                    'program_name' => $cert->program_name ?? 'Unknown Program',
+                    'grade' => $cert->grade,
+                    'attendance_rate' => $cert->attendance_rate,
+                    'issued_date' => $cert->issued_date,
+                    'status' => $cert->status ?? 'issued',
+                    'issued_by' => $cert->issued_by,
+                    'issued_by_name' => trim(($cert->issuer_first_name ?? '') . ' ' . ($cert->issuer_last_name ?? '')),
+                    'notes' => $cert->notes,
+                ];
+            });
+
+            // Get programs for filter dropdown
+            $programs = DB::table('programs')
+                ->select('id', 'title')
+                ->orderBy('title')
+                ->get();
+
+            // Calculate stats
+            $now = now();
+            $startOfMonth = $now->copy()->startOfMonth();
+            
+            $stats = [
+                'total' => $certificates->count(),
+                'issued' => $certificates->where('status', 'issued')->count() ?: $certificates->count(),
+                'revoked' => $certificates->where('status', 'revoked')->count(),
+                'thisMonth' => $certificates->filter(function ($cert) use ($startOfMonth) {
+                    return $cert->issued_date && Carbon::parse($cert->issued_date)->gte($startOfMonth);
+                })->count(),
+            ];
+
+            return response()->json([
+                'success' => true,
+                'certificates' => $formattedCertificates,
+                'programs' => $programs,
+                'stats' => $stats,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Admin certificates error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch certificates: ' . $e->getMessage()
+            ], 500);
+        }
+    });
+
     // Update student enrollment
     Route::put('/admin/students/{userId}', function (Request $request, $userId) {
         $user = $request->user();

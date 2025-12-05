@@ -30,7 +30,7 @@ const TOUR_STEPS = [
   {
     target: '[data-tour="reports"]',
     title: 'Reports & Analytics',
-    description: 'Access enrollment trends, ARIMA forecasting, assessment results, and generate various reports.',
+    description: 'Access enrollment trends, ARIMA forecasting, assessment results, student certificates, and generate various reports.',
     position: 'right'
   },
   {
