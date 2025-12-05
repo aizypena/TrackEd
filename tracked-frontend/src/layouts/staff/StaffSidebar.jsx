@@ -18,7 +18,8 @@ import {
   MdChevronRight,
   MdRefresh,
   MdLibraryBooks,
-  MdReport
+  MdReport,
+  MdVerified
 } from 'react-icons/md';
 
 const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsCollapsed }) => {
@@ -147,6 +148,12 @@ const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsColla
       ]
     },
     {
+      name: 'Certificates',
+      path: '/staff/certificates',
+      icon: <MdVerified className="h-5 w-5" />,
+      tourId: 'certificates'
+    },
+    {
       name: 'Contact Messages',
       path: '/staff/contact-messages',
       icon: <MdReport className="h-5 w-5" />,
@@ -231,7 +238,8 @@ const StaffSidebar = ({ user: propUser, isOpen, onClose, isCollapsed, setIsColla
             'Training & Assessment': 'training',
             'Inventory Management': 'inventory',
             'Enrollment Trends': 'analytics',
-            'Reports': 'reports'
+            'Reports': 'reports',
+            'Certificates': 'certificates'
           };
           
           const permKey = permKeyMap[item.name];

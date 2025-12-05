@@ -36,7 +36,8 @@ const StaffPermissionsModal = ({ isOpen, onClose, userData, onSave }) => {
       assessments: false,
       inventory: false,
       payments: false
-    }
+    },
+    certificates: false
   });
 
   const [expandedSections, setExpandedSections] = useState({});
@@ -80,7 +81,8 @@ const StaffPermissionsModal = ({ isOpen, onClose, userData, onSave }) => {
           assessments: false,
           inventory: false,
           payments: false
-        }
+        },
+        certificates: false
       });
     }
   }, [userData, isOpen]);
@@ -221,6 +223,12 @@ const StaffPermissionsModal = ({ isOpen, onClose, userData, onSave }) => {
         { id: 'inventory', label: 'Inventory Reports' },
         { id: 'payments', label: 'Payment Reports' }
       ]
+    },
+    {
+      id: 'certificates',
+      label: 'Certificates',
+      description: 'View and manage student certificates',
+      type: 'single'
     }
   ];
 

@@ -52,6 +52,12 @@ const TOUR_STEPS = [
     position: 'right'
   },
   {
+    target: '[data-tour="certificates"]',
+    title: 'Certificates',
+    description: 'View and manage student certificates issued upon completion of training programs.',
+    position: 'right'
+  },
+  {
     target: '[data-tour="contact-messages"]',
     title: 'Contact Messages',
     description: 'View and respond to inquiries and messages from the website.',
