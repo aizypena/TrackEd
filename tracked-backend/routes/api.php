@@ -1557,6 +1557,121 @@ Route::middleware(['auth:sanctum'])->group(function () {
         ]);
     });
 
+    // Trainer Dashboard Statistics
+    Route::get('/trainer/dashboard-stats', function (Request $request) {
+        $trainer = $request->user();
+        
+        if ($trainer->role !== 'trainer') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Only trainers can access this endpoint.'
+            ], 403);
+        }
+        
+        try {
+            // Get batches assigned to this trainer
+            $trainerBatches = DB::table('batches')
+                ->where('trainer_id', $trainer->id)
+                ->pluck('batch_id')
+                ->toArray();
+            
+            // 1. Active Students Count - students in trainer's batches with active status
+            $activeStudents = \App\Models\User::whereIn('batch_id', $trainerBatches)
+                ->where('role', 'student')
+                ->where(function($query) {
+                    $query->where('status', 'active')
+                          ->orWhereNull('status');
+                })
+                ->count();
+            
+            // 2. Pending Exams - quizzes created by trainer that have unanswered attempts
+            $trainerQuizzes = DB::table('quizzes')
+                ->whereIn('batch_id', $trainerBatches)
+                ->where('status', 'active')
+                ->get();
+            
+            $pendingExamsCount = 0;
+            foreach ($trainerQuizzes as $quiz) {
+                // Get students in the batch
+                $batchStudents = \App\Models\User::where('batch_id', $quiz->batch_id)
+                    ->where('role', 'student')
+                    ->pluck('id')
+                    ->toArray();
+                
+                // Get students who have attempted this quiz
+                $attemptedStudents = DB::table('quiz_attempts')
+                    ->where('quiz_id', $quiz->id)
+                    ->whereIn('user_id', $batchStudents)
+                    ->pluck('user_id')
+                    ->toArray();
+                
+                // Count pending (students who haven't taken the quiz)
+                $pendingForQuiz = count(array_diff($batchStudents, $attemptedStudents));
+                $pendingExamsCount += $pendingForQuiz;
+            }
+            
+            // 3. Course Materials Count
+            $batchProgramIds = DB::table('batches')
+                ->whereIn('batch_id', $trainerBatches)
+                ->pluck('program_id')
+                ->unique()
+                ->toArray();
+            
+            $materialsCount = DB::table('course_materials')
+                ->whereIn('program_id', $batchProgramIds)
+                ->count();
+            
+            // 4. Pending Grades - students without complete grades
+            $studentsInBatches = \App\Models\User::whereIn('batch_id', $trainerBatches)
+                ->where('role', 'student')
+                ->get();
+            
+            $pendingGrades = 0;
+            foreach ($studentsInBatches as $student) {
+                // Check if student has all grade types
+                $gradeTypes = ['written', 'oral', 'demonstration', 'observation'];
+                $existingGrades = DB::table('grades')
+                    ->where('user_id', $student->id)
+                    ->pluck('assessment_type')
+                    ->unique()
+                    ->toArray();
+                
+                $missingGrades = count(array_diff($gradeTypes, $existingGrades));
+                if ($missingGrades > 0) {
+                    $pendingGrades++;
+                }
+            }
+            
+            // 5. Certification Requests - students marked as completed/ready for certification
+            $certificationRequests = \App\Models\User::whereIn('batch_id', $trainerBatches)
+                ->where('role', 'student')
+                ->where('status', 'completed')
+                ->whereNotExists(function($query) {
+                    $query->select(DB::raw(1))
+                          ->from('certificates')
+                          ->whereColumn('certificates.user_id', 'users.id');
+                })
+                ->count();
+            
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'activeStudents' => $activeStudents,
+                    'pendingExams' => $pendingExamsCount,
+                    'courseMaterials' => $materialsCount,
+                    'pendingGrades' => $pendingGrades,
+                    'certificationRequests' => $certificationRequests
+                ]
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Trainer dashboard stats error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch dashboard statistics: ' . $e->getMessage()
+            ], 500);
+        }
+    });
+
     // TESDA Assessment Routes
     
     // Get all TESDA assessment records

@@ -11,7 +11,7 @@ date,enrollment,program,completed,withdrawn,dropped_out
 2022-03-31,75,Barista Training NC II,61,5,9
 2022-06-30,42,Barista Training NC II,35,2,5
 2022-09-30,62,Barista Training NC II,43,8,11
-2022-12-31,59,Barista Training NC II,52,8,-1
+2022-12-31,59,Barista Training NC II,52,8,1
 2023-03-31,75,Barista Training NC II,64,9,2
 2023-06-30,78,Barista Training NC II,57,6,15
 2023-09-30,51,Barista Training NC II,37,3,11
