@@ -678,7 +678,7 @@ const StaffAddApplicant = () => {
                     ref={fileInputRefs.transcript}
                     type="file"
                     onChange={(e) => handleFileChange(e, 'transcript')}
-                    accept=".pdf"
+                    accept="image/*,.pdf"
                     className="hidden"
                   />
                 </div>
