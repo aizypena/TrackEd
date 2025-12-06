@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import TrainerSidebar from '../../layouts/trainer/TrainerSidebar';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import {
   MdMenu,
   MdSearch,
@@ -17,7 +19,25 @@ import {
 const TrainerAttendance = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  
+  // Initialize with today's date, but adjust if it's a weekend
+  const getInitialDate = () => {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    
+    if (dayOfWeek === 0) { // Sunday -> Friday
+      today.setDate(today.getDate() - 2);
+    } else if (dayOfWeek === 6) { // Saturday -> Friday
+      today.setDate(today.getDate() - 1);
+    }
+    
+    return today;
+  };
+  
+  const [selectedDateObj, setSelectedDateObj] = useState(getInitialDate());
+  
+  // Convert Date object to string format for API calls
+  const selectedDate = selectedDateObj.toISOString().split('T')[0];
   const [selectedProgram, setSelectedProgram] = useState('all');
   const [selectedBatch, setSelectedBatch] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -37,6 +57,19 @@ const TrainerAttendance = () => {
     absent: 0,
     excused: 0
   });
+
+  // Filter function to disable weekends (Saturday = 6, Sunday = 0)
+  const isWeekday = (date) => {
+    const day = date.getDay();
+    return day !== 0 && day !== 6;
+  };
+
+  // Function to check if a date is a weekend
+  const isDateWeekend = (dateString) => {
+    const date = new Date(dateString + 'T00:00:00');
+    const dayOfWeek = date.getDay();
+    return dayOfWeek === 0 || dayOfWeek === 6; // 0 = Sunday, 6 = Saturday
+  };
 
   useEffect(() => {
     fetchBatches();
@@ -365,16 +398,22 @@ const TrainerAttendance = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {/* Date Picker - Only show in daily mode */}
               {viewMode === 'daily' && (
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <div className="relative w-full">
+                  <DatePicker
+                    selected={selectedDateObj}
+                    onChange={(date) => setSelectedDateObj(date)}
+                    filterDate={isWeekday}
+                    dateFormat="yyyy-MM-dd"
+                    className="block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                    calendarClassName="shadow-lg"
+                    showPopperArrow={false}
+                    placeholderText="Select a weekday"
+                    wrapperClassName="w-full"
+                  />
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none" style={{ top: 0, bottom: '20px' }}>
                     <MdCalendarToday className="h-5 w-5 text-gray-400" />
                   </div>
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                  />
+                  <p className="text-xs text-gray-500 mt-1 ml-1">Weekdays only (Mon-Fri)</p>
                 </div>
               )}
 
@@ -570,7 +609,7 @@ const TrainerAttendance = () => {
             </>
           )}
 
-          {/* Weekend Notice */}
+          {/* Weekend Notice - Should rarely show now since weekends are auto-skipped */}
           {viewMode === 'daily' && isWeekend && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
               <div className="flex items-start">
@@ -578,7 +617,7 @@ const TrainerAttendance = () => {
                 <div className="text-sm text-yellow-700">
                   <strong>No Classes on Weekends</strong>
                   <br />
-                  Attendance cannot be marked on Saturdays and Sundays. Please select a weekday.
+                  Attendance is only available for weekdays (Monday - Friday). The date has been automatically adjusted.
                 </div>
               </div>
             </div>
