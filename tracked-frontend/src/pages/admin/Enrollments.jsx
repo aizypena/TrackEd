@@ -122,10 +122,10 @@ const Enrollments = () => {
       );
     }
     
-    // Batch filter
+    // Batch filter - compare with batch name (batch_id string)
     if (filterBatch && filterBatch !== 'all') {
       filtered = filtered.filter(enrollment => 
-        enrollment.batch === filterBatch
+        enrollment.batch === filterBatch || enrollment.batch_id === filterBatch
       );
     }
     
@@ -436,7 +436,7 @@ const Enrollments = () => {
                 >
                   <option value="all">All Batches</option>
                   {batches.map(batch => (
-                    <option key={batch.id} value={batch.id}>{batch.name}</option>
+                    <option key={batch.id} value={batch.name}>{batch.name}</option>
                   ))}
                 </select>
                 <select
