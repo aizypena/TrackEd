@@ -40,6 +40,8 @@ class User extends Authenticatable
         'voucher_eligible',
         'approval_notes',
         'application_status_reason',
+        'status_reason',
+        'status_updated_at',
         'approved_at',
         'address',
         'date_of_birth',

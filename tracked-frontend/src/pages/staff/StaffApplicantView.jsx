@@ -452,11 +452,32 @@ const StaffApplicantView = () => {
                 </h2>
                 <p className="text-gray-600 mt-1">Application ID: APP-{applicant.id}</p>
                 <p className="text-gray-600">Applied on: {formatDate(applicant.created_at)}</p>
+                {applicant.status_updated_at && (
+                  <p className="text-gray-600">Status updated: {formatDate(applicant.status_updated_at)}</p>
+                )}
               </div>
               <div className="flex flex-col gap-2">
                 {getStatusBadge(applicant.application_status)}
               </div>
             </div>
+            
+            {/* Display status reason if available */}
+            {applicant.status_reason && (applicant.application_status === 'under_review' || applicant.application_status === 'rejected') && (
+              <div className={`mt-4 p-4 rounded-lg border ${
+                applicant.application_status === 'rejected' 
+                  ? 'bg-red-50 border-red-200' 
+                  : 'bg-amber-50 border-amber-200'
+              }`}>
+                <h4 className={`text-sm font-medium mb-1 ${
+                  applicant.application_status === 'rejected' ? 'text-red-700' : 'text-amber-700'
+                }`}>
+                  {applicant.application_status === 'rejected' ? 'Rejection Reason:' : 'Review Reason:'}
+                </h4>
+                <p className={`${
+                  applicant.application_status === 'rejected' ? 'text-red-600' : 'text-amber-600'
+                }`}>{applicant.status_reason}</p>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -4298,9 +4298,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
         
         $applicant->application_status = $newStatus;
         
-        // Store the reason if provided
+        // Store the reason and update timestamp if provided
         if ($request->has('reason') && in_array($newStatus, ['under_review', 'rejected'])) {
-            $applicant->application_status_reason = $request->reason;
+            $applicant->status_reason = $request->reason;
+            $applicant->status_updated_at = now();
         }
         
         $applicant->save();

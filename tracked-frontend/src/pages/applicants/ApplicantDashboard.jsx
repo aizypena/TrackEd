@@ -24,6 +24,7 @@ const ApplicantDashboard = () => {
   const [user, setUser] = useState(null);
   const [applicationStatus, setApplicationStatus] = useState('pending');
   const [voucherEligibility, setVoucherEligibility] = useState(null);
+  const [statusReason, setStatusReason] = useState(null);
 
   const handleLogout = async () => {
     try {
@@ -120,6 +121,11 @@ const ApplicantDashboard = () => {
             
             // Update voucher eligibility (0 = not eligible, 1 = eligible, 2 = waitlisted)
             setVoucherEligibility(userData.voucher_eligible);
+            
+            // Update status reason if available
+            if (userData.status_reason) {
+              setStatusReason(userData.status_reason);
+            }
             
             // Update application status - prioritize application_status over status field
             // Check if user is waitlisted via status field
@@ -308,8 +314,30 @@ const ApplicantDashboard = () => {
                     <h4 className="text-lg font-bold text-gray-900 mb-2">Application Status Information</h4>
                     <p className="text-gray-700 leading-relaxed">
                       {applicationStatus === 'approved' && 'Congratulations! Your application has been approved. You now have full access to all student features and can begin your learning journey with SMI Institute.'}
-                      {applicationStatus === 'rejected' && 'We regret to inform you that your application was not approved at this time. Please contact our admissions office for detailed feedback and information about reapplication opportunities.'}
-                      {applicationStatus === 'under_review' && 'Your application is currently under careful review by our admissions committee. We typically complete our review process within 5-7 business days. You will receive an email notification once a decision is made.'}
+                      {applicationStatus === 'rejected' && (
+                        <>
+                          We regret to inform you that your application was not approved at this time.
+                          {statusReason && (
+                            <div className="mt-3 p-4 bg-red-100 border border-red-300 rounded-lg">
+                              <p className="font-semibold text-red-800 mb-1">Reason:</p>
+                              <p className="text-red-700">{statusReason}</p>
+                            </div>
+                          )}
+                          <p className="mt-3">Please contact our admissions office for more information about reapplication opportunities.</p>
+                        </>
+                      )}
+                      {applicationStatus === 'under_review' && (
+                        <>
+                          Your application is currently under careful review by our admissions committee.
+                          {statusReason && (
+                            <div className="mt-3 p-4 bg-amber-100 border border-amber-300 rounded-lg">
+                              <p className="font-semibold text-amber-800 mb-1">Review Notes:</p>
+                              <p className="text-amber-700">{statusReason}</p>
+                            </div>
+                          )}
+                          <p className="mt-3">We typically complete our review process within 5-7 business days. You will receive an email notification once a decision is made.</p>
+                        </>
+                      )}
                       {applicationStatus === 'waitlisted' && 'Your application has been placed on the waitlist. This means that while your application meets our requirements, all available slots in your selected training batch are currently full. You will be automatically enrolled when a slot becomes available. We will notify you via email if your status changes.'}
                       {applicationStatus === 'pending' && 'Thank you for submitting your application to SMI Institute. Your application has been received and will be reviewed by our admissions team. We appreciate your patience during this process.'}
                     </p>
