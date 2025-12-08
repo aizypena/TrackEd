@@ -1235,6 +1235,244 @@ Route::middleware(['auth:sanctum'])->group(function () {
         ]);
     });
 
+    // Admin Programs Route
+    Route::get('/admin/programs', function (Request $request) {
+        try {
+            $programs = DB::table('programs')
+                ->select('id', 'title', 'description', 'duration')
+                ->orderBy('title')
+                ->get();
+            
+            return response()->json([
+                'success' => true,
+                'data' => $programs
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch programs: ' . $e->getMessage()
+            ], 500);
+        }
+    });
+
+    // Get user's completed certificates/programs
+    Route::get('/admin/user/{userId}/certificates', function (Request $request, $userId) {
+        try {
+            $certificates = DB::table('certificates')
+                ->join('programs', 'certificates.program_id', '=', 'programs.id')
+                ->where('certificates.user_id', $userId)
+                ->select(
+                    'certificates.*',
+                    'programs.title as program_title'
+                )
+                ->get();
+            
+            return response()->json([
+                'success' => true,
+                'data' => $certificates
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch certificates'
+            ], 500);
+        }
+    });
+
+    // Get available batches for enrollment (with voucher info)
+    Route::get('/admin/batches-for-enrollment/{programId}', function (Request $request, $programId) {
+        try {
+            $batches = DB::table('batches')
+                ->leftJoin('vouchers', 'batches.batch_id', '=', 'vouchers.batch_id')
+                ->where('batches.program_id', $programId)
+                ->whereIn('batches.status', ['not started', 'ongoing'])
+                ->select(
+                    'batches.*',
+                    'vouchers.quantity as voucher_quantity',
+                    'vouchers.used_count as voucher_used_count',
+                    'vouchers.status as voucher_status'
+                )
+                ->get()
+                ->map(function ($batch) {
+                    // Count current enrolled students
+                    $currentStudents = DB::table('users')
+                        ->where('batch_id', $batch->batch_id)
+                        ->where('role', 'student')
+                        ->whereIn('status', ['active', 'inactive'])
+                        ->count();
+                    
+                    $maxStudents = $batch->max_students ?? 0;
+                    $availableSlots = max(0, $maxStudents - $currentStudents);
+                    
+                    // Calculate voucher availability
+                    $voucherQuantity = $batch->voucher_quantity ?? 0;
+                    $voucherUsed = $batch->voucher_used_count ?? 0;
+                    $voucherAvailable = max(0, $voucherQuantity - $voucherUsed);
+                    
+                    return [
+                        'id' => $batch->id,
+                        'batch_id' => $batch->batch_id,
+                        'program_id' => $batch->program_id,
+                        'schedule_days' => json_decode($batch->schedule_days, true),
+                        'schedule_time_start' => $batch->schedule_time_start,
+                        'schedule_time_end' => $batch->schedule_time_end,
+                        'start_date' => $batch->start_date,
+                        'end_date' => $batch->end_date,
+                        'max_students' => $maxStudents,
+                        'current_students' => $currentStudents,
+                        'available_slots' => $availableSlots,
+                        'is_full' => $availableSlots <= 0,
+                        'voucher_quantity' => $voucherQuantity,
+                        'voucher_used' => $voucherUsed,
+                        'voucher_available' => $voucherAvailable
+                    ];
+                });
+            
+            return response()->json([
+                'success' => true,
+                'data' => $batches
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch batches: ' . $e->getMessage()
+            ], 500);
+        }
+    });
+
+    // Re-enroll a completed student
+    Route::post('/admin/re-enroll', function (Request $request) {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'program_id' => 'required|exists:programs,id',
+            'batch_id' => 'required|string',
+            'assign_voucher' => 'boolean'
+        ]);
+        
+        try {
+            $user = \App\Models\User::find($request->user_id);
+            
+            // Verify user is in 'completed' status
+            if ($user->status !== 'completed') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only users with completed status can be re-enrolled'
+                ], 400);
+            }
+            
+            // Check if user already has a certificate for this program
+            $existingCertificate = DB::table('certificates')
+                ->where('user_id', $user->id)
+                ->where('program_id', $request->program_id)
+                ->first();
+            
+            if ($existingCertificate) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Student has already completed this program'
+                ], 400);
+            }
+            
+            // Verify batch exists and has available slots
+            $batch = DB::table('batches')
+                ->where('batch_id', $request->batch_id)
+                ->where('program_id', $request->program_id)
+                ->first();
+            
+            if (!$batch) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid batch selected'
+                ], 400);
+            }
+            
+            $currentStudents = DB::table('users')
+                ->where('batch_id', $request->batch_id)
+                ->where('role', 'student')
+                ->whereIn('status', ['active', 'inactive'])
+                ->count();
+            
+            if ($currentStudents >= $batch->max_students) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Selected batch is full'
+                ], 400);
+            }
+            
+            // Handle voucher assignment if requested
+            $voucherEligibility = 'not_eligible';
+            if ($request->assign_voucher) {
+                $voucher = DB::table('vouchers')
+                    ->where('batch_id', $request->batch_id)
+                    ->first();
+                
+                if ($voucher && ($voucher->quantity - $voucher->used_count) > 0) {
+                    // Increment voucher used count
+                    DB::table('vouchers')
+                        ->where('id', $voucher->id)
+                        ->increment('used_count');
+                    
+                    // Update voucher status if needed
+                    if ($voucher->used_count + 1 >= $voucher->quantity) {
+                        DB::table('vouchers')
+                            ->where('id', $voucher->id)
+                            ->update(['status' => 'used']);
+                    } elseif ($voucher->status === 'pending') {
+                        DB::table('vouchers')
+                            ->where('id', $voucher->id)
+                            ->update(['status' => 'issued']);
+                    }
+                    
+                    $voucherEligibility = 'eligible';
+                } else {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No vouchers available for this batch'
+                    ], 400);
+                }
+            }
+            
+            // Update user for re-enrollment
+            $user->update([
+                'role' => 'student',
+                'status' => 'active',
+                'batch_id' => $request->batch_id,
+                'course_program' => $request->program_id,
+                'voucher_eligibility' => $voucherEligibility,
+                'enrollment_date' => now(),
+                'updated_at' => now()
+            ]);
+            
+            // Log the re-enrollment
+            DB::table('system_logs')->insert([
+                'user_id' => $request->user()->id,
+                'action' => 'student_re_enrolled',
+                'description' => "Re-enrolled student {$user->first_name} {$user->last_name} to batch {$request->batch_id}" . 
+                    ($request->assign_voucher ? ' with voucher' : ' without voucher'),
+                'log_level' => 'info',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'created_at' => now()
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Student re-enrolled successfully',
+                'data' => [
+                    'user_id' => $user->id,
+                    'batch_id' => $request->batch_id,
+                    'program_id' => $request->program_id,
+                    'voucher_assigned' => $request->assign_voucher && $voucherEligibility === 'eligible'
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to re-enroll student: ' . $e->getMessage()
+            ], 500);
+        }
+    });
+
     // Admin Contact Messages Routes
     Route::get('/admin/contact-messages', [ContactController::class, 'index']);
     Route::patch('/admin/contact-messages/{id}/status', [ContactController::class, 'updateStatus']);
@@ -3094,6 +3332,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        
+        // Update student status to completed
+        DB::table('users')
+            ->where('id', $student->id)
+            ->update([
+                'status' => 'completed',
+                'updated_at' => now(),
+            ]);
         
         return response()->json([
             'success' => true,

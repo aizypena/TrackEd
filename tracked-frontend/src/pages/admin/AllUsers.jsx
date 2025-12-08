@@ -4,6 +4,7 @@ import Sidebar from '../../layouts/admin/Sidebar';
 import ViewUser from '../../layouts/admin/ViewUser';
 import EditUserModal from '../../components/User Management/EditUserModal';
 import StaffPermissionsModal from '../../components/admin/StaffPermissionsModal';
+import ReEnrollmentModal from '../../components/admin/ReEnrollmentModal';
 import { userAPI } from '../../services/userAPI';
 import { programAPI } from '../../services/programAPI';
 import toast from 'react-hot-toast';
@@ -11,7 +12,8 @@ import {
   MdSearch, MdFilterList, MdAdd, MdEdit, MdDelete, MdVisibility,
   MdPeople, MdEmail, MdPhone, MdLocationOn, MdDateRange,
   MdVerified, MdBlock, MdMoreVert, MdDownload, MdRefresh,
-  MdSupervisorAccount, MdSchool, MdBusiness, MdPerson, MdMenu, MdSecurity
+  MdSupervisorAccount, MdSchool, MdBusiness, MdPerson, MdMenu, MdSecurity,
+  MdCheckCircle, MdCancel, MdAutorenew
 } from 'react-icons/md';
 
 function AllUsers() {
@@ -27,8 +29,10 @@ function AllUsers() {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPermissionsModalOpen, setIsPermissionsModalOpen] = useState(false);
+  const [isReEnrollModalOpen, setIsReEnrollModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedStaffForPermissions, setSelectedStaffForPermissions] = useState(null);
+  const [selectedUserForReEnroll, setSelectedUserForReEnroll] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [programs, setPrograms] = useState([]);
   const [programMap, setProgramMap] = useState({});
@@ -230,6 +234,10 @@ function AllUsers() {
         return 'bg-yellow-100 text-yellow-800';
       case 'inactive':
         return 'bg-red-100 text-red-800';
+      case 'completed':
+        return 'bg-blue-100 text-blue-800';
+      case 'dropped':
+        return 'bg-gray-100 text-gray-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -241,6 +249,10 @@ function AllUsers() {
         return <MdVerified className="h-4 w-4" />;
       case 'inactive':
         return <MdBlock className="h-4 w-4" />;
+      case 'completed':
+        return <MdCheckCircle className="h-4 w-4" />;
+      case 'dropped':
+        return <MdCancel className="h-4 w-4" />;
       default:
         return <MdDateRange className="h-4 w-4" />;
     }
@@ -806,7 +818,8 @@ function AllUsers() {
               <option value="all">All Status</option>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
-              <option value="suspended">Suspended</option>
+              <option value="completed">Completed</option>
+              <option value="dropped">Dropped</option>
             </select>
           </div>
           </div>
@@ -906,6 +919,17 @@ function AllUsers() {
                           className="text-purple-600 hover:cursor-pointer hover:text-purple-900" 
                           title="Configure Permissions">
                           <MdSecurity className="h-5 w-5" />
+                        </button>
+                      )}
+                      {user.status === 'completed' && (
+                        <button 
+                          onClick={() => {
+                            setSelectedUserForReEnroll(user);
+                            setIsReEnrollModalOpen(true);
+                          }}
+                          className="text-cyan-600 hover:cursor-pointer hover:text-cyan-900" 
+                          title="Re-Enroll">
+                          <MdAutorenew className="h-5 w-5" />
                         </button>
                       )}
                       <button 
@@ -1044,6 +1068,20 @@ function AllUsers() {
           }}
           userData={selectedStaffForPermissions}
           onSave={handleSavePermissions}
+        />
+
+        {/* Re-Enrollment Modal */}
+        <ReEnrollmentModal
+          isOpen={isReEnrollModalOpen}
+          onClose={() => {
+            setIsReEnrollModalOpen(false);
+            setSelectedUserForReEnroll(null);
+          }}
+          userData={selectedUserForReEnroll}
+          onSuccess={() => {
+            fetchUsers();
+            fetchStats();
+          }}
         />
       </div>
     </div>
