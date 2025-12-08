@@ -286,6 +286,30 @@ const BatchManagement = () => {
     return `${daysStr} ${timeStart} - ${timeEnd}`;
   };
 
+  // Format date without timezone conversion - parse the date string directly
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    // Extract just the date part (YYYY-MM-DD) regardless of format
+    let datePart = dateString;
+    if (dateString.includes('T')) {
+      datePart = dateString.split('T')[0];
+    } else if (dateString.includes(' ')) {
+      datePart = dateString.split(' ')[0];
+    }
+    const parts = datePart.split('-');
+    if (parts.length !== 3) return dateString;
+    
+    const year = parts[0];
+    const monthNum = parseInt(parts[1], 10);
+    const day = parseInt(parts[2], 10);
+    
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthName = monthNames[monthNum - 1];
+    
+    return `${monthName} ${day}, ${year}`;
+  };
+
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
@@ -425,7 +449,7 @@ const BatchManagement = () => {
                           </div>
                           {batch.start_date && batch.end_date && (
                             <div className="text-xs text-gray-500">
-                              {new Date(batch.start_date).toLocaleDateString()} - {new Date(batch.end_date).toLocaleDateString()}
+                              {formatDate(batch.start_date)} - {formatDate(batch.end_date)}
                             </div>
                           )}
                         </td>

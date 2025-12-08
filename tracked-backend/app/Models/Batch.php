@@ -31,8 +31,9 @@ class Batch extends Model
      */
     protected $casts = [
         'schedule_days' => 'array',
-        'start_date' => 'date',
-        'end_date' => 'date',
+        // Don't cast dates to avoid timezone conversion issues
+        // 'start_date' => 'date',
+        // 'end_date' => 'date',
     ];
 
     /**

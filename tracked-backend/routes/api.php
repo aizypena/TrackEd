@@ -1548,6 +1548,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
             $batch->schedule_days = json_decode($batch->schedule_days);
             $batch->name = $batch->batch_id; // Add name field for dropdown compatibility
             
+            // Format dates as Y-m-d strings to avoid timezone issues
+            if ($batch->start_date) {
+                $batch->start_date = date('Y-m-d', strtotime($batch->start_date));
+            }
+            if ($batch->end_date) {
+                $batch->end_date = date('Y-m-d', strtotime($batch->end_date));
+            }
+            
             return $batch;
         });
         
