@@ -32,7 +32,7 @@ const StaffInventoryReports = () => {
   const fetchCategories = async () => {
     try {
       const token = getStaffToken();
-      const response = await fetch('http://localhost:8000/api/staff/equipment/categories', {
+      const response = await fetch('https://api.smitracked.cloud/api/staff/equipment/categories', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -55,7 +55,7 @@ const StaffInventoryReports = () => {
   const logAction = async (action, description) => {
     try {
       const token = getStaffToken();
-      await fetch('http://localhost:8000/api/log-action', {
+      await fetch('https://api.smitracked.cloud/api/log-action', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -96,7 +96,7 @@ const StaffInventoryReports = () => {
         requestBody.status = statusFilter;
       }
       
-      const response = await fetch('http://localhost:8000/api/staff/reports/inventory', {
+      const response = await fetch('https://api.smitracked.cloud/api/staff/reports/inventory', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

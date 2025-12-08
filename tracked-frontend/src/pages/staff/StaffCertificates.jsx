@@ -42,7 +42,7 @@ const StaffCertificates = () => {
         return;
       }
 
-      const response = await fetch('http://localhost:8000/api/staff/certificates', {
+      const response = await fetch('https://api.smitracked.cloud/api/staff/certificates', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'

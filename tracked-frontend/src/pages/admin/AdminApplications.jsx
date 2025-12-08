@@ -30,7 +30,7 @@ export default function AdminApplications() {
       try {
         // Use admin token for authentication
         const token = sessionStorage.getItem('adminToken');
-        const response = await fetch('http://localhost:8000/api/admin/applications', {
+        const response = await fetch('https://api.smitracked.cloud/api/admin/applications', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Accept': 'application/json'
@@ -74,7 +74,7 @@ export default function AdminApplications() {
   const logAction = async (action, description, level = 'info') => {
     try {
       const token = sessionStorage.getItem('adminToken');
-      await fetch('http://localhost:8000/api/log-action', {
+      await fetch('https://api.smitracked.cloud/api/log-action', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -96,7 +96,7 @@ export default function AdminApplications() {
   const handleViewDocuments = async (applicantId) => {
     try {
       const token = sessionStorage.getItem('adminToken');
-      const response = await fetch(`http://localhost:8000/api/admin/applicants/${applicantId}`, {
+      const response = await fetch(`https://api.smitracked.cloud/api/admin/applicants/${applicantId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -140,7 +140,7 @@ export default function AdminApplications() {
     
     try {
       const token = sessionStorage.getItem('adminToken');
-      const response = await fetch(`http://localhost:8000/api/storage-file/${docPath}`, {
+      const response = await fetch(`https://api.smitracked.cloud/api/storage-file/${docPath}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -260,7 +260,7 @@ export default function AdminApplications() {
   const handleEditApplicant = async (applicantId) => {
     try {
       const token = sessionStorage.getItem('adminToken');
-      const response = await fetch(`http://localhost:8000/api/admin/applicants/${applicantId}`, {
+      const response = await fetch(`https://api.smitracked.cloud/api/admin/applicants/${applicantId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -304,7 +304,7 @@ export default function AdminApplications() {
       const token = sessionStorage.getItem('adminToken');
       
       // First verify the admin password
-      const verifyResponse = await fetch('http://localhost:8000/api/admin/verify-password', {
+      const verifyResponse = await fetch('https://api.smitracked.cloud/api/admin/verify-password', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -328,7 +328,7 @@ export default function AdminApplications() {
       }
 
       // If password is correct, proceed with deletion
-      const deleteResponse = await fetch(`http://localhost:8000/api/admin/applicants/${applicantToDelete.id}`, {
+      const deleteResponse = await fetch(`https://api.smitracked.cloud/api/admin/applicants/${applicantToDelete.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -367,7 +367,7 @@ export default function AdminApplications() {
     e.preventDefault();
     try {
       const token = sessionStorage.getItem('adminToken');
-      const response = await fetch(`http://localhost:8000/api/admin/applicants/${selectedApplicant.id}`, {
+      const response = await fetch(`https://api.smitracked.cloud/api/admin/applicants/${selectedApplicant.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

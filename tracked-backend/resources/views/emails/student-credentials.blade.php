@@ -38,7 +38,7 @@
 
             <div class='credentials-box'>
                 <h3 style='color: #856404; margin-top: 0;'>🔐 LMS Access Credentials</h3>
-                <p><strong>LMS Portal:</strong> <a href='http://localhost:5173/smi-lms/login'>http://localhost:5173/student/login</a></p>
+                <p><strong>LMS Portal:</strong> <a href='https://smitracked.cloud/smi-lms/login'>https://smitracked.cloud/student/login</a></p>
                 <p><strong>Username:</strong> {{ $user->student_id }}</p>
                 <p><strong>Temporary Password:</strong> {{ $password }}</p>
                 <p style='margin-bottom: 0; color: #856404; font-size: 13px;'>⚠️ Please change your password upon first login.</p>

@@ -30,7 +30,7 @@ const StudentDetailModal = ({ student, onClose, getStatusBadge, getPaymentBadge 
     
     try {
       const token = sessionStorage.getItem('auth_token');
-      const response = await fetch(`http://localhost:8000/api/storage-file/${docPath}`, {
+      const response = await fetch(`https://api.smitracked.cloud/api/storage-file/${docPath}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }

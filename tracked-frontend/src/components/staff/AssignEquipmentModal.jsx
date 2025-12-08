@@ -94,7 +94,7 @@ const AssignEquipmentModal = ({ isOpen, onClose, equipment, onSuccess, onError }
 
     setLoading(true);
     try {
-      const API_URL = 'http://localhost:8000/api';
+      const API_URL = 'https://api.smitracked.cloud/api';
       const token = sessionStorage.getItem('staffToken') || sessionStorage.getItem('adminToken');
 
       const response = await axios.post(

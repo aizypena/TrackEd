@@ -58,7 +58,7 @@ const EditEnrollmentModal = ({ isOpen, onClose, enrollment, programs, batches, o
     
     try {
       const token = getStaffToken();
-      const response = await fetch(`http://localhost:8000/api/staff/enrollments/${enrollment.id}`, {
+      const response = await fetch(`https://api.smitracked.cloud/api/staff/enrollments/${enrollment.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

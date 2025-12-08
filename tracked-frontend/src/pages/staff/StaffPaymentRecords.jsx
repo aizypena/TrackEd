@@ -40,7 +40,7 @@ const StaffPaymentRecords = () => {
   const logSystemAction = async (action, description, logLevel = 'info') => {
     try {
       const token = getStaffToken();
-      const response = await fetch('http://localhost:8000/api/log-action', {
+      const response = await fetch('https://api.smitracked.cloud/api/log-action', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -66,7 +66,7 @@ const StaffPaymentRecords = () => {
     try {
       setLoading(true);
       const token = getStaffToken();
-      const response = await fetch('http://localhost:8000/api/payments', {
+      const response = await fetch('https://api.smitracked.cloud/api/payments', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -508,7 +508,7 @@ const StaffPaymentRecords = () => {
                             <button
                               onClick={() => {
                                 const token = getStaffToken();
-                                window.open(`http://localhost:8000/api/payments/${record.id}/receipt?token=${token}`, '_blank');
+                                window.open(`https://api.smitracked.cloud/api/payments/${record.id}/receipt?token=${token}`, '_blank');
                               }}
                               className="text-green-600 hover:text-green-700"
                               title="Download Receipt"

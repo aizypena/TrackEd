@@ -51,7 +51,7 @@ const ArimaForecasting = () => {
         const token = sessionStorage.getItem('adminToken');
         
         // Call backend API to generate interpretation (API key is stored securely in backend .env)
-        const response = await fetch('http://localhost:8000/api/admin/ai-interpretation', {
+        const response = await fetch('https://api.smitracked.cloud/api/admin/ai-interpretation', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,

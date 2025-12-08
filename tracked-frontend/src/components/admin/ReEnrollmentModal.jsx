@@ -51,7 +51,7 @@ const ReEnrollmentModal = ({ isOpen, onClose, userData, onSuccess }) => {
       const token = sessionStorage.getItem('adminToken');
       
       // Fetch programs
-      const programsResponse = await fetch('http://localhost:8000/api/admin/programs', {
+      const programsResponse = await fetch('https://api.smitracked.cloud/api/admin/programs', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -60,7 +60,7 @@ const ReEnrollmentModal = ({ isOpen, onClose, userData, onSuccess }) => {
       const programsData = await programsResponse.json();
       
       // Fetch user's previous programs (certificates)
-      const certificatesResponse = await fetch(`http://localhost:8000/api/admin/user/${userData.id}/certificates`, {
+      const certificatesResponse = await fetch(`https://api.smitracked.cloud/api/admin/user/${userData.id}/certificates`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -88,7 +88,7 @@ const ReEnrollmentModal = ({ isOpen, onClose, userData, onSuccess }) => {
   const fetchBatchesForProgram = async (programId) => {
     try {
       const token = sessionStorage.getItem('adminToken');
-      const response = await fetch(`http://localhost:8000/api/admin/batches-for-enrollment/${programId}`, {
+      const response = await fetch(`https://api.smitracked.cloud/api/admin/batches-for-enrollment/${programId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -118,7 +118,7 @@ const ReEnrollmentModal = ({ isOpen, onClose, userData, onSuccess }) => {
     setLoading(true);
     try {
       const token = sessionStorage.getItem('adminToken');
-      const response = await fetch('http://localhost:8000/api/admin/re-enroll', {
+      const response = await fetch('https://api.smitracked.cloud/api/admin/re-enroll', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -124,7 +124,7 @@ const TrainerAttendance = () => {
   const fetchBatches = async () => {
     try {
       const token = sessionStorage.getItem('trainerToken');
-      const response = await fetch('http://localhost:8000/api/trainer/batches', {
+      const response = await fetch('https://api.smitracked.cloud/api/trainer/batches', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -143,7 +143,7 @@ const TrainerAttendance = () => {
   const fetchPrograms = async () => {
     try {
       const token = sessionStorage.getItem('trainerToken');
-      const response = await fetch('http://localhost:8000/api/trainer/assigned-programs', {
+      const response = await fetch('https://api.smitracked.cloud/api/trainer/assigned-programs', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -195,7 +195,7 @@ const TrainerAttendance = () => {
         params.append('program_id', selectedProgram);
       }
 
-      const response = await fetch(`http://localhost:8000/api/trainer/attendance/students?${params}`, {
+      const response = await fetch(`https://api.smitracked.cloud/api/trainer/attendance/students?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -232,7 +232,7 @@ const TrainerAttendance = () => {
         params.append('program_id', selectedProgram);
       }
 
-      const response = await fetch(`http://localhost:8000/api/trainer/attendance/summary?${params}`, {
+      const response = await fetch(`https://api.smitracked.cloud/api/trainer/attendance/summary?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -308,7 +308,7 @@ const TrainerAttendance = () => {
       setSaving(true);
       const token = sessionStorage.getItem('trainerToken');
 
-      const response = await fetch('http://localhost:8000/api/trainer/attendance/mark', {
+      const response = await fetch('https://api.smitracked.cloud/api/trainer/attendance/mark', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

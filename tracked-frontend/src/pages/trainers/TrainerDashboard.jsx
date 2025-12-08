@@ -46,7 +46,7 @@ const TrainerDashboard = () => {
         return;
       }
 
-      const response = await fetch('http://localhost:8000/api/trainer/dashboard-stats', {
+      const response = await fetch('https://api.smitracked.cloud/api/trainer/dashboard-stats', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'

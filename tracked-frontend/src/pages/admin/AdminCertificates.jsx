@@ -44,7 +44,7 @@ const AdminCertificates = () => {
         return;
       }
 
-      const response = await fetch('http://localhost:8000/api/admin/certificates', {
+      const response = await fetch('https://api.smitracked.cloud/api/admin/certificates', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'

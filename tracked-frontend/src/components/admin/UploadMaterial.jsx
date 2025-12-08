@@ -97,8 +97,8 @@ const UploadMaterial = ({ isOpen, onClose, material, programs, materialTypes, on
       
       // Make API call
       const endpoint = material 
-        ? `http://localhost:8000/api/trainer/course-materials/${material.id}`
-        : 'http://localhost:8000/api/trainer/course-materials/upload';
+        ? `https://api.smitracked.cloud/api/trainer/course-materials/${material.id}`
+        : 'https://api.smitracked.cloud/api/trainer/course-materials/upload';
       
       const method = material ? 'PUT' : 'POST';
       

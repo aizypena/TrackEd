@@ -55,7 +55,7 @@ const StaffAcademicRecords = () => {
       const token = getStaffToken();
       
       // Fetch all students from enrollments endpoint
-      const studentsResponse = await fetch('http://localhost:8000/api/staff/enrollments', {
+      const studentsResponse = await fetch('https://api.smitracked.cloud/api/staff/enrollments', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -70,7 +70,7 @@ const StaffAcademicRecords = () => {
       const students = studentsData.data || studentsData.enrollments || studentsData || [];
 
       // Fetch all grades
-      const gradesResponse = await fetch('http://localhost:8000/api/staff/grades', {
+      const gradesResponse = await fetch('https://api.smitracked.cloud/api/staff/grades', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'

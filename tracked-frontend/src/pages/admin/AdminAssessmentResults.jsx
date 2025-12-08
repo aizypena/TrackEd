@@ -35,7 +35,7 @@ const AdminAssessmentResults = () => {
   const fetchPrograms = async () => {
     try {
       const token = sessionStorage.getItem('adminToken');
-      const response = await fetch('http://localhost:8000/api/public/programs', {
+      const response = await fetch('https://api.smitracked.cloud/api/public/programs', {
         headers: {
           'Accept': 'application/json'
         }
@@ -56,7 +56,7 @@ const AdminAssessmentResults = () => {
   const fetchBatches = async () => {
     try {
       const token = sessionStorage.getItem('adminToken');
-      const response = await fetch('http://localhost:8000/api/staff/batches', {
+      const response = await fetch('https://api.smitracked.cloud/api/staff/batches', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -85,7 +85,7 @@ const AdminAssessmentResults = () => {
         return;
       }
 
-      const response = await fetch('http://localhost:8000/api/admin/assessment-results', {
+      const response = await fetch('https://api.smitracked.cloud/api/admin/assessment-results', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'

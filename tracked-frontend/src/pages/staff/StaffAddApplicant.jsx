@@ -77,7 +77,7 @@ const StaffAddApplicant = () => {
   useEffect(() => {
     const fetchPrograms = async () => {
       try {
-        const response = await fetch('http://localhost:8000/api/programs');
+        const response = await fetch('https://api.smitracked.cloud/api/programs');
         if (response.ok) {
           const data = await response.json();
           setAvailablePrograms(data.data || []);
@@ -213,7 +213,7 @@ const StaffAddApplicant = () => {
         }
       });
 
-      const response = await fetch('http://localhost:8000/api/staff/applicants', {
+      const response = await fetch('https://api.smitracked.cloud/api/staff/applicants', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

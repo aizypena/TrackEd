@@ -22,7 +22,7 @@ export default function StaffContactMessages() {
     setError(null);
     try {
       const token = sessionStorage.getItem('staffToken');
-      let url = `http://localhost:8000/api/staff/contact-messages?page=${page}`;
+      let url = `https://api.smitracked.cloud/api/staff/contact-messages?page=${page}`;
       
       if (statusFilter && statusFilter !== 'all') {
         url += `&status=${statusFilter}`;
@@ -91,7 +91,7 @@ export default function StaffContactMessages() {
   const updateStatus = async (messageId, newStatus) => {
     try {
       const token = sessionStorage.getItem('staffToken');
-      const response = await fetch(`http://localhost:8000/api/staff/contact-messages/${messageId}/status`, {
+      const response = await fetch(`https://api.smitracked.cloud/api/staff/contact-messages/${messageId}/status`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -44,7 +44,7 @@ function AdminProfileSettings() {
   const logSystemAction = async (action, description, logLevel = 'info') => {
     try {
       const token = sessionStorage.getItem('adminToken');
-      const response = await fetch('http://localhost:8000/api/log-action', {
+      const response = await fetch('https://api.smitracked.cloud/api/log-action', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -105,7 +105,7 @@ function AdminProfileSettings() {
     try {
       const token = sessionStorage.getItem('adminToken');
       
-      const response = await fetch('http://localhost:8000/api/admin/profile', {
+      const response = await fetch('https://api.smitracked.cloud/api/admin/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -234,7 +234,7 @@ function AdminProfileSettings() {
     try {
       const token = sessionStorage.getItem('adminToken');
       
-      const response = await fetch('http://localhost:8000/api/admin/password', {
+      const response = await fetch('https://api.smitracked.cloud/api/admin/password', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

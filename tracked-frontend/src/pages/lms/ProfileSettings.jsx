@@ -63,7 +63,7 @@ const ProfileSettings = () => {
   const fetchUserProfile = async () => {
     try {
       const token = sessionStorage.getItem('studentToken');
-      const response = await fetch('http://localhost:8000/api/user', {
+      const response = await fetch('https://api.smitracked.cloud/api/user', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -147,7 +147,7 @@ const ProfileSettings = () => {
 
     try {
       const token = sessionStorage.getItem('studentToken');
-      const response = await fetch('http://localhost:8000/api/student/profile', {
+      const response = await fetch('https://api.smitracked.cloud/api/student/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -219,7 +219,7 @@ const ProfileSettings = () => {
 
     try {
       const token = sessionStorage.getItem('studentToken');
-      const response = await fetch('http://localhost:8000/api/student/password', {
+      const response = await fetch('https://api.smitracked.cloud/api/student/password', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
