@@ -739,6 +739,13 @@ Format your response with clear sections using markdown headings (##) and bullet
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        
+        // Handle rate limiting specifically
+        if (response.status === 429) {
+          const retryAfter = errorData.retryAfter || 30;
+          throw new Error(`AI service is busy. Please wait ${retryAfter} seconds and try again.`);
+        }
+        
         throw new Error(errorData.message || `API error: ${response.status}`);
       }
 
@@ -749,8 +756,8 @@ Format your response with clear sections using markdown headings (##) and bullet
       toast.success('AI interpretation generated successfully');
     } catch (error) {
       console.error('Error generating AI interpretation:', error);
-      toast.error('Failed to generate AI interpretation: ' + error.message);
-      setAIInterpretation('Failed to generate interpretation. Please try again.');
+      toast.error(error.message || 'Failed to generate AI interpretation');
+      setAIInterpretation('Failed to generate interpretation. Please try again later.');
     } finally {
       setLoadingAI(false);
     }

@@ -47,10 +47,24 @@ class AIController extends Controller
                     'status' => $response->status(),
                     'body' => $response->body()
                 ]);
+                
+                // Handle specific error codes with user-friendly messages
+                $status = $response->status();
+                $message = 'Failed to generate AI interpretation. Please try again.';
+                
+                if ($status === 429) {
+                    $message = 'AI service is temporarily busy due to high usage. Please wait a moment and try again.';
+                } elseif ($status === 401 || $status === 403) {
+                    $message = 'AI service authentication failed. Please contact administrator.';
+                } elseif ($status >= 500) {
+                    $message = 'AI service is temporarily unavailable. Please try again later.';
+                }
+                
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to generate AI interpretation. Please try again.'
-                ], $response->status());
+                    'message' => $message,
+                    'retryAfter' => $status === 429 ? 30 : null
+                ], $status);
             }
 
             $data = $response->json();
