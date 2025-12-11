@@ -88,9 +88,74 @@ const ArimaForecasting = () => {
       }
     };
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [forecastPeriods, setForecastPeriods] = useState(6);
+  const [forecastType, setForecastType] = useState('quarterly'); // monthly, quarterly, semi-annual, annual, custom
+  const [forecastPeriods, setForecastPeriods] = useState(3); // Default: 3 quarters ahead
   const [selectedProgram, setSelectedProgram] = useState('all');
   const [loading, setLoading] = useState(false);
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+
+  // Forecast type configurations
+  const forecastTypeConfig = {
+    monthly: {
+      label: 'Monthly (3 months per period)',
+      periodLabel: 'months',
+      idealPeriods: 3,
+      maxPeriods: 6,
+      description: '3 months ahead ideal forecast'
+    },
+    quarterly: {
+      label: 'Quarterly (3 months per period)',
+      periodLabel: 'quarters',
+      idealPeriods: 3,
+      maxPeriods: 4,
+      description: '3 quarters ahead ideal forecast'
+    },
+    'semi-annual': {
+      label: 'Semi-Annual (6 months per period)',
+      periodLabel: 'periods',
+      idealPeriods: 4,
+      maxPeriods: 4,
+      description: '2 years (4 periods) ideal forecast'
+    },
+    annual: {
+      label: 'Annual (12 months per period)',
+      periodLabel: 'years',
+      idealPeriods: 2,
+      maxPeriods: 2,
+      description: '1-2 years max ideal forecast'
+    },
+    custom: {
+      label: 'Custom Range',
+      periodLabel: 'months',
+      idealPeriods: 3,
+      maxPeriods: 12,
+      description: 'Generate forecast for a specific date range based on historical data before that range'
+    }
+  };
+
+  // Update forecast periods when type changes
+  const handleForecastTypeChange = (type) => {
+    setForecastType(type);
+    if (type !== 'custom') {
+      setForecastPeriods(forecastTypeConfig[type].idealPeriods);
+      setCustomStartDate('');
+      setCustomEndDate('');
+    }
+  };
+
+  // Get period options based on forecast type
+  const getPeriodOptions = () => {
+    const config = forecastTypeConfig[forecastType];
+    const options = [];
+    for (let i = 1; i <= config.maxPeriods; i++) {
+      options.push({
+        value: i,
+        label: `${i} ${config.periodLabel}${i > 1 ? '' : ''}`
+      });
+    }
+    return options;
+  };
   
   const [forecastData, setForecastData] = useState({
     historical: [],
@@ -119,6 +184,19 @@ const ArimaForecasting = () => {
     try {
       setLoading(true);
       const token = sessionStorage.getItem('adminToken');
+      
+      const requestBody = {
+        program: selectedProgram,
+        periods: forecastPeriods,
+        forecastType: forecastType
+      };
+
+      // Add custom date range if using custom type
+      if (forecastType === 'custom' && customStartDate && customEndDate) {
+        requestBody.startDate = customStartDate;
+        requestBody.endDate = customEndDate;
+      }
+
       const response = await fetch(`${API_URL}/admin/arima-forecast`, {
         method: 'POST',
         headers: {
@@ -126,17 +204,16 @@ const ArimaForecasting = () => {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        body: JSON.stringify({
-          program: selectedProgram,
-          periods: forecastPeriods
-        })
+        body: JSON.stringify(requestBody)
       });
 
       if (response.ok) {
         const data = await response.json();
         setForecastData(data);
       } else {
-        toast.error('Failed to generate forecast');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Forecast error:', response.status, errorData);
+        toast.error(errorData.message || 'Failed to generate forecast');
       }
     } catch (error) {
       console.error('Error fetching forecast:', error);
@@ -147,29 +224,69 @@ const ArimaForecasting = () => {
   };
 
   useEffect(() => {
+    // For custom type, don't auto-fetch - use the "Generate Forecast" button instead
+    if (forecastType === 'custom') {
+      return;
+    }
+    // For other types, always fetch automatically
     fetchForecast();
-  }, [selectedProgram, forecastPeriods]);
+  }, [selectedProgram, forecastPeriods, forecastType]);
+
+  // Manual fetch for custom range
+  const handleCustomFetch = () => {
+    if (forecastType === 'custom') {
+      if (!customStartDate || !customEndDate) {
+        toast.error('Please select both start and end dates');
+        return;
+      }
+      if (new Date(customStartDate) > new Date(customEndDate)) {
+        toast.error('Start date must be before end date');
+        return;
+      }
+    }
+    fetchForecast();
+  };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
+    if (dateString === null || dateString === undefined) return 'N/A';
+    
+    // Convert to string for consistent handling
+    const dateStr = String(dateString);
+    
+    // Handle year-only format like "2024" or "2025" (works for both number and string)
+    if (/^\d{4}$/.test(dateStr)) {
+      return dateStr; // Return year as-is
+    }
+    
+    // Handle semi-annual format like "2024-H1" or "2024-H2"
+    const halfMatch = dateStr.match(/(\d{4})-(H[12])/i);
+    if (halfMatch) {
+      return `${halfMatch[2]} ${halfMatch[1]}`; // "H1 2024"
+    }
     
     // Handle quarter format like "Q1 2024" or "2024-Q1"
-    if (typeof dateString === 'string') {
-      const quarterMatch = dateString.match(/Q(\d)\s*(\d{4})/i) || dateString.match(/(\d{4})-Q(\d)/i);
-      if (quarterMatch) {
-        const quarter = quarterMatch[1] || quarterMatch[2];
-        const year = quarterMatch[2] || quarterMatch[1];
-        return `Q${quarter} ${year}`;
-      }
+    const quarterMatch = dateStr.match(/Q(\d)\s*(\d{4})/i) || dateStr.match(/(\d{4})-Q(\d)/i);
+    if (quarterMatch) {
+      const quarter = quarterMatch[1] || quarterMatch[2];
+      const year = quarterMatch[2] || quarterMatch[1];
+      return `Q${quarter} ${year}`;
+    }
+    
+    // Handle YYYY-MM format
+    if (/^\d{4}-\d{2}$/.test(dateStr)) {
+      const [year, month] = dateStr.split('-');
+      const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+      const monthName = date.toLocaleString('default', { month: 'short' });
+      return `${monthName} ${year}`;
     }
     
     // Handle different date formats
-    const date = new Date(dateString);
+    const date = new Date(dateStr);
     
     // Check if date is valid
     if (isNaN(date.getTime())) {
       // Try parsing as YYYY-MM-DD
-      const parts = String(dateString).split(/[-\/]/);
+      const parts = dateStr.split(/[-\/]/);
       if (parts.length >= 2) {
         const year = parseInt(parts[0]);
         const month = parseInt(parts[1]) - 1; // Month is 0-indexed
@@ -186,7 +303,7 @@ const ArimaForecasting = () => {
         }
       }
       
-      return String(dateString); // Return as-is if can't parse
+      return dateStr; // Return as-is if can't parse
     }
     
     const month = date.toLocaleString('default', { month: 'short' });
@@ -332,64 +449,119 @@ const ArimaForecasting = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <header className="bg-white shadow-sm">
-          <div className="px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="lg:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100"
-              >
-                <MdMenu className="h-6 w-6" />
-              </button>
-              <div>
-                <h1 className="text-2xl font-semibold text-gray-900">ARIMA Forecasting</h1>
-                <p className="text-sm text-gray-500">Enrollment projections based on historical data</p>
+          <div className="px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => setSidebarOpen(!sidebarOpen)}
+                  className="lg:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100"
+                >
+                  <MdMenu className="h-6 w-6" />
+                </button>
+                <div>
+                  <h1 className="text-2xl font-semibold text-gray-900">ARIMA Forecasting</h1>
+                  <p className="text-sm text-gray-500">Enrollment projections based on historical data</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={handleRefresh}
+                  className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
+                  disabled={loading}
+                >
+                  <MdRefresh className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
+                </button>
+                <button
+                  onClick={handleExport}
+                  className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
+                >
+                  <MdDownload className="h-5 w-5" />
+                </button>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
-              <select
-                value={forecastPeriods}
-                onChange={(e) => setForecastPeriods(parseInt(e.target.value))}
-                className="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="7">Daily (7 days)</option>
-                <option value="30">Daily (30 days)</option>
-                <option value="90">Daily (90 days)</option>
-                <option value="4">Weekly (4 weeks)</option>
-                <option value="12">Weekly (12 weeks)</option>
-                <option value="26">Weekly (26 weeks)</option>
-                <option value="3">Monthly (3 months)</option>
-                <option value="6">Monthly (6 months)</option>
-                <option value="12">Monthly (12 months)</option>
-                <option value="4">Quarterly (4 quarters)</option>
-                <option value="8">Quarterly (8 quarters)</option>
-                <option value="12">Quarterly (12 quarters)</option>
-                <option value="1">Yearly (1 year)</option>
-                <option value="3">Yearly (3 years)</option>
-                <option value="5">Yearly (5 years)</option>
-              </select>
-              <select
-                value={selectedProgram}
-                onChange={(e) => setSelectedProgram(e.target.value)}
-                className="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                {programs.map(program => (
-                  <option key={program.id} value={program.id}>{program.name}</option>
-                ))}
-              </select>
-              <button
-                onClick={handleRefresh}
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
-                disabled={loading}
-              >
-                <MdRefresh className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
-              </button>
-              <button
-                onClick={handleExport}
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
-              >
-                <MdDownload className="h-5 w-5" />
-              </button>
+            
+            {/* Filter Row */}
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Forecast Type */}
+              <div className="flex items-center space-x-2">
+                <label className="text-sm font-medium text-gray-700">Forecast Type:</label>
+                <select
+                  value={forecastType}
+                  onChange={(e) => handleForecastTypeChange(e.target.value)}
+                  className="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="monthly">Monthly (3 months per period)</option>
+                  <option value="quarterly">Quarterly (3 months per period)</option>
+                  <option value="semi-annual">Semi-Annual (6 months per period)</option>
+                  <option value="annual">Annual (12 months per period)</option>
+                  <option value="custom">Custom Range</option>
+                </select>
+              </div>
+
+              {/* Forecast Periods (not shown for custom) */}
+              {forecastType !== 'custom' && (
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm font-medium text-gray-700">Periods Ahead:</label>
+                  <select
+                    value={forecastPeriods}
+                    onChange={(e) => setForecastPeriods(parseInt(e.target.value))}
+                    className="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    {getPeriodOptions().map(opt => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label} {opt.value === forecastTypeConfig[forecastType].idealPeriods ? '(ideal)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Custom Date Range */}
+              {forecastType === 'custom' && (
+                <div className="flex items-center space-x-2 flex-wrap gap-2">
+                  <label className="text-sm font-medium text-gray-700">From:</label>
+                  <input
+                    type="date"
+                    value={customStartDate}
+                    onChange={(e) => setCustomStartDate(e.target.value)}
+                    className="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <label className="text-sm font-medium text-gray-700">To:</label>
+                  <input
+                    type="date"
+                    value={customEndDate}
+                    onChange={(e) => setCustomEndDate(e.target.value)}
+                    className="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <button
+                    onClick={handleCustomFetch}
+                    disabled={loading || !customStartDate || !customEndDate}
+                    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? 'Loading...' : 'Generate Forecast'}
+                  </button>
+                </div>
+              )}
+
+              {/* Program Selection */}
+              <div className="flex items-center space-x-2">
+                <label className="text-sm font-medium text-gray-700">Program:</label>
+                <select
+                  value={selectedProgram}
+                  onChange={(e) => setSelectedProgram(e.target.value)}
+                  className="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                >
+                  {programs.map(program => (
+                    <option key={program.id} value={program.id}>{program.name}</option>
+                  ))}
+                </select>
+              </div>
             </div>
+
+            {/* Forecast Type Description */}
+            <p className="text-xs text-gray-500 mt-2">
+              {forecastTypeConfig[forecastType].description}
+            </p>
           </div>
         </header>
 
@@ -409,7 +581,7 @@ const ArimaForecasting = () => {
                         )
                       : 0}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">Historical avg per quarter</p>
+                  <p className="text-xs text-gray-500 mt-1">Historical avg per {forecastType === 'custom' ? 'period' : forecastType.replace('-', ' ')}</p>
                 </div>
                 <div className="p-3 bg-blue-50 rounded-full">
                   <MdCalendarToday className="h-6 w-6 text-blue-600" />
@@ -420,7 +592,7 @@ const ArimaForecasting = () => {
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Next Quarter Forecast</p>
+                  <p className="text-sm font-medium text-gray-600">Next {forecastType === 'custom' ? 'Period' : forecastType.charAt(0).toUpperCase() + forecastType.slice(1).replace('-', ' ')} Forecast</p>
                   <p className="text-2xl font-semibold text-purple-600">
                     {forecastData.forecast?.[0]?.enrollment || 0}
                   </p>

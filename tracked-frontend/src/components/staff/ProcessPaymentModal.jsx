@@ -109,7 +109,7 @@ const ProcessPaymentModal = ({ isOpen, onClose, applicant, onSuccess }) => {
     try {
       const token = getStaffToken();
 
-      // Clear any pending PayMongo payment data
+      // Clear any pending payment data
       sessionStorage.removeItem('pending_payment_id');
       sessionStorage.removeItem('pending_applicant_id');
       sessionStorage.removeItem('payment_notes');
@@ -161,13 +161,10 @@ const ProcessPaymentModal = ({ isOpen, onClose, applicant, onSuccess }) => {
     try {
       const token = getStaffToken();
       
-      // Handle online payments (card, gcash, maya) with PayMongo
-      const paymongoMethod = paymentMethod;
-      
-      // Prepare payment data
+      // Prepare payment data for Xendit
       const paymentData = {
         user_id: applicant.id,
-        payment_method: paymongoMethod,
+        payment_method: paymentMethod,
         amount: parseFloat(amountPaid)
       };
       
@@ -176,7 +173,7 @@ const ProcessPaymentModal = ({ isOpen, onClose, applicant, onSuccess }) => {
         paymentData.batch_id = applicant.batch_id;
       }
       
-      // Create payment intent with PayMongo
+      // Create payment with Xendit
       const response = await fetch('https://api.smitracked.cloud/api/payments/intent', {
         method: 'POST',
         headers: {
@@ -195,7 +192,7 @@ const ProcessPaymentModal = ({ isOpen, onClose, applicant, onSuccess }) => {
         sessionStorage.setItem('pending_applicant_id', applicant.id);
         sessionStorage.setItem('payment_notes', notes);
         
-        // Redirect to PayMongo checkout
+        // Redirect to Xendit checkout
         if (data.redirect_url) {
           window.location.href = data.redirect_url;
         } else {
@@ -356,8 +353,8 @@ const ProcessPaymentModal = ({ isOpen, onClose, applicant, onSuccess }) => {
                   </ul>
                 ) : (
                   <ul className="text-sm text-gray-600 space-y-1">
-                    <li>• You will be redirected to PayMongo payment gateway</li>
-                    <li>• Complete the payment using your selected method</li>
+                    <li>• You will be redirected to Xendit payment gateway</li>
+                    <li>• Complete the payment using your selected method ({paymentMethod === 'gcash' ? 'GCash' : 'Maya'})</li>
                     <li>• After payment, you'll be redirected back automatically</li>
                     <li>• Student will be enrolled and receive confirmation email</li>
                   </ul>
@@ -383,7 +380,7 @@ const ProcessPaymentModal = ({ isOpen, onClose, applicant, onSuccess }) => {
             >
               <MdPayment className="h-4 w-4" />
               {processing 
-                ? (paymentMethod === 'cash' ? 'Processing Cash Payment...' : 'Redirecting to PayMongo...') 
+                ? (paymentMethod === 'cash' ? 'Processing Cash Payment...' : 'Redirecting to Xendit...') 
                 : (paymentMethod === 'cash' ? 'Confirm Cash Payment' : 'Proceed to Payment')}
             </button>
           </div>

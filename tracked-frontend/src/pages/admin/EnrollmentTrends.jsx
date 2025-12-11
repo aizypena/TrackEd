@@ -43,18 +43,21 @@ ChartJS.register(
 
 const EnrollmentTrends = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [timeRange, setTimeRange] = useState('all');
+  // Removed timeRange state - now using startDate and endDate directly
   const [loading, setLoading] = useState(false);
   const [viewType, setViewType] = useState('quarterly'); // weekly, monthly, quarterly, yearly
   const [selectedProgram, setSelectedProgram] = useState('all');
   const [showAIInterpretation, setShowAIInterpretation] = useState(false);
   const [aiInterpretation, setAIInterpretation] = useState('');
   const [loadingAI, setLoadingAI] = useState(false);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   
   const [trendsData, setTrendsData] = useState({
     quarterlyData: {},
     programTotals: {},
     allData: [],
+    studentEnrollmentData: [],
     voucherStats: {
       total: 0,
       withVoucher: 0,
@@ -111,7 +114,7 @@ const EnrollmentTrends = () => {
   }, []);
 
   // Calculate data by view type for a specific program from allData
-  const getDataByViewType = (programName) => {
+  const getDataByViewType = (programName, filterByDate = true) => {
     if (!trendsData.allData || trendsData.allData.length === 0) {
       return {};
     }
@@ -119,9 +122,23 @@ const EnrollmentTrends = () => {
     const aggregatedData = {};
     
     // Filter data by program if not 'all'
-    const filteredData = programName === 'all' 
+    let filteredData = programName === 'all' 
       ? trendsData.allData 
       : trendsData.allData.filter(record => record.program === programName);
+
+    // Apply date range filter to raw data
+    if (filterByDate && (startDate || endDate)) {
+      const start = startDate ? new Date(startDate) : null;
+      const end = endDate ? new Date(endDate) : null;
+      if (end) end.setHours(23, 59, 59, 999);
+      
+      filteredData = filteredData.filter(record => {
+        const recordDate = new Date(record.date);
+        if (start && recordDate < start) return false;
+        if (end && recordDate > end) return false;
+        return true;
+      });
+    }
 
     // Aggregate by view type
     filteredData.forEach(record => {
@@ -161,10 +178,9 @@ const EnrollmentTrends = () => {
     return aggregatedData;
   };
 
-  // Filter data by time range
+  // Get sorted periods from aggregated data
   const getFilteredData = () => {
-    // Always use getDataByViewType to respect the current viewType
-    // This ensures data is aggregated according to weekly/monthly/quarterly/yearly
+    // getDataByViewType now handles date filtering internally
     const dataForProgram = getDataByViewType(selectedProgram);
 
     // Sort function based on view type
@@ -205,53 +221,8 @@ const EnrollmentTrends = () => {
       }
     };
 
-    const periods = Object.keys(dataForProgram || {}).sort(sortKeys);
-    
-    // Apply time range filter based on actual year ranges
-    if (timeRange === '1year' || timeRange === '3years' || timeRange === '5years') {
-      const yearsToShow = timeRange === '1year' ? 1 : timeRange === '3years' ? 3 : 5;
-      
-      // Get the most recent year from the data
-      let mostRecentYear = 0;
-      periods.forEach(period => {
-        let year = 0;
-        if (viewType === 'weekly') {
-          const match = period.match(/Week \d+ (\d+)/);
-          if (match) year = parseInt(match[1]);
-        } else if (viewType === 'monthly') {
-          const match = period.match(/\w+ (\d+)/);
-          if (match) year = parseInt(match[1]);
-        } else if (viewType === 'yearly') {
-          year = parseInt(period);
-        } else { // quarterly
-          const match = period.match(/Q\d (\d+)/);
-          if (match) year = parseInt(match[1]);
-        }
-        if (year > mostRecentYear) mostRecentYear = year;
-      });
-      
-      // Filter periods to only include those within the year range
-      const cutoffYear = mostRecentYear - yearsToShow + 1;
-      return periods.filter(period => {
-        let year = 0;
-        if (viewType === 'weekly') {
-          const match = period.match(/Week \d+ (\d+)/);
-          if (match) year = parseInt(match[1]);
-        } else if (viewType === 'monthly') {
-          const match = period.match(/\w+ (\d+)/);
-          if (match) year = parseInt(match[1]);
-        } else if (viewType === 'yearly') {
-          year = parseInt(period);
-        } else { // quarterly
-          const match = period.match(/Q\d (\d+)/);
-          if (match) year = parseInt(match[1]);
-        }
-        return year >= cutoffYear;
-      });
-    }
-    
-    // "All Time" - return all periods
-    return periods;
+    // Return sorted periods - date filtering is already applied in getDataByViewType
+    return Object.keys(dataForProgram || {}).sort(sortKeys);
   };
 
   // Calculate growth rate
@@ -343,6 +314,18 @@ const EnrollmentTrends = () => {
 
   const viewTypeLabel = viewType.charAt(0).toUpperCase() + viewType.slice(1);
 
+  // Format date range for display
+  const getDateRangeLabel = () => {
+    if (startDate && endDate) {
+      return ` (${new Date(startDate).toLocaleDateString()} - ${new Date(endDate).toLocaleDateString()})`;
+    } else if (startDate) {
+      return ` (From ${new Date(startDate).toLocaleDateString()})`;
+    } else if (endDate) {
+      return ` (Until ${new Date(endDate).toLocaleDateString()})`;
+    }
+    return '';
+  };
+
   const enrollmentTrends = {
     labels: filteredPeriods,
     datasets: [
@@ -366,14 +349,54 @@ const EnrollmentTrends = () => {
     ]
   };
 
-  // Voucher payment distribution
+  // Calculate filtered voucher stats based on date range
+  const getFilteredVoucherStats = () => {
+    const studentData = trendsData.studentEnrollmentData || [];
+    
+    // If no date filter is set, use the overall stats (faster and includes all data)
+    if (!startDate && !endDate) {
+      return {
+        withVoucher: trendsData.voucherStats?.withVoucher || 0,
+        withoutVoucher: trendsData.voucherStats?.withoutVoucher || 0
+      };
+    }
+    
+    // If no student data available, fall back to overall stats
+    if (studentData.length === 0) {
+      return {
+        withVoucher: trendsData.voucherStats?.withVoucher || 0,
+        withoutVoucher: trendsData.voucherStats?.withoutVoucher || 0
+      };
+    }
+
+    // Filter by date range
+    const start = startDate ? new Date(startDate) : null;
+    const end = endDate ? new Date(endDate) : null;
+    if (end) end.setHours(23, 59, 59, 999);
+    
+    const filteredStudents = studentData.filter(student => {
+      const studentDate = new Date(student.date);
+      if (start && studentDate < start) return false;
+      if (end && studentDate > end) return false;
+      return true;
+    });
+
+    const withVoucher = filteredStudents.filter(s => s.voucher_eligible).length;
+    const withoutVoucher = filteredStudents.filter(s => !s.voucher_eligible).length;
+
+    return { withVoucher, withoutVoucher };
+  };
+
+  const filteredVoucherStats = getFilteredVoucherStats();
+
+  // Voucher payment distribution (filtered by date)
   const voucherDistribution = {
     labels: ['With Voucher', 'Walk-In'],
     datasets: [
       {
         data: [
-          trendsData.voucherStats?.withVoucher || 0,
-          trendsData.voucherStats?.withoutVoucher || 0
+          filteredVoucherStats.withVoucher,
+          filteredVoucherStats.withoutVoucher
         ],
         backgroundColor: [
           'rgba(168, 85, 247, 0.8)',  // Purple for voucher
@@ -402,7 +425,7 @@ const EnrollmentTrends = () => {
       },
       title: {
         display: true,
-        text: 'Most Popular Training Programs',
+        text: `Most Popular Training Programs${getDateRangeLabel()}`,
         font: {
           size: 16,
           weight: 'bold'
@@ -494,7 +517,7 @@ const EnrollmentTrends = () => {
       },
       title: {
         display: true,
-        text: 'Enrollment Trends Over Time',
+        text: `Enrollment Trends Over Time${getDateRangeLabel()}`,
         font: {
           size: 16,
           weight: 'bold'
@@ -645,7 +668,8 @@ const EnrollmentTrends = () => {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `enrollment_trends_${viewType}_${programLabel}_${timeRange}.csv`);
+    const dateRangeLabel = startDate && endDate ? `${startDate}_to_${endDate}` : startDate ? `from_${startDate}` : endDate ? `to_${endDate}` : 'all_time';
+    link.setAttribute("download", `enrollment_trends_${viewType}_${programLabel}_${dateRangeLabel}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -654,8 +678,12 @@ const EnrollmentTrends = () => {
   };
 
   const generateAIInterpretation = async () => {
-    if (filteredPeriods.length === 0) {
-      toast.error('No data available for interpretation');
+    // Check if there's any data to interpret (either enrollment periods or student data)
+    const hasEnrollmentData = filteredPeriods.length > 0;
+    const hasStudentData = (filteredVoucherStats.withVoucher + filteredVoucherStats.withoutVoucher) > 0;
+    
+    if (!hasEnrollmentData && !hasStudentData) {
+      toast.error('No data available for the selected date range');
       return;
     }
 
@@ -666,13 +694,18 @@ const EnrollmentTrends = () => {
       const dataForProgram = getDataByViewType(selectedProgram);
       const growthRate = calculateGrowthRate();
       
-      // Prepare data summary for AI
+      // Prepare data summary for AI - use filtered voucher stats
+      const dateRangeText = startDate && endDate ? `${startDate} to ${endDate}` : startDate ? `From ${startDate}` : endDate ? `Until ${endDate}` : 'All Time';
+      const totalFilteredStudents = filteredVoucherStats.withVoucher + filteredVoucherStats.withoutVoucher;
+      const voucherPercentage = totalFilteredStudents > 0 ? ((filteredVoucherStats.withVoucher / totalFilteredStudents) * 100).toFixed(1) : 0;
+      const paidPercentage = totalFilteredStudents > 0 ? ((filteredVoucherStats.withoutVoucher / totalFilteredStudents) * 100).toFixed(1) : 0;
+      
       const dataSummary = {
         viewType: viewType,
-        timeRange: timeRange,
+        dateRange: dateRangeText,
         selectedProgram: selectedProgram,
         totalPrograms: trendsData.stats?.totalPrograms || 0,
-        totalEnrollments: trendsData.stats?.totalEnrollments || 0,
+        totalEnrollments: hasEnrollmentData ? filteredPeriods.reduce((sum, p) => sum + (dataForProgram[p] || 0), 0) : 0,
         avgPerProgram: trendsData.stats?.avgPerProgram || 0,
         growthRate: growthRate,
         periods: filteredPeriods,
@@ -684,31 +717,40 @@ const EnrollmentTrends = () => {
           .slice(0, 5)
           .map(([name, total]) => ({ name, total })),
         voucherStats: {
-          withVoucher: trendsData.voucherStats?.withVoucher || 0,
-          withoutVoucher: trendsData.voucherStats?.withoutVoucher || 0,
-          voucherPercentage: trendsData.voucherStats?.voucherPercentage || 0,
-          paidPercentage: trendsData.voucherStats?.paidPercentage || 0
+          withVoucher: filteredVoucherStats.withVoucher,
+          withoutVoucher: filteredVoucherStats.withoutVoucher,
+          voucherPercentage: voucherPercentage,
+          paidPercentage: paidPercentage,
+          total: totalFilteredStudents
         }
       };
+
+      // Build enrollment trends text
+      const enrollmentTrendsText = dataSummary.enrollmentData.length > 0 
+        ? `Enrollment Trends (${dataSummary.viewType}):\n${dataSummary.enrollmentData.map(d => `${d.period}: ${d.enrollments} enrollments`).join('\n')}`
+        : 'No enrollment trend data available for this date range.';
+
+      // Build top programs text
+      const topProgramsText = dataSummary.topPrograms.length > 0
+        ? `Top Programs:\n${dataSummary.topPrograms.map((p, i) => `${i + 1}. ${p.name}: ${p.total.toLocaleString()} enrollments`).join('\n')}`
+        : 'No program data available for this date range.';
 
       const prompt = `You are an educational data analyst. Analyze the following enrollment trends data and provide a comprehensive interpretation in a professional, actionable format.
 
 Data Summary:
 - View Type: ${dataSummary.viewType}
-- Time Range: ${dataSummary.timeRange}
+- Date Range: ${dataSummary.dateRange}
 - Selected Program: ${dataSummary.selectedProgram}
 - Total Programs: ${dataSummary.totalPrograms}
-- Total Enrollments: ${dataSummary.totalEnrollments.toLocaleString()}
+- Total Enrollments in Period: ${dataSummary.totalEnrollments.toLocaleString()}
 - Average per Program: ${dataSummary.avgPerProgram}
 - Growth Rate: ${dataSummary.growthRate}%
 
-Enrollment Trends (${dataSummary.viewType}):
-${dataSummary.enrollmentData.map(d => `${d.period}: ${d.enrollments} enrollments`).join('\n')}
+${enrollmentTrendsText}
 
-Top Programs:
-${dataSummary.topPrograms.map((p, i) => `${i + 1}. ${p.name}: ${p.total.toLocaleString()} enrollments`).join('\n')}
+${topProgramsText}
 
-Payment Distribution:
+Student Payment Distribution (${dataSummary.voucherStats.total} total students in date range):
 - With Voucher: ${dataSummary.voucherStats.withVoucher.toLocaleString()} (${dataSummary.voucherStats.voucherPercentage}%)
 - Walk-In: ${dataSummary.voucherStats.withoutVoucher.toLocaleString()} (${dataSummary.voucherStats.paidPercentage}%)
 
@@ -807,16 +849,34 @@ Format your response with clear sections using markdown headings (##) and bullet
                     <option key={program} value={program}>{program}</option>
                   ))}
                 </select>
-                <select
-                  value={timeRange}
-                  onChange={(e) => setTimeRange(e.target.value)}
-                  className="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="all">All Time</option>
-                  <option value="5years">Last 5 Years</option>
-                  <option value="3years">Last 3 Years</option>
-                  <option value="1year">Last 1 Year</option>
-                </select>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-600">From:</span>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <span className="text-sm text-gray-600">To:</span>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  {(startDate || endDate) && (
+                    <button
+                      onClick={() => {
+                        setStartDate('');
+                        setEndDate('');
+                      }}
+                      className="px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
+                      title="Clear date filter"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="flex items-center space-x-2">
                 <button
@@ -903,10 +963,12 @@ Format your response with clear sections using markdown headings (##) and bullet
                 <div>
                   <p className="text-sm font-medium text-purple-900">With Voucher</p>
                   <p className="text-2xl font-semibold text-purple-700">
-                    {loading ? '...' : trendsData.voucherStats?.withVoucher?.toLocaleString() || 0}
+                    {loading ? '...' : filteredVoucherStats.withVoucher?.toLocaleString() || 0}
                   </p>
                   <p className="text-xs text-purple-600 mt-1">
-                    {loading ? '...' : `${trendsData.voucherStats?.voucherPercentage || 0}% of total`}
+                    {loading ? '...' : `${(filteredVoucherStats.withVoucher + filteredVoucherStats.withoutVoucher) > 0 
+                      ? ((filteredVoucherStats.withVoucher / (filteredVoucherStats.withVoucher + filteredVoucherStats.withoutVoucher)) * 100).toFixed(1) 
+                      : 0}% of total`}
                   </p>
                 </div>
                 <div className="p-3 bg-purple-200 rounded-full">
@@ -919,10 +981,12 @@ Format your response with clear sections using markdown headings (##) and bullet
                 <div>
                   <p className="text-sm font-medium text-green-900">Walk-In</p>
                   <p className="text-2xl font-semibold text-green-700">
-                    {loading ? '...' : trendsData.voucherStats?.withoutVoucher?.toLocaleString() || 0}
+                    {loading ? '...' : filteredVoucherStats.withoutVoucher?.toLocaleString() || 0}
                   </p>
                   <p className="text-xs text-green-600 mt-1">
-                    {loading ? '...' : `${trendsData.voucherStats?.paidPercentage || 0}% of total`}
+                    {loading ? '...' : `${(filteredVoucherStats.withVoucher + filteredVoucherStats.withoutVoucher) > 0 
+                      ? ((filteredVoucherStats.withoutVoucher / (filteredVoucherStats.withVoucher + filteredVoucherStats.withoutVoucher)) * 100).toFixed(1) 
+                      : 0}% of total`}
                   </p>
                 </div>
                 <div className="p-3 bg-green-200 rounded-full">
@@ -935,10 +999,10 @@ Format your response with clear sections using markdown headings (##) and bullet
                 <div>
                   <p className="text-sm font-medium text-blue-900">Total Students</p>
                   <p className="text-2xl font-semibold text-blue-700">
-                    {loading ? '...' : trendsData.voucherStats?.total?.toLocaleString() || 0}
+                    {loading ? '...' : (filteredVoucherStats.withVoucher + filteredVoucherStats.withoutVoucher)?.toLocaleString() || 0}
                   </p>
                   <p className="text-xs text-blue-600 mt-1">
-                    Current enrollees
+                    {(startDate || endDate) ? 'In selected date range' : 'Current enrollees'}
                   </p>
                 </div>
                 <div className="p-3 bg-blue-200 rounded-full">
@@ -950,7 +1014,7 @@ Format your response with clear sections using markdown headings (##) and bullet
 
           {/* Charts Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            {/* Payment Method Distribution Chart */}
+            {/* Payment Method Distribution Chart - Changed to Bar Chart */}
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
               {loading ? (
                 <div className="flex items-center justify-center h-[400px]">
@@ -959,21 +1023,89 @@ Format your response with clear sections using markdown headings (##) and bullet
                     <p className="text-gray-600">Loading chart data...</p>
                   </div>
                 </div>
-              ) : (trendsData.voucherStats?.total === 0) ? (
+              ) : ((filteredVoucherStats.withVoucher + filteredVoucherStats.withoutVoucher) === 0) ? (
                 <div className="flex items-center justify-center h-[400px]">
-                  <p className="text-gray-500">No payment data available</p>
+                  <p className="text-gray-500">
+                    {(startDate || endDate) ? 'No students enrolled in the selected date range' : 'No payment data available'}
+                  </p>
                 </div>
               ) : (
                 <div style={{ height: '400px' }}>
-                  <Doughnut 
-                    data={voucherDistribution} 
+                  <Bar 
+                    key={`payment-chart-${startDate}-${endDate}`}
+                    data={voucherDistribution}
+                    redraw={true}
                     options={{
-                      ...doughnutOptions,
+                      responsive: true,
+                      maintainAspectRatio: false,
                       plugins: {
-                        ...doughnutOptions.plugins,
+                        legend: {
+                          display: false
+                        },
                         title: {
-                          ...doughnutOptions.plugins.title,
-                          text: 'Payment Method Distribution'
+                          display: true,
+                          text: `Payment Method Distribution${getDateRangeLabel()}`,
+                          font: {
+                            size: 16,
+                            weight: 'bold'
+                          },
+                          padding: {
+                            bottom: 20
+                          }
+                        },
+                        tooltip: {
+                          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                          padding: 12,
+                          titleFont: {
+                            size: 14,
+                            weight: 'bold'
+                          },
+                          bodyFont: {
+                            size: 13
+                          },
+                          callbacks: {
+                            label: function(context) {
+                              const value = context.parsed.y || 0;
+                              const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                              const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                              return `${value.toLocaleString()} students (${percentage}%)`;
+                            }
+                          }
+                        }
+                      },
+                      scales: {
+                        y: {
+                          beginAtZero: true,
+                          ticks: {
+                            callback: function(value) {
+                              return value.toLocaleString();
+                            },
+                            font: {
+                              size: 11
+                            }
+                          },
+                          grid: {
+                            color: 'rgba(0, 0, 0, 0.05)',
+                          },
+                          title: {
+                            display: true,
+                            text: 'Number of Students',
+                            font: {
+                              size: 12,
+                              weight: 'bold'
+                            }
+                          }
+                        },
+                        x: {
+                          ticks: {
+                            font: {
+                              size: 12,
+                              weight: 'bold'
+                            }
+                          },
+                          grid: {
+                            display: false
+                          }
                         }
                       }
                     }} 

@@ -21,6 +21,10 @@ class Payment extends Model
         'paymongo_source_id',
         'checkout_session_id',
         'paymongo_response',
+        // Xendit fields
+        'xendit_charge_id',
+        'xendit_invoice_id',
+        'xendit_response',
         'reference_code',
         'payment_description',
         'notes',
@@ -32,6 +36,7 @@ class Payment extends Model
     protected $casts = [
         'amount' => 'decimal:2',
         'paymongo_response' => 'array',
+        'xendit_response' => 'array',
         'paid_at' => 'datetime',
         'failed_at' => 'datetime',
         'refunded_at' => 'datetime',

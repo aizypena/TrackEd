@@ -18,6 +18,7 @@ import StaffStockTransactions from '../pages/staff/StaffStockTransactions';
 import StaffEnrollmentTrends from '../pages/staff/StaffEnrollmentTrends';
 import StaffProfile from '../pages/staff/StaffProfile';
 import PaymentCallback from '../pages/staff/PaymentCallback';
+import PaymentFailed from '../pages/staff/PaymentFailed';
 import StaffEnrollmentReports from '../pages/staff/StaffEnrollmentReports';
 import StaffStudentReports from '../pages/staff/StaffStudentReports';
 import StaffAssessmentReports from '../pages/staff/StaffAssessmentReports';
@@ -35,6 +36,7 @@ const StaffRoutes = () => {
       
       {/* Payment Callback */}
       <Route path="/payment-callback" element={<ProtectedStaffRoute><PaymentCallback /></ProtectedStaffRoute>} />
+      <Route path="/payment-failed" element={<ProtectedStaffRoute><PaymentFailed /></ProtectedStaffRoute>} />
       
       {/* Enrollment Management */}
       <Route path="/applications" element={<ProtectedStaffRoute><StaffApplications /></ProtectedStaffRoute>} />

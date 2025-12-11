@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { getStaffToken } from '../../utils/staffAuth';
@@ -8,8 +8,13 @@ const PaymentCallback = () => {
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState('verifying'); // verifying, success, failed
   const [message, setMessage] = useState('Verifying payment...');
+  const hasVerified = useRef(false); // Prevent double execution in StrictMode
 
   useEffect(() => {
+    // Prevent double execution
+    if (hasVerified.current) return;
+    hasVerified.current = true;
+    
     verifyAndCompleteEnrollment();
   }, []);
 
@@ -40,8 +45,6 @@ const PaymentCallback = () => {
 
       const verifyData = await verifyResponse.json();
 
-      console.log('Payment verification response:', verifyData);
-
       if (verifyData.success && verifyData.payment_status === 'paid') {
         // Payment successful, now enroll the student
         setMessage('Payment verified! Enrolling student...');
@@ -56,15 +59,13 @@ const PaymentCallback = () => {
           body: JSON.stringify({
             payment_method: verifyData.payment.payment_method,
             amount_paid: verifyData.payment.amount,
-            reference_number: verifyData.payment.paymongo_payment_id || verifyData.payment.paymongo_payment_intent_id || verifyData.payment.reference_code,
-            notes: notes || 'Payment via PayMongo',
-            paymongo_payment_id: paymentId
+            reference_number: verifyData.payment.xendit_charge_id || verifyData.payment.xendit_invoice_id || verifyData.payment.reference_code,
+            notes: notes || 'Payment via Xendit',
+            xendit_payment_id: paymentId
           })
         });
 
         const enrollData = await enrollResponse.json();
-
-        console.log('Enrollment response:', enrollData);
 
         if (enrollData.success) {
           setStatus('success');
@@ -74,25 +75,6 @@ const PaymentCallback = () => {
           sessionStorage.removeItem('pending_payment_id');
           sessionStorage.removeItem('pending_applicant_id');
           sessionStorage.removeItem('payment_notes');
-
-          // Log the action
-          await fetch('https://api.smitracked.cloud/api/staff/actions/log', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              action_type: 'payment_processed',
-              action_description: `Processed PayMongo payment and enrolled applicant ${applicantId} as student ${enrollData.student_id}`,
-              target_user_id: applicantId,
-              metadata: {
-                student_id: enrollData.student_id,
-                amount: verifyData.payment.amount,
-                payment_method: verifyData.payment.payment_method
-              }
-            })
-          });
 
           // Redirect to applications page after 2 seconds
           setTimeout(() => {

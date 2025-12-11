@@ -6,7 +6,7 @@ use App\Models\Payment;
 use App\Models\User;
 use App\Models\Batch;
 use App\Models\Voucher;
-use App\Services\PayMongoService;
+use App\Services\XenditService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -14,11 +14,11 @@ use Illuminate\Support\Str;
 
 class PaymentController extends Controller
 {
-    protected $payMongoService;
+    protected $xenditService;
 
-    public function __construct(PayMongoService $payMongoService)
+    public function __construct(XenditService $xenditService)
     {
-        $this->payMongoService = $payMongoService;
+        $this->xenditService = $xenditService;
     }
 
     /**
@@ -72,21 +72,16 @@ class PaymentController extends Controller
     }
 
     /**
-     * Create a payment intent for enrollment
+     * Create a payment intent for enrollment (using Xendit)
      */
     public function createPaymentIntent(Request $request)
     {
         $request->validate([
             'user_id' => 'required|exists:users,id',
             'batch_id' => 'nullable|exists:batches,batch_id',
-            'payment_method' => 'required|in:gcash,paymaya,maya,grab_pay',
+            'payment_method' => 'required|in:gcash,paymaya,maya,grab_pay,grabpay',
             'amount' => 'nullable|numeric|min:1'
         ]);
-
-        // Normalize maya to paymaya for PayMongo API
-        if ($request->payment_method === 'maya') {
-            $request->merge(['payment_method' => 'paymaya']);
-        }
 
         $user = User::findOrFail($request->user_id);
         $batch = $request->batch_id ? Batch::where('batch_id', $request->batch_id)->with('program')->first() : null;
@@ -97,7 +92,7 @@ class PaymentController extends Controller
             $amount = floatval($batch->program->pricing);
         }
         if (!$amount) {
-            $amount = config('paymongo.enrollment_fee', 5000.00);
+            $amount = config('xendit.enrollment_fee', 5000.00);
         }
 
         // Prepare payment description
@@ -109,6 +104,9 @@ class PaymentController extends Controller
             }
         }
 
+        // Generate reference code
+        $referenceCode = 'ENR-' . strtoupper(Str::random(10));
+
         // Create payment record
         $payment = Payment::create([
             'user_id' => $user->id,
@@ -118,93 +116,59 @@ class PaymentController extends Controller
             'payment_method' => $request->payment_method,
             'payment_status' => 'pending',
             'payment_description' => $description,
-            'reference_code' => 'ENR-' . strtoupper(Str::random(10))
+            'reference_code' => $referenceCode
         ]);
 
-        // MOCK MODE: Skip PayMongo API and create mock payment
-        if (config('paymongo.mode') === 'mock') {
-            $mockPaymentId = 'pay_mock_' . Str::random(20);
-            
-            $payment->update([
-                'paymongo_payment_id' => $mockPaymentId,
-                'paymongo_response' => [
-                    'mock' => true,
-                    'mode' => 'development',
-                    'created_at' => now()->toISOString()
-                ],
-                'payment_status' => 'pending'
-            ]);
+        // Create Xendit E-Wallet Charge
+        $successRedirectUrl = config('xendit.success_redirect_url', 'https://smitracked.cloud/staff/payment-callback');
+        $failureRedirectUrl = config('xendit.failure_redirect_url', 'https://smitracked.cloud/staff/payment-failed');
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Mock payment created for development',
-                'payment' => $payment,
-                'mock' => true,
-                'mock_payment_url' => url("/api/payments/{$payment->id}/mock-payment")
-            ]);
-        }
-
-        // REAL PAYMONGO MODE
-        // Create PayMongo PaymentIntent
-        $result = $this->payMongoService->createPaymentIntent(
+        $result = $this->xenditService->createEWalletCharge(
             $amount,
-            $payment->payment_description,
-            $request->payment_method
+            $referenceCode,
+            $request->payment_method,
+            $description,
+            $successRedirectUrl . '?payment_id=' . $payment->id,
+            $failureRedirectUrl . '?payment_id=' . $payment->id
         );
 
         if ($result['success']) {
-            $paymentIntentData = $result['data']['data'];
-            
-            // Build payment response data
-            $paymentResponse = $paymentIntentData;
-            
-            // For checkout sessions (card payments), include session ID
-            if (isset($result['checkout_session_id'])) {
-                $paymentResponse['checkout_session_id'] = $result['checkout_session_id'];
-            }
-            
-            // Update payment with PayMongo details
+            // Update payment with Xendit details
             $payment->update([
-                'paymongo_payment_intent_id' => $paymentIntentData['id'],
-                'paymongo_response' => $paymentResponse,
+                'xendit_charge_id' => $result['charge_id'],
+                'xendit_response' => $result['data'],
                 'payment_status' => 'processing'
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Payment intent created successfully',
+                'message' => 'Payment created successfully',
                 'payment' => $payment,
-                'payment_intent' => $paymentIntentData,
-                'client_key' => $paymentIntentData['attributes']['client_key'] ?? null,
-                'redirect_url' => $result['redirect_url'] ?? ($paymentIntentData['attributes']['next_action']['redirect']['url'] ?? null)
+                'charge_id' => $result['charge_id'],
+                'redirect_url' => $result['redirect_url']
             ]);
         }
 
-        $payment->markAsFailed('Failed to create payment intent');
+        $payment->markAsFailed('Failed to create Xendit payment');
 
         return response()->json([
             'success' => false,
-            'message' => 'Failed to create payment intent',
+            'message' => 'Failed to create payment',
             'error' => $result['error']
         ], 422);
     }
 
     /**
-     * Create a payment source (alternative method for e-wallets)
+     * Create a payment source (using Xendit Invoice - supports multiple payment methods)
      */
     public function createPaymentSource(Request $request)
     {
         $request->validate([
             'user_id' => 'required|exists:users,id',
             'batch_id' => 'required|exists:batches,batch_id',
-            'payment_method' => 'required|in:gcash,paymaya,maya,grab_pay',
+            'payment_method' => 'required|in:gcash,paymaya,maya,grab_pay,grabpay',
             'amount' => 'nullable|numeric|min:1'
         ]);
-
-        // Normalize maya to paymaya for PayMongo API
-        if ($request->payment_method === 'maya') {
-            $request->merge(['payment_method' => 'paymaya']);
-        }
 
         $user = User::findOrFail($request->user_id);
         $batch = Batch::where('batch_id', $request->batch_id)->with('program')->first();
@@ -215,8 +179,11 @@ class PaymentController extends Controller
             $amount = floatval($batch->program->pricing);
         }
         if (!$amount) {
-            $amount = config('paymongo.enrollment_fee', 5000.00);
+            $amount = config('xendit.enrollment_fee', 5000.00);
         }
+
+        // Generate reference code
+        $referenceCode = 'ENR-' . strtoupper(Str::random(10));
 
         // Create payment record
         $payment = Payment::create([
@@ -227,49 +194,50 @@ class PaymentController extends Controller
             'payment_method' => $request->payment_method,
             'payment_status' => 'pending',
             'payment_description' => "Enrollment fee for {$batch->program->name} - {$batch->batch_id}",
-            'reference_code' => 'ENR-' . strtoupper(Str::random(10))
+            'reference_code' => $referenceCode
         ]);
 
-        // Create PayMongo Source
-        $result = $this->payMongoService->createSource(
+        // Create Xendit Invoice
+        $successRedirectUrl = config('xendit.success_redirect_url', 'https://smitracked.cloud/staff/payment-callback');
+        $failureRedirectUrl = config('xendit.failure_redirect_url', 'https://smitracked.cloud/staff/payment-failed');
+
+        $result = $this->xenditService->createInvoice(
+            $referenceCode,
             $amount,
-            $request->payment_method,
-            [
-                'success' => route('payment.success', ['payment' => $payment->id]),
-                'failed' => route('payment.failed', ['payment' => $payment->id])
-            ]
+            $user->email,
+            $payment->payment_description,
+            $successRedirectUrl . '?payment_id=' . $payment->id,
+            $failureRedirectUrl . '?payment_id=' . $payment->id
         );
 
         if ($result['success']) {
-            $sourceData = $result['data']['data'];
-            
-            // Update payment with PayMongo details
+            // Update payment with Xendit details
             $payment->update([
-                'paymongo_source_id' => $sourceData['id'],
-                'paymongo_response' => $sourceData,
+                'xendit_invoice_id' => $result['invoice_id'],
+                'xendit_response' => $result['data'],
                 'payment_status' => 'processing'
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Payment source created successfully',
+                'message' => 'Payment invoice created successfully',
                 'payment' => $payment,
-                'source' => $sourceData,
-                'redirect_url' => $sourceData['attributes']['redirect']['checkout_url']
+                'invoice_id' => $result['invoice_id'],
+                'redirect_url' => $result['invoice_url']
             ]);
         }
 
-        $payment->markAsFailed('Failed to create payment source');
+        $payment->markAsFailed('Failed to create Xendit invoice');
 
         return response()->json([
             'success' => false,
-            'message' => 'Failed to create payment source',
+            'message' => 'Failed to create payment invoice',
             'error' => $result['error']
         ], 422);
     }
 
     /**
-     * Verify payment status
+     * Verify payment status (using Xendit)
      */
     public function verifyPayment(Request $request, $paymentId)
     {
@@ -284,60 +252,46 @@ class PaymentController extends Controller
             ]);
         }
 
-        // Check for checkout session ID (for card payments)
-        $checkoutSessionId = $payment->paymongo_response['checkout_session_id'] ?? null;
-        
-        if ($checkoutSessionId) {
-            // Verify checkout session status
-            $result = $this->payMongoService->getCheckoutSession($checkoutSessionId);
+        // Check Xendit charge status
+        if ($payment->xendit_charge_id) {
+            $result = $this->xenditService->getEWalletChargeStatus($payment->xendit_charge_id);
             
             if ($result['success']) {
-                $sessionData = $result['data']['data'];
-                $sessionStatus = $sessionData['attributes']['status'] ?? null;
-                $paymentIntent = $sessionData['attributes']['payment_intent'] ?? null;
+                $chargeData = $result['data'];
+                $status = $chargeData['status'] ?? null;
                 
-                if ($sessionStatus === 'active' && $paymentIntent) {
-                    // Check if payment intent has payments
-                    $payments = $paymentIntent['attributes']['payments'] ?? [];
-                    
-                    if (count($payments) > 0) {
-                        // Payment was made
-                        $latestPayment = end($payments);
-                        if ($latestPayment['attributes']['status'] === 'paid') {
-                            $payment->markAsPaid();
-                            $payment->update([
-                                'paymongo_payment_id' => $latestPayment['id'],
-                                'paymongo_response' => $sessionData
-                            ]);
-                        }
-                    }
+                if ($status === 'SUCCEEDED') {
+                    $payment->markAsPaid();
+                    $payment->update([
+                        'xendit_response' => $chargeData
+                    ]);
+                } elseif (in_array($status, ['PENDING', 'PROCESSING'])) {
+                    $payment->markAsProcessing();
+                } elseif (in_array($status, ['FAILED', 'VOIDED'])) {
+                    $payment->markAsFailed('Payment failed in Xendit');
                 }
             }
         }
         
-        // Check PayMongo for payment status via payment intent
-        if ($payment->paymongo_payment_intent_id && !$checkoutSessionId) {
-            $result = $this->payMongoService->getPaymentIntent($payment->paymongo_payment_intent_id);
+        // Check Xendit invoice status
+        if ($payment->xendit_invoice_id) {
+            $result = $this->xenditService->getInvoiceStatus($payment->xendit_invoice_id);
             
             if ($result['success']) {
-                $intentData = $result['data']['data'];
-                $status = $intentData['attributes']['status'];
+                $invoiceData = $result['data'];
+                $status = $invoiceData['status'] ?? null;
                 
-                if ($status === 'succeeded') {
+                if ($status === 'PAID' || $status === 'SETTLED') {
                     $payment->markAsPaid();
                     $payment->update([
-                        'paymongo_response' => $intentData
+                        'xendit_response' => $invoiceData
                     ]);
-                } elseif (in_array($status, ['processing', 'awaiting_payment_method', 'awaiting_next_action'])) {
+                } elseif (in_array($status, ['PENDING', 'PROCESSING'])) {
                     $payment->markAsProcessing();
-                } elseif ($status === 'failed') {
-                    $payment->markAsFailed('Payment failed in PayMongo');
+                } elseif (in_array($status, ['EXPIRED', 'FAILED'])) {
+                    $payment->markAsFailed('Payment failed in Xendit');
                 }
             }
-        } elseif ($payment->paymongo_source_id) {
-            // For source-based payments, we need to check via webhook or Payment endpoint
-            // This is a simplified check
-            $payment->refresh();
         }
 
         return response()->json([
@@ -348,119 +302,114 @@ class PaymentController extends Controller
     }
 
     /**
-     * Handle PayMongo webhook
+     * Handle Xendit webhook
      */
     public function handleWebhook(Request $request)
     {
         try {
-            // Verify webhook signature
-            $signature = $request->header('PayMongo-Signature');
-            $payload = $request->getContent();
+            // Verify webhook signature (optional, but recommended)
+            $callbackToken = $request->header('X-Callback-Token');
+            $webhookVerificationToken = config('xendit.webhook_verification_token');
             
-            if (!$this->payMongoService->verifyWebhookSignature($payload, $signature)) {
-                return response()->json(['error' => 'Invalid signature'], 401);
+            if ($webhookVerificationToken && $callbackToken !== $webhookVerificationToken) {
+                Log::warning('Xendit Webhook: Invalid callback token');
+                return response()->json(['error' => 'Invalid callback token'], 401);
             }
 
-            $event = $request->input('data');
-            $eventType = $event['attributes']['type'];
+            $eventData = $request->all();
+            $eventType = $eventData['event'] ?? null;
 
-            Log::info('PayMongo Webhook:', ['type' => $eventType, 'data' => $event]);
+            Log::info('Xendit Webhook:', ['type' => $eventType, 'data' => $eventData]);
 
+            // Handle different webhook events
             switch ($eventType) {
-                case 'payment.paid':
-                    $this->handlePaymentPaid($event);
+                case 'ewallet.capture':
+                    $this->handleEWalletCapture($eventData);
                     break;
                 
-                case 'payment.failed':
-                    $this->handlePaymentFailed($event);
+                case 'invoice.paid':
+                    $this->handleInvoicePaid($eventData);
                     break;
-                
-                case 'source.chargeable':
-                    $this->handleSourceChargeable($event);
+                    
+                case 'invoice.expired':
+                    $this->handleInvoiceExpired($eventData);
                     break;
             }
 
             return response()->json(['success' => true]);
         } catch (\Exception $e) {
-            Log::error('PayMongo Webhook Error: ' . $e->getMessage());
+            Log::error('Xendit Webhook Error: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
     /**
-     * Handle payment.paid webhook event
+     * Handle e-wallet capture webhook event
      */
-    protected function handlePaymentPaid($event)
+    protected function handleEWalletCapture($eventData)
     {
-        $paymentData = $event['attributes']['data'];
-        $paymentIntentId = $paymentData['attributes']['payment_intent_id'] ?? null;
-        $sourceId = $paymentData['attributes']['source']['id'] ?? null;
+        $chargeData = $eventData['data'] ?? $eventData;
+        $chargeId = $chargeData['id'] ?? null;
+        $referenceId = $chargeData['reference_id'] ?? null;
+        $status = $chargeData['status'] ?? null;
 
-        $payment = Payment::where('paymongo_payment_intent_id', $paymentIntentId)
-            ->orWhere('paymongo_source_id', $sourceId)
+        // Find payment by charge ID or reference code
+        $payment = Payment::where('xendit_charge_id', $chargeId)
+            ->orWhere('reference_code', $referenceId)
+            ->first();
+
+        if ($payment) {
+            if ($status === 'SUCCEEDED') {
+                $payment->update([
+                    'payment_status' => 'paid',
+                    'paid_at' => now(),
+                    'xendit_response' => $chargeData
+                ]);
+                Log::info("Payment marked as paid via e-wallet: {$payment->id}");
+            } elseif (in_array($status, ['FAILED', 'VOIDED'])) {
+                $payment->markAsFailed('E-wallet payment failed');
+                Log::info("Payment marked as failed: {$payment->id}");
+            }
+        }
+    }
+
+    /**
+     * Handle invoice.paid webhook event
+     */
+    protected function handleInvoicePaid($eventData)
+    {
+        $invoiceData = $eventData['data'] ?? $eventData;
+        $invoiceId = $invoiceData['id'] ?? null;
+        $externalId = $invoiceData['external_id'] ?? null;
+
+        // Find payment by invoice ID or reference code
+        $payment = Payment::where('xendit_invoice_id', $invoiceId)
+            ->orWhere('reference_code', $externalId)
             ->first();
 
         if ($payment) {
             $payment->update([
                 'payment_status' => 'paid',
                 'paid_at' => now(),
-                'paymongo_payment_id' => $paymentData['id'],
-                'paymongo_response' => $paymentData
+                'xendit_response' => $invoiceData
             ]);
-
-            Log::info("Payment marked as paid: {$payment->id}");
+            Log::info("Payment marked as paid via invoice: {$payment->id}");
         }
     }
 
     /**
-     * Handle payment.failed webhook event
+     * Handle invoice.expired webhook event
      */
-    protected function handlePaymentFailed($event)
+    protected function handleInvoiceExpired($eventData)
     {
-        $paymentData = $event['attributes']['data'];
-        $paymentIntentId = $paymentData['attributes']['payment_intent_id'] ?? null;
+        $invoiceData = $eventData['data'] ?? $eventData;
+        $invoiceId = $invoiceData['id'] ?? null;
 
-        $payment = Payment::where('paymongo_payment_intent_id', $paymentIntentId)->first();
+        $payment = Payment::where('xendit_invoice_id', $invoiceId)->first();
 
-        if ($payment) {
-            $payment->markAsFailed('Payment failed via webhook');
-            Log::info("Payment marked as failed: {$payment->id}");
-        }
-    }
-
-    /**
-     * Handle source.chargeable webhook event
-     */
-    protected function handleSourceChargeable($event)
-    {
-        $sourceData = $event['attributes']['data'];
-        $sourceId = $sourceData['id'];
-
-        $payment = Payment::where('paymongo_source_id', $sourceId)->first();
-
-        if ($payment) {
-            // Create a Payment using the Source
-            $result = $this->payMongoService->createPayment(
-                $sourceId,
-                $payment->amount,
-                $payment->payment_description
-            );
-
-            if ($result['success']) {
-                $paymentData = $result['data']['data'];
-                
-                $payment->update([
-                    'paymongo_payment_id' => $paymentData['id'],
-                    'payment_status' => 'paid',
-                    'paid_at' => now(),
-                    'paymongo_response' => $paymentData
-                ]);
-
-                Log::info("Source charged successfully: {$payment->id}");
-            } else {
-                $payment->markAsFailed('Failed to charge source');
-                Log::error("Failed to charge source: {$payment->id}");
-            }
+        if ($payment && $payment->payment_status !== 'paid') {
+            $payment->markAsFailed('Invoice expired');
+            Log::info("Payment marked as expired: {$payment->id}");
         }
     }
 

@@ -46,7 +46,7 @@ const ApproveApplicantModal = ({ isOpen, onClose, applicant, onSuccess }) => {
     try {
       setFetchingData(true);
       const token = getStaffToken();
-      const response = await fetch(`${API_URL}/programs`, {
+      const response = await fetch(`${API_URL}/staff/programs`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -76,7 +76,7 @@ const ApproveApplicantModal = ({ isOpen, onClose, applicant, onSuccess }) => {
     try {
       setFetchingData(true);
       const token = getStaffToken();
-      const response = await fetch(`${API_URL}/batches`, {
+      const response = await fetch(`${API_URL}/staff/batches`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -93,8 +93,10 @@ const ApproveApplicantModal = ({ isOpen, onClose, applicant, onSuccess }) => {
         
         // Filter batches that match the selected program
         const matchingBatches = batchesArray.filter(batch => {
-          const programMatch = parseInt(batch.program_id) === parseInt(programId);
-          const isNotCompleted = batch.batch_status !== 'completed';
+          const batchProgramId = batch.program_id || batch.program?.id;
+          const programMatch = parseInt(batchProgramId) === parseInt(programId);
+          const isNotCompleted = batch.status !== 'completed' && batch.batch_status !== 'completed';
+          
           return programMatch && isNotCompleted;
         });
         
