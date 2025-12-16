@@ -15,6 +15,7 @@ const StaffEnrollmentReports = () => {
   const [dateTo, setDateTo] = useState('');
   const [programFilter, setProgramFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [enrollmentCategoryFilter, setEnrollmentCategoryFilter] = useState('all');
   const [reportData, setReportData] = useState(null);
   const [programs, setPrograms] = useState([]);
 
@@ -67,7 +68,8 @@ const StaffEnrollmentReports = () => {
         date_from: dateFrom,
         date_to: dateTo,
         program: programFilter,
-        status: statusFilter
+        status: statusFilter,
+        enrollment_category: enrollmentCategoryFilter
       });
 
       const response = await fetch(`https://api.smitracked.cloud/api/staff/enrollment-report?${params}`, {
@@ -454,6 +456,22 @@ const StaffEnrollmentReports = () => {
                   <option value="dropped_out">Dropped Out</option>
                 </select>
               </div>
+
+              {/* Enrollment Category Filter */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Enrollment Category
+                </label>
+                <select
+                  value={enrollmentCategoryFilter}
+                  onChange={(e) => setEnrollmentCategoryFilter(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-tracked-primary focus:border-transparent"
+                >
+                  <option value="all">All Categories</option>
+                  <option value="voucher">With Voucher (Subsidized)</option>
+                  <option value="walk_in">Walk-In (Self-Pay)</option>
+                </select>
+              </div>
             </div>
 
             {/* Action Buttons */}
@@ -477,32 +495,62 @@ const StaffEnrollmentReports = () => {
 
               {/* Summary Statistics */}
               {reportData.statistics && (
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-                  <div className="border border-gray-200 rounded-lg p-5">
-                    <p className="text-sm font-medium text-gray-600 mb-1">Total Enrollments</p>
-                    <p className="text-3xl font-bold text-gray-900">{reportData.statistics.total}</p>
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-6">
+                    <div className="border border-gray-200 rounded-lg p-5">
+                      <p className="text-sm font-medium text-gray-600 mb-1">Total Enrollments</p>
+                      <p className="text-3xl font-bold text-gray-900">{reportData.statistics.total}</p>
+                    </div>
+
+                    <div className="border border-gray-200 rounded-lg p-5">
+                      <p className="text-sm font-medium text-gray-600 mb-1">Active</p>
+                      <p className="text-3xl font-bold text-green-600">{reportData.statistics.active}</p>
+                    </div>
+
+                    <div className="border border-gray-200 rounded-lg p-5">
+                      <p className="text-sm font-medium text-gray-600 mb-1">Completed</p>
+                      <p className="text-3xl font-bold text-blue-600">{reportData.statistics.completed}</p>
+                    </div>
+
+                    <div className="border border-gray-200 rounded-lg p-5">
+                      <p className="text-sm font-medium text-gray-600 mb-1">Withdrawn</p>
+                      <p className="text-3xl font-bold text-orange-600">{reportData.statistics.withdrawn}</p>
+                    </div>
+
+                    <div className="border border-gray-200 rounded-lg p-5">
+                      <p className="text-sm font-medium text-gray-600 mb-1">Dropped Out</p>
+                      <p className="text-3xl font-bold text-red-600">{reportData.statistics.dropped_out || 0}</p>
+                    </div>
                   </div>
 
-                  <div className="border border-gray-200 rounded-lg p-5">
-                    <p className="text-sm font-medium text-gray-600 mb-1">Active</p>
-                    <p className="text-3xl font-bold text-green-600">{reportData.statistics.active}</p>
-                  </div>
+                  {/* Payment & Enrollment Category Statistics */}
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+                    <div className="border border-blue-200 rounded-lg p-5 bg-blue-50">
+                      <p className="text-sm font-medium text-blue-600 mb-1">GCash Payments</p>
+                      <p className="text-3xl font-bold text-blue-700">{reportData.statistics.gcash || 0}</p>
+                    </div>
 
-                  <div className="border border-gray-200 rounded-lg p-5">
-                    <p className="text-sm font-medium text-gray-600 mb-1">Completed</p>
-                    <p className="text-3xl font-bold text-blue-600">{reportData.statistics.completed}</p>
-                  </div>
+                    <div className="border border-green-200 rounded-lg p-5 bg-green-50">
+                      <p className="text-sm font-medium text-green-600 mb-1">Cash Payments</p>
+                      <p className="text-3xl font-bold text-green-700">{reportData.statistics.cash || 0}</p>
+                    </div>
 
-                  <div className="border border-gray-200 rounded-lg p-5">
-                    <p className="text-sm font-medium text-gray-600 mb-1">Withdrawn</p>
-                    <p className="text-3xl font-bold text-orange-600">{reportData.statistics.withdrawn}</p>
-                  </div>
+                    <div className="border border-indigo-200 rounded-lg p-5 bg-indigo-50">
+                      <p className="text-sm font-medium text-indigo-600 mb-1">Maya Payments</p>
+                      <p className="text-3xl font-bold text-indigo-700">{reportData.statistics.maya || 0}</p>
+                    </div>
 
-                  <div className="border border-gray-200 rounded-lg p-5">
-                    <p className="text-sm font-medium text-gray-600 mb-1">Dropped Out</p>
-                    <p className="text-3xl font-bold text-red-600">{reportData.statistics.dropped_out || 0}</p>
+                    <div className="border border-purple-200 rounded-lg p-5 bg-purple-50">
+                      <p className="text-sm font-medium text-purple-600 mb-1">With Voucher</p>
+                      <p className="text-3xl font-bold text-purple-700">{reportData.statistics.voucher || 0}</p>
+                    </div>
+
+                    <div className="border border-teal-200 rounded-lg p-5 bg-teal-50">
+                      <p className="text-sm font-medium text-teal-600 mb-1">Walk-In (Self-Pay)</p>
+                      <p className="text-3xl font-bold text-teal-700">{reportData.statistics.walk_in || 0}</p>
+                    </div>
                   </div>
-                </div>
+                </>
               )}
 
               {/* Summary Report Table */}

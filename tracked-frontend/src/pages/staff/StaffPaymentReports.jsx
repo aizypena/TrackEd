@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import StaffSidebar from '../../layouts/staff/StaffSidebar';
 import { getStaffToken } from '../../utils/staffAuth';
+import { API_URL } from '../../config/api';
 import toast, { Toaster } from 'react-hot-toast';
 import { MdMenu, MdDownload } from 'react-icons/md';
 import jsPDF from 'jspdf';
@@ -15,6 +16,7 @@ const StaffPaymentReports = () => {
   const [dateTo, setDateTo] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [methodFilter, setMethodFilter] = useState('all');
+  const [enrollmentCategoryFilter, setEnrollmentCategoryFilter] = useState('all');
   const [reportData, setReportData] = useState(null);
 
   useEffect(() => {
@@ -30,7 +32,7 @@ const StaffPaymentReports = () => {
   const logAction = async (action, description) => {
     try {
       const token = getStaffToken();
-      await fetch('https://api.smitracked.cloud/api/log-action', {
+      await fetch(`${API_URL}/log-action`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -71,7 +73,11 @@ const StaffPaymentReports = () => {
         requestBody.method = methodFilter;
       }
       
-      const response = await fetch('https://api.smitracked.cloud/api/staff/reports/payments', {
+      if (enrollmentCategoryFilter && enrollmentCategoryFilter !== 'all') {
+        requestBody.enrollment_category = enrollmentCategoryFilter;
+      }
+      
+            const response = await fetch(`${API_URL}/staff/reports/payments`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -131,6 +137,12 @@ const StaffPaymentReports = () => {
         csvContent = 'Date,Transactions,Total Collected,Cash,Online Payments\n';
         reportData.data.forEach(item => {
           csvContent += `"${item.date}",${item.transactions},"₱${item.total}","₱${item.cash}","₱${item.online}"\n`;
+        });
+      } else if (reportType === 'enrollment_category_breakdown') {
+        filename = `enrollment_category_${dateFrom}_to_${dateTo}.csv`;
+        csvContent = 'Enrollment Category,Student Count,Transaction Count,Total Amount,Average per Student,Percentage of Total\n';
+        reportData.data.forEach(item => {
+          csvContent += `"${item.category}",${item.student_count},${item.transaction_count},"₱${item.total_amount}","₱${item.avg_per_student}",${item.percentage}%\n`;
         });
       }
 
@@ -246,6 +258,22 @@ const StaffPaymentReports = () => {
           headStyles: { fillColor: [59, 130, 246], fontStyle: 'bold' },
           styles: { fontSize: 9, cellPadding: 3 }
         });
+      } else if (reportType === 'enrollment_category_breakdown') {
+        autoTable(doc, {
+          startY: yPosition + 5,
+          head: [['Category', 'Students', 'Transactions', 'Total Amount', 'Avg/Student', '%']],
+          body: reportData.data.map(item => [
+            item.category,
+            item.student_count,
+            item.transaction_count,
+            `₱${item.total_amount}`,
+            `₱${item.avg_per_student}`,
+            `${item.percentage}%`
+          ]),
+          theme: 'grid',
+          headStyles: { fillColor: [59, 130, 246], fontStyle: 'bold' },
+          styles: { fontSize: 9, cellPadding: 3 }
+        });
       }
 
       const pageCount = doc.internal.getNumberOfPages();
@@ -328,6 +356,7 @@ const StaffPaymentReports = () => {
                 >
                   <option value="revenue_summary">Revenue Summary</option>
                   <option value="payment_method_breakdown">Payment Method Breakdown</option>
+                  <option value="enrollment_category_breakdown">Enrollment Category Breakdown</option>
                   <option value="daily_collection">Daily Collection</option>
                   <option value="outstanding_payments">Outstanding Payments</option>
                 </select>
@@ -393,12 +422,24 @@ const StaffPaymentReports = () => {
                 >
                   <option value="all">All Methods</option>
                   <option value="gcash">GCash</option>
-                  <option value="paymaya">PayMaya</option>
-                  <option value="card">Card</option>
-                  <option value="grab_pay">GrabPay</option>
-                  <option value="bank_transfer">Bank Transfer</option>
+                  <option value="maya">Maya</option>
                   <option value="cash">Cash</option>
-                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              {/* Enrollment Category Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Enrollment Category
+                </label>
+                <select
+                  value={enrollmentCategoryFilter}
+                  onChange={(e) => setEnrollmentCategoryFilter(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="all">All Categories</option>
+                  <option value="voucher">With Voucher (Subsidized)</option>
+                  <option value="walk_in">Walk-In (Self-Pay)</option>
                 </select>
               </div>
             </div>
@@ -431,14 +472,27 @@ const StaffPaymentReports = () => {
                     <p className="text-sm text-gray-600 mb-1">Total Transactions</p>
                     <p className="text-3xl font-bold text-blue-600">{reportData.statistics.total_transactions}</p>
                   </div>
-                  <div className="border border-gray-200 rounded-lg p-6">
-                    <p className="text-sm text-gray-600 mb-1">Paid</p>
-                    <p className="text-3xl font-bold text-green-600">₱{reportData.statistics.paid}</p>
-                  </div>
-                  <div className="border border-gray-200 rounded-lg p-6">
-                    <p className="text-sm text-gray-600 mb-1">Unpaid</p>
-                    <p className="text-3xl font-bold text-orange-600">₱{reportData.statistics.unpaid}</p>
-                  </div>
+                  {reportType === 'enrollment_category_breakdown' ? (
+                    <>
+                      <div className="border border-purple-200 rounded-lg p-6 bg-purple-50">
+                        <p className="text-sm text-purple-600 mb-1">Voucher Students Revenue</p>
+                        <p className="text-3xl font-bold text-purple-600">₱{reportData.statistics.voucher_revenue}</p>
+                        <p className="text-xs text-purple-500 mt-1">{reportData.statistics.voucher_students} students</p>
+                      </div>
+                      <div className="border border-green-200 rounded-lg p-6 bg-green-50">
+                        <p className="text-sm text-green-600 mb-1">Walk-In Students Revenue</p>
+                        <p className="text-3xl font-bold text-green-600">₱{reportData.statistics.walkin_revenue}</p>
+                        <p className="text-xs text-green-500 mt-1">{reportData.statistics.walkin_students} students</p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="border border-gray-200 rounded-lg p-6">
+                        <p className="text-sm text-gray-600 mb-1">Paid</p>
+                        <p className="text-3xl font-bold text-green-600">₱{reportData.statistics.paid}</p>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -481,6 +535,16 @@ const StaffPaymentReports = () => {
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-b">Total Collected</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-b">Cash</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-b">Online Payments</th>
+                        </>
+                      )}
+                      {reportType === 'enrollment_category_breakdown' && (
+                        <>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-b">Enrollment Category</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-b">Student Count</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-b">Transactions</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-b">Total Amount</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-b">Avg per Student</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-b">Percentage</th>
                         </>
                       )}
                     </tr>
@@ -534,6 +598,22 @@ const StaffPaymentReports = () => {
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₱{row.total}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-medium">₱{row.cash}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 font-medium">₱{row.online}</td>
+                          </>
+                        )}
+                        {reportType === 'enrollment_category_breakdown' && (
+                          <>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                row.category === 'With Voucher' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'
+                              }`}>
+                                {row.category}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.student_count}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.transaction_count}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₱{row.total_amount}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 font-medium">₱{row.avg_per_student}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-purple-600 font-medium">{row.percentage}%</td>
                           </>
                         )}
                       </tr>

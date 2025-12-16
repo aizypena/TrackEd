@@ -5986,9 +5986,10 @@ Pasay City, Metro Manila 1100</p>
             $dateTo = $request->get('date_to');
             $programFilter = $request->get('program', 'all');
             $statusFilter = $request->get('status', 'all');
+            $enrollmentCategoryFilter = $request->get('enrollment_category', 'all');
             
             // Function to read CSV data
-            $readCSVData = function() use ($dateFrom, $dateTo, $programFilter, $statusFilter) {
+            $readCSVData = function() use ($dateFrom, $dateTo, $programFilter, $statusFilter, $enrollmentCategoryFilter) {
                 $csvData = [];
                 $csvDir = public_path('enrollment-data');
                 
@@ -6003,13 +6004,18 @@ Pasay City, Metro Manila 1100</p>
                         $headers = fgetcsv($handle);
                         
                         while (($row = fgetcsv($handle)) !== false) {
-                            if (count($row) >= 6) { // date, enrollment, program, completed, withdrawn, dropped_out
+                            if (count($row) >= 11) { // date, enrollment, program, completed, withdrawn, dropped_out, gcash, cash, maya, voucher, walk_in
                                 $date = $row[0];
                                 $totalEnrollment = (int)$row[1];
                                 $program = $row[2];
                                 $completed = (int)$row[3];
                                 $withdrawn = (int)$row[4];
                                 $droppedOut = (int)$row[5];
+                                $gcash = (int)$row[6];
+                                $cash = (int)$row[7];
+                                $maya = (int)$row[8];
+                                $voucher = (int)$row[9];
+                                $walkIn = (int)$row[10];
                                 
                                 // Apply date filter
                                 if ($dateFrom && $date < $dateFrom) continue;
@@ -6023,13 +6029,25 @@ Pasay City, Metro Manila 1100</p>
                                     }
                                 }
                                 
+                                // Apply enrollment category filter
+                                if ($enrollmentCategoryFilter === 'voucher') {
+                                    $totalEnrollment = $voucher;
+                                } elseif ($enrollmentCategoryFilter === 'walk_in') {
+                                    $totalEnrollment = $walkIn;
+                                }
+                                
                                 $csvData[] = [
                                     'date' => $date,
                                     'total_enrollment' => $totalEnrollment,
                                     'program' => $program,
                                     'completed' => $completed,
                                     'withdrawn' => $withdrawn,
-                                    'dropped_out' => $droppedOut
+                                    'dropped_out' => $droppedOut,
+                                    'gcash' => $gcash,
+                                    'cash' => $cash,
+                                    'maya' => $maya,
+                                    'voucher' => $voucher,
+                                    'walk_in' => $walkIn
                                 ];
                             }
                         }
@@ -6043,6 +6061,56 @@ Pasay City, Metro Manila 1100</p>
             // Read CSV data
             $csvEnrollments = $readCSVData();
             
+            // Get payment method statistics from database
+            $paymentsQuery = \DB::table('payments')
+                ->join('users', 'payments.user_id', '=', 'users.id')
+                ->where('users.role', 'student')
+                ->where('payments.payment_status', 'paid');
+            
+            if ($dateFrom) {
+                $paymentsQuery->whereDate('payments.created_at', '>=', $dateFrom);
+            }
+            if ($dateTo) {
+                $paymentsQuery->whereDate('payments.created_at', '<=', $dateTo);
+            }
+            
+            // Get payment counts by method
+            $dbPaymentCounts = [
+                'gcash' => (clone $paymentsQuery)->where('payments.payment_method', 'gcash')->count(),
+                'cash' => (clone $paymentsQuery)->where('payments.payment_method', 'cash')->count(),
+                'maya' => (clone $paymentsQuery)->where('payments.payment_method', 'maya')->count(),
+            ];
+            
+            // Get voucher vs walk-in counts from payments
+            $dbVoucherCount = (clone $paymentsQuery)->where('users.voucher_eligible', 1)->distinct('payments.user_id')->count('payments.user_id');
+            $dbWalkInCount = (clone $paymentsQuery)->where('users.voucher_eligible', 0)->distinct('payments.user_id')->count('payments.user_id');
+            
+            // Calculate CSV payment totals
+            $csvPaymentTotals = [
+                'gcash' => 0,
+                'cash' => 0,
+                'maya' => 0,
+                'voucher' => 0,
+                'walk_in' => 0
+            ];
+            
+            foreach ($csvEnrollments as $csvEntry) {
+                $csvPaymentTotals['gcash'] += $csvEntry['gcash'];
+                $csvPaymentTotals['cash'] += $csvEntry['cash'];
+                $csvPaymentTotals['maya'] += $csvEntry['maya'];
+                $csvPaymentTotals['voucher'] += $csvEntry['voucher'];
+                $csvPaymentTotals['walk_in'] += $csvEntry['walk_in'];
+            }
+            
+            // Combined payment statistics
+            $paymentStatistics = [
+                'gcash' => $dbPaymentCounts['gcash'] + $csvPaymentTotals['gcash'],
+                'cash' => $dbPaymentCounts['cash'] + $csvPaymentTotals['cash'],
+                'maya' => $dbPaymentCounts['maya'] + $csvPaymentTotals['maya'],
+                'voucher' => $dbVoucherCount + $csvPaymentTotals['voucher'],
+                'walk_in' => $dbWalkInCount + $csvPaymentTotals['walk_in']
+            ];
+            
             // Base query for students from database
             $query = \App\Models\User::where('role', 'student')
                 ->with(['batch.program']);
@@ -6053,6 +6121,13 @@ Pasay City, Metro Manila 1100</p>
             }
             if ($dateTo) {
                 $query->whereDate('created_at', '<=', $dateTo);
+            }
+            
+            // Apply enrollment category filter (voucher_eligible: 1 = voucher, 0 = walk-in)
+            if ($enrollmentCategoryFilter === 'voucher') {
+                $query->where('voucher_eligible', 1);
+            } elseif ($enrollmentCategoryFilter === 'walk_in') {
+                $query->where('voucher_eligible', 0);
             }
             
             $students = $query->get();
@@ -6116,7 +6191,12 @@ Pasay City, Metro Manila 1100</p>
                 'active' => $dbStatistics['active'], // Only from database
                 'completed' => $dbStatistics['completed'] + $csvCompleted,
                 'withdrawn' => $dbStatistics['withdrawn'] + $csvWithdrawn,
-                'dropped_out' => $csvDroppedOut // Only from CSV
+                'dropped_out' => $csvDroppedOut, // Only from CSV
+                'gcash' => $paymentStatistics['gcash'],
+                'cash' => $paymentStatistics['cash'],
+                'maya' => $paymentStatistics['maya'],
+                'voucher' => $paymentStatistics['voucher'],
+                'walk_in' => $paymentStatistics['walk_in']
             ];
             
             $reportData = ['statistics' => $statistics];
@@ -7272,17 +7352,20 @@ Pasay City, Metro Manila 1100</p>
             $dateTo = $request->input('date_to');
             $status = $request->input('status');
             $method = $request->input('method');
+            $enrollmentCategory = $request->input('enrollment_category');
             
             \Log::info('Payment report request', [
                 'report_type' => $reportType,
                 'date_from' => $dateFrom,
                 'date_to' => $dateTo,
                 'status' => $status,
-                'method' => $method
+                'method' => $method,
+                'enrollment_category' => $enrollmentCategory
             ]);
             
-            // Base query for payments
-            $paymentsQuery = \App\Models\Payment::whereBetween('created_at', [$dateFrom, $dateTo]);
+            // Base query for payments with user relationship
+            $paymentsQuery = \App\Models\Payment::whereBetween('created_at', [$dateFrom, $dateTo])
+                ->with(['user']);
             
             // Apply status filter if provided
             if ($status && $status !== 'all') {
@@ -7294,7 +7377,18 @@ Pasay City, Metro Manila 1100</p>
                 $paymentsQuery->where('payment_method', $method);
             }
             
-            $payments = $paymentsQuery->with(['user'])->get();
+            // Apply enrollment category filter if provided
+            if ($enrollmentCategory && $enrollmentCategory !== 'all') {
+                $paymentsQuery->whereHas('user', function($query) use ($enrollmentCategory) {
+                    if ($enrollmentCategory === 'voucher') {
+                        $query->where('voucher_eligible', 1);
+                    } else if ($enrollmentCategory === 'walk_in') {
+                        $query->where('voucher_eligible', 0);
+                    }
+                });
+            }
+            
+            $payments = $paymentsQuery->get();
             
             // Calculate statistics
             $totalRevenue = $payments->sum('amount');
@@ -7418,6 +7512,58 @@ Pasay City, Metro Manila 1100</p>
                         'online' => number_format($online, 2)
                     ];
                 }
+            } else if ($reportType === 'enrollment_category_breakdown') {
+                // Enrollment Category Breakdown - Voucher vs Walk-In payments
+                $paidPayments = $payments->where('payment_status', 'paid');
+                $totalPaidAmount = $paidPayments->sum('amount');
+                
+                // Get unique user IDs with their voucher status
+                $voucherPayments = $paidPayments->filter(function($payment) {
+                    return $payment->user && $payment->user->voucher_eligible == 1;
+                });
+                
+                $walkInPayments = $paidPayments->filter(function($payment) {
+                    return $payment->user && $payment->user->voucher_eligible == 0;
+                });
+                
+                // Voucher students
+                $voucherAmount = $voucherPayments->sum('amount');
+                $voucherStudentIds = $voucherPayments->pluck('user_id')->unique()->count();
+                $voucherTransactions = $voucherPayments->count();
+                $voucherAvgPerStudent = $voucherStudentIds > 0 ? $voucherAmount / $voucherStudentIds : 0;
+                $voucherPercentage = $totalPaidAmount > 0 ? round(($voucherAmount / $totalPaidAmount) * 100, 2) : 0;
+                
+                // Walk-in students
+                $walkInAmount = $walkInPayments->sum('amount');
+                $walkInStudentIds = $walkInPayments->pluck('user_id')->unique()->count();
+                $walkInTransactions = $walkInPayments->count();
+                $walkInAvgPerStudent = $walkInStudentIds > 0 ? $walkInAmount / $walkInStudentIds : 0;
+                $walkInPercentage = $totalPaidAmount > 0 ? round(($walkInAmount / $totalPaidAmount) * 100, 2) : 0;
+                
+                $reportData = [
+                    [
+                        'category' => 'With Voucher',
+                        'student_count' => $voucherStudentIds,
+                        'transaction_count' => $voucherTransactions,
+                        'total_amount' => number_format($voucherAmount, 2),
+                        'avg_per_student' => number_format($voucherAvgPerStudent, 2),
+                        'percentage' => $voucherPercentage
+                    ],
+                    [
+                        'category' => 'Walk-In (Self-Pay)',
+                        'student_count' => $walkInStudentIds,
+                        'transaction_count' => $walkInTransactions,
+                        'total_amount' => number_format($walkInAmount, 2),
+                        'avg_per_student' => number_format($walkInAvgPerStudent, 2),
+                        'percentage' => $walkInPercentage
+                    ]
+                ];
+                
+                // Update statistics to include enrollment category info
+                $statistics['voucher_students'] = $voucherStudentIds;
+                $statistics['voucher_revenue'] = number_format($voucherAmount, 2);
+                $statistics['walkin_students'] = $walkInStudentIds;
+                $statistics['walkin_revenue'] = number_format($walkInAmount, 2);
             }
             
             return response()->json([
