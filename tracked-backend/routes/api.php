@@ -9818,4 +9818,3 @@ Pasay City, Metro Manila 1100</p>
 
 // Public route with custom token authentication
 Route::get('/payments/{id}/receipt', [PaymentController::class, 'downloadReceipt']);
-

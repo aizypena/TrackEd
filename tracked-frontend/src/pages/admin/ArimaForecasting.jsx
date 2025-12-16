@@ -264,12 +264,17 @@ const ArimaForecasting = () => {
       return `${halfMatch[2]} ${halfMatch[1]}`; // "H1 2024"
     }
     
-    // Handle quarter format like "Q1 2024" or "2024-Q1"
-    const quarterMatch = dateStr.match(/Q(\d)\s*(\d{4})/i) || dateStr.match(/(\d{4})-Q(\d)/i);
+    // Handle quarter format like "Q1 2024" or "2024-Q1" or "2024 Q1"
+    const quarterMatch = dateStr.match(/Q(\d)\s*(\d{4})/i) || dateStr.match(/(\d{4})-Q(\d)/i) || dateStr.match(/(\d{4})\s*Q(\d)/i);
     if (quarterMatch) {
-      const quarter = quarterMatch[1] || quarterMatch[2];
-      const year = quarterMatch[2] || quarterMatch[1];
-      return `Q${quarter} ${year}`;
+      // Check which format matched
+      if (dateStr.match(/Q(\d)\s*(\d{4})/i)) {
+        const match = dateStr.match(/Q(\d)\s*(\d{4})/i);
+        return `${match[2]} Q${match[1]}`; // Convert "Q1 2024" to "2024 Q1"
+      } else {
+        const match = dateStr.match(/(\d{4})[-\s]*Q(\d)/i);
+        return `${match[1]} Q${match[2]}`; // Keep "2024 Q1" format
+      }
     }
     
     // Handle YYYY-MM format

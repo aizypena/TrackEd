@@ -1014,7 +1014,7 @@ Format your response with clear sections using markdown headings (##) and bullet
 
           {/* Charts Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            {/* Payment Method Distribution Chart - Changed to Bar Chart */}
+            {/* Enrollment Trends Chart */}
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
               {loading ? (
                 <div className="flex items-center justify-center h-[400px]">
@@ -1023,92 +1023,19 @@ Format your response with clear sections using markdown headings (##) and bullet
                     <p className="text-gray-600">Loading chart data...</p>
                   </div>
                 </div>
-              ) : ((filteredVoucherStats.withVoucher + filteredVoucherStats.withoutVoucher) === 0) ? (
+              ) : (filteredPeriods.length === 0) ? (
                 <div className="flex items-center justify-center h-[400px]">
                   <p className="text-gray-500">
-                    {(startDate || endDate) ? 'No students enrolled in the selected date range' : 'No payment data available'}
+                    {(startDate || endDate) ? 'No enrollment data in the selected date range' : 'No enrollment data available'}
                   </p>
                 </div>
               ) : (
                 <div style={{ height: '400px' }}>
-                  <Bar 
-                    key={`payment-chart-${startDate}-${endDate}`}
-                    data={voucherDistribution}
+                  <Line 
+                    key={`enrollment-trends-${startDate}-${endDate}-${viewType}`}
+                    data={enrollmentTrends}
                     redraw={true}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: {
-                        legend: {
-                          display: false
-                        },
-                        title: {
-                          display: true,
-                          text: `Payment Method Distribution${getDateRangeLabel()}`,
-                          font: {
-                            size: 16,
-                            weight: 'bold'
-                          },
-                          padding: {
-                            bottom: 20
-                          }
-                        },
-                        tooltip: {
-                          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                          padding: 12,
-                          titleFont: {
-                            size: 14,
-                            weight: 'bold'
-                          },
-                          bodyFont: {
-                            size: 13
-                          },
-                          callbacks: {
-                            label: function(context) {
-                              const value = context.parsed.y || 0;
-                              const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-                              const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                              return `${value.toLocaleString()} students (${percentage}%)`;
-                            }
-                          }
-                        }
-                      },
-                      scales: {
-                        y: {
-                          beginAtZero: true,
-                          ticks: {
-                            callback: function(value) {
-                              return value.toLocaleString();
-                            },
-                            font: {
-                              size: 11
-                            }
-                          },
-                          grid: {
-                            color: 'rgba(0, 0, 0, 0.05)',
-                          },
-                          title: {
-                            display: true,
-                            text: 'Number of Students',
-                            font: {
-                              size: 12,
-                              weight: 'bold'
-                            }
-                          }
-                        },
-                        x: {
-                          ticks: {
-                            font: {
-                              size: 12,
-                              weight: 'bold'
-                            }
-                          },
-                          grid: {
-                            display: false
-                          }
-                        }
-                      }
-                    }} 
+                    options={lineOptions}
                   />
                 </div>
               )}
@@ -1130,22 +1057,6 @@ Format your response with clear sections using markdown headings (##) and bullet
                     <p className="text-sm text-gray-500">
                       {loading ? 'Loading...' : Object.keys(trendsData.programTotals || {}).length > 0 
                         ? `${Object.keys(trendsData.programTotals)[0]} leads with ${Object.values(trendsData.programTotals)[0].toLocaleString()} total enrollments`
-                        : 'No data available'}
-                    </p>
-                  </div>
-                </div>
-                {/* ...rest of Key Insights code unchanged... */}
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0">
-                    <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">
-                      <MdCalendarToday className="h-5 w-5 text-yellow-600" />
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-900">Data Coverage</h4>
-                    <p className="text-sm text-gray-500">
-                      {loading ? 'Loading...' : filteredPeriods.length > 0 
-                        ? `Showing ${filteredPeriods.length} ${viewType} periods from ${filteredPeriods[0]} to ${filteredPeriods[filteredPeriods.length - 1]}`
                         : 'No data available'}
                     </p>
                   </div>
