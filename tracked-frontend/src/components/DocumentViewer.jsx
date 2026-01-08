@@ -42,6 +42,18 @@ const DocumentViewer = ({
     }
   };
 
+  // Prevent right-click context menu
+  const handleContextMenu = (e) => {
+    e.preventDefault();
+    return false;
+  };
+
+  // Prevent drag start
+  const handleDragStart = (e) => {
+    e.preventDefault();
+    return false;
+  };
+
   const getFileIcon = (format, type) => {
     const lowerFormat = format?.toLowerCase() || '';
     
@@ -122,7 +134,10 @@ const DocumentViewer = ({
         </div>
 
         {/* Modal Content - Document Preview */}
-        <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+        <div 
+          className="flex-1 overflow-y-auto p-6 bg-gray-50"
+          onContextMenu={handleContextMenu}
+        >
           <div className="bg-white rounded-lg shadow-inner p-4 min-h-[500px] flex items-center justify-center">
             {(loading || isLoading) ? (
               <div className="text-center">
@@ -133,19 +148,37 @@ const DocumentViewer = ({
               <img
                 src={displayUrl}
                 alt={document?.title || document?.name}
-                className="max-w-full max-h-[600px] object-contain rounded-lg shadow-lg"
+                className="max-w-full max-h-[600px] object-contain rounded-lg shadow-lg select-none pointer-events-none"
+                onContextMenu={handleContextMenu}
+                onDragStart={handleDragStart}
+                draggable="false"
               />
             ) : fileType === 'application/pdf' ? (
-              <iframe
-                src={displayUrl}
-                className="w-full h-[600px] rounded-lg border-2 border-gray-200"
-                title={document?.title || document?.name}
-              />
+              <div 
+                className="w-full h-[600px] relative"
+                onContextMenu={handleContextMenu}
+              >
+                <iframe
+                  src={displayUrl}
+                  className="w-full h-full rounded-lg border-2 border-gray-200"
+                  title={document?.title || document?.name}
+                  onContextMenu={handleContextMenu}
+                />
+                {/* Overlay to prevent right-click on iframe */}
+                <div 
+                  className="absolute inset-0 pointer-events-none"
+                  onContextMenu={handleContextMenu}
+                />
+              </div>
             ) : fileType?.startsWith('video/') ? (
               <video
                 controls
+                controlsList="nodownload"
                 className="max-w-full max-h-[600px] rounded-lg shadow-lg"
                 src={displayUrl}
+                onContextMenu={handleContextMenu}
+                onDragStart={handleDragStart}
+                draggable="false"
               >
                 Your browser does not support the video tag.
               </video>
