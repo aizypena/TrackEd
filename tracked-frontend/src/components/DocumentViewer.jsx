@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { MdClose, MdDownload, MdPictureAsPdf, MdVideoLibrary, MdDescription, MdImage } from 'react-icons/md';
 
 const DocumentViewer = ({ 
@@ -10,31 +10,52 @@ const DocumentViewer = ({
 }) => {
   const [documentUrl, setDocumentUrl] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const canvasRef = useRef(null);
 
   useEffect(() => {
     if (isOpen && document) {
       setIsLoading(true);
-      // If document has a fileUrl (blob URL), use it directly
       if (document.fileUrl) {
         setDocumentUrl(document.fileUrl);
         setIsLoading(false);
       } else if (document.file_path) {
-        // If it's a file path, create a blob URL from fetch
         fetchDocument();
       }
     }
 
     return () => {
-      // Cleanup blob URL when component unmounts or modal closes
       if (documentUrl && documentUrl.startsWith('blob:')) {
         URL.revokeObjectURL(documentUrl);
       }
     };
   }, [isOpen, document]);
 
+  // Render image to canvas to prevent easy extraction
+  useEffect(() => {
+    const displayUrl = documentUrl || document?.fileUrl;
+    const fileType = getFileType(document?.format);
+    
+    if (displayUrl && fileType?.startsWith('image/') && canvasRef.current) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        
+        // Add watermark (optional)
+        ctx.font = '20px Arial';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.fillText('TrackEd - View Only', 10, 30);
+      };
+      img.src = displayUrl;
+    }
+  }, [documentUrl, document]);
+
   const fetchDocument = async () => {
     try {
-      // This will be called by parent component that passes the blob URL
       setIsLoading(false);
     } catch (error) {
       console.error('Error loading document:', error);
@@ -42,17 +63,40 @@ const DocumentViewer = ({
     }
   };
 
-  // Prevent right-click context menu
   const handleContextMenu = (e) => {
     e.preventDefault();
     return false;
   };
 
-  // Prevent drag start
   const handleDragStart = (e) => {
     e.preventDefault();
     return false;
   };
+
+  // Prevent keyboard shortcuts (Ctrl+S, Cmd+S, etc.)
+  const handleKeyDown = (e) => {
+    if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+      e.preventDefault();
+      return false;
+    }
+  };
+
+  // Detect DevTools opening
+  useEffect(() => {
+    const detectDevTools = () => {
+      const threshold = 160;
+      const widthThreshold = window.outerWidth - window.innerWidth > threshold;
+      const heightThreshold = window.outerHeight - window.innerHeight > threshold;
+      
+      if (widthThreshold || heightThreshold) {
+        // DevTools might be open - you could blur the content or show a warning
+        console.warn('Developer tools detected');
+      }
+    };
+
+    window.addEventListener('resize', detectDevTools);
+    return () => window.removeEventListener('resize', detectDevTools);
+  }, []);
 
   const getFileIcon = (format, type) => {
     const lowerFormat = format?.toLowerCase() || '';
@@ -71,12 +115,10 @@ const DocumentViewer = ({
   };
 
   const formatFileSize = (sizeValue) => {
-    // Handle pre-formatted string sizes like "1.5 MB", "500 KB"
     if (typeof sizeValue === 'string' && /^\d+(\.\d+)?\s*(B|KB|MB|GB)$/i.test(sizeValue.trim())) {
       return sizeValue.trim();
     }
     
-    // Handle numeric byte values
     const bytes = Number(sizeValue);
     if (!bytes || bytes <= 0 || isNaN(bytes)) return null;
     
@@ -86,7 +128,6 @@ const DocumentViewer = ({
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   };
 
-  // Get file size from document (supports both 'size' and 'file_size' properties)
   const getDocumentFileSize = (doc) => {
     if (!doc) return null;
     return formatFileSize(doc.size) || formatFileSize(doc.file_size) || null;
@@ -118,12 +159,14 @@ const DocumentViewer = ({
   const displayUrl = documentUrl || document?.fileUrl;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
+    <div 
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn"
+      onKeyDown={handleKeyDown}
+    >
       <div className="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col animate-slideUp">
-        {/* Modal Header */}
         <div className="bg-tracked-primary px-6 py-4 rounded-t-xl flex items-center justify-between">
           <h3 className="text-xl font-bold text-white">
-            Document Viewer
+            Document Viewer - View Only Mode
           </h3>
           <button
             onClick={handleClose}
@@ -133,25 +176,30 @@ const DocumentViewer = ({
           </button>
         </div>
 
-        {/* Modal Content - Document Preview */}
         <div 
           className="flex-1 overflow-y-auto p-6 bg-gray-50"
           onContextMenu={handleContextMenu}
         >
-          <div className="bg-white rounded-lg shadow-inner p-4 min-h-[500px] flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-inner p-4 min-h-[500px] flex items-center justify-center relative">
+            {/* Watermark overlay */}
+            <div className="absolute inset-0 pointer-events-none z-10 flex items-center justify-center opacity-10">
+              { /* <div className="transform -rotate-45 text-6xl font-bold text-gray-800">
+                VIEW ONLY
+              </div> */}
+            </div>
+
             {(loading || isLoading) ? (
               <div className="text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
                 <p className="text-gray-600">Loading document...</p>
               </div>
             ) : fileType?.startsWith('image/') ? (
-              <img
-                src={displayUrl}
-                alt={document?.title || document?.name}
-                className="max-w-full max-h-[600px] object-contain rounded-lg shadow-lg select-none pointer-events-none"
+              <canvas
+                ref={canvasRef}
+                className="max-w-full max-h-[600px] object-contain rounded-lg shadow-lg"
                 onContextMenu={handleContextMenu}
                 onDragStart={handleDragStart}
-                draggable="false"
+                style={{ pointerEvents: 'none', userSelect: 'none' }}
               />
             ) : fileType === 'application/pdf' ? (
               <div 
@@ -159,12 +207,12 @@ const DocumentViewer = ({
                 onContextMenu={handleContextMenu}
               >
                 <iframe
-                  src={displayUrl}
+                  src={`${displayUrl}#toolbar=0&navpanes=0&scrollbar=0`}
                   className="w-full h-full rounded-lg border-2 border-gray-200"
                   title={document?.title || document?.name}
                   onContextMenu={handleContextMenu}
+                  sandbox="allow-same-origin"
                 />
-                {/* Overlay to prevent right-click on iframe */}
                 <div 
                   className="absolute inset-0 pointer-events-none"
                   onContextMenu={handleContextMenu}
@@ -173,7 +221,8 @@ const DocumentViewer = ({
             ) : fileType?.startsWith('video/') ? (
               <video
                 controls
-                controlsList="nodownload"
+                controlsList="nodownload nofullscreen noremoteplayback"
+                disablePictureInPicture
                 className="max-w-full max-h-[600px] rounded-lg shadow-lg"
                 src={displayUrl}
                 onContextMenu={handleContextMenu}
@@ -233,7 +282,6 @@ const DocumentViewer = ({
           </div>
         </div>
 
-        {/* Modal Footer */}
         {document && (
           <div className="border-t border-gray-200 px-6 py-4 bg-gray-50 rounded-b-xl">
             <div className="flex justify-between items-center">
