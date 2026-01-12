@@ -46,6 +46,42 @@ const StaffApplicantView = () => {
     fetchApplicantDetails();
   }, [id]);
 
+  // Detect DevTools opening with auto-logout (simplified to avoid false positives)
+  useEffect(() => {
+    let logoutTriggered = false;
+
+    const handleDevToolsDetected = () => {
+      if (logoutTriggered) return;
+      logoutTriggered = true;
+      
+      alert('Security Alert: Developer tools detected. You will be logged out for security reasons.');
+      localStorage.removeItem('staff_token');
+      localStorage.removeItem('staff_user');
+      sessionStorage.clear();
+      window.location.href = '/staff/login';
+    };
+
+    // Only use window size detection to avoid false positives
+    const checkDevToolsSize = () => {
+      const widthThreshold = window.outerWidth - window.innerWidth > 200;
+      const heightThreshold = window.outerHeight - window.innerHeight > 200;
+      
+      if (widthThreshold || heightThreshold) {
+        handleDevToolsDetected();
+      }
+    };
+
+    // Check on window resize only
+    window.addEventListener('resize', checkDevToolsSize);
+    
+    // Initial check
+    checkDevToolsSize();
+
+    return () => {
+      window.removeEventListener('resize', checkDevToolsSize);
+    };
+  }, []);
+
   // Function to log system action
   const logSystemAction = async (action, description, logLevel = 'info') => {
     try {
@@ -94,6 +130,57 @@ const StaffApplicantView = () => {
       console.error('Error fetching applicant details:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Prevent right-click context menu
+  const handleContextMenu = (e) => {
+    e.preventDefault();
+    return false;
+  };
+
+  // Prevent keyboard shortcuts (F12, Inspect Element, DevTools, etc.)
+  const handleKeyDown = (e) => {
+    // Prevent Save (Ctrl+S / Cmd+S)
+    if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+      e.preventDefault();
+      return false;
+    }
+    
+    // Prevent F12 (DevTools)
+    if (e.key === 'F12') {
+      e.preventDefault();
+      return false;
+    }
+    
+    // Prevent Ctrl+Shift+I / Cmd+Option+I (Inspect Element)
+    if ((e.ctrlKey && e.shiftKey && e.key === 'I') || (e.metaKey && e.altKey && e.key === 'i')) {
+      e.preventDefault();
+      return false;
+    }
+    
+    // Prevent Ctrl+Shift+C / Cmd+Option+C (Inspect Element)
+    if ((e.ctrlKey && e.shiftKey && e.key === 'C') || (e.metaKey && e.altKey && e.key === 'c')) {
+      e.preventDefault();
+      return false;
+    }
+    
+    // Prevent Ctrl+Shift+J / Cmd+Option+J (Console)
+    if ((e.ctrlKey && e.shiftKey && e.key === 'J') || (e.metaKey && e.altKey && e.key === 'j')) {
+      e.preventDefault();
+      return false;
+    }
+    
+    // Prevent Ctrl+U / Cmd+U (View Source)
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'u' || e.key === 'U')) {
+      e.preventDefault();
+      return false;
+    }
+    
+    // Prevent Ctrl+Shift+K / Cmd+Option+K (Console in Firefox)
+    if ((e.ctrlKey && e.shiftKey && e.key === 'K') || (e.metaKey && e.altKey && e.key === 'k')) {
+      e.preventDefault();
+      return false;
     }
   };
 
@@ -407,7 +494,11 @@ const StaffApplicantView = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div 
+      className="min-h-screen bg-gray-100"
+      onContextMenu={handleContextMenu}
+      onKeyDown={handleKeyDown}
+    >
       <StaffSidebar 
         isOpen={sidebarOpen} 
         onClose={() => setSidebarOpen(false)}
