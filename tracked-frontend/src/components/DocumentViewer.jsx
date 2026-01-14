@@ -27,9 +27,19 @@ const DocumentViewer = ({
       localStorage.clear();
       sessionStorage.clear();
       
-      // Wait 2 seconds before closing DevTools and logging out
+      // Wait 2 seconds then close current tab and open login in new tab
       setTimeout(() => {
-        window.location.replace('/staff/login');
+        // Open login page in new tab
+        window.open('/staff/login', '_blank');
+        
+        // Close current tab (this closes DevTools with it)
+        setTimeout(() => {
+          window.close();
+          // If window.close() doesn't work (tab not opened by script), navigate away
+          setTimeout(() => {
+            window.location.replace('/staff/login');
+          }, 100);
+        }, 500);
       }, 2000);
     };
 
