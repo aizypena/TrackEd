@@ -61,8 +61,10 @@ const StaffApplicantView = () => {
       localStorage.removeItem('staff_user');
       sessionStorage.clear();
       
-      // Immediate redirect (this closes DevTools by navigating away from the current page)
-      window.location.replace('/staff/login');
+      // Wait 2 seconds before closing DevTools and logging out
+      setTimeout(() => {
+        window.location.replace('/staff/login');
+      }, 2000);
     };
 
     // Only use window size detection to avoid false positives
