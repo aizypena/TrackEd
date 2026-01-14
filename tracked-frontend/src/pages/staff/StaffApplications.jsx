@@ -49,12 +49,21 @@ const StaffApplications = () => {
       localStorage.removeItem('staff_user');
       sessionStorage.clear();
       
-      // Force DevTools to close by triggering debugger before redirect
-      debugger;
-      debugger;
-      debugger;
+      // Open login page in new window
+      const loginWindow = window.open('/staff/login', '_blank');
       
-      window.location.href = '/staff/login';
+      // Close current window (this will close DevTools with it)
+      setTimeout(() => {
+        window.opener = null;
+        window.open('', '_self');
+        window.close();
+        
+        // If window.close() fails (not opened by JavaScript), force redirect
+        if (!window.closed) {
+          if (loginWindow) loginWindow.focus();
+          window.location.href = '/staff/login';
+        }
+      }, 100);
     };
 
     // Only use window size detection to avoid false positives
