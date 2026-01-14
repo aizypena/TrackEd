@@ -48,6 +48,12 @@ const StaffApplications = () => {
       localStorage.removeItem('staff_token');
       localStorage.removeItem('staff_user');
       sessionStorage.clear();
+      
+      // Force DevTools to close by triggering debugger before redirect
+      debugger;
+      debugger;
+      debugger;
+      
       window.location.href = '/staff/login';
     };
 

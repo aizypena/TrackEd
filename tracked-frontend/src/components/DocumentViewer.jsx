@@ -24,7 +24,13 @@ const DocumentViewer = ({
       alert('Security Alert: Developer tools detected. You will be logged out for security reasons.');
       localStorage.clear();
       sessionStorage.clear();
-      window.location.href = '/login';
+      
+      // Force DevTools to close by triggering debugger before redirect
+      debugger;
+      debugger;
+      debugger;
+      
+      window.location.href = '/staff/login';
     };
 
     // Only use window size detection to avoid false positives
