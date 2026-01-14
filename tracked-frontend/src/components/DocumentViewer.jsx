@@ -22,24 +22,13 @@ const DocumentViewer = ({
       logoutTriggered = true;
       
       alert('Security Alert: Developer tools detected. You will be logged out for security reasons.');
+      
+      // Clear authentication immediately
       localStorage.clear();
       sessionStorage.clear();
       
-      // Open login page in new window
-      const loginWindow = window.open('/staff/login', '_blank');
-      
-      // Close current window (this will close DevTools with it)
-      setTimeout(() => {
-        window.opener = null;
-        window.open('', '_self');
-        window.close();
-        
-        // If window.close() fails (not opened by JavaScript), force redirect
-        if (!window.closed) {
-          if (loginWindow) loginWindow.focus();
-          window.location.href = '/staff/login';
-        }
-      }, 100);
+      // Immediate redirect (this closes DevTools by navigating away from the current page)
+      window.location.replace('/staff/login');
     };
 
     // Only use window size detection to avoid false positives
